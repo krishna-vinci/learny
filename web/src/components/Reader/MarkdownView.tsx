@@ -68,15 +68,7 @@ const markdownComponents: Components = {
 
 function MarkdownViewComponent({ content, className }: MarkdownViewProps) {
   return (
-    <div
-      className={cn(
-        "w-full max-w-full break-words text-base leading-6 text-foreground [&>*:last-child]:mb-0",
-        "[&_.katex-display]:max-w-full [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden",
-        "[&_.footnotes]:mt-4 [&_.footnotes]:border-t [&_.footnotes]:border-border [&_.footnotes]:pt-2",
-        "[&_.footnotes]:text-sm [&_.footnotes]:text-muted-foreground",
-        className,
-      )}
-    >
+    <div className={cn("studium-prose w-full break-words text-foreground", className)}>
       <ReactMarkdown
         remarkPlugins={[remarkMath, remarkGfm, remarkDirective, remarkStudiumDirectives, remarkStudiumCitations]}
         rehypePlugins={[

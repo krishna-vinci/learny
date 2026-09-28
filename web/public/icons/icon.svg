@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><title>Studium</title>
+  <rect width="512" height="512" rx="0" fill="#2b4a6f"/>
+  <g fill="none" stroke="#f7f5ef" stroke-width="28" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M136 150h70v212h-70z"/>
+    <path d="M226 150h70v212h-70z"/>
+    <path d="M318 162l62-18 58 200-62 18z"/>
+  </g>
+</svg>

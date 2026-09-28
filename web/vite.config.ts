@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
+import { VitePWA } from "vite-plugin-pwa";
 
 const rootDir = import.meta.dirname;
 
@@ -9,7 +10,41 @@ const devProxyServer = process.env.DEV_PROXY_SERVER || "http://127.0.0.1:3000";
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    VitePWA({
+      registerType: "autoUpdate",
+      includeAssets: ["icons/icon.svg", "icons/apple-touch-icon.png"],
+      manifest: {
+        name: "Studium",
+        short_name: "Studium",
+        display: "standalone",
+        start_url: "/",
+        scope: "/",
+        theme_color: "#2b4a6f",
+        background_color: "#f7f5ef",
+        icons: [
+          { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+          { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+          { src: "/icons/maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+        ],
+      },
+      workbox: {
+        // The app shell/build assets only — never intercept the API. SSE at /api/events
+        // in particular must pass through untouched (no response buffering, no timeout).
+        globPatterns: ["**/*.{js,css,html,svg,png,ico,woff,woff2}"],
+        navigateFallback: "/index.html",
+        navigateFallbackDenylist: [/^\/api\//],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith("/api/"),
+            handler: "NetworkOnly",
+          },
+        ],
+      },
+    }),
+  ],
   server: {
     // Loopback only: the dev proxy forwards to a server that may run without a password.
     host: "127.0.0.1",

@@ -98,7 +98,10 @@ export const MobileAppHeader = () => {
   const { setMobileOpen } = useMobileSidebar();
   const params = useParams<{ set?: string }>();
   return (
-    <header className="sticky top-0 z-20 flex h-12 w-full shrink-0 items-center justify-start gap-1 border-b border-border/70 bg-background/90 px-2 backdrop-blur-md md:hidden">
+    <header
+      className="sticky top-0 z-20 flex h-12 w-full shrink-0 items-center justify-start gap-1 border-b border-border/70 bg-background/90 px-2 backdrop-blur-md md:hidden"
+      style={{ paddingTop: "env(safe-area-inset-top)", height: "calc(3rem + env(safe-area-inset-top))" }}
+    >
       <Button
         variant="ghost"
         size="icon"
