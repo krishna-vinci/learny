@@ -6,7 +6,8 @@ import { Reader } from "@/components/Reader";
 export default function NotePage() {
   const params = useParams<{ set: string; "*": string }>();
   const set = params.set;
-  const path = params["*"];
+  // The route carries the path inside notes/ (`/s/:set/n/03-svd.md`); the API wants it set-relative.
+  const path = params["*"] ? `notes/${params["*"]}` : undefined;
 
   const { data: file, isLoading, isError } = useNoteFile(set, path);
 

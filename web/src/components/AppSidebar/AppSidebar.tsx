@@ -12,7 +12,7 @@ import {
   SettingsIcon,
   WrenchIcon,
 } from "lucide-react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useNotes } from "@/api/queries";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -33,6 +33,7 @@ const PLACEHOLDER_ROWS = [
 const NotesSidebarContent = ({ set, activeNotePath }: { set: string; activeNotePath?: string }) => {
   const { data: notes = [], isLoading } = useNotes(set);
   const { setMobileOpen } = useMobileSidebar();
+  const navigate = useNavigate();
 
   return (
     <div className={SIDEBAR_SECTION_STACK_CLASSES}>
@@ -47,7 +48,10 @@ const NotesSidebarContent = ({ set, activeNotePath }: { set: string; activeNoteP
             icon={ListChecksIcon}
             label={note.title}
             state={note.path === activeNotePath ? "current" : "idle"}
-            onClick={() => setMobileOpen(false)}
+            onClick={() => {
+              navigate(`/s/${set}/n/${note.path.replace(/^notes\//, "")}`);
+              setMobileOpen(false);
+            }}
           />
         ))}
       </SidebarSection>
