@@ -107,6 +107,51 @@ describe("McpManager", () => {
     expect(manager.tools(["another-server"])).toEqual([]);
   });
 
+  it("adds stable hashes to normalized collisions without dropping tools", async () => {
+    const dashed = createFakeMcpServer("collision-server");
+    const underscored = createFakeMcpServer("collision_server");
+    const manager = new McpManager([dashed.config, underscored.config], (config) =>
+      config.name === dashed.config.name ? dashed.clientFactory(config) : underscored.clientFactory(config),
+    );
+    try {
+      await manager.start();
+
+      const firstNames = manager.tools([dashed.config.name, underscored.config.name]).map((tool) => tool.name);
+      const secondNames = manager.tools([dashed.config.name, underscored.config.name]).map((tool) => tool.name);
+
+      expect(firstNames).toHaveLength(4);
+      expect(new Set(firstNames).size).toBe(4);
+      expect(firstNames).toEqual(secondNames);
+      expect(firstNames).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(/^mcp_collision_server_echo_[0-9a-f]{6}$/),
+          expect.stringMatching(/^mcp_collision_server_fail_[0-9a-f]{6}$/),
+        ]),
+      );
+    } finally {
+      await manager.stop().catch(() => undefined);
+      await dashed.stop().catch(() => undefined);
+      await underscored.stop().catch(() => undefined);
+    }
+  });
+
+  it("adds a stable hash when truncating a long MCP tool name", async () => {
+    const fake = createFakeMcpServer(`server-${"x".repeat(70)}`);
+    const manager = new McpManager([fake.config], fake.clientFactory);
+    try {
+      await manager.start();
+
+      const names = manager.tools([fake.config.name]).map((tool) => tool.name);
+
+      expect(names).toHaveLength(2);
+      expect(names.every((name) => name.length <= 64)).toBe(true);
+      expect(names.every((name) => /_[0-9a-f]{6}$/.test(name))).toBe(true);
+    } finally {
+      await manager.stop().catch(() => undefined);
+      await fake.stop().catch(() => undefined);
+    }
+  });
+
   it("caps tool output at 100 KB", async () => {
     const { manager } = await setup();
     const echo = manager.tools(["fake-server"]).find((tool) => tool.name === "mcp_fake_server_echo");

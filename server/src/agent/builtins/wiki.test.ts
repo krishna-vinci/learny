@@ -94,4 +94,19 @@ describe("wikiTools", () => {
 
     expect(outcome.details).toMatchObject({ isError: true, summary: "Wikipedia request failed with HTTP 404" });
   });
+
+  it("rejects an oversized Wikipedia response before parsing it", async () => {
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock.mockResolvedValue(new Response("{}", { headers: { "content-length": String(5 * 1024 * 1024 + 1) } }));
+
+    const outcome = await byName("wiki_search").execute(
+      "call-1",
+      { query: "large" },
+      undefined,
+      undefined,
+      undefined as never,
+    );
+
+    expect(outcome.details).toMatchObject({ isError: true, summary: expect.stringContaining("exceeds") });
+  });
 });

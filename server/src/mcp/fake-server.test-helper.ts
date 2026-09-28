@@ -11,7 +11,7 @@ export interface FakeMcpServer {
   stop(): Promise<void>;
 }
 
-export function createFakeMcpServer(name = "fake-server"): FakeMcpServer {
+export function createFakeMcpServer(name = "fake-server", extraToolCount = 0): FakeMcpServer {
   const server = new McpServer({ name: "studium-test", version: "1.0.0" });
   server.registerTool(
     "echo",
@@ -25,6 +25,11 @@ export function createFakeMcpServer(name = "fake-server"): FakeMcpServer {
     content: [{ type: "text", text: "intentional failure" }],
     isError: true,
   }));
+  for (let index = 0; index < extraToolCount; index++) {
+    server.registerTool(`extra-${index}`, { inputSchema: z.object({}) }, () => ({
+      content: [{ type: "text", text: String(index) }],
+    }));
+  }
 
   const config: McpServerConfig = { name, command: "in-memory-test-server" };
   let created = false;

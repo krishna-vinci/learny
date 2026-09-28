@@ -1,5 +1,6 @@
 import { defineTool, type ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+import { decodeBody, readCappedResponse, SAFE_FETCH_MAX_BYTES } from "../../ingest/safe-fetch.js";
 
 const WIKIPEDIA_HOST = "https://en.wikipedia.org";
 const MAX_MARKDOWN_BYTES = 60 * 1024;
@@ -61,7 +62,8 @@ async function requestJson(url: string): Promise<unknown> {
       headers: { accept: "application/json", "user-agent": "Studium/0.0 (+https://studium.local)" },
     });
     if (!response.ok) throw new Error(`Wikipedia request failed with HTTP ${response.status}`);
-    return await response.json();
+    const bytes = await readCappedResponse(response, SAFE_FETCH_MAX_BYTES, url);
+    return JSON.parse(decodeBody(bytes, response.headers.get("content-type")));
   } finally {
     clearTimeout(timer);
   }
@@ -76,7 +78,8 @@ async function requestText(url: string): Promise<string> {
       headers: { accept: "text/html", "user-agent": "Studium/0.0 (+https://studium.local)" },
     });
     if (!response.ok) throw new Error(`Wikipedia request failed with HTTP ${response.status}`);
-    return await response.text();
+    const bytes = await readCappedResponse(response, SAFE_FETCH_MAX_BYTES, url);
+    return decodeBody(bytes, response.headers.get("content-type"));
   } finally {
     clearTimeout(timer);
   }

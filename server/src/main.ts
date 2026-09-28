@@ -49,7 +49,6 @@ const runtime = await createModelRuntime();
 const mcpConfig = loadMcpConfig(root, process.env);
 const mcp = new McpManager(mcpConfig.servers);
 mcp.setDisabledServers(mcpConfig.disabled);
-await mcp.start();
 const jobs = new JobRunner({
   root,
   hub,
@@ -108,6 +107,7 @@ const app = createApp({
 const server = serve({ fetch: app.fetch, port, hostname: host }, (info) => {
   console.log(`studium listening on http://${host}:${info.port} (study root: ${root})`);
 });
+void mcp.start();
 
 const stopWatcher = startWatcher(root, hub);
 const stopInboxWatcher = startInboxWatcher({ root, jobs });

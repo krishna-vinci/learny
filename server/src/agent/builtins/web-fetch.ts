@@ -1,6 +1,6 @@
 import { defineTool, type ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
-import { assertPublicUrl, decodeBody, safeFetch } from "../../ingest/safe-fetch.js";
+import { assertPublicUrl, decodeBody, readCappedResponse, safeFetch } from "../../ingest/safe-fetch.js";
 
 const DOWNLOAD_TIMEOUT_MS = 15_000;
 const MAX_DOWNLOAD_BYTES = 5 * 1024 * 1024;
@@ -91,8 +91,9 @@ async function firecrawlMarkdown(url: URL, opts: WebFetchOptions): Promise<strin
       },
       body: JSON.stringify({ url: url.toString(), formats: ["markdown"] }),
     });
+    const bytes = await readCappedResponse(response, MAX_DOWNLOAD_BYTES, firecrawlEndpoint(opts.firecrawlUrl));
     if (!response.ok) return null;
-    const payload: unknown = await response.json();
+    const payload: unknown = JSON.parse(decodeBody(bytes, response.headers.get("content-type")));
     if (typeof payload !== "object" || payload === null) return null;
     const data = (payload as { data?: unknown }).data;
     if (typeof data !== "object" || data === null) return null;
