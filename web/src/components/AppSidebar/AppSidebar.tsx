@@ -12,7 +12,7 @@ import {
   SettingsIcon,
   WrenchIcon,
 } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useNotes } from "@/api/queries";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -27,40 +27,53 @@ const PLACEHOLDER_ROWS = [
   { label: "Cards", icon: NotebookTextIcon },
   { label: "Inbox", icon: ArchiveIcon },
   { label: "Jobs", icon: WrenchIcon },
-  { label: "Settings", icon: SettingsIcon },
 ] as const;
 
-const NotesSidebarContent = ({ set, activeNotePath }: { set: string; activeNotePath?: string }) => {
+const NotesSection = ({ set, activeNotePath }: { set: string; activeNotePath?: string }) => {
   const { data: notes = [], isLoading } = useNotes(set);
   const { setMobileOpen } = useMobileSidebar();
   const navigate = useNavigate();
 
   return (
-    <div className={SIDEBAR_SECTION_STACK_CLASSES}>
-      <SidebarSection label="Notes">
-        {isLoading && <div className="px-2 py-1 text-sm text-muted-foreground">Loading…</div>}
-        {!isLoading && notes.length === 0 && (
-          <div className="px-2 py-1 text-sm text-muted-foreground">No notes yet</div>
-        )}
-        {notes.map((note) => (
-          <SidebarRow
-            key={note.path}
-            icon={ListChecksIcon}
-            label={note.title}
-            state={note.path === activeNotePath ? "current" : "idle"}
-            onClick={() => {
-              navigate(`/s/${set}/n/${note.path.replace(/^notes\//, "")}`);
-              setMobileOpen(false);
-            }}
-          />
-        ))}
-      </SidebarSection>
-      <SidebarSection label="More" ariaLabel="Unimplemented sections">
-        {PLACEHOLDER_ROWS.map((row) => (
-          <SidebarRow key={row.label} icon={row.icon} label={row.label} disabled />
-        ))}
-      </SidebarSection>
-    </div>
+    <SidebarSection label="Notes">
+      {isLoading && <div className="px-2 py-1 text-sm text-muted-foreground">Loading…</div>}
+      {!isLoading && notes.length === 0 && <div className="px-2 py-1 text-sm text-muted-foreground">No notes yet</div>}
+      {notes.map((note) => (
+        <SidebarRow
+          key={note.path}
+          icon={ListChecksIcon}
+          label={note.title}
+          state={note.path === activeNotePath ? "current" : "idle"}
+          onClick={() => {
+            navigate(`/s/${set}/n/${note.path.replace(/^notes\//, "")}`);
+            setMobileOpen(false);
+          }}
+        />
+      ))}
+    </SidebarSection>
+  );
+};
+
+const MoreSection = () => {
+  const { setMobileOpen } = useMobileSidebar();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  return (
+    <SidebarSection label="More" ariaLabel="Unimplemented sections">
+      {PLACEHOLDER_ROWS.map((row) => (
+        <SidebarRow key={row.label} icon={row.icon} label={row.label} disabled />
+      ))}
+      <SidebarRow
+        icon={SettingsIcon}
+        label="Settings"
+        state={location.pathname === "/settings" ? "current" : "idle"}
+        onClick={() => {
+          navigate("/settings");
+          setMobileOpen(false);
+        }}
+      />
+    </SidebarSection>
   );
 };
 
@@ -84,11 +97,14 @@ const AppSidebar = ({ className }: { className?: string }) => {
           SIDEBAR_RAIL_CLASSES,
         )}
       >
-        {set ? (
-          <NotesSidebarContent set={set} activeNotePath={activeNotePath} />
-        ) : (
-          <div className="px-2 py-1 text-sm text-muted-foreground">Select a study set to see its notes.</div>
-        )}
+        <div className={SIDEBAR_SECTION_STACK_CLASSES}>
+          {set ? (
+            <NotesSection set={set} activeNotePath={activeNotePath} />
+          ) : (
+            <div className="px-2 py-1 text-sm text-muted-foreground">Select a study set to see its notes.</div>
+          )}
+          <MoreSection />
+        </div>
       </div>
     </aside>
   );
