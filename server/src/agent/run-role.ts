@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { AssistantMessage } from "@earendil-works/pi-ai";
+import type { AssistantMessage, ImageContent } from "@earendil-works/pi-ai";
 import {
   createAgentSession,
   createExtensionRuntime,
@@ -126,6 +126,7 @@ export async function runRole(
     runtime: ModelRuntime;
     hub?: EventHub;
     signal?: AbortSignal;
+    images?: ImageContent[];
     onWrite?: (path: string) => void;
     extraTools?: ToolDefinition[];
   },
@@ -176,7 +177,10 @@ export async function runRole(
   opts.signal?.addEventListener("abort", abort, { once: true });
   try {
     opts.signal?.throwIfAborted();
-    await session.prompt(opts.task, { expandPromptTemplates: false });
+    await session.prompt(opts.task, {
+      expandPromptTemplates: false,
+      ...(opts.images === undefined ? {} : { images: [...opts.images] }),
+    });
     opts.signal?.throwIfAborted();
     const messages = [...session.messages];
     const lastAssistant = messages.findLast((message): message is AssistantMessage => message.role === "assistant");

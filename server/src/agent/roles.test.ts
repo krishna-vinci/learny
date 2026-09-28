@@ -71,8 +71,8 @@ function systemText(context: TranscriptContext): string {
 
 function expectedTools(role: RoleName): string[] {
   const mcpNames = ROLES[role].mcpServers.flatMap((server) => [`mcp_${server}_echo`, `mcp_${server}_fail`]);
-  // start_job is a chat-only contextual tool, supplied by ChatService with its set and proposal store.
-  return [...ROLES[role].tools.filter((name) => name !== "start_job"), ...mcpNames].sort();
+  // Job tools are chat-only contextual tools, supplied by ChatService with its set and runner.
+  return [...ROLES[role].tools.filter((name) => name !== "start_job" && name !== "add_source"), ...mcpNames].sort();
 }
 
 async function execute(role: RoleName, name: string, params: Record<string, unknown>) {

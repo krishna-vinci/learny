@@ -11,6 +11,7 @@ import { assertBindAllowed, authConfigFromEnv } from "./auth/session.js";
 import { EventHub } from "./events.js";
 import { startInboxWatcher } from "./ingest/inbox-watcher.js";
 import { createDraftJob } from "./jobs/draft-job.js";
+import { createIngestJob } from "./jobs/ingest-job.js";
 import { JobRunner } from "./jobs/runner.js";
 import { McpManager } from "./mcp/bridge.js";
 import { loadMcpConfig } from "./mcp/config.js";
@@ -53,6 +54,7 @@ const jobs = new JobRunner({
   maxParallel: Number.isFinite(maxParallelJobs) && maxParallelJobs > 0 ? maxParallelJobs : 3,
 });
 jobs.register("draft-chapter", createDraftJob({ root, locks, mcp, runtime, hub }));
+jobs.register("ingest", createIngestJob({ root, locks, mcp, runtime, hub }));
 
 function messageText(message: Message): string {
   if (message.role !== "user") return "";
@@ -89,7 +91,7 @@ if (process.env.STUDIUM_FAUX === "1") {
   runtime.registerNativeProvider(faux.provider);
 }
 
-const chats = new ChatService({ root, hub, locks, mcp, runtime });
+const chats = new ChatService({ root, hub, locks, mcp, runtime, jobs });
 const app = createApp({
   root,
   hub,

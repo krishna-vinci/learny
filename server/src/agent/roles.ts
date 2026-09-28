@@ -25,6 +25,7 @@ export interface RoleSpec {
 const STUDY_TOOLS = ["study_list", "study_read", "study_edit", "study_create"] as const;
 const SKILL_TOOLS = ["load_skill", "load_skill_reference"] as const;
 const RESEARCH_TOOLS = ["wiki_search", "wiki_read", "web_fetch"] as const;
+const CHAT_JOB_TOOLS = ["start_job", "add_source"] as const;
 
 function setPath(set: string | null, directory: "notes" | "log/checks", rel: string): boolean {
   return set !== null && rel.startsWith(`${set}/${directory}/`) && rel.length > `${set}/${directory}/`.length;
@@ -33,7 +34,7 @@ function setPath(set: string | null, directory: "notes" | "log/checks", rel: str
 export const ROLES: Record<RoleName, RoleSpec> = {
   tutor: {
     modelRole: "tutor",
-    tools: [...STUDY_TOOLS, ...RESEARCH_TOOLS, ...SKILL_TOOLS, "start_job"],
+    tools: [...STUDY_TOOLS, ...RESEARCH_TOOLS, ...SKILL_TOOLS, ...CHAT_JOB_TOOLS],
     mcpServers: ["searxng", "papers"],
     skills: ["explain", "evolve-note", "note-authoring"],
     requiresSet: true,

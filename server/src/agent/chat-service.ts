@@ -16,12 +16,14 @@ import { ConfigYaml } from "@studium/shared";
 import { parse as parseYaml } from "yaml";
 import type { EventHub } from "../events.js";
 import { jobProposals, proposalFromToolResult, startJobTool } from "../jobs/proposals.js";
+import type { JobRunner } from "../jobs/runner.js";
 import type { McpManager } from "../mcp/bridge.js";
 import { readText } from "../tree/edit.js";
 import { commitPaths } from "../tree/git.js";
 import type { FileLocks } from "../tree/lock.js";
 import { resolveInRoot } from "../tree/paths.js";
 import { isSetSlug } from "../tree/read.js";
+import { addSourceTool } from "./builtins/add-source.js";
 import { listSkills } from "./builtins/skills.js";
 import { resolveRoleModel } from "./models.js";
 import { ROLES } from "./roles.js";
@@ -125,6 +127,7 @@ interface ChatServiceDeps {
   locks: FileLocks;
   mcp: McpManager;
   runtime: ModelRuntime;
+  jobs: Pick<JobRunner, "enqueue">;
   modelOverride?: Model<Api>;
 }
 
@@ -243,6 +246,7 @@ export class ChatService {
   readonly #locks: FileLocks;
   readonly #mcp: McpManager;
   readonly #runtime: ModelRuntime;
+  readonly #jobs: Pick<JobRunner, "enqueue">;
   readonly #modelOverride?: Model<Api>;
   readonly #live = new Map<string, LiveChat>();
   readonly #starting = new Set<string>();
@@ -253,6 +257,7 @@ export class ChatService {
     this.#locks = deps.locks;
     this.#mcp = deps.mcp;
     this.#runtime = deps.runtime;
+    this.#jobs = deps.jobs;
     this.#modelOverride = deps.modelOverride;
   }
 
@@ -381,7 +386,10 @@ export class ChatService {
       onWrite: (rootRelativePath) => {
         writtenPaths.add(rootRelativePath);
       },
-      extraTools: [startJobTool({ root: this.#root, set, runtime: this.#runtime, store: jobProposals })],
+      extraTools: [
+        startJobTool({ root: this.#root, set, runtime: this.#runtime, store: jobProposals }),
+        addSourceTool({ set, jobs: this.#jobs }),
+      ],
     });
     const { session } = await createAgentSession({
       cwd: this.#root,

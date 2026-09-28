@@ -6,8 +6,9 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { fauxAssistantMessage, fauxProvider, fauxText, fauxToolCall } from "@earendil-works/pi-ai/providers/faux";
 import type { ChatStreamEvent, StudiumEvent } from "@studium/shared";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EventHub } from "../events.js";
+import { JobRunner } from "../jobs/runner.js";
 import { McpManager } from "../mcp/bridge.js";
 import { ensureRepo, log } from "../tree/git.js";
 import { FileLocks } from "../tree/lock.js";
@@ -51,15 +52,18 @@ async function setup(options: { tokensPerSecond?: number } = {}) {
   });
   runtime.registerNativeProvider(faux.provider);
   const hub = new EventHub();
+  const jobs = new JobRunner({ root, hub, maxParallel: 1 });
+  jobs.register("ingest", async () => undefined);
   const chats = new ChatService({
     root,
     hub,
     locks: new FileLocks(),
     mcp: new McpManager([]),
     runtime,
+    jobs,
     modelOverride: faux.getModel(),
   });
-  return { chats, faux, hub };
+  return { chats, faux, hub, jobs };
 }
 
 function waitForSettled(hub: EventHub, id: string): Promise<ChatStreamEvent & { kind: "settled" }> {
@@ -213,6 +217,30 @@ describe("ChatService", () => {
         title: "Eigenvalues",
         estimate: { costUsd: null },
       },
+    });
+  });
+
+  it("starts an ingest job directly from add_source", async () => {
+    const { chats, faux, hub, jobs } = await setup();
+    const id = await chats.create("linear-algebra");
+    faux.setResponses([
+      fauxAssistantMessage(
+        fauxToolCall("add_source", { url: "https://example.com/course/vectors.md" }, { id: "source-1" }),
+        { stopReason: "toolUse" },
+      ),
+      fauxAssistantMessage(fauxText("I started adding that source.")),
+    ]);
+
+    const settled = waitForSettled(hub, id);
+    await chats.send("linear-algebra", id, "Add this source");
+    await settled;
+
+    await vi.waitFor(() => expect(jobs.list().some((job) => job.status === "done")).toBe(true));
+    const job = jobs.list().find((candidate) => candidate.kind === "ingest");
+    expect(job).toMatchObject({
+      set: "linear-algebra",
+      title: "vectors.md",
+      status: "done",
     });
   });
 
