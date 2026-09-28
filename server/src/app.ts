@@ -7,6 +7,8 @@ import { authRoutes, requireAuth } from "./auth/routes.js";
 import type { AuthConfig } from "./auth/session.js";
 import type { EventHub } from "./events.js";
 import { requestGuard } from "./http/guard.js";
+import { jobsRoutes } from "./jobs/routes.js";
+import type { JobRunner } from "./jobs/runner.js";
 import { eventsRoutes } from "./routes/events.js";
 import { setsRoutes } from "./routes/sets.js";
 import type { FileLocks } from "./tree/lock.js";
@@ -17,6 +19,7 @@ export interface AppDeps {
   locks: FileLocks;
   auth: AuthConfig;
   chats: ChatService;
+  jobs?: JobRunner;
   webDist?: string;
 }
 
@@ -35,6 +38,10 @@ export function createApp(deps: AppDeps | LegacyAppDeps): Hono {
 
   app.route("/api/sets", setsRoutes({ root: deps.root, hub: deps.hub }));
   app.route("/api/events", eventsRoutes(deps.hub));
+
+  if (deps.jobs !== undefined) {
+    app.route("/api/jobs", jobsRoutes({ runner: deps.jobs }));
+  }
 
   if ("chats" in deps) {
     app.route("/api/sets/:set/chats", chatRoutes(deps.chats));
