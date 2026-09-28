@@ -9,6 +9,7 @@ import { createModelRuntime } from "./agent/models.js";
 import { createApp } from "./app.js";
 import { assertBindAllowed, authConfigFromEnv } from "./auth/session.js";
 import { EventHub } from "./events.js";
+import { startInboxWatcher } from "./ingest/inbox-watcher.js";
 import { JobRunner } from "./jobs/runner.js";
 import { ensureRepo } from "./tree/git.js";
 import { initStudyTree } from "./tree/init.js";
@@ -98,6 +99,7 @@ const server = serve({ fetch: app.fetch, port, hostname: host }, (info) => {
 });
 
 const stopWatcher = startWatcher(root, hub);
+const stopInboxWatcher = startInboxWatcher({ root, jobs });
 
 let shuttingDown = false;
 async function shutdown(signal: string): Promise<void> {
@@ -105,6 +107,7 @@ async function shutdown(signal: string): Promise<void> {
   shuttingDown = true;
   console.log(`received ${signal}, shutting down`);
   await stopWatcher().catch(() => undefined);
+  await stopInboxWatcher().catch(() => undefined);
   server.close(() => process.exit(0));
 }
 

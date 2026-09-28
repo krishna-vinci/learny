@@ -5,7 +5,9 @@ import type { EventHub } from "./events.js";
 import { isSetSlug } from "./tree/read.js";
 
 // chokidar v4+ dropped glob support, so the ignores are matched by path segment.
-const IGNORED_SEGMENTS = new Set([".git", ".cache", "chats"]);
+// `_inbox` is handled by its own watcher, so the shared SSE watcher skips it
+// (and never publishes partially-written drops).
+const IGNORED_SEGMENTS = new Set([".git", ".cache", "chats", "_inbox"]);
 
 function relativePosix(root: string, target: string): string | null {
   const rel = path.relative(root, path.resolve(target));
