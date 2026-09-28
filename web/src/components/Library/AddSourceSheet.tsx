@@ -5,7 +5,7 @@
 // `{type:"job"}` events) or, on a dedupe hit, a link straight to the existing source.
 import type { JobView } from "@studium/shared";
 import { useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2Icon, FileIcon, LinkIcon, Loader2Icon, XIcon } from "lucide-react";
+import { CheckCircle2Icon, FileIcon, LinkIcon, Loader2Icon, TriangleAlertIcon, XIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { Link } from "react-router-dom";
@@ -247,6 +247,7 @@ function SubmitOutcome({ result, job, onClose }: { result: SubmitResult; job: Jo
 
   if (status === "done") {
     const sourceId = job?.result?.sourceId;
+    const warning = job?.result?.warning;
     return (
       <div className="flex flex-col items-center gap-3 py-8 text-center">
         <CheckCircle2Icon className="size-8 text-emerald-600" />
@@ -259,6 +260,12 @@ function SubmitOutcome({ result, job, onClose }: { result: SubmitResult; job: Jo
           >
             Open source
           </Link>
+        )}
+        {warning && (
+          <p className="flex items-start gap-1.5 text-left text-xs text-warning-foreground" title={warning}>
+            <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden="true" />
+            <span className="min-w-0">Added — summary pending: {warning}</span>
+          </p>
         )}
       </div>
     );

@@ -2,7 +2,7 @@
 // tokens, cost and result links. Per docs/plans/2026-09-29-m1-sources-to-notes.md "T9b".
 import type { JobResult, JobStatus, JobView } from "@studium/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2Icon } from "lucide-react";
+import { Loader2Icon, TriangleAlertIcon } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { Link } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
@@ -87,6 +87,12 @@ function RecentJobRow({ job }: { job: JobView }) {
         <ResultLink job={job} />
       </div>
       {job.status === "failed" && job.error && <p className="text-sm text-destructive">{job.error}</p>}
+      {job.status === "done" && job.result?.warning && (
+        <p className="flex items-start gap-1.5 text-sm text-warning-foreground" title={job.result.warning}>
+          <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden="true" />
+          <span className="line-clamp-2 min-w-0">{job.result.warning}</span>
+        </p>
+      )}
     </li>
   );
 }
