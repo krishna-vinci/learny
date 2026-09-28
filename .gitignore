@@ -4,3 +4,6 @@ node_modules/
 data/
 dist/
 *.tsbuildinfo
+.env
+.env.*
+!.env.example
