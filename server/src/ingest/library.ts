@@ -1,0 +1,301 @@
+import type { Dirent } from "node:fs";
+import { promises as fs } from "node:fs";
+import path from "node:path";
+import type { SourceSummary, SourceType } from "@studium/shared";
+import { parseFrontmatter, SourceFrontmatter } from "@studium/shared";
+import { stringify as stringifyYaml } from "yaml";
+import { commitPaths } from "../tree/git.js";
+import { resolveInRoot } from "../tree/paths.js";
+import { isSetSlug } from "../tree/read.js";
+import {
+  type DedupeKey,
+  dedupeKeyFromSource,
+  dedupeKeyFromUrl,
+  keysMatch,
+  LIBRARY_DIR,
+  sha256Hex,
+  sourceIdBase,
+  uniqueSourceId,
+} from "./ids.js";
+import { type ParsedPart, splitParsed } from "./split.js";
+import type { Extracted } from "./types.js";
+
+/** The original bytes an ingest is storing next to its parsed text. */
+export interface WriteSourceOriginal {
+  bytes: Uint8Array;
+  /** Extension without the dot, e.g. `pdf`. */
+  ext: string;
+}
+
+export interface WriteSourceResult {
+  id: string;
+  /** True when an identical source already existed and nothing was written. */
+  deduped: boolean;
+}
+
+export interface SourceView {
+  source: SourceSummary;
+  body: string;
+  /** `parsed.md`, or the sorted `parsed/NN-slug.md` parts. */
+  parsedFiles: string[];
+}
+
+/** Job input shared by `POST /api/library` and the `_inbox` watcher (T7 handler). */
+export interface IngestJobInput {
+  url?: string;
+  filename?: string;
+  mime?: string;
+  bytes?: Uint8Array;
+  set?: string | null;
+  /** Root-relative path of the dropped file in library/_inbox/; the ingest job removes it on success. */
+  inboxPath?: string;
+}
+
+/** Stored `source.md` marker while the librarian has not summarised the source yet. */
+export const PENDING_CREDIBILITY = "pending";
+
+function safeFrontmatter(text: string): Record<string, unknown> {
+  try {
+    return parseFrontmatter(text).frontmatter;
+  } catch {
+    return {};
+  }
+}
+
+/** `library/<src-id>` directory names only (skips `_inbox`, `_jobs.md`, dotfiles). */
+async function sourceIds(root: string): Promise<string[]> {
+  let entries: Dirent[];
+  try {
+    entries = await fs.readdir(path.join(root, LIBRARY_DIR), { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  return entries
+    .filter((entry) => entry.isDirectory() && !entry.name.startsWith("_") && !entry.name.startsWith("."))
+    .map((entry) => entry.name)
+    .sort();
+}
+
+async function readFrontmatter(root: string, id: string): Promise<Record<string, unknown> | null> {
+  let text: string;
+  try {
+    text = await fs.readFile(resolveInRoot(root, `${LIBRARY_DIR}/${id}/source.md`), "utf8");
+  } catch {
+    return null;
+  }
+  return safeFrontmatter(text);
+}
+
+/** Find an existing source with the same checksum, URL, arXiv id or DOI. */
+export async function findDuplicate(root: string, key: DedupeKey): Promise<string | null> {
+  for (const id of await sourceIds(root)) {
+    const frontmatter = await readFrontmatter(root, id);
+    if (frontmatter !== null && keysMatch(dedupeKeyFromSource(frontmatter), key)) return id;
+  }
+  return null;
+}
+
+function dedupeKeyFor(extracted: Extracted, sha256: string | null): DedupeKey {
+  const key = extracted.url === null ? {} : dedupeKeyFromUrl(extracted.url);
+  return { ...key, sha256 };
+}
+
+/** Map an extractor result onto the STUDY_TREE `type` field. */
+export function sourceTypeOf(extracted: Extracted): SourceType {
+  if (extracted.parseTier === "transcript") return "video";
+  switch ((extracted.originalExt ?? "").toLowerCase()) {
+    case "epub":
+      return "book";
+    case "pdf":
+      return "paper";
+    case "md":
+    case "markdown":
+    case "txt":
+    case "text":
+      return "notes";
+    default:
+      return "article";
+  }
+}
+
+function frontmatterBlock(frontmatter: Record<string, unknown>): string {
+  return `---\n${stringifyYaml(frontmatter, { lineWidth: 0 })}---`;
+}
+
+// T7 replaces this placeholder body with the librarian's summary + TOC + reason.
+function renderBody(title: string, toc: string | null): string {
+  const lines = [`# ${title} - summary`, "", "Summary pending.", ""];
+  if (toc !== null) lines.push("## Contents", "", toc, "");
+  return `${lines.join("\n").replace(/\n+$/, "")}\n`;
+}
+
+/**
+ * Persist an extracted source under `library/<src-id>/` (decisions 8-9):
+ * `source.md` frontmatter + pending summary, `parsed.md` or `parsed/NN-slug.md`,
+ * and `original.<ext>` when the bytes are available. Commits the tracked paths
+ * (the gitignored original is written but never committed).
+ */
+export async function writeSource(
+  root: string,
+  extracted: Extracted,
+  original?: WriteSourceOriginal,
+): Promise<WriteSourceResult> {
+  const sha256 = original === undefined ? null : sha256Hex(original.bytes);
+  const existing = await findDuplicate(root, dedupeKeyFor(extracted, sha256));
+  if (existing !== null) return { id: existing, deduped: true };
+
+  const id = await uniqueSourceId(
+    root,
+    sourceIdBase({ authors: extracted.authors, title: extracted.title, url: extracted.url }),
+  );
+  const dir = `${LIBRARY_DIR}/${id}`;
+  const title = extracted.title ?? "Untitled source";
+  const split = splitParsed(extracted.markdown);
+
+  const frontmatter: Record<string, unknown> = {
+    id,
+    title,
+    authors: extracted.authors,
+    type: sourceTypeOf(extracted),
+    ...(extracted.url === null ? {} : { url: extracted.url }),
+    credibility: PENDING_CREDIBILITY,
+    parse_tier: extracted.parseTier,
+    ...(sha256 === null ? {} : { sha256 }),
+    added: new Date().toISOString().slice(0, 10),
+    ...(extracted.warning === null ? {} : { parse_warning: extracted.warning }),
+  };
+
+  // Commit only the tracked paths: `original.<ext>` is intentionally gitignored
+  // (`**/original.*`), and git refuses an explicit `add` of an ignored path.
+  const tracked: string[] = [];
+  await fs.mkdir(resolveInRoot(root, dir), { recursive: true });
+  const sourceRel = `${dir}/source.md`;
+  await fs.writeFile(
+    resolveInRoot(root, sourceRel),
+    `${frontmatterBlock(frontmatter)}\n\n${renderBody(title, split.toc)}`,
+    "utf8",
+  );
+  tracked.push(sourceRel);
+
+  for (const part of split.parts) tracked.push(await writePart(root, dir, part));
+
+  if (original !== undefined) {
+    await fs.writeFile(resolveInRoot(root, `${dir}/original.${original.ext}`), original.bytes);
+  }
+
+  await commitPaths(root, tracked, `librarian: ingest ${id}`, "librarian");
+  return { id, deduped: false };
+}
+
+async function writePart(root: string, dir: string, part: ParsedPart): Promise<string> {
+  const rel = `${dir}/${part.path}`;
+  const abs = resolveInRoot(root, rel);
+  await fs.mkdir(path.dirname(abs), { recursive: true });
+  await fs.writeFile(abs, part.content, "utf8");
+  return rel;
+}
+
+async function parsedFiles(root: string, id: string): Promise<string[]> {
+  const dir = resolveInRoot(root, `${LIBRARY_DIR}/${id}`);
+  const files: string[] = [];
+  try {
+    const stats = await fs.stat(path.join(dir, "parsed.md"));
+    if (stats.isFile()) files.push("parsed.md");
+  } catch {
+    // No single-file parse; check for split parts below.
+  }
+  try {
+    const entries = await fs.readdir(path.join(dir, "parsed"), { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isFile() && entry.name.endsWith(".md")) files.push(`parsed/${entry.name}`);
+    }
+  } catch {
+    // No split directory.
+  }
+  return files.sort();
+}
+
+// Which sets list each source id in their `PLAN.md` frontmatter `sources`.
+async function setsBySourceId(root: string): Promise<Map<string, string[]>> {
+  const map = new Map<string, string[]>();
+  let entries: Dirent[];
+  try {
+    entries = await fs.readdir(root, { withFileTypes: true });
+  } catch {
+    return map;
+  }
+  for (const entry of entries) {
+    if (!entry.isDirectory() || !isSetSlug(entry.name)) continue;
+    let text: string;
+    try {
+      text = await fs.readFile(path.join(root, entry.name, "PLAN.md"), "utf8");
+    } catch {
+      continue;
+    }
+    const sources = safeFrontmatter(text).sources;
+    if (!Array.isArray(sources)) continue;
+    for (const sourceId of sources) {
+      if (typeof sourceId !== "string" || sourceId === "") continue;
+      const list = map.get(sourceId);
+      if (list === undefined) map.set(sourceId, [entry.name]);
+      else list.push(entry.name);
+    }
+  }
+  return map;
+}
+
+function summaryFrom(id: string, frontmatter: Record<string, unknown>, sets: string[]): SourceSummary {
+  const parsed = SourceFrontmatter.safeParse(frontmatter);
+  const data = parsed.success ? parsed.data : null;
+  const warning = frontmatter.parse_warning;
+  return {
+    id,
+    title: data?.title ?? id,
+    authors: data?.authors ?? [],
+    type: data?.type ?? "other",
+    url: typeof data?.url === "string" ? data.url : null,
+    credibility: typeof data?.credibility === "string" ? data.credibility : null,
+    parseTier: data?.parse_tier ?? "basic",
+    addedAt: typeof data?.added === "string" ? data.added : "",
+    sets: [...sets].sort(),
+    warning: typeof warning === "string" && warning !== "" ? warning : null,
+  };
+}
+
+/** Summaries for every `library/<src-id>/source.md`, newest first. */
+export async function listSources(root: string): Promise<SourceSummary[]> {
+  const sets = await setsBySourceId(root);
+  const summaries: SourceSummary[] = [];
+  for (const id of await sourceIds(root)) {
+    const frontmatter = await readFrontmatter(root, id);
+    if (frontmatter === null) continue;
+    summaries.push(summaryFrom(id, frontmatter, sets.get(id) ?? []));
+  }
+  summaries.sort((a, b) => b.addedAt.localeCompare(a.addedAt) || a.id.localeCompare(b.id));
+  return summaries;
+}
+
+/** One source's summary, `source.md` body and parsed files; null when unknown. */
+export async function readSource(root: string, id: string): Promise<SourceView | null> {
+  let text: string;
+  try {
+    text = await fs.readFile(resolveInRoot(root, `${LIBRARY_DIR}/${id}/source.md`), "utf8");
+  } catch {
+    return null;
+  }
+  const frontmatter = safeFrontmatter(text);
+  const sets = (await setsBySourceId(root)).get(id) ?? [];
+  return {
+    source: summaryFrom(id, frontmatter, sets),
+    body: parseBody(text),
+    parsedFiles: await parsedFiles(root, id),
+  };
+}
+
+function parseBody(text: string): string {
+  try {
+    return parseFrontmatter(text).body;
+  } catch {
+    return text;
+  }
+}
