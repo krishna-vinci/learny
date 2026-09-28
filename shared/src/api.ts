@@ -153,3 +153,57 @@ export type StudiumEvent =
   | { type: "commit"; sha: string; subject: string; author: string }
   | { type: "chat"; set: string; chatId: string; event: ChatStreamEvent }
   | { type: "job"; job: JobView };
+
+export type CardType = "basic" | "cloze";
+export type CardStatus = "draft" | "approved" | "rejected" | "exported";
+/** Statuses the learner may set from the review UI (never `exported` directly). */
+export type CardPatchStatus = "draft" | "approved" | "rejected";
+
+/** Critic verdict stored on a card's comment line, e.g. `critic: rule 4 (too many facts)`. */
+export interface CardCritic {
+  verdict: "ok" | "reject";
+  rule?: number;
+  reason?: string;
+}
+
+/** One card as returned by the cards API. Only the fields for the card's type are set. */
+export interface CardView {
+  id: string;
+  type: CardType;
+  status: CardStatus;
+  q?: string;
+  a?: string;
+  text?: string;
+  extra?: string;
+  src?: string;
+  critic?: CardCritic;
+  ankiId?: number;
+}
+
+/** `GET /api/sets/:set/cards`: one entry per `<set>/cards/NN-slug.md`. */
+export interface CardFileView {
+  path: string;
+  note: string | null;
+  deck: string | null;
+  stale: boolean;
+  noteCommitsSince: number;
+  counts: Record<CardStatus, number>;
+}
+
+/** `GET /api/sets/:set/cards/file?path=…` */
+export interface CardFileDetail {
+  path: string;
+  note: string | null;
+  deck: string | null;
+  stale: boolean;
+  cards: CardView[];
+}
+
+/** `PATCH /api/sets/:set/cards/:id` body. */
+export interface CardPatch {
+  status?: CardPatchStatus;
+  q?: string;
+  a?: string;
+  text?: string;
+  extra?: string;
+}
