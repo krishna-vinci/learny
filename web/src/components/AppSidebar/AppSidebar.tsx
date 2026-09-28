@@ -19,6 +19,7 @@ import { useInbox, useJobs, useNotes } from "@/api/queries";
 import { AddSourceSheet } from "@/components/Library/AddSourceSheet";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useLastVisitedSet } from "@/pages/useLastVisitedSet";
 import { useMobileSidebar } from "./MobileSidebarContext";
 import SetSwitcher from "./SetSwitcher";
 import SidebarRow from "./SidebarRow";
@@ -126,6 +127,9 @@ const AppSidebar = ({ className }: { className?: string }) => {
   const params = useParams<{ set?: string; "*"?: string }>();
   const set = params.set;
   const activeNotePath = params["*"] ? `notes/${params["*"]}` : undefined;
+  // Outside `/s/:set` (library, jobs, settings), the switcher falls back to the last
+  // visited set instead of showing "Select a set", so the label still means something.
+  const lastVisitedSet = useLastVisitedSet();
 
   return (
     <aside className={cn("flex h-full w-full select-none flex-col bg-sidebar text-sidebar-foreground", className)}>
@@ -133,7 +137,7 @@ const AppSidebar = ({ className }: { className?: string }) => {
         data-sidebar-header
         className={cn("flex h-13 shrink-0 items-center justify-between gap-2", SIDEBAR_RAIL_CLASSES)}
       >
-        <SetSwitcher currentSet={set} className="min-w-0" />
+        <SetSwitcher currentSet={set ?? lastVisitedSet ?? undefined} className="min-w-0" />
       </div>
       <div className="mx-3 mt-2 border-t border-border/70" />
       <div
@@ -158,6 +162,7 @@ const AppSidebar = ({ className }: { className?: string }) => {
 export const MobileAppHeader = () => {
   const { setMobileOpen } = useMobileSidebar();
   const params = useParams<{ set?: string }>();
+  const lastVisitedSet = useLastVisitedSet();
   return (
     <header
       className="sticky top-0 z-20 flex h-12 w-full shrink-0 items-center justify-start gap-1 border-b border-border/70 bg-background/90 px-2 backdrop-blur-md md:hidden"
@@ -172,7 +177,7 @@ export const MobileAppHeader = () => {
       >
         <MenuIcon className="size-[18px]" />
       </Button>
-      <SetSwitcher currentSet={params.set} className="max-w-[12rem]" />
+      <SetSwitcher currentSet={params.set ?? lastVisitedSet ?? undefined} className="max-w-[12rem]" />
     </header>
   );
 };

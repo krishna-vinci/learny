@@ -3,6 +3,7 @@ import type {
   InboxItem,
   JobView,
   NoteSummary,
+  ParsedFileView,
   SetSummary,
   SettingsView,
   SourceSummary,
@@ -18,6 +19,7 @@ export const queryKeys = {
   history: (set: string, path?: string) => ["sets", set, "history", path ?? null] as const,
   library: ["library"] as const,
   librarySource: (id: string) => ["library", id] as const,
+  libraryParsedFile: (id: string, file: string) => ["library", id, "parsed", file] as const,
   settings: ["settings"] as const,
   // T9b: Jobs panel + Inbox.
   jobs: (set?: string) => ["jobs", set ?? null] as const,
@@ -71,6 +73,14 @@ export function useLibrarySource(id: string | undefined) {
     queryKey: queryKeys.librarySource(id ?? ""),
     queryFn: () => api.library.get(id as string),
     enabled: !!id,
+  });
+}
+
+export function useLibraryParsedFile(id: string | undefined, file: string | undefined) {
+  return useQuery<ParsedFileView>({
+    queryKey: queryKeys.libraryParsedFile(id ?? "", file ?? ""),
+    queryFn: () => api.library.parsed(id as string, file as string),
+    enabled: !!id && !!file,
   });
 }
 

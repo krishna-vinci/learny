@@ -7,6 +7,7 @@ import type {
   JobKind,
   JobView,
   NoteSummary,
+  ParsedFileView,
   SetSummary,
   SettingsView,
   SourceSummary,
@@ -154,6 +155,9 @@ export const api = {
       form.append("file", file);
       if (set) form.append("set", set);
       return request("/api/library", { method: "POST", body: form });
+    },
+    parsed(id: string, file: string): Promise<ParsedFileView> {
+      return request(`/api/library/${encodeURIComponent(id)}/parsed${qs({ file })}`);
     },
   },
 

@@ -1,12 +1,12 @@
 // `/s/:set/inbox` (T9b): draft/checked chapters awaiting review, per
 // docs/plans/2026-09-29-m1-sources-to-notes.md "T9b Jobs + Inbox + proposal card".
 import type { CheckIssue, InboxItem } from "@studium/shared";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
-import { queryKeys, useInbox, useNoteFile } from "@/api/queries";
+import { queryKeys, useInbox, useLibrary, useNoteFile } from "@/api/queries";
 import { MarkdownView } from "@/components/Reader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,24 +51,11 @@ function StatusChip({ status }: { status: InboxItem["status"] }) {
   );
 }
 
-/** A minimal source picker for the "New chapter" form: id + title only, from the Library API
- * if it's reachable (Library itself is a separate M1 task — this degrades quietly without it). */
+/** A minimal source picker for the "New chapter" form: id + title only, via the shared
+ * Library query (same one the Library pages use, so results share a cache). */
 function useLibrarySourceOptions() {
-  return useQuery<{ id: string; title: string }[]>({
-    queryKey: ["library", "source-picker-options"],
-    queryFn: async () => {
-      const response = await fetch("/api/library", { credentials: "same-origin" });
-      if (!response.ok) return [];
-      const data = (await response.json()) as { id?: unknown; title?: unknown }[];
-      return data
-        .filter(
-          (entry): entry is { id: string; title: string } =>
-            typeof entry.id === "string" && typeof entry.title === "string",
-        )
-        .map((entry) => ({ id: entry.id, title: entry.title }));
-    },
-    retry: false,
-  });
+  const { data } = useLibrary();
+  return { data: (data ?? []).map((source) => ({ id: source.id, title: source.title })) };
 }
 
 function InboxListRow({ item, onOpen }: { item: InboxItem; onOpen: () => void }) {

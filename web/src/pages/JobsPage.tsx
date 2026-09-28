@@ -83,7 +83,7 @@ function RecentJobRow({ job }: { job: JobView }) {
         <span aria-hidden="true">·</span>
         <span className="tabular-nums">{formatTokenUsage(job.usage)}</span>
         <span aria-hidden="true">·</span>
-        <span>{formatCost(job.usage.costUsd)}</span>
+        <span>{formatCost(job.usage.costUsd, job.billing)}</span>
         <ResultLink job={job} />
       </div>
       {job.status === "failed" && job.error && <p className="text-sm text-destructive">{job.error}</p>}
