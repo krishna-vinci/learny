@@ -162,3 +162,13 @@ The app reuses Pi's own config directory (`getAgentDir()`: `PI_CODING_AGENT_DIR`
 OpenAI, …) are set up once with Pi's own tooling; credentials never enter the study tree.
 Role → model mapping stays in `_global/config.yaml`. Docker: mount the Pi config dir
 read-write (OAuth tokens refresh). Supersedes the `_global/models.json` idea in the M0 plan.
+
+## D22 — M1 external tools · locked · 2026-09-29
+
+- Web search via the SearXNG MCP server (`mcp-searxng`, `SEARXNG_URL`), not direct HTTP.
+- Paper search via the learner's remote paper-search MCP over Streamable HTTP
+  (`PAPERS_MCP_URL`, optional `PAPERS_MCP_TOKEN`); no local copy.
+- Wikipedia, web fetch and skill loading are built-in tools (no MCP needed; P9).
+- MCP config `_global/mcp.json` (Claude-style `mcpServers`), `${ENV}` interpolation;
+  stdio MCP servers get only PATH + their own env (no provider keys).
+- Anki (for M2): AnkiConnect / Anki MCP when available, else `.apkg` export.
