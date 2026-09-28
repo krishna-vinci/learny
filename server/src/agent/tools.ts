@@ -1,5 +1,4 @@
 import { promises as fs } from "node:fs";
-import path from "node:path";
 import { defineTool, type ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { createFile, editFile, readText } from "../tree/edit.js";
@@ -10,6 +9,15 @@ interface ToolDetails {
   isError: boolean;
   summary: string;
   path?: string;
+}
+
+export interface StudyToolContext {
+  root: string;
+  scope: { set: string | null; library: boolean };
+  write: (rootRelativePath: string) => boolean;
+  locks: FileLocks;
+  holder: string;
+  onWrite?: (rootRelativePath: string) => void;
 }
 
 interface TutorToolContext {
@@ -35,18 +43,32 @@ function errorResult(error: unknown) {
   };
 }
 
-function rootRelative(ctx: TutorToolContext, rel: string): string {
-  const combined = `${ctx.set}/${rel}`;
+function rootRelative(ctx: StudyToolContext, rel: string): string {
+  let combined: string;
+  if (rel === "library" || rel.startsWith("library/")) {
+    if (!ctx.scope.library) throw new Error(`Path is outside this role's study scope: ${rel}`);
+    combined = rel;
+  } else if (ctx.scope.set !== null) {
+    combined = `${ctx.scope.set}/${rel}`;
+  } else if (ctx.scope.library) {
+    combined = `library/${rel}`;
+  } else {
+    throw new Error(`Path is outside this role's study scope: ${rel}`);
+  }
   resolveInRoot(ctx.root, combined);
   return combined;
 }
 
-function writableRootRelative(ctx: TutorToolContext, rel: string): string {
+function writableRootRelative(ctx: StudyToolContext, rel: string): string {
   const combined = rootRelative(ctx, rel);
-  if (!isWritableByAgent(combined)) {
-    throw new Error(`Path is not writable by the Tutor: ${rel}`);
+  if (!ctx.write(combined)) {
+    throw new Error(`Path is not writable by this role: ${rel}`);
   }
   return combined;
+}
+
+function hiddenChatPath(rootRel: string): boolean {
+  return rootRel.split("/").includes("chats");
 }
 
 function countLines(text: string): number {
@@ -54,24 +76,21 @@ function countLines(text: string): number {
   return text.split("\n").length;
 }
 
-export function tutorTools(ctx: TutorToolContext): ToolDefinition[] {
+export function studyTools(ctx: StudyToolContext): ToolDefinition[] {
   const studyList = defineTool({
     name: "study_list",
     label: "List study files",
-    description: "List files and directories inside the current study set.",
+    description: "List files and directories inside the role's allowed study-tree scope.",
     parameters: Type.Object({ dir: Type.Optional(Type.String()) }),
     async execute(_toolCallId, params) {
       try {
         const rel = params.dir ?? ".";
         const combined = rootRelative(ctx, rel);
-        const normalized = path.posix.normalize(rel);
-        if (normalized === "chats" || normalized.startsWith("chats/")) {
-          throw new Error("The chats directory is not available to the Tutor");
-        }
+        if (hiddenChatPath(combined)) throw new Error("Chat transcripts are not available to agents");
         const abs = resolveInRoot(ctx.root, combined);
         const entries = await fs.readdir(abs, { withFileTypes: true });
         const names = entries
-          .filter((entry) => !(normalized === "." && entry.name === "chats"))
+          .filter((entry) => entry.name !== "chats")
           .map((entry) => `${entry.name}${entry.isDirectory() ? "/" : ""}`)
           .sort((a, b) => a.localeCompare(b));
         return result(`listed ${rel}`, names.join("\n") || "(empty)", { path: rel });
@@ -84,7 +103,7 @@ export function tutorTools(ctx: TutorToolContext): ToolDefinition[] {
   const studyRead = defineTool({
     name: "study_read",
     label: "Read study file",
-    description: "Read numbered lines from a file in the current study set.",
+    description: "Read numbered lines from a file in the role's allowed study-tree scope.",
     parameters: Type.Object({
       path: Type.String(),
       offset: Type.Optional(Type.Integer({ minimum: 1 })),
@@ -92,11 +111,8 @@ export function tutorTools(ctx: TutorToolContext): ToolDefinition[] {
     }),
     async execute(_toolCallId, params) {
       try {
-        const normalized = path.posix.normalize(params.path);
-        if (normalized === "chats" || normalized.startsWith("chats/")) {
-          throw new Error("The chats directory is not available to the Tutor");
-        }
         const combined = rootRelative(ctx, params.path);
+        if (hiddenChatPath(combined)) throw new Error("Chat transcripts are not available to agents");
         const text = await readText(ctx.root, combined);
         const offset = params.offset ?? 1;
         const limit = params.limit ?? 400;
@@ -112,7 +128,7 @@ export function tutorTools(ctx: TutorToolContext): ToolDefinition[] {
   const studyEdit = defineTool({
     name: "study_edit",
     label: "Edit study file",
-    description: "Surgically replace exact text in a note or log file.",
+    description: "Surgically replace exact text in a file allowed for this role.",
     parameters: Type.Object({
       path: Type.String(),
       old_string: Type.String(),
@@ -125,6 +141,7 @@ export function tutorTools(ctx: TutorToolContext): ToolDefinition[] {
         const combined = writableRootRelative(ctx, params.path);
         await editFile(ctx.root, ctx.locks, ctx.holder, combined, params.old_string, params.new_string, {
           replaceAll: params.replace_all ?? false,
+          canWrite: ctx.write,
         });
         ctx.onWrite?.(combined);
         const added = countLines(params.new_string);
@@ -140,13 +157,13 @@ export function tutorTools(ctx: TutorToolContext): ToolDefinition[] {
   const studyCreate = defineTool({
     name: "study_create",
     label: "Create study file",
-    description: "Create a new note or log file in the current study set.",
+    description: "Create a new file at a path allowed for this role.",
     parameters: Type.Object({ path: Type.String(), content: Type.String() }),
     executionMode: "sequential" as const,
     async execute(_toolCallId, params) {
       try {
         const combined = writableRootRelative(ctx, params.path);
-        await createFile(ctx.root, ctx.locks, ctx.holder, combined, params.content);
+        await createFile(ctx.root, ctx.locks, ctx.holder, combined, params.content, { canWrite: ctx.write });
         ctx.onWrite?.(combined);
         const summary = `created ${params.path}`;
         return result(summary, summary, { path: params.path });
@@ -159,4 +176,17 @@ export function tutorTools(ctx: TutorToolContext): ToolDefinition[] {
   return [studyList, studyRead, studyEdit, studyCreate];
 }
 
-export const TUTOR_TOOL_NAMES = ["study_list", "study_read", "study_edit", "study_create"] as const;
+export const STUDY_TOOL_NAMES = ["study_list", "study_read", "study_edit", "study_create"] as const;
+
+export function tutorTools(ctx: TutorToolContext): ToolDefinition[] {
+  return studyTools({
+    root: ctx.root,
+    scope: { set: ctx.set, library: false },
+    write: isWritableByAgent,
+    locks: ctx.locks,
+    holder: ctx.holder,
+    ...(ctx.onWrite === undefined ? {} : { onWrite: ctx.onWrite }),
+  });
+}
+
+export const TUTOR_TOOL_NAMES = STUDY_TOOL_NAMES;

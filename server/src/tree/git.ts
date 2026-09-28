@@ -7,7 +7,7 @@ import { resolveInRoot } from "./paths.js";
 
 const execFileAsync = promisify(execFile);
 
-export type Author = "tutor" | "user" | "system";
+export type Author = "tutor" | "librarian" | "drafter" | "checker" | "user" | "system";
 
 const AUTHOR_ENV: Record<Author, Record<string, string>> = {
   tutor: {
@@ -15,6 +15,24 @@ const AUTHOR_ENV: Record<Author, Record<string, string>> = {
     GIT_AUTHOR_EMAIL: "tutor@studium.local",
     GIT_COMMITTER_NAME: "Studium Tutor",
     GIT_COMMITTER_EMAIL: "tutor@studium.local",
+  },
+  librarian: {
+    GIT_AUTHOR_NAME: "Studium Librarian",
+    GIT_AUTHOR_EMAIL: "librarian@studium.local",
+    GIT_COMMITTER_NAME: "Studium Librarian",
+    GIT_COMMITTER_EMAIL: "librarian@studium.local",
+  },
+  drafter: {
+    GIT_AUTHOR_NAME: "Studium Drafter",
+    GIT_AUTHOR_EMAIL: "drafter@studium.local",
+    GIT_COMMITTER_NAME: "Studium Drafter",
+    GIT_COMMITTER_EMAIL: "drafter@studium.local",
+  },
+  checker: {
+    GIT_AUTHOR_NAME: "Studium Checker",
+    GIT_AUTHOR_EMAIL: "checker@studium.local",
+    GIT_COMMITTER_NAME: "Studium Checker",
+    GIT_COMMITTER_EMAIL: "checker@studium.local",
   },
   user: {
     GIT_AUTHOR_NAME: "Studium User",
@@ -83,6 +101,12 @@ function mapAuthorName(name: string): string {
   switch (name) {
     case "Studium Tutor":
       return "tutor";
+    case "Studium Librarian":
+      return "librarian";
+    case "Studium Drafter":
+      return "drafter";
+    case "Studium Checker":
+      return "checker";
     case "Studium User":
       return "user";
     case "Studium":

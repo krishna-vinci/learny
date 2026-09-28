@@ -8,6 +8,7 @@ import { fauxAssistantMessage, fauxProvider, fauxText, fauxToolCall } from "@ear
 import type { ChatStreamEvent, StudiumEvent } from "@studium/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { EventHub } from "../events.js";
+import { McpManager } from "../mcp/bridge.js";
 import { ensureRepo, log } from "../tree/git.js";
 import { FileLocks } from "../tree/lock.js";
 import { BusyError, ChatService } from "./chat-service.js";
@@ -50,7 +51,14 @@ async function setup(options: { tokensPerSecond?: number } = {}) {
   });
   runtime.registerNativeProvider(faux.provider);
   const hub = new EventHub();
-  const chats = new ChatService({ root, hub, locks: new FileLocks(), runtime, modelOverride: faux.getModel() });
+  const chats = new ChatService({
+    root,
+    hub,
+    locks: new FileLocks(),
+    mcp: new McpManager([]),
+    runtime,
+    modelOverride: faux.getModel(),
+  });
   return { chats, faux, hub };
 }
 

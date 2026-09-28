@@ -15,14 +15,16 @@ import type { ChatMessage, ChatStreamEvent, ChatSummary, ToolCallView } from "@s
 import { ConfigYaml } from "@studium/shared";
 import { parse as parseYaml } from "yaml";
 import type { EventHub } from "../events.js";
+import type { McpManager } from "../mcp/bridge.js";
 import { readText } from "../tree/edit.js";
 import { commitPaths } from "../tree/git.js";
 import type { FileLocks } from "../tree/lock.js";
 import { resolveInRoot } from "../tree/paths.js";
 import { isSetSlug } from "../tree/read.js";
+import { listSkills } from "./builtins/skills.js";
 import { resolveRoleModel } from "./models.js";
-import { buildTutorPrompt } from "./prompt.js";
-import { TUTOR_TOOL_NAMES, tutorTools } from "./tools.js";
+import { ROLES } from "./roles.js";
+import { roleToolset } from "./run-role.js";
 
 const IDLE_DISPOSE_MS = 10 * 60 * 1000;
 
@@ -113,12 +115,14 @@ interface LiveChat {
   pendingAssistants: PendingAssistant[];
   turnError: string | null;
   writtenPaths: Set<string>;
+  toolNames: string[];
 }
 
 interface ChatServiceDeps {
   root: string;
   hub: EventHub;
   locks: FileLocks;
+  mcp: McpManager;
   runtime: ModelRuntime;
   modelOverride?: Model<Api>;
 }
@@ -236,6 +240,7 @@ export class ChatService {
   readonly #root: string;
   readonly #hub: EventHub;
   readonly #locks: FileLocks;
+  readonly #mcp: McpManager;
   readonly #runtime: ModelRuntime;
   readonly #modelOverride?: Model<Api>;
   readonly #live = new Map<string, LiveChat>();
@@ -245,6 +250,7 @@ export class ChatService {
     this.#root = deps.root;
     this.#hub = deps.hub;
     this.#locks = deps.locks;
+    this.#mcp = deps.mcp;
     this.#runtime = deps.runtime;
     this.#modelOverride = deps.modelOverride;
   }
@@ -283,7 +289,12 @@ export class ChatService {
     if (this.#modelOverride !== undefined) return this.#modelOverride;
     const text = await readText(this.#root, "_global/config.yaml");
     const config = ConfigYaml.parse(parseYaml(text));
-    return resolveRoleModel(this.#runtime, config, "tutor");
+    return resolveRoleModel(this.#runtime, config, ROLES.tutor.modelRole);
+  }
+
+  async #prompt(set: string, anchor?: string): Promise<string> {
+    const skills = await listSkills(this.#root, [...ROLES.tutor.skills]);
+    return ROLES.tutor.promptBuilder({ root: this.#root, set, skills, anchor });
   }
 
   #publish(set: string, id: string, event: ChatStreamEvent): void {
@@ -358,6 +369,16 @@ export class ChatService {
     const manager = await this.#manager(set, id);
     const loader = new MutablePromptLoader(prompt);
     const writtenPaths = new Set<string>();
+    const toolset = roleToolset("tutor", {
+      root: this.#root,
+      set,
+      locks: this.#locks,
+      mcp: this.#mcp,
+      holder: `tutor:${id}`,
+      onWrite: (rootRelativePath) => {
+        writtenPaths.add(rootRelativePath);
+      },
+    });
     const { session } = await createAgentSession({
       cwd: this.#root,
       agentDir: getAgentDir(),
@@ -365,16 +386,8 @@ export class ChatService {
       thinkingLevel: "off",
       modelRuntime: this.#runtime,
       resourceLoader: loader,
-      tools: [...TUTOR_TOOL_NAMES],
-      customTools: tutorTools({
-        root: this.#root,
-        set,
-        locks: this.#locks,
-        holder: `tutor:${id}`,
-        onWrite: (rootRelativePath) => {
-          writtenPaths.add(rootRelativePath);
-        },
-      }),
+      tools: toolset.names,
+      customTools: toolset.tools,
       sessionManager: manager,
       settingsManager: SettingsManager.inMemory({
         compaction: { enabled: true },
@@ -390,6 +403,7 @@ export class ChatService {
       pendingAssistants: [],
       turnError: null,
       writtenPaths,
+      toolNames: toolset.names,
     };
     live.unsubscribe = this.#subscribe(set, id, live);
     this.#live.set(this.#key(set, id), live);
@@ -485,14 +499,14 @@ export class ChatService {
     this.#starting.add(key);
 
     try {
-      const [prompt, model] = await Promise.all([buildTutorPrompt(this.#root, set, anchor), this.#model()]);
+      const [prompt, model] = await Promise.all([this.#prompt(set, anchor), this.#model()]);
       let live = this.#live.get(key);
       if (live === undefined) {
         live = await this.#createLive(set, id, prompt, model);
       } else {
         if (live.idleTimer !== undefined) clearTimeout(live.idleTimer);
         live.loader.setPrompt(prompt);
-        live.session.setActiveToolsByName([...TUTOR_TOOL_NAMES]);
+        live.session.setActiveToolsByName(live.toolNames);
         if (!sameModel(live.session.model, model)) await live.session.setModel(model);
       }
 
