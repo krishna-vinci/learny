@@ -1,0 +1,105 @@
+import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { createFile, EditError, editFile, readText } from "./edit";
+import { FileLocks } from "./lock";
+
+describe("edit", () => {
+  let root: string;
+  let locks: FileLocks;
+  const noteRel = "linear-algebra/notes/a.md";
+  const noteAbs = () => path.join(root, noteRel);
+
+  beforeEach(async () => {
+    root = await mkdtemp(path.join(tmpdir(), "studium-edit-"));
+    locks = new FileLocks();
+    await mkdir(path.dirname(noteAbs()), { recursive: true });
+    await writeFile(noteAbs(), "# Title\n\nunique line\nshared line\nshared line\n");
+  });
+
+  afterEach(async () => {
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it("replaces a single exact match and writes atomically", async () => {
+    const result = await editFile(root, locks, "agent", noteRel, "unique line", "edited line");
+    expect(result).toEqual({ replacements: 1 });
+    expect(await readText(root, noteRel)).toBe("# Title\n\nedited line\nshared line\nshared line\n");
+
+    const files = await readdir(path.dirname(noteAbs()));
+    expect(files).toEqual(["a.md"]);
+  });
+
+  it("reports no_match when the old string is absent", async () => {
+    const error = await editFile(root, locks, "agent", noteRel, "absent", "new").catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(EditError);
+    expect((error as EditError).code).toBe("no_match");
+  });
+
+  it("reports multiple_matches unless replaceAll is set", async () => {
+    await expect(editFile(root, locks, "agent", noteRel, "shared line", "new")).rejects.toMatchObject({
+      name: "EditError",
+      code: "multiple_matches",
+    });
+
+    const result = await editFile(root, locks, "agent", noteRel, "shared line", "new line", {
+      replaceAll: true,
+    });
+    expect(result).toEqual({ replacements: 2 });
+    expect(await readText(root, noteRel)).toBe("# Title\n\nunique line\nnew line\nnew line\n");
+  });
+
+  it("reports not_found for a missing file", async () => {
+    await expect(editFile(root, locks, "agent", "linear-algebra/notes/missing.md", "a", "b")).rejects.toMatchObject({
+      name: "EditError",
+      code: "not_found",
+    });
+  });
+
+  it("rejects identical old and new strings", async () => {
+    await expect(editFile(root, locks, "agent", noteRel, "unique line", "unique line")).rejects.toThrow(
+      "oldString and newString must be different",
+    );
+  });
+
+  it("rejects paths outside the agent write allowlist", async () => {
+    await expect(editFile(root, locks, "agent", "linear-algebra/PLAN.md", "a", "b")).rejects.toMatchObject({
+      name: "EditError",
+      code: "forbidden",
+    });
+    await expect(createFile(root, locks, "agent", "linear-algebra/PLAN.md", "content")).rejects.toMatchObject({
+      name: "EditError",
+      code: "forbidden",
+    });
+  });
+
+  it("rejects traversal and .git paths as forbidden edits", async () => {
+    await expect(editFile(root, locks, "agent", "../outside.md", "a", "b")).rejects.toMatchObject({
+      name: "EditError",
+      code: "forbidden",
+    });
+    await expect(editFile(root, locks, "agent", ".git/config", "a", "b")).rejects.toMatchObject({
+      name: "EditError",
+      code: "forbidden",
+    });
+  });
+
+  it("creates a new file with parent directories", async () => {
+    const rel = "linear-algebra/log/session/2026-09-28.md";
+    await createFile(root, locks, "agent", rel, "# Session\n");
+    expect(await readText(root, rel)).toBe("# Session\n");
+
+    await expect(createFile(root, locks, "agent", rel, "again")).rejects.toMatchObject({
+      name: "EditError",
+      code: "exists",
+    });
+  });
+
+  it("readText reports not_found for missing files", async () => {
+    await expect(readText(root, "linear-algebra/notes/missing.md")).rejects.toMatchObject({
+      name: "EditError",
+      code: "not_found",
+    });
+  });
+});
