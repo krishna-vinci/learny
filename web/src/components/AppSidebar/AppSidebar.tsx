@@ -9,11 +9,14 @@ import {
   ListChecksIcon,
   MenuIcon,
   NotebookTextIcon,
+  PlusIcon,
   SettingsIcon,
   WrenchIcon,
 } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useNotes } from "@/api/queries";
+import { AddSourceSheet } from "@/components/Library/AddSourceSheet";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useMobileSidebar } from "./MobileSidebarContext";
@@ -22,45 +25,74 @@ import SidebarRow from "./SidebarRow";
 import SidebarSection, { SIDEBAR_SECTION_STACK_CLASSES } from "./SidebarSection";
 import { SIDEBAR_RAIL_CLASSES } from "./sidebar-layout";
 
-const PLACEHOLDER_ROWS = [
-  { label: "Library", icon: BookOpenIcon },
+// "Library" is real (this task); the rest stay disabled placeholders for later M1 tasks.
+const OTHER_PLACEHOLDER_ROWS = [
   { label: "Cards", icon: NotebookTextIcon },
   { label: "Inbox", icon: ArchiveIcon },
   { label: "Jobs", icon: WrenchIcon },
   { label: "Settings", icon: SettingsIcon },
 ] as const;
 
-const NotesSidebarContent = ({ set, activeNotePath }: { set: string; activeNotePath?: string }) => {
+const NotesSection = ({ set, activeNotePath }: { set: string; activeNotePath?: string }) => {
   const { data: notes = [], isLoading } = useNotes(set);
   const { setMobileOpen } = useMobileSidebar();
   const navigate = useNavigate();
 
   return (
-    <div className={SIDEBAR_SECTION_STACK_CLASSES}>
-      <SidebarSection label="Notes">
-        {isLoading && <div className="px-2 py-1 text-sm text-muted-foreground">Loading…</div>}
-        {!isLoading && notes.length === 0 && (
-          <div className="px-2 py-1 text-sm text-muted-foreground">No notes yet</div>
-        )}
-        {notes.map((note) => (
-          <SidebarRow
-            key={note.path}
-            icon={ListChecksIcon}
-            label={note.title}
-            state={note.path === activeNotePath ? "current" : "idle"}
-            onClick={() => {
-              navigate(`/s/${set}/n/${note.path.replace(/^notes\//, "")}`);
-              setMobileOpen(false);
-            }}
-          />
-        ))}
-      </SidebarSection>
-      <SidebarSection label="More" ariaLabel="Unimplemented sections">
-        {PLACEHOLDER_ROWS.map((row) => (
+    <SidebarSection label="Notes">
+      {isLoading && <div className="px-2 py-1 text-sm text-muted-foreground">Loading…</div>}
+      {!isLoading && notes.length === 0 && <div className="px-2 py-1 text-sm text-muted-foreground">No notes yet</div>}
+      {notes.map((note) => (
+        <SidebarRow
+          key={note.path}
+          icon={ListChecksIcon}
+          label={note.title}
+          state={note.path === activeNotePath ? "current" : "idle"}
+          onClick={() => {
+            navigate(`/s/${set}/n/${note.path.replace(/^notes\//, "")}`);
+            setMobileOpen(false);
+          }}
+        />
+      ))}
+    </SidebarSection>
+  );
+};
+
+// Rendered regardless of whether a study set is selected, so the Library link (and its
+// "Add source" action) works from `/library` too, not just from under `/s/:set`.
+const MoreSection = ({ set }: { set?: string }) => {
+  const { setMobileOpen } = useMobileSidebar();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [addSourceOpen, setAddSourceOpen] = useState(false);
+  const libraryActive = location.pathname === "/library" || location.pathname.startsWith("/library/");
+
+  return (
+    <>
+      <SidebarSection
+        label="More"
+        ariaLabel="Library and other sections"
+        action={
+          <Button variant="quiet" size="icon-compact" onClick={() => setAddSourceOpen(true)} aria-label="Add source">
+            <PlusIcon className="size-3.5" />
+          </Button>
+        }
+      >
+        <SidebarRow
+          icon={BookOpenIcon}
+          label="Library"
+          state={libraryActive ? "current" : "idle"}
+          onClick={() => {
+            navigate("/library");
+            setMobileOpen(false);
+          }}
+        />
+        {OTHER_PLACEHOLDER_ROWS.map((row) => (
           <SidebarRow key={row.label} icon={row.icon} label={row.label} disabled />
         ))}
       </SidebarSection>
-    </div>
+      <AddSourceSheet open={addSourceOpen} onOpenChange={setAddSourceOpen} defaultSet={set ?? null} />
+    </>
   );
 };
 
@@ -84,11 +116,14 @@ const AppSidebar = ({ className }: { className?: string }) => {
           SIDEBAR_RAIL_CLASSES,
         )}
       >
-        {set ? (
-          <NotesSidebarContent set={set} activeNotePath={activeNotePath} />
-        ) : (
-          <div className="px-2 py-1 text-sm text-muted-foreground">Select a study set to see its notes.</div>
-        )}
+        <div className={SIDEBAR_SECTION_STACK_CLASSES}>
+          {set ? (
+            <NotesSection set={set} activeNotePath={activeNotePath} />
+          ) : (
+            <div className="px-2 py-1 text-sm text-muted-foreground">Select a study set to see its notes.</div>
+          )}
+          <MoreSection set={set} />
+        </div>
       </div>
     </aside>
   );

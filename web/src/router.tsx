@@ -4,6 +4,8 @@ import { createBrowserRouter, Navigate, useLocation, useParams } from "react-rou
 import { api } from "@/api/client";
 import { useSets } from "@/api/queries";
 import RootLayout from "@/layouts/RootLayout";
+import LibraryPage from "@/pages/LibraryPage";
+import LibrarySourcePage from "@/pages/LibrarySourcePage";
 import NotePage from "@/pages/NotePage";
 import SignIn from "@/pages/SignIn";
 
@@ -52,6 +54,8 @@ export const router = createBrowserRouter([
       { index: true, element: <HomeRedirect /> },
       { path: "s/:set", element: <SetOverviewPlaceholder /> },
       { path: "s/:set/n/*", element: <NotePage /> },
+      { path: "library", element: <LibraryPage /> },
+      { path: "library/:id", element: <LibrarySourcePage /> },
     ],
   },
 ]);
