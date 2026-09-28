@@ -1,6 +1,8 @@
 import { existsSync } from "node:fs";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
+import type { ChatService } from "./agent/chat-service.js";
+import { chatRoutes } from "./agent/routes.js";
 import { authRoutes, requireAuth } from "./auth/routes.js";
 import type { AuthConfig } from "./auth/session.js";
 import type { EventHub } from "./events.js";
@@ -13,10 +15,15 @@ export interface AppDeps {
   hub: EventHub;
   locks: FileLocks;
   auth: AuthConfig;
+  chats: ChatService;
   webDist?: string;
 }
 
-export function createApp(deps: AppDeps): Hono {
+type LegacyAppDeps = Omit<AppDeps, "chats">;
+
+export function createApp(deps: AppDeps): Hono;
+export function createApp(deps: LegacyAppDeps): Hono;
+export function createApp(deps: AppDeps | LegacyAppDeps): Hono {
   const app = new Hono();
 
   app.route("/api/auth", authRoutes(deps.auth));
@@ -27,7 +34,9 @@ export function createApp(deps: AppDeps): Hono {
   app.route("/api/sets", setsRoutes({ root: deps.root, hub: deps.hub }));
   app.route("/api/events", eventsRoutes(deps.hub));
 
-  // mount: chats
+  if ("chats" in deps) {
+    app.route("/api/sets/:set/chats", chatRoutes(deps.chats));
+  }
 
   if (deps.webDist !== undefined && existsSync(deps.webDist)) {
     const webRoot = deps.webDist;
