@@ -60,6 +60,15 @@ describe("McpManager", () => {
     expect(manager.health()).toEqual([{ name: "fake-server", kind: "mcp", ok: true, detail: "connected", tools: 2 }]);
   });
 
+  it("reports disabled servers as unconfigured health entries", () => {
+    const manager = new McpManager([]);
+    manager.setDisabledServers([{ name: "papers", reason: "missing environment variable PAPERS_MCP_URL" }]);
+
+    expect(manager.health()).toEqual([
+      { name: "papers", kind: "mcp", ok: false, detail: "not configured: missing environment variable PAPERS_MCP_URL" },
+    ]);
+  });
+
   it("records failed server health without throwing from start", async () => {
     const transport: Transport = {
       start: async () => {

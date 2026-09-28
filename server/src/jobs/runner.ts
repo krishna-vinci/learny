@@ -22,6 +22,12 @@ export interface JobRunnerDeps {
 
 // `list()` always includes running jobs and at most this many recent ones.
 const LIST_LIMIT = 50;
+// Finished jobs kept in memory; the oldest are dropped once the cap is exceeded.
+export const FINISHED_JOB_LIMIT = 200;
+
+function isFinished(status: JobStatus): boolean {
+  return status === "done" || status === "failed" || status === "cancelled";
+}
 
 interface JobRecord {
   id: string;
@@ -148,6 +154,7 @@ export class JobRunner {
       record.status = "cancelled";
       record.finishedAt = new Date().toISOString();
       this.#publish(record);
+      this.#pruneFinished();
       return true;
     }
     if (record.status !== "running") return false;
@@ -155,6 +162,14 @@ export class JobRunner {
     record.controller.abort();
     this.#publish(record);
     return true;
+  }
+
+  /** Drop the oldest finished jobs so memory stays bounded. Map order is insertion order. */
+  #pruneFinished(): void {
+    const finished = [...this.#jobs.values()].filter((record) => isFinished(record.status));
+    for (const record of finished.slice(0, Math.max(0, finished.length - FINISHED_JOB_LIMIT))) {
+      this.#jobs.delete(record.id);
+    }
   }
 
   #pump(): void {
@@ -208,6 +223,7 @@ export class JobRunner {
       this.#publish(record);
       const view = this.#view(record);
       await appendJobLog(this.#root, view).catch(() => undefined);
+      this.#pruneFinished();
       this.#pump();
     }
   }

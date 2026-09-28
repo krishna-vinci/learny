@@ -73,6 +73,21 @@ describe("listSets", () => {
       },
     ]);
   });
+
+  it("keeps valid fields when a single field is invalid", async () => {
+    await write("linear-algebra/PLAN.md", '---\ntitle: Linear algebra\nstatus: active\nlevel: "two"\n---\n\n# Plan\n');
+
+    expect(await listSets(root)).toEqual([
+      {
+        slug: "linear-algebra",
+        title: "Linear algebra",
+        status: "active",
+        level: null,
+        deadline: null,
+        nextAction: null,
+      },
+    ]);
+  });
 });
 
 describe("listNotes", () => {
@@ -94,6 +109,14 @@ describe("listNotes", () => {
 
     const notes = await listNotes(root, "linear-algebra");
     expect(notes).toEqual([{ path: "notes/04-bad.md", title: "04-bad", order: null, status: null }]);
+  });
+
+  it("keeps valid note fields when a single field is invalid", async () => {
+    await write("linear-algebra/notes/01-a.md", '---\ntitle: Alpha\norder: "one"\nstatus: accepted\n---\n\nA\n');
+
+    expect(await listNotes(root, "linear-algebra")).toEqual([
+      { path: "notes/01-a.md", title: "Alpha", order: null, status: "accepted" },
+    ]);
   });
 });
 

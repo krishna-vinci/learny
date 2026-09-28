@@ -4,7 +4,7 @@ import path from "node:path";
 import type { StudiumEvent } from "@studium/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EventHub } from "../events.js";
-import { JobRunner, usageFromPiMessages } from "./runner.js";
+import { FINISHED_JOB_LIMIT, JobRunner, usageFromPiMessages } from "./runner.js";
 
 let root: string;
 
@@ -156,6 +156,20 @@ describe("JobRunner", () => {
     expect(runner.list().map((job) => job.id)).toEqual([newer.id, older.id]);
     expect(runner.list("alpha").map((job) => job.id)).toEqual([older.id]);
     expect(runner.list("missing")).toEqual([]);
+  });
+
+  it("keeps at most 200 finished jobs in memory, dropping the oldest", async () => {
+    const { runner } = makeRunner({ maxParallel: 8 });
+    runner.register("ingest", async () => undefined);
+
+    const ids: string[] = [];
+    for (let index = 0; index < FINISHED_JOB_LIMIT + 5; index++) {
+      ids.push(runner.enqueue("ingest", { index }, { set: null, title: `Job ${index}` }).id);
+    }
+
+    await vi.waitFor(() => expect(runner.get(ids[0] ?? "")).toBeUndefined());
+    expect(runner.get(ids[FINISHED_JOB_LIMIT - 1] ?? "")?.status).toBe("done");
+    expect(runner.get(ids[FINISHED_JOB_LIMIT + 4] ?? "")?.status).toBe("done");
   });
 });
 

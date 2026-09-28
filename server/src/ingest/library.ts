@@ -292,6 +292,20 @@ export async function readSource(root: string, id: string): Promise<SourceView |
   };
 }
 
+/**
+ * Read one of a source's `parsedFiles` by its listed name (`parsed.md` or
+ * `parsed/<name>.md`); null when the id or file is unknown or unreadable.
+ */
+export async function readParsedFile(root: string, id: string, file: string): Promise<string | null> {
+  const view = await readSource(root, id);
+  if (view === null || !view.parsedFiles.includes(file)) return null;
+  try {
+    return await fs.readFile(resolveInRoot(root, `${LIBRARY_DIR}/${id}/${file}`), "utf8");
+  } catch {
+    return null;
+  }
+}
+
 function parseBody(text: string): string {
   try {
     return parseFrontmatter(text).body;

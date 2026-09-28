@@ -213,6 +213,12 @@ export function createDraftJob(deps: DraftJobDeps): JobHandler {
     const reportPath = `log/checks/${path.basename(notePath)}`;
     const reportRootPath = `${input.set}/${reportPath}`;
 
+    // Commit the draft as the drafter before the checker edits its status, so the
+    // checker's commit below carries the report and the `status: checked` edit.
+    const drafterSha = await commitPaths(deps.root, [...written].sort(), `drafter: ${input.title}`, "drafter");
+    if (drafterSha === null) throw new Error("draft job produced no changes to commit");
+    deps.hub.publish({ type: "commit", sha: drafterSha, subject: `drafter: ${input.title}`, author: "drafter" });
+
     const check = async (recheck: boolean): Promise<boolean> => {
       ctx.signal.throwIfAborted();
       ctx.progress(recheck ? "Re-checking revised chapter" : "Checking chapter");
@@ -274,10 +280,16 @@ export function createDraftJob(deps: DraftJobDeps): JobHandler {
     }
 
     ctx.progress(blocked ? "Finished with open blocker issues" : "Chapter checked");
-    const paths = [...written].sort();
-    const commitSha = await commitPaths(deps.root, paths, `drafter: ${input.title}`, "drafter");
-    if (commitSha === null) throw new Error("draft job produced no changes to commit");
-    deps.hub.publish({ type: "commit", sha: commitSha, subject: `drafter: ${input.title}`, author: "drafter" });
+    const checkerSha = await commitPaths(
+      deps.root,
+      [noteRootPath, reportRootPath],
+      `checker: ${input.title}`,
+      "checker",
+    );
+    if (checkerSha !== null) {
+      deps.hub.publish({ type: "commit", sha: checkerSha, subject: `checker: ${input.title}`, author: "checker" });
+    }
+    const commitSha = checkerSha ?? drafterSha;
     return { notePath, commitSha };
   };
 }

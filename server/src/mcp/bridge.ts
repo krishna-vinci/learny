@@ -59,9 +59,15 @@ function bridgeTool(serverName: string, client: ReturnType<McpClientFactory>, re
 
 export class McpManager {
   #clients: ReturnType<McpClientFactory>[];
+  #disabled: { name: string; reason: string }[] = [];
 
   constructor(configs: McpServerConfig[], clientFactory: McpClientFactory = defaultMcpClientFactory) {
     this.#clients = configs.map((config) => clientFactory(config));
+  }
+
+  /** Servers `loadMcpConfig` disabled (missing config) are surfaced in `health()`. */
+  setDisabledServers(disabled: { name: string; reason: string }[]): void {
+    this.#disabled = disabled;
   }
 
   async start(): Promise<void> {
@@ -77,7 +83,15 @@ export class McpManager {
   }
 
   health(): ServiceHealth[] {
-    return this.#clients.map((client) => client.health());
+    return [
+      ...this.#clients.map((client) => client.health()),
+      ...this.#disabled.map((server) => ({
+        name: server.name,
+        kind: "mcp" as const,
+        ok: false,
+        detail: `not configured: ${server.reason}`,
+      })),
+    ];
   }
 
   async stop(): Promise<void> {

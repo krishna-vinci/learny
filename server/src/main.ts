@@ -46,7 +46,9 @@ await ensureRepo(root);
 const hub = new EventHub();
 const locks = new FileLocks();
 const runtime = await createModelRuntime();
-const mcp = new McpManager(loadMcpConfig(root, process.env).servers);
+const mcpConfig = loadMcpConfig(root, process.env);
+const mcp = new McpManager(mcpConfig.servers);
+mcp.setDisabledServers(mcpConfig.disabled);
 await mcp.start();
 const jobs = new JobRunner({
   root,

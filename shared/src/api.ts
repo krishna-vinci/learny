@@ -62,6 +62,12 @@ export interface SourceSummary {
   warning: string | null;
 }
 
+// `GET /api/library/:id/parsed?file=<name>`: one of a source's `parsedFiles`.
+export interface ParsedFileView {
+  file: string;
+  markdown: string;
+}
+
 export type JobKind = "ingest" | "draft-chapter";
 export type JobStatus = "queued" | "running" | "done" | "failed" | "cancelled";
 

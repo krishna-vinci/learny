@@ -18,6 +18,15 @@ function safeFrontmatter(text: string): Record<string, unknown> {
   }
 }
 
+// Validate one field on its own so a single bad value only loses that field.
+function field<T>(
+  schema: { safeParse: (value: unknown) => { success: true; data: T } | { success: false } },
+  value: unknown,
+): T | undefined {
+  const parsed = schema.safeParse(value);
+  return parsed.success ? parsed.data : undefined;
+}
+
 export async function listSets(root: string): Promise<SetSummary[]> {
   let entries: Dirent[];
   try {
@@ -39,15 +48,15 @@ export async function listSets(root: string): Promise<SetSummary[]> {
       continue; // no PLAN.md → not a set
     }
 
-    const parsed = PlanFrontmatter.safeParse(safeFrontmatter(plan));
-    const data = parsed.success ? parsed.data : {};
+    const frontmatter = safeFrontmatter(plan);
+    const fields = PlanFrontmatter.shape;
     sets.push({
       slug,
-      title: data.title ?? slug,
-      status: data.status ?? "draft",
-      level: data.level ?? null,
-      deadline: data.deadline ?? null,
-      nextAction: data.next_action ?? null,
+      title: field(fields.title, frontmatter.title) ?? slug,
+      status: field(fields.status, frontmatter.status) ?? "draft",
+      level: field(fields.level, frontmatter.level) ?? null,
+      deadline: field(fields.deadline, frontmatter.deadline) ?? null,
+      nextAction: field(fields.next_action, frontmatter.next_action) ?? null,
     });
   }
 
@@ -74,13 +83,13 @@ export async function listNotes(root: string, set: string): Promise<NoteSummary[
       continue;
     }
 
-    const parsed = NoteFrontmatter.safeParse(safeFrontmatter(text));
-    const data = parsed.success ? parsed.data : {};
+    const frontmatter = safeFrontmatter(text);
+    const fields = NoteFrontmatter.shape;
     notes.push({
       path: `notes/${entry.name}`,
-      title: data.title ?? entry.name.replace(/\.md$/, ""),
-      order: data.order ?? null,
-      status: data.status ?? null,
+      title: field(fields.title, frontmatter.title) ?? entry.name.replace(/\.md$/, ""),
+      order: field(fields.order, frontmatter.order) ?? null,
+      status: field(fields.status, frontmatter.status) ?? null,
     });
   }
 

@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createModelRuntime } from "../agent/models.js";
 import { EventHub } from "../events.js";
 import { McpManager } from "../mcp/bridge.js";
-import { ensureRepo, log } from "../tree/git.js";
+import { diff, ensureRepo, log } from "../tree/git.js";
 import { FileLocks } from "../tree/lock.js";
 import { createDraftJob, hasBlockingIssues, setNoteStatusTool } from "./draft-job.js";
 
@@ -96,7 +96,17 @@ describe("draft chapter job", () => {
       fs.readFile(path.join(root, "linear-algebra/log/checks/04-eigenvalues.md"), "utf8"),
     ).resolves.toContain("No issues found");
     expect(progress).toEqual(["Drafting chapter", "Checking chapter", "Chapter checked"]);
-    expect((await log(root, { limit: 1 }))[0]).toMatchObject({ author: "drafter", subject: "drafter: Eigenvalues" });
+
+    // Two commits in order: the drafter's note, then the checker's report + status edit.
+    const [checkerCommit, drafterCommit] = await log(root, { limit: 2 });
+    expect(checkerCommit).toMatchObject({ author: "checker", subject: "checker: Eigenvalues" });
+    expect(drafterCommit).toMatchObject({ author: "drafter", subject: "drafter: Eigenvalues" });
+    const noteRel = "linear-algebra/notes/04-eigenvalues.md";
+    expect(await diff(root, drafterCommit?.sha ?? "", noteRel)).toContain("+status: draft");
+    expect(await diff(root, checkerCommit?.sha ?? "", noteRel)).toContain("+status: checked");
+    expect(await diff(root, checkerCommit?.sha ?? "", "linear-algebra/log/checks/04-eigenvalues.md")).toContain(
+      "No issues found",
+    );
   });
 
   it("does not let the checker mark the bound note checked while a blocker remains", async () => {

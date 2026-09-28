@@ -80,6 +80,28 @@ describe("GET /api/library", () => {
   });
 });
 
+describe("GET /api/library/:id/parsed", () => {
+  it("returns a listed parsed file's markdown", async () => {
+    const { id } = await writeSource(root, makeExtracted({ url: "https://example.com/book" }));
+
+    const response = await app.request(`/api/library/${id}/parsed?file=parsed.md`);
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      file: "parsed.md",
+      markdown: "# Vectors\n\nA short note about vectors.\n",
+    });
+  });
+
+  it("404s for an unlisted, escaping or unknown file and 400s without file", async () => {
+    const { id } = await writeSource(root, makeExtracted({ url: "https://example.com/book" }));
+
+    expect((await app.request(`/api/library/${id}/parsed?file=source.md`)).status).toBe(404);
+    expect((await app.request(`/api/library/${id}/parsed?file=../../etc/passwd`)).status).toBe(404);
+    expect((await app.request("/api/library/lib-missing/parsed?file=parsed.md")).status).toBe(404);
+    expect((await app.request(`/api/library/${id}/parsed`)).status).toBe(400);
+  });
+});
+
 describe("POST /api/library", () => {
   it("enqueues an ingest job for a URL", async () => {
     const response = await postJson({ url: "https://example.com/article" });

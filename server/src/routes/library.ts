@@ -1,8 +1,9 @@
 import { promises as fs } from "node:fs";
+import type { ParsedFileView } from "@studium/shared";
 import type { Context } from "hono";
 import { Hono } from "hono";
 import { dedupeKeyFromUrl, sha256Hex } from "../ingest/ids.js";
-import { findDuplicate, type IngestJobInput, listSources, readSource } from "../ingest/library.js";
+import { findDuplicate, type IngestJobInput, listSources, readParsedFile, readSource } from "../ingest/library.js";
 import type { JobRunner } from "../jobs/runner.js";
 import { resolveInRoot } from "../tree/paths.js";
 import { isSetSlug } from "../tree/read.js";
@@ -64,6 +65,15 @@ export function libraryRoutes(deps: LibraryRoutesDeps): Hono {
   app.get("/:id", async (c) => {
     const view = await readSource(root, c.req.param("id"));
     if (view === null) return c.json({ error: "not found" }, 404);
+    return c.json(view);
+  });
+
+  app.get("/:id/parsed", async (c) => {
+    const file = c.req.query("file");
+    if (file === undefined || file === "") return c.json({ error: "file is required" }, 400);
+    const markdown = await readParsedFile(root, c.req.param("id"), file);
+    if (markdown === null) return c.json({ error: "not found" }, 404);
+    const view: ParsedFileView = { file, markdown };
     return c.json(view);
   });
 

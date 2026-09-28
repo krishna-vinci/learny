@@ -4,10 +4,7 @@ import { webFetchTool } from "./web-fetch.js";
 const fetchMock = vi.fn();
 const lookupMock = vi.hoisted(() => vi.fn());
 
-vi.mock("node:dns/promises", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("node:dns/promises")>();
-  return { ...actual, lookup: lookupMock };
-});
+vi.mock("node:dns", () => ({ promises: { lookup: lookupMock } }));
 
 function tool(opts: Parameters<typeof webFetchTool>[0] = {}) {
   return webFetchTool(opts);
@@ -67,7 +64,7 @@ describe("webFetchTool", () => {
     expect(lookupMock).toHaveBeenCalledWith("rebind.example", { all: true, verbatim: true });
     expect(outcome.details).toMatchObject({
       isError: true,
-      summary: "Host resolves to a blocked private or loopback address: rebind.example",
+      summary: "Refusing to fetch rebind.example (resolves to 192.168.1.4)",
     });
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -80,7 +77,7 @@ describe("webFetchTool", () => {
 
     const outcome = await execute("https://93.184.216.34/redirect");
 
-    expect(outcome.details).toMatchObject({ isError: true, summary: "Blocked private or loopback address: 127.0.0.1" });
+    expect(outcome.details).toMatchObject({ isError: true, summary: "Refusing to fetch private address: 127.0.0.1" });
   });
 
   it("rejects a response whose declared body exceeds the download cap", async () => {
@@ -91,7 +88,7 @@ describe("webFetchTool", () => {
 
     const outcome = await execute("https://93.184.216.34/large");
 
-    expect(outcome.details).toMatchObject({ isError: true, summary: expect.stringContaining("5 MB limit") });
+    expect(outcome.details).toMatchObject({ isError: true, summary: expect.stringContaining("exceeds") });
   });
 
   it("uses configured Firecrawl and returns its markdown", async () => {
