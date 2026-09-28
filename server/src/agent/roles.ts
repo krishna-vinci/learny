@@ -33,7 +33,7 @@ function setPath(set: string | null, directory: "notes" | "log/checks", rel: str
 export const ROLES: Record<RoleName, RoleSpec> = {
   tutor: {
     modelRole: "tutor",
-    tools: [...STUDY_TOOLS, ...RESEARCH_TOOLS, ...SKILL_TOOLS],
+    tools: [...STUDY_TOOLS, ...RESEARCH_TOOLS, ...SKILL_TOOLS, "start_job"],
     mcpServers: ["searxng", "papers"],
     skills: ["explain", "evolve-note", "note-authoring"],
     requiresSet: true,

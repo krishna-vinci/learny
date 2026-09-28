@@ -9,6 +9,7 @@ import { createModelRuntime } from "./agent/models.js";
 import { createApp } from "./app.js";
 import { assertBindAllowed, authConfigFromEnv } from "./auth/session.js";
 import { EventHub } from "./events.js";
+import { createDraftJob } from "./jobs/draft-job.js";
 import { JobRunner } from "./jobs/runner.js";
 import { McpManager } from "./mcp/bridge.js";
 import { loadMcpConfig } from "./mcp/config.js";
@@ -50,6 +51,7 @@ const jobs = new JobRunner({
   hub,
   maxParallel: Number.isFinite(maxParallelJobs) && maxParallelJobs > 0 ? maxParallelJobs : 3,
 });
+jobs.register("draft-chapter", createDraftJob({ root, locks, mcp, runtime, hub }));
 
 function messageText(message: Message): string {
   if (message.role !== "user") return "";
