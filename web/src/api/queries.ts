@@ -1,6 +1,14 @@
-import type { FileView, InboxItem, JobView, NoteSummary, SetSummary, SettingsView } from "@studium/shared";
+import type {
+  FileView,
+  InboxItem,
+  JobView,
+  NoteSummary,
+  SetSummary,
+  SettingsView,
+  SourceSummary,
+} from "@studium/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api } from "./client";
+import { api, type LibrarySourceView } from "./client";
 import { useStudiumEvents } from "./events";
 
 export const queryKeys = {
@@ -8,6 +16,8 @@ export const queryKeys = {
   notes: (set: string) => ["sets", set, "notes"] as const,
   file: (set: string, path: string) => ["sets", set, "file", path] as const,
   history: (set: string, path?: string) => ["sets", set, "history", path ?? null] as const,
+  library: ["library"] as const,
+  librarySource: (id: string) => ["library", id] as const,
   settings: ["settings"] as const,
   // T9b: Jobs panel + Inbox.
   jobs: (set?: string) => ["jobs", set ?? null] as const,
@@ -52,9 +62,21 @@ export function useNoteFile(set: string | undefined, path: string | undefined) {
   });
 }
 
+export function useLibrary() {
+  return useQuery<SourceSummary[]>({ queryKey: queryKeys.library, queryFn: () => api.library.list() });
+}
+
+export function useLibrarySource(id: string | undefined) {
+  return useQuery<LibrarySourceView>({
+    queryKey: queryKeys.librarySource(id ?? ""),
+    queryFn: () => api.library.get(id as string),
+    enabled: !!id,
+  });
+}
+
 /**
- * Wires SSE `file`/`commit` events into React Query cache invalidation, so notes,
- * file content, and history stay live without polling.
+ * Wires SSE `file`/`commit`/`job` events into React Query cache invalidation, so notes,
+ * file content, history, and the library stay live without polling.
  */
 export function useLiveStudiumUpdates() {
   const queryClient = useQueryClient();
@@ -72,15 +94,21 @@ export function useLiveStudiumUpdates() {
       queryClient.invalidateQueries({ predicate: (query) => query.queryKey.includes("history") });
       return;
     }
-    // T9b: keep the Jobs panel live, and refresh a set's Inbox/notes once a
-    // draft-chapter job that touched it reaches a terminal state.
     if (event.type === "job") {
-      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === "jobs" });
       const { job } = event;
       const finished = job.status === "done" || job.status === "failed" || job.status === "cancelled";
+      // A finished draft-chapter job changes that set's Inbox and notes.
       if (job.kind === "draft-chapter" && job.set && finished) {
         queryClient.invalidateQueries({ queryKey: queryKeys.inbox(job.set) });
         queryClient.invalidateQueries({ queryKey: queryKeys.notes(job.set) });
+      }
+      // Ingest jobs write new library entries (or update the pending one); refresh the
+      // list and, once we know the source id, its detail page too.
+      if (job.kind === "ingest" && finished) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.library });
+        const sourceId = job.result?.sourceId;
+        if (sourceId) queryClient.invalidateQueries({ queryKey: queryKeys.librarySource(sourceId) });
       }
     }
   });

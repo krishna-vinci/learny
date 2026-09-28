@@ -9,11 +9,14 @@ import {
   ListChecksIcon,
   MenuIcon,
   NotebookTextIcon,
+  PlusIcon,
   SettingsIcon,
   WrenchIcon,
 } from "lucide-react";
+import { useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useInbox, useJobs, useNotes } from "@/api/queries";
+import { AddSourceSheet } from "@/components/Library/AddSourceSheet";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useMobileSidebar } from "./MobileSidebarContext";
@@ -22,11 +25,8 @@ import SidebarRow from "./SidebarRow";
 import SidebarSection, { SIDEBAR_SECTION_STACK_CLASSES } from "./SidebarSection";
 import { SIDEBAR_RAIL_CLASSES } from "./sidebar-layout";
 
-// Library and Cards are built by other M1 tasks; Inbox and Jobs (T9b) are real links below.
-const PLACEHOLDER_ROWS = [
-  { label: "Library", icon: BookOpenIcon },
-  { label: "Cards", icon: NotebookTextIcon },
-] as const;
+// "Library" is real (this task); the rest stay disabled placeholders for later M1 tasks.
+const OTHER_PLACEHOLDER_ROWS = [{ label: "Cards", icon: NotebookTextIcon }] as const;
 
 const NotesSection = ({ set, activeNotePath }: { set: string; activeNotePath?: string }) => {
   const { data: notes = [], isLoading } = useNotes(set);
@@ -53,50 +53,72 @@ const NotesSection = ({ set, activeNotePath }: { set: string; activeNotePath?: s
   );
 };
 
+// Rendered regardless of whether a study set is selected, so the Library link (and its
+// "Add source" action) works from `/library` too, not just from under `/s/:set`.
 const MoreSection = ({ set }: { set?: string }) => {
   const { setMobileOpen } = useMobileSidebar();
   const navigate = useNavigate();
   const location = useLocation();
-
-  // T9b: Jobs is global; its badge counts jobs still queued/running anywhere.
+  const [addSourceOpen, setAddSourceOpen] = useState(false);
+  const libraryActive = location.pathname === "/library" || location.pathname.startsWith("/library/");
   const { data: jobs = [] } = useJobs();
   const runningJobCount = jobs.filter((job) => job.status === "queued" || job.status === "running").length;
-
-  // T9b: Inbox is per-set; only fetched (and only a link) once a set is selected.
   const { data: inboxItems = [] } = useInbox(set);
-
   const goTo = (path: string) => {
     navigate(path);
     setMobileOpen(false);
   };
 
   return (
-    <SidebarSection label="More" ariaLabel="Unimplemented sections">
-      {PLACEHOLDER_ROWS.map((row) => (
-        <SidebarRow key={row.label} icon={row.icon} label={row.label} disabled />
-      ))}
-      <SidebarRow
-        icon={ArchiveIcon}
-        label="Inbox"
-        count={inboxItems.length}
-        disabled={!set}
-        state={set && location.pathname === `/s/${set}/inbox` ? "current" : "idle"}
-        onClick={set ? () => goTo(`/s/${set}/inbox`) : undefined}
-      />
-      <SidebarRow
-        icon={WrenchIcon}
-        label="Jobs"
-        count={runningJobCount}
-        state={location.pathname === "/jobs" ? "current" : "idle"}
-        onClick={() => goTo("/jobs")}
-      />
-      <SidebarRow
-        icon={SettingsIcon}
-        label="Settings"
-        state={location.pathname === "/settings" ? "current" : "idle"}
-        onClick={() => goTo("/settings")}
-      />
-    </SidebarSection>
+    <>
+      <SidebarSection
+        label="More"
+        ariaLabel="Library and other sections"
+        action={
+          <Button variant="quiet" size="icon-compact" onClick={() => setAddSourceOpen(true)} aria-label="Add source">
+            <PlusIcon className="size-3.5" />
+          </Button>
+        }
+      >
+        <SidebarRow
+          icon={BookOpenIcon}
+          label="Library"
+          state={libraryActive ? "current" : "idle"}
+          onClick={() => {
+            navigate("/library");
+            setMobileOpen(false);
+          }}
+        />
+        <SidebarRow
+          icon={ArchiveIcon}
+          label="Inbox"
+          count={inboxItems.length}
+          disabled={!set}
+          state={set && location.pathname === `/s/${set}/inbox` ? "current" : "idle"}
+          onClick={set ? () => goTo(`/s/${set}/inbox`) : undefined}
+        />
+        <SidebarRow
+          icon={WrenchIcon}
+          label="Jobs"
+          count={runningJobCount}
+          state={location.pathname === "/jobs" ? "current" : "idle"}
+          onClick={() => goTo("/jobs")}
+        />
+        {OTHER_PLACEHOLDER_ROWS.map((row) => (
+          <SidebarRow key={row.label} icon={row.icon} label={row.label} disabled />
+        ))}
+        <SidebarRow
+          icon={SettingsIcon}
+          label="Settings"
+          state={location.pathname === "/settings" ? "current" : "idle"}
+          onClick={() => {
+            navigate("/settings");
+            setMobileOpen(false);
+          }}
+        />
+      </SidebarSection>
+      <AddSourceSheet open={addSourceOpen} onOpenChange={setAddSourceOpen} defaultSet={set ?? null} />
+    </>
   );
 };
 
