@@ -30,7 +30,6 @@ const OTHER_PLACEHOLDER_ROWS = [
   { label: "Cards", icon: NotebookTextIcon },
   { label: "Inbox", icon: ArchiveIcon },
   { label: "Jobs", icon: WrenchIcon },
-  { label: "Settings", icon: SettingsIcon },
 ] as const;
 
 const NotesSection = ({ set, activeNotePath }: { set: string; activeNotePath?: string }) => {
@@ -90,6 +89,15 @@ const MoreSection = ({ set }: { set?: string }) => {
         {OTHER_PLACEHOLDER_ROWS.map((row) => (
           <SidebarRow key={row.label} icon={row.icon} label={row.label} disabled />
         ))}
+        <SidebarRow
+          icon={SettingsIcon}
+          label="Settings"
+          state={location.pathname === "/settings" ? "current" : "idle"}
+          onClick={() => {
+            navigate("/settings");
+            setMobileOpen(false);
+          }}
+        />
       </SidebarSection>
       <AddSourceSheet open={addSourceOpen} onOpenChange={setAddSourceOpen} defaultSet={set ?? null} />
     </>

@@ -179,6 +179,43 @@ describe("ChatService", () => {
     expect(await rawGit(root, "status", "--porcelain")).toContain("PLAN.md");
   });
 
+  it("publishes a job proposal without starting a job", async () => {
+    const { chats, faux, hub } = await setup();
+    const id = await chats.create("linear-algebra");
+    const events: StudiumEvent[] = [];
+    hub.subscribe((event) => events.push(event));
+    faux.setResponses([
+      fauxAssistantMessage(
+        fauxToolCall(
+          "start_job",
+          { kind: "draft-chapter", title: "Eigenvalues", sources: ["lib-strang-la"] },
+          { id: "proposal-1" },
+        ),
+        { stopReason: "toolUse" },
+      ),
+      fauxAssistantMessage(fauxText("Please confirm the proposed chapter.")),
+    ]);
+
+    const settled = waitForSettled(hub, id);
+    await chats.send("linear-algebra", id, "Draft an eigenvalues chapter");
+    await settled;
+
+    const proposal = events.find(
+      (event) => event.type === "chat" && event.chatId === id && event.event.kind === "job_proposal",
+    );
+    expect(proposal).toMatchObject({
+      type: "chat",
+      set: "linear-algebra",
+      chatId: id,
+      event: {
+        kind: "job_proposal",
+        jobKind: "draft-chapter",
+        title: "Eigenvalues",
+        estimate: { costUsd: null },
+      },
+    });
+  });
+
   it("commits only the note the tutor edited while a hand-edited PLAN.md stays uncommitted", async () => {
     const { chats, faux, hub } = await setup();
     const id = await chats.create("linear-algebra");

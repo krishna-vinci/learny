@@ -6,6 +6,7 @@ import type {
   JobView,
   NoteSummary,
   SetSummary,
+  SettingsView,
   SourceSummary,
 } from "@studium/shared";
 
@@ -157,6 +158,15 @@ export const api = {
   jobs: {
     list(set?: string): Promise<JobView[]> {
       return request(`/api/jobs${qs({ set })}`);
+    },
+  },
+
+  settings: {
+    get(): Promise<SettingsView> {
+      return request("/api/settings");
+    },
+    saveModels(body: { default: string; roles: Record<string, string> }): Promise<SettingsView> {
+      return request("/api/settings/models", { method: "PUT", body: JSON.stringify(body) });
     },
   },
 };

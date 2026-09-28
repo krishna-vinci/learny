@@ -15,6 +15,7 @@ import type { ChatMessage, ChatStreamEvent, ChatSummary, ToolCallView } from "@s
 import { ConfigYaml } from "@studium/shared";
 import { parse as parseYaml } from "yaml";
 import type { EventHub } from "../events.js";
+import { jobProposals, proposalFromToolResult, startJobTool } from "../jobs/proposals.js";
 import type { McpManager } from "../mcp/bridge.js";
 import { readText } from "../tree/edit.js";
 import { commitPaths } from "../tree/git.js";
@@ -342,6 +343,8 @@ export class ChatService {
           isError: outcome.isError,
           summary: outcome.summary,
         });
+        const proposal = proposalFromToolResult(event.result);
+        if (proposal !== null) this.#publish(set, id, proposal);
         this.#flushPending(set, id, live);
         return;
       }
@@ -378,6 +381,7 @@ export class ChatService {
       onWrite: (rootRelativePath) => {
         writtenPaths.add(rootRelativePath);
       },
+      extraTools: [startJobTool({ root: this.#root, set, runtime: this.#runtime, store: jobProposals })],
     });
     const { session } = await createAgentSession({
       cwd: this.#root,

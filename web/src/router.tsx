@@ -7,6 +7,7 @@ import RootLayout from "@/layouts/RootLayout";
 import LibraryPage from "@/pages/LibraryPage";
 import LibrarySourcePage from "@/pages/LibrarySourcePage";
 import NotePage from "@/pages/NotePage";
+import SettingsPage from "@/pages/SettingsPage";
 import SignIn from "@/pages/SignIn";
 
 function AuthGate({ children }: { children: ReactNode }) {
@@ -52,6 +53,7 @@ export const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <HomeRedirect /> },
+      { path: "settings", element: <SettingsPage /> },
       { path: "s/:set", element: <SetOverviewPlaceholder /> },
       { path: "s/:set/n/*", element: <NotePage /> },
       { path: "library", element: <LibraryPage /> },

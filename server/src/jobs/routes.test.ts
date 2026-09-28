@@ -4,18 +4,21 @@ import path from "node:path";
 import { Hono } from "hono";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EventHub } from "../events.js";
+import { ProposalStore } from "./proposals.js";
 import { jobsRoutes } from "./routes.js";
 import { JobRunner } from "./runner.js";
 
 let root: string;
 let runner: JobRunner;
 let app: Hono;
+let proposals: ProposalStore;
 
 beforeEach(async () => {
   root = await fs.mkdtemp(path.join(os.tmpdir(), "studium-jobroutes-"));
   runner = new JobRunner({ root, hub: new EventHub(), maxParallel: 2 });
+  proposals = new ProposalStore();
   app = new Hono();
-  app.route("/api/jobs", jobsRoutes({ runner }));
+  app.route("/api/jobs", jobsRoutes({ runner, proposals }));
 });
 
 afterEach(async () => {
@@ -23,6 +26,43 @@ afterEach(async () => {
 });
 
 describe("jobs routes", () => {
+  it("starts a draft job directly or from a one-shot proposal", async () => {
+    runner.register("draft-chapter", async () => undefined);
+    const direct = await app.request("/api/jobs", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ kind: "draft-chapter", set: "alpha", title: "Vectors", sources: ["lib-source"] }),
+    });
+    expect(direct.status).toBe(202);
+
+    const proposal = proposals.create({ set: "beta", title: "Matrices" }, { tokens: 5_000, costUsd: null });
+    const proposed = await app.request("/api/jobs", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ proposalId: proposal.proposalId }),
+    });
+    expect(proposed.status).toBe(202);
+    expect(
+      (
+        await app.request("/api/jobs", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ proposalId: proposal.proposalId }),
+        })
+      ).status,
+    ).toBe(404);
+    expect(runner.list().map((job) => job.set)).toEqual(["beta", "alpha"]);
+  });
+
+  it("rejects a direct request without the draft-chapter discriminator", async () => {
+    const response = await app.request("/api/jobs", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ set: "alpha", title: "Vectors" }),
+    });
+    expect(response.status).toBe(400);
+  });
+
   it("lists jobs, optionally filtered by set", async () => {
     runner.register("ingest", async () => undefined);
     const alpha = runner.enqueue("ingest", {}, { set: "alpha", title: "A" });

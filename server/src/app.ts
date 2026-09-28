@@ -10,6 +10,7 @@ import { requestGuard } from "./http/guard.js";
 import { jobsRoutes } from "./jobs/routes.js";
 import type { JobRunner } from "./jobs/runner.js";
 import { eventsRoutes } from "./routes/events.js";
+import { inboxRoutes } from "./routes/inbox.js";
 import { libraryRoutes } from "./routes/library.js";
 import { setsRoutes } from "./routes/sets.js";
 import { type SettingsRouteDeps, settingsRoutes } from "./routes/settings.js";
@@ -40,6 +41,7 @@ export function createApp(deps: AppDeps | LegacyAppDeps): Hono {
   app.use("/api/*", requireAuth(deps.auth));
 
   app.route("/api/sets", setsRoutes({ root: deps.root, hub: deps.hub }));
+  app.route("/api/sets/:set", inboxRoutes({ root: deps.root, locks: deps.locks, hub: deps.hub }));
   app.route("/api/events", eventsRoutes(deps.hub));
 
   if (deps.jobs !== undefined) {
