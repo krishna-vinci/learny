@@ -91,4 +91,22 @@ describe("skillTools", () => {
     });
     await fs.rm(outside, { recursive: true, force: true });
   });
+
+  it("rejects a references symlink to another directory inside the study root", async () => {
+    await writeSkill("alpha");
+    const references = path.join(root, "_global/skills/alpha/references");
+    const other = path.join(root, "_global/other-references");
+    await fs.rm(references, { recursive: true });
+    await fs.mkdir(other, { recursive: true });
+    await fs.writeFile(path.join(other, "secret.md"), "secret");
+    await fs.symlink(other, references);
+
+    const outcome = await execute("load_skill_reference", { name: "alpha", file: "secret.md" });
+
+    expect(outcome.details).toMatchObject({
+      isError: true,
+      summary: expect.stringContaining("outside the skill's references directory"),
+    });
+    expect(outcome.content[0]).not.toMatchObject({ text: expect.stringContaining("secret") });
+  });
 });

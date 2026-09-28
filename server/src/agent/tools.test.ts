@@ -108,4 +108,16 @@ describe("tutorTools", () => {
     expect(text).toContain("Error:");
     expect(text).not.toContain("secret");
   });
+
+  it("refuses to read chat transcripts through an in-root symlink", async () => {
+    const chats = path.join(root, "linear-algebra/chats");
+    await fs.mkdir(chats, { recursive: true });
+    await fs.writeFile(path.join(chats, "private.jsonl"), "secret");
+    await fs.symlink(chats, path.join(root, "linear-algebra/notes/chat-alias"));
+
+    const result = await execute("study_read", { path: "notes/chat-alias/private.jsonl" });
+    const text = result.content[0]?.type === "text" ? result.content[0].text : "";
+    expect(text).toContain("Error:");
+    expect(text).not.toContain("secret");
+  });
 });

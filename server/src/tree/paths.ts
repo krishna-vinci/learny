@@ -89,6 +89,22 @@ export function resolveInRoot(root: string, rel: string): string {
 }
 
 /**
+ * Return the canonical, root-relative POSIX path used for policy checks.
+ *
+ * Existing path components are resolved through symlinks. Any suffix that does
+ * not exist yet is appended unchanged to the deepest existing ancestor.
+ */
+export function canonicalRel(root: string, rel: string): string {
+  const resolved = resolveInRoot(root, rel);
+  const realRoot = realpathSync(path.resolve(root));
+  const existing = deepestExistingPath(resolved);
+  const realExisting = realpathSync(existing);
+  const remainder = path.relative(existing, resolved);
+  const canonical = path.join(realExisting, remainder);
+  return path.relative(realRoot, canonical).split(path.sep).join(path.posix.sep);
+}
+
+/**
  * Agents may only write under `<set>/notes/**` or `<set>/log/**`, where the
  * set slug is lowercase kebab-case and not the reserved `library` set.
  */

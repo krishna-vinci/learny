@@ -5,7 +5,7 @@ import type { SourceSummary, SourceType } from "@studium/shared";
 import { parseFrontmatter, SourceFrontmatter } from "@studium/shared";
 import { stringify as stringifyYaml } from "yaml";
 import { commitPaths } from "../tree/git.js";
-import { resolveInRoot } from "../tree/paths.js";
+import { canonicalRel, resolveInRoot } from "../tree/paths.js";
 import { isSetSlug } from "../tree/read.js";
 import {
   type DedupeKey,
@@ -300,7 +300,11 @@ export async function readParsedFile(root: string, id: string, file: string): Pr
   const view = await readSource(root, id);
   if (view === null || !view.parsedFiles.includes(file)) return null;
   try {
-    return await fs.readFile(resolveInRoot(root, `${LIBRARY_DIR}/${id}/${file}`), "utf8");
+    const rel = `${LIBRARY_DIR}/${id}/${file}`;
+    const parsed = `${LIBRARY_DIR}/${id}/parsed`;
+    const isParsedPath = (candidate: string) => candidate === `${parsed}.md` || candidate.startsWith(`${parsed}/`);
+    if (!isParsedPath(rel) || !isParsedPath(canonicalRel(root, rel))) return null;
+    return await fs.readFile(resolveInRoot(root, rel), "utf8");
   } catch {
     return null;
   }

@@ -3,7 +3,7 @@ import { defineTool, type ToolDefinition } from "@earendil-works/pi-coding-agent
 import { Type } from "typebox";
 import { createFile, editFile, readText } from "../tree/edit.js";
 import type { FileLocks } from "../tree/lock.js";
-import { isWritableByAgent, resolveInRoot } from "../tree/paths.js";
+import { canonicalRel, isWritableByAgent, resolveInRoot } from "../tree/paths.js";
 
 interface ToolDetails {
   isError: boolean;
@@ -43,7 +43,17 @@ function errorResult(error: unknown) {
   };
 }
 
-function rootRelative(ctx: StudyToolContext, rel: string): string {
+interface ScopedPath {
+  lexical: string;
+  canonical: string;
+}
+
+function isInScope(ctx: StudyToolContext, rootRel: string): boolean {
+  if (rootRel === "library" || rootRel.startsWith("library/")) return ctx.scope.library;
+  return ctx.scope.set !== null && (rootRel === ctx.scope.set || rootRel.startsWith(`${ctx.scope.set}/`));
+}
+
+function rootRelative(ctx: StudyToolContext, rel: string): ScopedPath {
   let combined: string;
   if (rel === "library" || rel.startsWith("library/")) {
     if (!ctx.scope.library) throw new Error(`Path is outside this role's study scope: ${rel}`);
@@ -56,15 +66,19 @@ function rootRelative(ctx: StudyToolContext, rel: string): string {
     throw new Error(`Path is outside this role's study scope: ${rel}`);
   }
   resolveInRoot(ctx.root, combined);
-  return combined;
+  const canonical = canonicalRel(ctx.root, combined);
+  if (!isInScope(ctx, combined) || !isInScope(ctx, canonical)) {
+    throw new Error(`Path is outside this role's study scope: ${rel}`);
+  }
+  return { lexical: combined, canonical };
 }
 
 function writableRootRelative(ctx: StudyToolContext, rel: string): string {
-  const combined = rootRelative(ctx, rel);
-  if (!ctx.write(combined)) {
+  const scoped = rootRelative(ctx, rel);
+  if (!ctx.write(scoped.lexical) || !ctx.write(scoped.canonical)) {
     throw new Error(`Path is not writable by this role: ${rel}`);
   }
-  return combined;
+  return scoped.lexical;
 }
 
 function hiddenChatPath(rootRel: string): boolean {
@@ -85,9 +99,11 @@ export function studyTools(ctx: StudyToolContext): ToolDefinition[] {
     async execute(_toolCallId, params) {
       try {
         const rel = params.dir ?? ".";
-        const combined = rootRelative(ctx, rel);
-        if (hiddenChatPath(combined)) throw new Error("Chat transcripts are not available to agents");
-        const abs = resolveInRoot(ctx.root, combined);
+        const scoped = rootRelative(ctx, rel);
+        if (hiddenChatPath(scoped.lexical) || hiddenChatPath(scoped.canonical)) {
+          throw new Error("Chat transcripts are not available to agents");
+        }
+        const abs = resolveInRoot(ctx.root, scoped.lexical);
         const entries = await fs.readdir(abs, { withFileTypes: true });
         const names = entries
           .filter((entry) => entry.name !== "chats")
@@ -111,9 +127,11 @@ export function studyTools(ctx: StudyToolContext): ToolDefinition[] {
     }),
     async execute(_toolCallId, params) {
       try {
-        const combined = rootRelative(ctx, params.path);
-        if (hiddenChatPath(combined)) throw new Error("Chat transcripts are not available to agents");
-        const text = await readText(ctx.root, combined);
+        const scoped = rootRelative(ctx, params.path);
+        if (hiddenChatPath(scoped.lexical) || hiddenChatPath(scoped.canonical)) {
+          throw new Error("Chat transcripts are not available to agents");
+        }
+        const text = await readText(ctx.root, scoped.lexical);
         const offset = params.offset ?? 1;
         const limit = params.limit ?? 400;
         const lines = text.split("\n").slice(offset - 1, offset - 1 + limit);

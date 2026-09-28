@@ -3,7 +3,7 @@ import path from "node:path";
 import { defineTool, type ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { parse as parseYaml } from "yaml";
-import { resolveInRoot } from "../../tree/paths.js";
+import { canonicalRel, resolveInRoot } from "../../tree/paths.js";
 
 const SKILL_NAME_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
 
@@ -45,6 +45,19 @@ function skillRoot(root: string, name: string): string {
   return resolveInRoot(root, path.posix.join("_global/skills", name));
 }
 
+function isReferencePath(name: string, rel: string): boolean {
+  const references = path.posix.join("_global/skills", name, "references");
+  return rel === references || rel.startsWith(`${references}/`);
+}
+
+function resolveReference(root: string, name: string, rel: string): string {
+  const abs = resolveInRoot(root, rel);
+  if (!isReferencePath(name, rel) || !isReferencePath(name, canonicalRel(root, rel))) {
+    throw new Error("Reference path is outside the skill's references directory");
+  }
+  return abs;
+}
+
 async function fileOrNull(abs: string): Promise<string | null> {
   try {
     return await fs.readFile(abs, "utf8");
@@ -73,16 +86,16 @@ function frontmatter(markdown: string): SkillSummary {
 async function referenceFiles(root: string, name: string): Promise<string[]> {
   const references = path.posix.join("_global/skills", name, "references");
   try {
-    await fs.access(resolveInRoot(root, references));
+    await fs.access(resolveReference(root, name, references));
   } catch {
     return [];
   }
   const files: string[] = [];
   async function visit(relDir: string) {
-    const entries = await fs.readdir(resolveInRoot(root, relDir), { withFileTypes: true });
+    const entries = await fs.readdir(resolveReference(root, name, relDir), { withFileTypes: true });
     for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
       const rel = path.posix.join(relDir, entry.name);
-      resolveInRoot(root, rel);
+      resolveReference(root, name, rel);
       if (entry.isDirectory()) await visit(rel);
       else files.push(path.posix.relative(references, rel));
     }
@@ -138,8 +151,7 @@ export function skillTools(root: string, allowed: string[]): ToolDefinition[] {
           throw new Error("Reference file must be relative to the skill's references directory");
         }
         const rel = path.posix.join("_global/skills", name, "references", reference);
-        resolveInRoot(root, rel);
-        const text = await fs.readFile(resolveInRoot(root, rel), "utf8");
+        const text = await fs.readFile(resolveReference(root, name, rel), "utf8");
         return result(`loaded ${name} reference ${reference}`, text, { skill: name, file: reference });
       } catch (error) {
         return errorResult(error);
