@@ -12,6 +12,18 @@
     }
   },
   "files": {
-    "includes": ["**", "!reference", "!data", "!dist", "!examples", "!.claude"]
+    "includes": [
+      "**",
+      "!reference",
+      "!data",
+      "!dist",
+      "!examples",
+      "!.claude"
+    ]
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
   }
 }

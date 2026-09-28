@@ -1,0 +1,117 @@
+import type { ChatMessage, ChatSummary, CommitInfo, FileView, NoteSummary, SetSummary } from "@studium/shared";
+
+export class UnauthorizedError extends Error {
+  constructor() {
+    super("unauthorized");
+    this.name = "UnauthorizedError";
+  }
+}
+
+export class ApiError extends Error {
+  status: number;
+  body: unknown;
+
+  constructor(status: number, message: string, body: unknown) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.body = body;
+  }
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(path, {
+    ...init,
+    credentials: "same-origin",
+    headers: {
+      ...(init?.body ? { "Content-Type": "application/json" } : {}),
+      ...init?.headers,
+    },
+  });
+
+  if (response.status === 401) {
+    throw new UnauthorizedError();
+  }
+
+  if (!response.ok) {
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch {
+      body = undefined;
+    }
+    const message = (body as { error?: string } | undefined)?.error ?? response.statusText;
+    throw new ApiError(response.status, message, body);
+  }
+
+  if (response.status === 204 || response.status === 202) {
+    return undefined as T;
+  }
+
+  return (await response.json()) as T;
+}
+
+function qs(params: Record<string, string | number | undefined>): string {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined) search.set(key, String(value));
+  }
+  const s = search.toString();
+  return s ? `?${s}` : "";
+}
+
+export const api = {
+  auth: {
+    login(username: string, password: string): Promise<void> {
+      return request("/api/auth/login", { method: "POST", body: JSON.stringify({ username, password }) });
+    },
+    logout(): Promise<void> {
+      return request("/api/auth/logout", { method: "POST" });
+    },
+    me(): Promise<{ username: string }> {
+      return request("/api/auth/me");
+    },
+  },
+
+  sets: {
+    list(): Promise<SetSummary[]> {
+      return request("/api/sets");
+    },
+    notes(set: string): Promise<NoteSummary[]> {
+      return request(`/api/sets/${encodeURIComponent(set)}/notes`);
+    },
+    file(set: string, path: string): Promise<FileView> {
+      return request(`/api/sets/${encodeURIComponent(set)}/file${qs({ path })}`);
+    },
+    history(set: string, opts?: { path?: string; limit?: number }): Promise<CommitInfo[]> {
+      return request(`/api/sets/${encodeURIComponent(set)}/history${qs({ path: opts?.path, limit: opts?.limit })}`);
+    },
+    diff(set: string, sha: string, path?: string): Promise<{ diff: string }> {
+      return request(`/api/sets/${encodeURIComponent(set)}/diff${qs({ sha, path })}`);
+    },
+    revert(set: string, sha: string): Promise<{ sha: string }> {
+      return request(`/api/sets/${encodeURIComponent(set)}/revert`, { method: "POST", body: JSON.stringify({ sha }) });
+    },
+  },
+
+  chats: {
+    list(set: string): Promise<ChatSummary[]> {
+      return request(`/api/sets/${encodeURIComponent(set)}/chats`);
+    },
+    create(set: string): Promise<{ id: string }> {
+      return request(`/api/sets/${encodeURIComponent(set)}/chats`, { method: "POST" });
+    },
+    get(set: string, id: string): Promise<{ id: string; messages: ChatMessage[]; running: boolean }> {
+      return request(`/api/sets/${encodeURIComponent(set)}/chats/${encodeURIComponent(id)}`);
+    },
+    sendMessage(set: string, id: string, text: string, anchor?: string): Promise<void> {
+      return request(`/api/sets/${encodeURIComponent(set)}/chats/${encodeURIComponent(id)}/messages`, {
+        method: "POST",
+        body: JSON.stringify({ text, ...(anchor ? { anchor } : {}) }),
+      });
+    },
+    abort(set: string, id: string): Promise<void> {
+      return request(`/api/sets/${encodeURIComponent(set)}/chats/${encodeURIComponent(id)}/abort`, { method: "POST" });
+    },
+  },
+};
