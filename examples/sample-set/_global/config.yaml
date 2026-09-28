@@ -1,0 +1,7 @@
+# Role -> model map. Model strings are "<provider>/<model-id>".
+# Swap in a real provider for production, e.g.:
+#   default: anthropic/claude-sonnet-5
+models:
+  default: faux/echo
+  roles:
+    tutor: faux/echo

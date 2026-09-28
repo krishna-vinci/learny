@@ -1,2 +1,6 @@
 reference/
 .claude/codex-runs/
+node_modules/
+data/
+dist/
+*.tsbuildinfo
