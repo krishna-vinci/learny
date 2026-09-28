@@ -14,12 +14,8 @@ import AppSidebar, {
   SidebarResizeHandle,
   useSidebarWidth,
 } from "@/components/AppSidebar";
+import ChatDock from "@/components/ChatDock";
 import { cn } from "@/lib/utils";
-
-/** Filled in by T9; kept as an empty slot so the shell renders without it. */
-const ChatDockSlot = () => (
-  <div data-chat-dock-slot className="hidden w-80 shrink-0 border-s border-border/70 lg:block" />
-);
 
 const RootLayoutContent = () => {
   const shellRef = useRef<HTMLDivElement>(null);
@@ -49,7 +45,7 @@ const RootLayoutContent = () => {
           <main className="min-w-0 flex-1">
             <Outlet />
           </main>
-          <ChatDockSlot />
+          <ChatDock />
         </div>
       </div>
     </div>
