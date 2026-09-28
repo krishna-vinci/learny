@@ -5,14 +5,15 @@ import { defineConfig } from "vite";
 
 const rootDir = import.meta.dirname;
 
-const devProxyServer = process.env.DEV_PROXY_SERVER || "http://127.0.0.1:3001";
+const devProxyServer = process.env.DEV_PROXY_SERVER || "http://127.0.0.1:3000";
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
-    host: "0.0.0.0",
-    port: 3001,
+    // Loopback only: the dev proxy forwards to a server that may run without a password.
+    host: "127.0.0.1",
+    port: 5173,
     proxy: {
       "^/api/events": {
         target: devProxyServer,
