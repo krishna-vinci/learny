@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { lstat, mkdir, open, readFile, rename, unlink } from "node:fs/promises";
 import path from "node:path";
 import type { FileLocks } from "./lock";
-import { isWritableByAgent, PathError, resolveInRoot } from "./paths";
+import { canonicalRel, isWritableByAgent, PathError, resolveInRoot } from "./paths";
 
 export type EditErrorCode = "not_found" | "no_match" | "multiple_matches" | "exists" | "forbidden";
 
@@ -30,7 +30,7 @@ function toEditForbidden(error: unknown): unknown {
 function writableAbsolutePath(root: string, rel: string, canWrite = isWritableByAgent): string {
   try {
     const abs = resolveInRoot(root, rel);
-    if (!canWrite(rel)) {
+    if (!canWrite(rel) || !canWrite(canonicalRel(root, rel))) {
       throw new EditError("forbidden", `Path is not writable by agents: ${rel}`);
     }
     return abs;
