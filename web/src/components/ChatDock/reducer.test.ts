@@ -12,7 +12,15 @@ describe("chatDockReducer", () => {
       { id: "m1", role: "user", text: "hi", tools: [], timestamp: "2026-01-01T00:00:00Z" },
     ];
     const state = chatDockReducer(initialChatDockState(null), { type: "reset", chatId: "c1", messages, running: true });
-    expect(state).toEqual({ chatId: "c1", messages, streaming: null, running: true, lastCommitSha: null, error: null });
+    expect(state).toEqual({
+      chatId: "c1",
+      messages,
+      streaming: null,
+      running: true,
+      lastCommitSha: null,
+      error: null,
+      proposals: [],
+    });
   });
 
   it("appends text_delta events to the streaming message", () => {
@@ -88,6 +96,106 @@ describe("chatDockReducer", () => {
     const state = initialChatDockState(null);
     const next = stream(state, "c1", { kind: "text_delta", delta: "nope" });
     expect(next).toBe(state);
+  });
+});
+
+describe("job_proposal", () => {
+  it("attaches a pending proposal to the streaming message", () => {
+    let state = initialChatDockState("c1");
+    state = stream(state, "c1", { kind: "text_delta", delta: "Let's draft it" });
+    state = stream(state, "c1", {
+      kind: "job_proposal",
+      proposalId: "p1",
+      jobKind: "draft-chapter",
+      title: "Draft: SVD",
+      estimate: { tokens: 12000, costUsd: null },
+    });
+    expect(state.proposals).toEqual([
+      {
+        proposalId: "p1",
+        jobKind: "draft-chapter",
+        title: "Draft: SVD",
+        estimate: { tokens: 12000, costUsd: null },
+        messageId: "streaming",
+        status: "pending",
+      },
+    ]);
+  });
+
+  it("attaches to the last assistant message when nothing is streaming", () => {
+    let state = chatDockReducer(initialChatDockState(), {
+      type: "reset",
+      chatId: "c1",
+      messages: [{ id: "m1", role: "assistant", text: "hi", tools: [], timestamp: "2026-01-01T00:00:00Z" }],
+      running: false,
+    });
+    state = stream(state, "c1", {
+      kind: "job_proposal",
+      proposalId: "p1",
+      jobKind: "draft-chapter",
+      title: "Draft: SVD",
+      estimate: { tokens: 12000, costUsd: 0.04 },
+    });
+    expect(state.proposals[0]?.messageId).toBe("m1");
+  });
+
+  it("retargets a streaming proposal's messageId once the message finalizes", () => {
+    let state = initialChatDockState("c1");
+    state = stream(state, "c1", {
+      kind: "job_proposal",
+      proposalId: "p1",
+      jobKind: "draft-chapter",
+      title: "Draft: SVD",
+      estimate: { tokens: 12000, costUsd: null },
+    });
+    const finalMessage: ChatMessage = {
+      id: "m2",
+      role: "assistant",
+      text: "Want me to draft it?",
+      tools: [],
+      timestamp: "2026-01-01T00:00:01Z",
+    };
+    state = stream(state, "c1", { kind: "message_end", message: finalMessage });
+    expect(state.proposals[0]?.messageId).toBe("m2");
+  });
+
+  it("marks a proposal started with its jobId, ignoring other proposals", () => {
+    let state = initialChatDockState("c1");
+    state = stream(state, "c1", {
+      kind: "job_proposal",
+      proposalId: "p1",
+      jobKind: "draft-chapter",
+      title: "Draft: SVD",
+      estimate: { tokens: 12000, costUsd: null },
+    });
+    state = chatDockReducer(state, { type: "proposal_started", proposalId: "p1", jobId: "job-1" });
+    expect(state.proposals[0]).toMatchObject({ status: "started", jobId: "job-1" });
+  });
+
+  it("marks a proposal dismissed", () => {
+    let state = initialChatDockState("c1");
+    state = stream(state, "c1", {
+      kind: "job_proposal",
+      proposalId: "p1",
+      jobKind: "draft-chapter",
+      title: "Draft: SVD",
+      estimate: { tokens: 12000, costUsd: null },
+    });
+    state = chatDockReducer(state, { type: "proposal_dismissed", proposalId: "p1" });
+    expect(state.proposals[0]?.status).toBe("dismissed");
+  });
+
+  it("clears proposals on reset", () => {
+    let state = initialChatDockState("c1");
+    state = stream(state, "c1", {
+      kind: "job_proposal",
+      proposalId: "p1",
+      jobKind: "draft-chapter",
+      title: "Draft: SVD",
+      estimate: { tokens: 12000, costUsd: null },
+    });
+    state = chatDockReducer(state, { type: "reset", chatId: "c1", messages: [], running: false });
+    expect(state.proposals).toEqual([]);
   });
 });
 

@@ -3,6 +3,9 @@ import type {
   ChatSummary,
   CommitInfo,
   FileView,
+  InboxItem,
+  JobKind,
+  JobView,
   NoteSummary,
   SetSummary,
   SettingsView,
@@ -129,6 +132,36 @@ export const api = {
     },
     saveModels(body: { default: string; roles: Record<string, string> }): Promise<SettingsView> {
       return request("/api/settings/models", { method: "PUT", body: JSON.stringify(body) });
+    },
+  },
+
+  // T9b: Jobs panel (jobs list/create/cancel) — see docs/plans/2026-09-29-m1-sources-to-notes.md "New API".
+  jobs: {
+    list(set?: string): Promise<JobView[]> {
+      return request(`/api/jobs${qs({ set })}`);
+    },
+    create(
+      body:
+        | { kind: Extract<JobKind, "draft-chapter">; set: string; title: string; brief?: string; sources?: string[] }
+        | { proposalId: string },
+    ): Promise<{ jobId: string }> {
+      return request("/api/jobs", { method: "POST", body: JSON.stringify(body) });
+    },
+    cancel(id: string): Promise<void> {
+      return request(`/api/jobs/${encodeURIComponent(id)}/cancel`, { method: "POST" });
+    },
+  },
+
+  // T9b: Inbox (chapter review + accept).
+  inbox: {
+    list(set: string): Promise<InboxItem[]> {
+      return request(`/api/sets/${encodeURIComponent(set)}/inbox`);
+    },
+    accept(set: string, path: string): Promise<{ sha: string }> {
+      return request(`/api/sets/${encodeURIComponent(set)}/notes/accept`, {
+        method: "POST",
+        body: JSON.stringify({ path }),
+      });
     },
   },
 };

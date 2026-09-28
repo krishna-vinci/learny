@@ -13,7 +13,7 @@ import {
   WrenchIcon,
 } from "lucide-react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { useNotes } from "@/api/queries";
+import { useInbox, useJobs, useNotes } from "@/api/queries";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useMobileSidebar } from "./MobileSidebarContext";
@@ -22,11 +22,10 @@ import SidebarRow from "./SidebarRow";
 import SidebarSection, { SIDEBAR_SECTION_STACK_CLASSES } from "./SidebarSection";
 import { SIDEBAR_RAIL_CLASSES } from "./sidebar-layout";
 
+// Library and Cards are built by other M1 tasks; Inbox and Jobs (T9b) are real links below.
 const PLACEHOLDER_ROWS = [
   { label: "Library", icon: BookOpenIcon },
   { label: "Cards", icon: NotebookTextIcon },
-  { label: "Inbox", icon: ArchiveIcon },
-  { label: "Jobs", icon: WrenchIcon },
 ] as const;
 
 const NotesSection = ({ set, activeNotePath }: { set: string; activeNotePath?: string }) => {
@@ -54,10 +53,22 @@ const NotesSection = ({ set, activeNotePath }: { set: string; activeNotePath?: s
   );
 };
 
-const MoreSection = () => {
+const MoreSection = ({ set }: { set?: string }) => {
   const { setMobileOpen } = useMobileSidebar();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // T9b: Jobs is global; its badge counts jobs still queued/running anywhere.
+  const { data: jobs = [] } = useJobs();
+  const runningJobCount = jobs.filter((job) => job.status === "queued" || job.status === "running").length;
+
+  // T9b: Inbox is per-set; only fetched (and only a link) once a set is selected.
+  const { data: inboxItems = [] } = useInbox(set);
+
+  const goTo = (path: string) => {
+    navigate(path);
+    setMobileOpen(false);
+  };
 
   return (
     <SidebarSection label="More" ariaLabel="Unimplemented sections">
@@ -65,13 +76,25 @@ const MoreSection = () => {
         <SidebarRow key={row.label} icon={row.icon} label={row.label} disabled />
       ))}
       <SidebarRow
+        icon={ArchiveIcon}
+        label="Inbox"
+        count={inboxItems.length}
+        disabled={!set}
+        state={set && location.pathname === `/s/${set}/inbox` ? "current" : "idle"}
+        onClick={set ? () => goTo(`/s/${set}/inbox`) : undefined}
+      />
+      <SidebarRow
+        icon={WrenchIcon}
+        label="Jobs"
+        count={runningJobCount}
+        state={location.pathname === "/jobs" ? "current" : "idle"}
+        onClick={() => goTo("/jobs")}
+      />
+      <SidebarRow
         icon={SettingsIcon}
         label="Settings"
         state={location.pathname === "/settings" ? "current" : "idle"}
-        onClick={() => {
-          navigate("/settings");
-          setMobileOpen(false);
-        }}
+        onClick={() => goTo("/settings")}
       />
     </SidebarSection>
   );
@@ -103,7 +126,7 @@ const AppSidebar = ({ className }: { className?: string }) => {
           ) : (
             <div className="px-2 py-1 text-sm text-muted-foreground">Select a study set to see its notes.</div>
           )}
-          <MoreSection />
+          <MoreSection set={set} />
         </div>
       </div>
     </aside>
