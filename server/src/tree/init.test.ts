@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { parse as parseYaml } from "yaml";
 import { ensureIgnores, initStudyTree, REQUIRED_IGNORES } from "./init.js";
 
 const execFile = promisify(execFileCb);
@@ -20,6 +21,9 @@ afterEach(async () => {
 
 describe("initStudyTree", () => {
   it("creates the skeleton on an empty directory", async () => {
+    const searxngUrl = "$" + "{SEARXNG_URL}";
+    const papersUrl = "$" + "{PAPERS_MCP_URL}";
+    const papersToken = "$" + "{PAPERS_MCP_TOKEN}";
     const result = await initStudyTree(root);
     expect(result).toEqual({ created: true });
 
@@ -27,6 +31,24 @@ describe("initStudyTree", () => {
     expect(await fs.readFile(path.join(root, "_global/config.yaml"), "utf8")).toContain("default: faux/echo");
     expect(await fs.readFile(path.join(root, "_global/profile.md"), "utf8")).toContain("# Learner profile");
     expect(await fs.readFile(path.join(root, ".gitignore"), "utf8")).toBe(`${REQUIRED_IGNORES.join("\n")}\n`);
+    expect(parseYaml(await fs.readFile(path.join(root, "_global/mcp.json"), "utf8"))).toEqual({
+      mcpServers: {
+        searxng: {
+          command: "npx",
+          args: ["-y", "mcp-searxng@2.4.0"],
+          env: { SEARXNG_URL: searxngUrl },
+        },
+        papers: {
+          url: papersUrl,
+          headers: { Authorization: `Bearer ${papersToken}` },
+        },
+      },
+    });
+
+    const skills = await fs.readdir(path.join(root, "_global/skills"));
+    expect(skills).toEqual(
+      ["draft-chapter", "evolve-note", "explain", "fact-check", "note-authoring", "source-summary"].sort(),
+    );
   });
 
   it("is a no-op on an existing tree", async () => {
@@ -36,6 +58,34 @@ describe("initStudyTree", () => {
     const result = await initStudyTree(root);
     expect(result).toEqual({ created: false });
     expect(await fs.readFile(path.join(root, "_global/profile.md"), "utf8")).toBe("# Custom profile\n");
+  });
+
+  it("fills missing default skills but never overwrites existing skill folders", async () => {
+    await fs.mkdir(path.join(root, "_global/skills/explain"), { recursive: true });
+    await fs.writeFile(
+      path.join(root, "_global/skills/explain/SKILL.md"),
+      "---\nname: explain\ndescription: custom\n---\n",
+    );
+    await fs.writeFile(path.join(root, "_global/studium.yaml"), "schema_version: 1\n");
+
+    await initStudyTree(root);
+
+    await expect(fs.readFile(path.join(root, "_global/skills/explain/SKILL.md"), "utf8")).resolves.toContain(
+      "description: custom",
+    );
+    await expect(fs.readFile(path.join(root, "_global/skills/draft-chapter/SKILL.md"), "utf8")).resolves.toContain(
+      "name: draft-chapter",
+    );
+  });
+
+  it("writes the default MCP config only when it is missing", async () => {
+    await fs.mkdir(path.join(root, "_global"), { recursive: true });
+    await fs.writeFile(path.join(root, "_global/studium.yaml"), "schema_version: 1\n");
+    await fs.writeFile(path.join(root, "_global/mcp.json"), '{"mcpServers":{}}\n');
+
+    await initStudyTree(root);
+
+    expect(parseYaml(await fs.readFile(path.join(root, "_global/mcp.json"), "utf8"))).toEqual({ mcpServers: {} });
   });
 
   it("throws when the tree records a newer schema version", async () => {

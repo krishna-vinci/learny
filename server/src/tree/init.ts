@@ -1,5 +1,6 @@
 import { existsSync, promises as fs } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { StudiumYaml } from "@studium/shared";
 import { parse as parseYaml } from "yaml";
 import { trackedFiles } from "./git.js";
@@ -12,6 +13,20 @@ const CONFIG_YAML = `# Role -> model map. Model strings are "<provider>/<model-i
 
 const PROFILE_MD = `# Learner profile\n- Goal:\n- Background:\n- Pace:\n- Style:\n`;
 
+const DEFAULT_MCP_JSON = `{
+  "mcpServers": {
+    "searxng": {
+      "command": "npx",
+      "args": ["-y", "mcp-searxng@2.4.0"],
+      "env": { "SEARXNG_URL": "\${SEARXNG_URL}" }
+    },
+    "papers": {
+      "url": "\${PAPERS_MCP_URL}",
+      "headers": { "Authorization": "Bearer \${PAPERS_MCP_TOKEN}" }
+    }
+  }
+}\n`;
+
 // Keep in step with examples/sample-set/.gitignore and docs/STUDY_TREE.md.
 export const REQUIRED_IGNORES = ["**/original.*", "*/chats/", ".cache/", ".*.tmp-*"];
 
@@ -21,6 +36,35 @@ async function readFileOrNull(abs: string): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+async function pathExists(abs: string): Promise<boolean> {
+  try {
+    await fs.access(abs);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function ensureDefaultSkills(root: string): Promise<void> {
+  const source = fileURLToPath(new URL("../../../skills", import.meta.url));
+  const destination = path.join(root, "_global", "skills");
+  await fs.mkdir(destination, { recursive: true });
+
+  const entries = await fs.readdir(source, { withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const target = path.join(destination, entry.name);
+    if (await pathExists(target)) continue;
+    await fs.cp(path.join(source, entry.name), target, { recursive: true });
+  }
+}
+
+async function ensureDefaultMcp(root: string): Promise<void> {
+  const target = path.join(root, "_global", "mcp.json");
+  if (await pathExists(target)) return;
+  await fs.writeFile(target, DEFAULT_MCP_JSON, "utf8");
 }
 
 export async function initStudyTree(root: string): Promise<{ created: boolean }> {
@@ -44,6 +88,8 @@ export async function initStudyTree(root: string): Promise<{ created: boolean }>
       );
     }
     await ensureIgnores(root);
+    await ensureDefaultSkills(root);
+    await ensureDefaultMcp(root);
     return { created: false };
   }
 
@@ -52,6 +98,8 @@ export async function initStudyTree(root: string): Promise<{ created: boolean }>
   await fs.writeFile(path.join(globalDir, "config.yaml"), CONFIG_YAML);
   await fs.writeFile(path.join(globalDir, "profile.md"), PROFILE_MD);
   await ensureIgnores(root);
+  await ensureDefaultSkills(root);
+  await ensureDefaultMcp(root);
 
   return { created: true };
 }

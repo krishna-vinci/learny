@@ -44,14 +44,92 @@ export interface ChatMessage {
   tools: ToolCallView[];
   timestamp: string;
 }
+
+export type SourceType = "book" | "paper" | "article" | "video" | "notes" | "other";
+export type ParseTier = "basic" | "mineru" | "firecrawl" | "transcript";
+
+// `library/<src-id>` summary as returned by `GET /api/library`.
+export interface SourceSummary {
+  id: string;
+  title: string;
+  authors: string[];
+  type: SourceType;
+  url: string | null;
+  credibility: string | null;
+  parseTier: ParseTier;
+  addedAt: string;
+  sets: string[];
+  warning: string | null;
+}
+
+export type JobKind = "ingest" | "draft-chapter";
+export type JobStatus = "queued" | "running" | "done" | "failed" | "cancelled";
+
+export interface JobUsage {
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheWrite: number;
+  costUsd: number;
+}
+
+export interface JobResult {
+  notePath?: string;
+  sourceId?: string;
+  commitSha?: string;
+}
+
+export interface JobView {
+  id: string;
+  kind: JobKind;
+  set: string | null;
+  title: string;
+  status: JobStatus;
+  progress: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  usage: JobUsage;
+  result?: JobResult;
+  error?: string;
+}
+
+export interface CheckIssue {
+  severity: "blocker" | "major" | "minor";
+  text: string;
+}
+
+export interface InboxItem {
+  path: string;
+  title: string;
+  status: "draft" | "checked";
+  check: { issues: CheckIssue[]; summary: string } | null;
+  updatedAt: string;
+}
+
+export interface ServiceHealth {
+  name: string;
+  kind: "mcp" | "http";
+  ok: boolean;
+  detail: string;
+  tools?: number;
+}
+
 export type ChatStreamEvent =
   | { kind: "text_delta"; delta: string }
   | { kind: "tool_start"; toolCallId: string; name: string; args: Record<string, unknown> }
   | { kind: "tool_end"; toolCallId: string; name: string; isError: boolean; summary: string }
   | { kind: "message_end"; message: ChatMessage }
   | { kind: "settled"; commitSha: string | null }
-  | { kind: "error"; message: string };
+  | { kind: "error"; message: string }
+  | {
+      kind: "job_proposal";
+      proposalId: string;
+      jobKind: JobKind;
+      title: string;
+      estimate: { tokens: number; costUsd: number | null };
+    };
 export type StudiumEvent =
   | { type: "file"; set: string | null; path: string; change: "add" | "change" | "unlink" }
   | { type: "commit"; sha: string; subject: string; author: string }
-  | { type: "chat"; set: string; chatId: string; event: ChatStreamEvent };
+  | { type: "chat"; set: string; chatId: string; event: ChatStreamEvent }
+  | { type: "job"; job: JobView };
