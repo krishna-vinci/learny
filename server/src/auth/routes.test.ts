@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { hashPassword } from "./password.js";
 import { authRoutes, requireAuth } from "./routes.js";
 import type { AuthConfig } from "./session.js";
@@ -13,6 +13,8 @@ beforeAll(async () => {
     passwordHash: await hashPassword("study-password"),
     sessionSecret,
     apiToken: "api-token",
+    trustProxy: false,
+    baseUrl: null,
   };
 });
 
@@ -22,12 +24,23 @@ function makeAuthApp(cfg: AuthConfig): Hono {
   return app;
 }
 
-function login(app: Hono, username: string, password: string, ip = "192.0.2.1", url = "/api/auth/login") {
-  return app.request(url, {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-forwarded-for": ip },
-    body: JSON.stringify({ username, password }),
-  });
+function login(
+  app: Hono,
+  username: string,
+  password: string,
+  forwardedFor = "192.0.2.1",
+  url = "/api/auth/login",
+  remoteAddress = "198.51.100.1",
+) {
+  return app.request(
+    url,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-forwarded-for": forwardedFor },
+      body: JSON.stringify({ username, password }),
+    },
+    { incoming: { socket: { remoteAddress } } },
+  );
 }
 
 describe("auth routes", () => {
@@ -57,6 +70,47 @@ describe("auth routes", () => {
     expect(response.headers.get("set-cookie")).toContain("Secure");
   });
 
+  it("only trusts forwarded HTTPS with proxy trust, while an HTTPS base URL always marks cookies Secure", async () => {
+    const forwardedOnly = await makeAuthApp(protectedConfig).request(
+      "/api/auth/login",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "192.0.2.20",
+          "x-forwarded-proto": "https",
+        },
+        body: JSON.stringify({ username: "learner", password: "study-password" }),
+      },
+      { incoming: { socket: { remoteAddress: "198.51.100.20" } } },
+    );
+    expect(forwardedOnly.headers.get("set-cookie")).not.toContain("Secure");
+
+    const proxyApp = makeAuthApp({ ...protectedConfig, trustProxy: true });
+    const proxyResponse = await proxyApp.request(
+      "/api/auth/login",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "192.0.2.21",
+          "x-forwarded-proto": "https",
+        },
+        body: JSON.stringify({ username: "learner", password: "study-password" }),
+      },
+      { incoming: { socket: { remoteAddress: "198.51.100.21" } } },
+    );
+    expect(proxyResponse.headers.get("set-cookie")).toContain("Secure");
+
+    const baseUrlResponse = await login(
+      makeAuthApp({ ...protectedConfig, baseUrl: "https://studium.example" }),
+      "learner",
+      "study-password",
+      "192.0.2.22",
+    );
+    expect(baseUrlResponse.headers.get("set-cookie")).toContain("Secure");
+  });
+
   it("returns the same error for a wrong username or password", async () => {
     const app = makeAuthApp(protectedConfig);
     const wrongUsername = await login(app, "someone-else", "study-password", "192.0.2.3");
@@ -77,6 +131,56 @@ describe("auth routes", () => {
     }
 
     expect(statuses).toEqual([401, 401, 401, 401, 401, 429]);
+  });
+
+  it("ignores spoofed forwarded IPs by default and uses the last entry when proxy trust is enabled", async () => {
+    const directApp = makeAuthApp(protectedConfig);
+    const directStatuses: number[] = [];
+    for (let count = 0; count < 6; count += 1) {
+      directStatuses.push(
+        (await login(directApp, "learner", "wrong-password", `192.0.2.${count}`, "/api/auth/login", "203.0.113.5"))
+          .status,
+      );
+    }
+    expect(directStatuses).toEqual([401, 401, 401, 401, 401, 429]);
+
+    const proxyApp = makeAuthApp({ ...protectedConfig, trustProxy: true });
+    const proxyStatuses: number[] = [];
+    for (let count = 0; count < 6; count += 1) {
+      proxyStatuses.push(
+        (
+          await login(
+            proxyApp,
+            "learner",
+            "wrong-password",
+            `192.0.2.${count}, 203.0.113.6`,
+            "/api/auth/login",
+            `198.51.100.${count}`,
+          )
+        ).status,
+      );
+    }
+    expect(proxyStatuses).toEqual([401, 401, 401, 401, 401, 429]);
+  });
+
+  it("prunes expired buckets on an attempt from another IP", async () => {
+    vi.useFakeTimers();
+    try {
+      const start = new Date("2026-01-01T00:00:00Z");
+      vi.setSystemTime(start);
+      const app = makeAuthApp({ ...protectedConfig, passwordHash: "invalid" });
+      for (let count = 0; count < 5; count += 1) {
+        expect((await login(app, "learner", "wrong-password", "", "/api/auth/login", "203.0.113.7")).status).toBe(401);
+      }
+
+      vi.setSystemTime(new Date(start.getTime() + 15 * 60 * 1_000));
+      expect((await login(app, "learner", "wrong-password", "", "/api/auth/login", "203.0.113.8")).status).toBe(401);
+
+      vi.setSystemTime(new Date(start.getTime() + 1));
+      expect((await login(app, "learner", "wrong-password", "", "/api/auth/login", "203.0.113.7")).status).toBe(401);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("resets failed attempts after a successful login", async () => {
@@ -112,8 +216,24 @@ describe("auth routes", () => {
     expect(response.headers.get("set-cookie")).toContain("studium_session=; Max-Age=0");
   });
 
+  it("rejects a session after the password hash changes", async () => {
+    const originalApp = makeAuthApp(protectedConfig);
+    const loginResponse = await login(originalApp, "learner", "study-password", "192.0.2.8");
+    const cookie = (loginResponse.headers.get("set-cookie") ?? "").split(";", 1)[0];
+
+    const changedApp = makeAuthApp({ ...protectedConfig, passwordHash: await hashPassword("new-password") });
+    expect((await changedApp.request("/api/auth/me", { headers: { cookie } })).status).toBe(401);
+  });
+
   it("allows auth routes and middleware as local when no password is configured", async () => {
-    const passwordless = { username: null, passwordHash: null, sessionSecret: null, apiToken: null };
+    const passwordless: AuthConfig = {
+      username: null,
+      passwordHash: null,
+      sessionSecret: null,
+      apiToken: null,
+      trustProxy: false,
+      baseUrl: null,
+    };
     const app = makeAuthApp(passwordless);
     app.get("/api/protected", requireAuth(passwordless), (c) => c.json({ username: c.get("username") }));
 

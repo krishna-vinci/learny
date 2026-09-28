@@ -6,6 +6,7 @@ import { chatRoutes } from "./agent/routes.js";
 import { authRoutes, requireAuth } from "./auth/routes.js";
 import type { AuthConfig } from "./auth/session.js";
 import type { EventHub } from "./events.js";
+import { requestGuard } from "./http/guard.js";
 import { eventsRoutes } from "./routes/events.js";
 import { setsRoutes } from "./routes/sets.js";
 import type { FileLocks } from "./tree/lock.js";
@@ -26,6 +27,7 @@ export function createApp(deps: LegacyAppDeps): Hono;
 export function createApp(deps: AppDeps | LegacyAppDeps): Hono {
   const app = new Hono();
 
+  app.use("/api/*", requestGuard(deps.auth));
   app.route("/api/auth", authRoutes(deps.auth));
 
   // Registered after authRoutes so the public login route is handled first.

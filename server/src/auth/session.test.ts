@@ -6,6 +6,8 @@ const protectedConfig: AuthConfig = {
   passwordHash: "hash",
   sessionSecret: "a-secure-session-secret-at-least-32-chars",
   apiToken: null,
+  trustProxy: false,
+  baseUrl: null,
 };
 
 describe("session tokens", () => {
@@ -37,12 +39,30 @@ describe("auth configuration", () => {
         STUDIUM_PASSWORD_HASH: "hash",
         STUDIUM_SESSION_SECRET: "",
         STUDIUM_API_TOKEN: "token",
+        STUDIUM_TRUST_PROXY: "true",
+        STUDIUM_BASE_URL: "https://studium.example",
       }),
-    ).toEqual({ username: "learner", passwordHash: "hash", sessionSecret: null, apiToken: "token" });
+    ).toEqual({
+      username: "learner",
+      passwordHash: "hash",
+      sessionSecret: null,
+      apiToken: "token",
+      trustProxy: true,
+      baseUrl: "https://studium.example",
+    });
+
+    expect(authConfigFromEnv({ STUDIUM_TRUST_PROXY: "yes" }).trustProxy).toBe(false);
   });
 
   it("allows passwordless mode only on localhost", () => {
-    const passwordless = { username: null, passwordHash: null, sessionSecret: null, apiToken: null };
+    const passwordless: AuthConfig = {
+      username: null,
+      passwordHash: null,
+      sessionSecret: null,
+      apiToken: null,
+      trustProxy: false,
+      baseUrl: null,
+    };
 
     expect(() => assertBindAllowed(passwordless, "127.0.0.1")).not.toThrow();
     expect(() => assertBindAllowed(passwordless, "::1")).not.toThrow();

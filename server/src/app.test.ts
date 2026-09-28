@@ -13,7 +13,14 @@ import { commitAll, ensureRepo } from "./tree/git.js";
 import { FileLocks } from "./tree/lock.js";
 
 const SAMPLE_SET = fileURLToPath(new URL("../../examples/sample-set", import.meta.url));
-const PASSWORDLESS: AuthConfig = { username: null, passwordHash: null, sessionSecret: null, apiToken: null };
+const PASSWORDLESS: AuthConfig = {
+  username: null,
+  passwordHash: null,
+  sessionSecret: null,
+  apiToken: null,
+  trustProxy: false,
+  baseUrl: null,
+};
 
 let root: string;
 let tempDirs: string[];
@@ -40,13 +47,19 @@ function makeApp(options: { auth?: AuthConfig; hub?: EventHub } = {}): Hono {
   });
 }
 
+function localRequest(app: Hono, input: string, init: RequestInit = {}) {
+  const headers = new Headers(init.headers);
+  headers.set("host", "127.0.0.1:3000");
+  return app.request(input, { ...init, headers });
+}
+
 function noteAbs(): string {
   return path.join(root, "linear-algebra/notes/03-svd.md");
 }
 
 describe("createApp sets routes", () => {
   it("lists the sample set", async () => {
-    const response = await makeApp().request("/api/sets");
+    const response = await localRequest(makeApp(), "/api/sets");
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual([
@@ -62,7 +75,7 @@ describe("createApp sets routes", () => {
   });
 
   it("lists notes in order", async () => {
-    const response = await makeApp().request("/api/sets/linear-algebra/notes");
+    const response = await localRequest(makeApp(), "/api/sets/linear-algebra/notes");
 
     expect(response.status).toBe(200);
     const notes = (await response.json()) as { path: string }[];
@@ -70,7 +83,7 @@ describe("createApp sets routes", () => {
   });
 
   it("returns frontmatter and body for a note", async () => {
-    const response = await makeApp().request(`/api/sets/linear-algebra/file?path=notes/03-svd.md`);
+    const response = await localRequest(makeApp(), `/api/sets/linear-algebra/file?path=notes/03-svd.md`);
 
     expect(response.status).toBe(200);
     const view = (await response.json()) as { path: string; frontmatter: Record<string, unknown>; body: string };
@@ -89,7 +102,7 @@ describe("createApp sets routes", () => {
     ];
 
     for (const attempt of attempts) {
-      const response = await app.request(`/api/sets/linear-algebra/file?path=${encodeURIComponent(attempt)}`);
+      const response = await localRequest(app, `/api/sets/linear-algebra/file?path=${encodeURIComponent(attempt)}`);
       expect([400, 404]).toContain(response.status);
       const text = await response.text();
       expect(text).not.toContain("models:");
@@ -100,8 +113,8 @@ describe("createApp sets routes", () => {
   it("404s an unknown or reserved set", async () => {
     const app = makeApp();
 
-    const unknown = await app.request("/api/sets/nope/notes");
-    const reserved = await app.request("/api/sets/library/file?path=lib-strang-la/source.md");
+    const unknown = await localRequest(app, "/api/sets/nope/notes");
+    const reserved = await localRequest(app, "/api/sets/library/file?path=lib-strang-la/source.md");
 
     expect(unknown.status).toBe(404);
     await expect(unknown.json()).resolves.toEqual({ error: "not found" });
@@ -114,6 +127,8 @@ describe("createApp sets routes", () => {
       passwordHash: await hashPassword("study-password"),
       sessionSecret: "a-secure-session-secret-at-least-32-chars",
       apiToken: null,
+      trustProxy: false,
+      baseUrl: null,
     };
     const app = makeApp({ auth });
 
@@ -139,13 +154,13 @@ describe("createApp history, diff, and revert", () => {
     expect(sha).not.toBeNull();
 
     const app = makeApp();
-    const history = await app.request("/api/sets/linear-algebra/history?path=notes/03-svd.md");
+    const history = await localRequest(app, "/api/sets/linear-algebra/history?path=notes/03-svd.md");
     expect(history.status).toBe(200);
     const commits = (await history.json()) as CommitInfo[];
     expect(commits[0]?.sha).toBe(sha);
     expect(commits[0]?.author).toBe("user");
 
-    const diffResponse = await app.request(`/api/sets/linear-algebra/diff?sha=${sha}&path=notes/03-svd.md`);
+    const diffResponse = await localRequest(app, `/api/sets/linear-algebra/diff?sha=${sha}&path=notes/03-svd.md`);
     expect(diffResponse.status).toBe(200);
     const { diff } = (await diffResponse.json()) as { diff: string };
     expect(diff).toContain("+Edited paragraph.");
@@ -161,7 +176,7 @@ describe("createApp history, diff, and revert", () => {
     const sha = await commitAll(root, "user: temporary", "user");
     expect(sha).not.toBeNull();
 
-    const response = await makeApp({ hub }).request("/api/sets/linear-algebra/revert", {
+    const response = await localRequest(makeApp({ hub }), "/api/sets/linear-algebra/revert", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ sha }),
@@ -178,7 +193,7 @@ describe("createApp history, diff, and revert", () => {
 describe("createApp events route", () => {
   it("streams published events as SSE", async () => {
     const hub = new EventHub();
-    const response = await makeApp({ hub }).request("/api/events");
+    const response = await localRequest(makeApp({ hub }), "/api/events");
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("text/event-stream");
@@ -219,11 +234,11 @@ describe("createApp static web", () => {
     expect(spaRoute.status).toBe(200);
     await expect(spaRoute.text()).resolves.toContain("Studium");
 
-    const api = await app.request("/api/sets");
+    const api = await localRequest(app, "/api/sets");
     expect(api.status).toBe(200);
     await expect(api.json()).resolves.toBeInstanceOf(Array);
 
-    const missingApi = await app.request("/api/nope");
+    const missingApi = await localRequest(app, "/api/nope");
     expect(missingApi.status).toBe(404);
     await expect(missingApi.text()).resolves.not.toContain("Studium");
   });

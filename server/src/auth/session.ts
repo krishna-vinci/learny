@@ -8,6 +8,8 @@ export interface AuthConfig {
   passwordHash: string | null;
   sessionSecret: string | null;
   apiToken: string | null;
+  trustProxy: boolean;
+  baseUrl: string | null;
 }
 
 function envValue(value: string | undefined): string | null {
@@ -20,6 +22,8 @@ export function authConfigFromEnv(env: NodeJS.ProcessEnv): AuthConfig {
     passwordHash: envValue(env.STUDIUM_PASSWORD_HASH),
     sessionSecret: envValue(env.STUDIUM_SESSION_SECRET),
     apiToken: envValue(env.STUDIUM_API_TOKEN),
+    trustProxy: env.STUDIUM_TRUST_PROXY === "1" || env.STUDIUM_TRUST_PROXY === "true",
+    baseUrl: envValue(env.STUDIUM_BASE_URL),
   };
 }
 
