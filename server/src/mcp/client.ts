@@ -7,6 +7,10 @@ import type { McpServerConfig } from "./config.js";
 import type { ServiceHealth } from "./health.js";
 
 const MCP_TIMEOUT_MS = 60_000;
+const MCP_STARTUP_TIMEOUT_MS = 20_000;
+const MCP_MAX_LIST_PAGES = 20;
+const MCP_MAX_TOOLS = 200;
+export const MCP_MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 
 export interface RemoteMcpTool {
   name: string;
@@ -56,6 +60,50 @@ export function stdioEnvironment(
   return { ...base, ...config.env };
 }
 
+export function createCappedFetch(baseFetch: typeof globalThis.fetch = globalThis.fetch): typeof globalThis.fetch {
+  return async (input, init) => {
+    const response = await baseFetch(input, init);
+    const declaredLength = Number(response.headers.get("content-length") ?? Number.NaN);
+    if (Number.isFinite(declaredLength) && declaredLength > MCP_MAX_RESPONSE_BYTES) {
+      await response.body?.cancel().catch(() => undefined);
+      throw new Error(`MCP HTTP response exceeds ${MCP_MAX_RESPONSE_BYTES} bytes`);
+    }
+    if (response.body === null) return response;
+
+    const reader = response.body.getReader();
+    let total = 0;
+    const cappedBody = new ReadableStream<Uint8Array>({
+      async pull(controller) {
+        try {
+          const { done, value } = await reader.read();
+          if (done) {
+            controller.close();
+            return;
+          }
+          total += value.byteLength;
+          if (total > MCP_MAX_RESPONSE_BYTES) {
+            await reader.cancel().catch(() => undefined);
+            controller.error(new Error(`MCP HTTP response exceeds ${MCP_MAX_RESPONSE_BYTES} bytes`));
+            return;
+          }
+          controller.enqueue(value);
+        } catch (error) {
+          controller.error(error);
+        }
+      },
+      cancel(reason) {
+        return reader.cancel(reason);
+      },
+    });
+
+    return new Response(cappedBody, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+    });
+  };
+}
+
 function createTransport(config: McpServerConfig): Transport {
   if (config.command !== undefined) {
     return new StdioClientTransport({
@@ -68,6 +116,7 @@ function createTransport(config: McpServerConfig): Transport {
   if (config.url !== undefined) {
     return new StreamableHTTPClientTransport(new URL(config.url), {
       requestInit: { headers: config.headers },
+      fetch: createCappedFetch(),
     });
   }
   throw new Error(`MCP server ${config.name} has neither command nor url`);
@@ -98,6 +147,7 @@ export class McpClient {
   async start(): Promise<void> {
     this.#stopping = false;
     if (this.#client !== null) await this.#client.close().catch(() => undefined);
+    this.#tools = [];
 
     const client = new Client({ name: "studium", version: "1.0.0" });
     this.#client = client;
@@ -110,24 +160,57 @@ export class McpClient {
       if (this.#client === client) this.#lastError = error.message;
     };
 
+    const deadline = new AbortController();
+    const timer = setTimeout(
+      () => deadline.abort(new Error(`startup timed out after ${MCP_STARTUP_TIMEOUT_MS}ms`)),
+      MCP_STARTUP_TIMEOUT_MS,
+    );
     try {
-      await client.connect(await this.#transportFactory(this.config), { timeout: MCP_TIMEOUT_MS });
+      const transport = await waitForStartup(this.#transportFactory(this.config), deadline.signal);
+      await waitForStartup(
+        client.connect(transport, {
+          timeout: MCP_STARTUP_TIMEOUT_MS,
+          maxTotalTimeout: MCP_STARTUP_TIMEOUT_MS,
+          signal: deadline.signal,
+        }),
+        deadline.signal,
+      );
       const tools: RemoteMcpTool[] = [];
       let cursor: string | undefined;
+      let pages = 0;
       do {
-        const page = await client.listTools(cursor === undefined ? undefined : { cursor }, { timeout: MCP_TIMEOUT_MS });
+        pages++;
+        const page = await waitForStartup(
+          client.listTools(cursor === undefined ? undefined : { cursor }, {
+            timeout: MCP_STARTUP_TIMEOUT_MS,
+            maxTotalTimeout: MCP_STARTUP_TIMEOUT_MS,
+            signal: deadline.signal,
+          }),
+          deadline.signal,
+        );
         tools.push(...page.tools);
+        if (tools.length > MCP_MAX_TOOLS) {
+          throw new Error(`tool discovery exceeded ${MCP_MAX_TOOLS} tools`);
+        }
         cursor = page.nextCursor;
+        if (cursor !== undefined && pages >= MCP_MAX_LIST_PAGES) {
+          throw new Error(`tool discovery exceeded ${MCP_MAX_LIST_PAGES} pages`);
+        }
       } while (cursor !== undefined);
       this.#tools = tools;
       this.#connected = true;
       this.#lastError = null;
     } catch (error) {
       this.#connected = false;
-      const startupError = errorMessage(error);
+      this.#tools = [];
+      const startupError = deadline.signal.aborted
+        ? `startup timed out after ${MCP_STARTUP_TIMEOUT_MS}ms`
+        : errorMessage(error);
       await client.close().catch(() => undefined);
       this.#lastError = startupError;
-      throw error;
+      throw new Error(startupError, { cause: error });
+    } finally {
+      clearTimeout(timer);
     }
   }
 
@@ -170,6 +253,16 @@ export class McpClient {
     this.#client = null;
     if (client !== null) await client.close();
   }
+}
+
+async function waitForStartup<T>(promise: Promise<T> | T, signal: AbortSignal): Promise<T> {
+  if (signal.aborted) throw signal.reason;
+  return await Promise.race([
+    promise,
+    new Promise<never>((_resolve, reject) => {
+      signal.addEventListener("abort", () => reject(signal.reason), { once: true });
+    }),
+  ]);
 }
 
 export const defaultMcpClientFactory: McpClientFactory = (config) => new McpClient(config);

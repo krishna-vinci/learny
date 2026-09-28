@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ensureRepo, log } from "../tree/git.js";
 import { initStudyTree } from "../tree/init.js";
 import { sha256Hex } from "./ids.js";
-import { findDuplicate, listSources, readSource, writeSource } from "./library.js";
+import { findDuplicate, listSources, readParsedFile, readSource, writeSource } from "./library.js";
 import type { Extracted } from "./types.js";
 
 const DENSE = "The quick brown fox jumps over the lazy dog and keeps on running. ";
@@ -182,5 +182,16 @@ describe("listSources and readSource", () => {
     expect(view?.parsedFiles).toEqual(["parsed.md"]);
     expect(view?.body).toContain("Summary pending.");
     expect(await readSource(root, "lib-missing")).toBeNull();
+  });
+
+  it("reads ordinary parsed files but rejects an in-root symlink outside the source parse", async () => {
+    const { id } = await writeSource(root, makeExtracted());
+    const parsed = path.join(root, "library", id, "parsed.md");
+
+    await expect(readParsedFile(root, id, "parsed.md")).resolves.toContain("A short note about vectors");
+
+    await fs.rm(parsed);
+    await fs.symlink(path.join(root, "_global", "profile.md"), parsed);
+    await expect(readParsedFile(root, id, "parsed.md")).resolves.toBeNull();
   });
 });

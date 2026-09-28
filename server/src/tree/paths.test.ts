@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { isWritableByAgent, PathError, resolveInRoot } from "./paths";
+import { canonicalRel, isWritableByAgent, PathError, resolveInRoot } from "./paths";
 
 describe("resolveInRoot", () => {
   let root: string;
@@ -81,6 +81,16 @@ describe("resolveInRoot", () => {
     expect(resolveInRoot(root, "linear-algebra/notes/alias.md")).toBe(
       path.resolve(root, "linear-algebra", "notes", "alias.md"),
     );
+  });
+
+  it("returns the canonical root-relative path with a non-existing suffix", async () => {
+    await mkdir(path.join(root, "linear-algebra", "chats"), { recursive: true });
+    await symlink(path.join(root, "linear-algebra", "chats"), path.join(root, "linear-algebra", "notes", "chat-alias"));
+
+    expect(canonicalRel(root, "linear-algebra/notes/chat-alias/new/session.md")).toBe(
+      "linear-algebra/chats/new/session.md",
+    );
+    expect(canonicalRel(root, "linear-algebra/notes/new/deep/note.md")).toBe("linear-algebra/notes/new/deep/note.md");
   });
 });
 

@@ -1,5 +1,6 @@
 import { promises as dns } from "node:dns";
-import { BlockList, isIP } from "node:net";
+import { BlockList, isIP, type LookupFunction } from "node:net";
+import { Agent } from "undici";
 
 export type SafeFetchErrorCode =
   | "invalid_url"
@@ -89,6 +90,16 @@ export function isBlockedAddress(address: string, family?: number): boolean {
  * Returns the parsed URL so callers can reuse the normalization.
  */
 export async function assertPublicUrl(rawUrl: string): Promise<URL> {
+  return (await resolvePublicUrl(rawUrl)).url;
+}
+
+interface ResolvedPublicUrl {
+  url: URL;
+  address: string;
+  family: 4 | 6;
+}
+
+async function resolvePublicUrl(rawUrl: string): Promise<ResolvedPublicUrl> {
   let url: URL;
   try {
     url = new URL(rawUrl);
@@ -97,6 +108,9 @@ export async function assertPublicUrl(rawUrl: string): Promise<URL> {
   }
   if (url.protocol !== "http:" && url.protocol !== "https:") {
     throw new SafeFetchError("unsupported_protocol", `Only http and https URLs are allowed: ${url.protocol}`);
+  }
+  if (url.username !== "" || url.password !== "") {
+    throw new SafeFetchError("invalid_url", "URLs with embedded credentials are not allowed");
   }
   const host = url.hostname.replace(/^\[/, "").replace(/\]$/, "");
   if (host === "") throw new SafeFetchError("invalid_url", `URL has no host: ${rawUrl}`);
@@ -107,7 +121,7 @@ export async function assertPublicUrl(rawUrl: string): Promise<URL> {
     if (isBlockedAddress(host)) {
       throw new SafeFetchError("blocked_address", `Refusing to fetch private address: ${host}`);
     }
-    return url;
+    return { url, address: host, family: isIP(host) as 4 | 6 };
   }
 
   let records: { address: string; family: number }[];
@@ -122,7 +136,8 @@ export async function assertPublicUrl(rawUrl: string): Promise<URL> {
       throw new SafeFetchError("blocked_address", `Refusing to fetch ${host} (resolves to ${record.address})`);
     }
   }
-  return url;
+  const selected = records[0] as { address: string; family: number };
+  return { url, address: selected.address, family: selected.family === 6 ? 6 : 4 };
 }
 
 export interface SafeFetchOptions {
@@ -154,71 +169,108 @@ export async function safeFetch(rawUrl: string, options: SafeFetchOptions = {}):
   const timeoutMs = options.timeoutMs ?? SAFE_FETCH_TIMEOUT_MS;
   const maxBytes = options.maxBytes ?? SAFE_FETCH_MAX_BYTES;
   let currentUrl = rawUrl;
+  const deadline = new AbortController();
+  const timer = setTimeout(() => deadline.abort(new Error("timeout")), timeoutMs);
+  const signal = options.signal ? AbortSignal.any([deadline.signal, options.signal]) : deadline.signal;
 
-  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-    const validated = await assertPublicUrl(currentUrl);
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(new Error("timeout")), timeoutMs);
-    const signal = options.signal ? AbortSignal.any([controller.signal, options.signal]) : controller.signal;
-    try {
+  try {
+    for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+      if (deadline.signal.aborted) {
+        throw new SafeFetchError("timeout", `Request timed out after ${timeoutMs}ms: ${currentUrl}`);
+      }
+      const resolved = await resolvePublicUrl(currentUrl);
+      const dispatcher = pinnedDispatcher(resolved);
       let response: Response;
       try {
-        response = await fetch(validated, {
-          method: options.method ?? "GET",
-          headers: options.headers,
-          body: options.body,
-          redirect: "manual",
-          signal,
-        });
+        try {
+          response = await fetch(resolved.url, {
+            method: options.method ?? "GET",
+            headers: options.headers,
+            body: options.body,
+            redirect: "manual",
+            signal,
+            dispatcher,
+          } as RequestInit & { dispatcher: Agent });
+        } catch (cause) {
+          if (deadline.signal.aborted) {
+            throw new SafeFetchError("timeout", `Request timed out after ${timeoutMs}ms: ${resolved.url.href}`, {
+              cause,
+            });
+          }
+          throw new SafeFetchError("network_error", `Request failed: ${resolved.url.href}`, { cause });
+        }
+
+        if (isRedirect(response.status)) {
+          await response.body?.cancel().catch(() => undefined);
+          const location = response.headers.get("location");
+          if (location === null || location === "") {
+            throw new SafeFetchError("network_error", `Redirect without Location from ${resolved.url.href}`);
+          }
+          if (hop === MAX_REDIRECTS) {
+            throw new SafeFetchError("too_many_redirects", `Too many redirects for ${rawUrl}`);
+          }
+          currentUrl = new URL(location, resolved.url).href;
+          continue;
+        }
+
+        const bytes = await readCappedResponse(response, maxBytes, resolved.url.href);
+        if (!response.ok && options.allowErrorStatus !== true) {
+          throw new SafeFetchError("http_error", `HTTP ${response.status} for ${resolved.url.href}`);
+        }
+        return {
+          url: resolved.url.href,
+          status: response.status,
+          ok: response.ok,
+          headers: response.headers,
+          contentType: response.headers.get("content-type"),
+          bytes,
+        };
       } catch (cause) {
-        if (controller.signal.aborted) {
-          throw new SafeFetchError("timeout", `Request timed out after ${timeoutMs}ms: ${validated.href}`, { cause });
+        if (deadline.signal.aborted && !(cause instanceof SafeFetchError && cause.code === "timeout")) {
+          throw new SafeFetchError("timeout", `Request timed out after ${timeoutMs}ms: ${resolved.url.href}`, {
+            cause,
+          });
         }
-        throw new SafeFetchError("network_error", `Request failed: ${validated.href}`, { cause });
+        throw cause;
+      } finally {
+        await dispatcher.close().catch(() => undefined);
       }
-
-      if (isRedirect(response.status)) {
-        const location = response.headers.get("location");
-        if (location === null || location === "") {
-          throw new SafeFetchError("network_error", `Redirect without Location from ${validated.href}`);
-        }
-        if (hop === MAX_REDIRECTS) {
-          throw new SafeFetchError("too_many_redirects", `Too many redirects for ${rawUrl}`);
-        }
-        currentUrl = new URL(location, validated).href;
-        continue;
-      }
-
-      const declaredLength = Number(response.headers.get("content-length") ?? Number.NaN);
-      if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
-        throw new SafeFetchError("too_large", `Response exceeds ${maxBytes} bytes: ${validated.href}`);
-      }
-
-      const bytes = await readCapped(response, maxBytes, validated.href);
-      if (!response.ok && options.allowErrorStatus !== true) {
-        throw new SafeFetchError("http_error", `HTTP ${response.status} for ${validated.href}`);
-      }
-      return {
-        url: validated.href,
-        status: response.status,
-        ok: response.ok,
-        headers: response.headers,
-        contentType: response.headers.get("content-type"),
-        bytes,
-      };
-    } finally {
-      clearTimeout(timer);
     }
-  }
 
-  throw new SafeFetchError("too_many_redirects", `Too many redirects for ${rawUrl}`);
+    throw new SafeFetchError("too_many_redirects", `Too many redirects for ${rawUrl}`);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function pinnedDispatcher(resolved: ResolvedPublicUrl): Agent {
+  const lookup: LookupFunction = (_hostname, options, callback) => {
+    if (options.all === true) {
+      callback(null, [{ address: resolved.address, family: resolved.family }]);
+      return;
+    }
+    callback(null, resolved.address, resolved.family);
+  };
+  const hostname = resolved.url.hostname.replace(/^\[/, "").replace(/\]$/, "");
+  return new Agent({
+    connect: {
+      lookup,
+      ...(resolved.url.protocol === "https:" ? { servername: hostname } : {}),
+    },
+  });
 }
 
 function isRedirect(status: number): boolean {
   return status === 301 || status === 302 || status === 303 || status === 307 || status === 308;
 }
 
-async function readCapped(response: Response, maxBytes: number, url: string): Promise<Uint8Array> {
+/** Read a fetch response without allowing either declared or streamed bytes past the cap. */
+export async function readCappedResponse(response: Response, maxBytes: number, url: string): Promise<Uint8Array> {
+  const declaredLength = Number(response.headers.get("content-length") ?? Number.NaN);
+  if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
+    await response.body?.cancel().catch(() => undefined);
+    throw new SafeFetchError("too_large", `Response exceeds ${maxBytes} bytes: ${url}`);
+  }
   if (response.body === null) return new Uint8Array();
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];

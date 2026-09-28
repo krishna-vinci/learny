@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -74,6 +74,19 @@ describe("edit", () => {
     });
   });
 
+  it("rejects writing through an in-root notes symlink to chats", async () => {
+    const linkedSet = path.join(root, "linked-set");
+    const chats = path.join(linkedSet, "chats");
+    await mkdir(chats, { recursive: true });
+    await symlink(chats, path.join(linkedSet, "notes"));
+
+    await expect(createFile(root, locks, "agent", "linked-set/notes/private.md", "secret\n")).rejects.toMatchObject({
+      name: "EditError",
+      code: "forbidden",
+    });
+    await expect(readFileOrNull(path.join(chats, "private.md"))).resolves.toBeNull();
+  });
+
   it("supports a custom write policy while the default still forbids the same path", async () => {
     const sourceRel = "library/x/source.md";
     const canWriteSource = (rel: string) => rel === sourceRel;
@@ -121,3 +134,11 @@ describe("edit", () => {
     });
   });
 });
+
+async function readFileOrNull(file: string): Promise<string | null> {
+  try {
+    return await readFile(file, "utf8");
+  } catch {
+    return null;
+  }
+}
