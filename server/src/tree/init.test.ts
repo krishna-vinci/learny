@@ -49,7 +49,17 @@ describe("initStudyTree", () => {
 
     const skills = await fs.readdir(path.join(root, "_global/skills"));
     expect(skills).toEqual(
-      ["draft-chapter", "evolve-note", "explain", "fact-check", "note-authoring", "source-summary"].sort(),
+      [
+        "critique-cards",
+        "draft-chapter",
+        "evolve-note",
+        "explain",
+        "fact-check",
+        "make-deck",
+        "note-authoring",
+        "quiz-me",
+        "source-summary",
+      ].sort(),
     );
   });
 
