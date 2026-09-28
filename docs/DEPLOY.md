@@ -31,6 +31,7 @@ services:
 ## Auth
 
 - Env: `STUDIUM_USERNAME`, `STUDIUM_PASSWORD_HASH`.
+- Set `STUDIUM_BASE_URL=https://…` to mark session cookies `Secure` when TLS terminates upstream.
 - Login UI copied from Memos (`reference/memos/web/src`): `pages/SignIn.tsx`,
   `components/AuthPageLayout.tsx`, `AuthFooter.tsx`, `PasswordSignInForm.tsx`,
   `CredentialFields.tsx`. Removed: identity-provider buttons, sign-up link,
@@ -43,6 +44,8 @@ services:
 
 Tailscale or a TLS reverse proxy (Caddy, Traefik). The app serves plain HTTP only. Docs
 warn against exposing port 3000 directly.
+
+- Set `STUDIUM_TRUST_PROXY=1` only behind a trusted proxy that overwrites forwarding headers.
 
 ## Agent security
 

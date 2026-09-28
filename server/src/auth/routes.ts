@@ -14,6 +14,7 @@ const SESSION_COOKIE = "studium_session";
 const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1_000;
 const MAX_FAILED_LOGINS = 5;
+const MAX_RATE_LIMIT_BUCKETS = 10_000;
 
 interface LoginAttempt {
   failures: number;
@@ -26,28 +27,65 @@ function constantTimeEqual(left: string, right: string): boolean {
   return timingSafeEqual(leftDigest, rightDigest) && left.length === right.length;
 }
 
-function requestIsHttps(c: Context): boolean {
-  const forwardedProto = c.req.header("x-forwarded-proto")?.split(",", 1)[0]?.trim().toLowerCase();
-  return forwardedProto === "https" || new URL(c.req.url).protocol === "https:";
-}
-
-function clientIp(c: Context): string {
-  const forwardedFor = c.req.header("x-forwarded-for")?.split(",", 1)[0]?.trim();
-  if (forwardedFor) {
-    return forwardedFor;
+function requestIsHttps(c: Context, cfg: AuthConfig): boolean {
+  if (new URL(c.req.url).protocol === "https:" || cfg.baseUrl?.toLowerCase().startsWith("https://")) {
+    return true;
   }
 
-  const env = c.env as { incoming?: { socket?: { remoteAddress?: string } } };
-  return env.incoming?.socket?.remoteAddress ?? "unknown";
+  const forwardedProto = c.req.header("x-forwarded-proto")?.split(",", 1)[0]?.trim().toLowerCase();
+  return cfg.trustProxy && forwardedProto === "https";
 }
 
-function cookieOptions(c: Context) {
+function clientIp(c: Context, trustProxy: boolean): string {
+  if (trustProxy) {
+    const forwardedFor = c.req.header("x-forwarded-for")?.split(",").at(-1)?.trim();
+    if (forwardedFor) {
+      return forwardedFor;
+    }
+  }
+
+  const env = c.env as { incoming?: { socket?: { remoteAddress?: string } } } | undefined;
+  return env?.incoming?.socket?.remoteAddress ?? "unknown";
+}
+
+function cookieOptions(c: Context, cfg: AuthConfig) {
   return {
     httpOnly: true,
     sameSite: "Strict" as const,
     path: "/",
-    secure: requestIsHttps(c),
+    secure: requestIsHttps(c, cfg),
   };
+}
+
+function sessionSigningKey(cfg: AuthConfig): string | null {
+  if (cfg.sessionSecret === null || cfg.passwordHash === null) {
+    return null;
+  }
+  return `${cfg.sessionSecret}\n${cfg.passwordHash}`;
+}
+
+function pruneExpiredAttempts(attempts: Map<string, LoginAttempt>, now: number): void {
+  for (const [ip, attempt] of attempts) {
+    if (now - attempt.startedAt >= RATE_LIMIT_WINDOW_MS) {
+      attempts.delete(ip);
+    }
+  }
+}
+
+function addFailedAttempt(attempts: Map<string, LoginAttempt>, ip: string, now: number): void {
+  const current = attempts.get(ip);
+  if (current !== undefined) {
+    current.failures += 1;
+    return;
+  }
+
+  if (attempts.size >= MAX_RATE_LIMIT_BUCKETS) {
+    const oldestIp = attempts.keys().next().value;
+    if (oldestIp !== undefined) {
+      attempts.delete(oldestIp);
+    }
+  }
+  attempts.set(ip, { failures: 1, startedAt: now });
 }
 
 function bearerToken(authorization: string | undefined): string | null {
@@ -71,8 +109,8 @@ export function requireAuth(cfg: AuthConfig): MiddlewareHandler {
     }
 
     const sessionToken = getCookie(c, SESSION_COOKIE);
-    const username =
-      sessionToken !== undefined && cfg.sessionSecret !== null ? verifySession(sessionToken, cfg.sessionSecret) : null;
+    const signingKey = sessionSigningKey(cfg);
+    const username = sessionToken !== undefined && signingKey !== null ? verifySession(sessionToken, signingKey) : null;
     if (username !== null) {
       c.set("username", username);
       await next();
@@ -92,18 +130,13 @@ export function authRoutes(cfg: AuthConfig): Hono {
       return c.body(null, 204);
     }
 
-    const ip = clientIp(c);
     const now = Date.now();
+    pruneExpiredAttempts(attempts, now);
+
+    const ip = clientIp(c, cfg.trustProxy);
     const attempt = attempts.get(ip);
-    if (
-      attempt !== undefined &&
-      now - attempt.startedAt < RATE_LIMIT_WINDOW_MS &&
-      attempt.failures >= MAX_FAILED_LOGINS
-    ) {
+    if (attempt !== undefined && attempt.failures >= MAX_FAILED_LOGINS) {
       return c.json({ error: "too many attempts" }, 429);
-    }
-    if (attempt !== undefined && now - attempt.startedAt >= RATE_LIMIT_WINDOW_MS) {
-      attempts.delete(ip);
     }
 
     let body: unknown;
@@ -125,18 +158,17 @@ export function authRoutes(cfg: AuthConfig): Hono {
     const passwordValid = await verifyPassword(password, cfg.passwordHash);
     const usernameValid = configuredUsername !== null && constantTimeEqual(username, configuredUsername);
     if (!passwordValid || !usernameValid || configuredUsername === null || cfg.sessionSecret === null) {
-      const current = attempts.get(ip);
-      if (current === undefined) {
-        attempts.set(ip, { failures: 1, startedAt: now });
-      } else {
-        current.failures += 1;
-      }
+      addFailedAttempt(attempts, ip, now);
       return c.json({ error: "invalid credentials" }, 401);
     }
 
     attempts.delete(ip);
-    setCookie(c, SESSION_COOKIE, signSession(configuredUsername, cfg.sessionSecret), {
-      ...cookieOptions(c),
+    const signingKey = sessionSigningKey(cfg);
+    if (signingKey === null) {
+      return c.json({ error: "invalid credentials" }, 401);
+    }
+    setCookie(c, SESSION_COOKIE, signSession(configuredUsername, signingKey), {
+      ...cookieOptions(c, cfg),
       maxAge: SESSION_MAX_AGE_SECONDS,
     });
     return c.body(null, 204);
@@ -144,7 +176,7 @@ export function authRoutes(cfg: AuthConfig): Hono {
 
   app.use("/logout", requireAuth(cfg));
   app.post("/logout", (c) => {
-    deleteCookie(c, SESSION_COOKIE, cookieOptions(c));
+    deleteCookie(c, SESSION_COOKIE, cookieOptions(c, cfg));
     return c.body(null, 204);
   });
 
