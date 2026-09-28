@@ -154,3 +154,11 @@ Optional git remote backup. Study-tree schema migrations.
 Spec: `docs/ROADMAP.md`. Notes before cards. MVP = M0 (skeleton) + M1 (sources → notes)
 + M2 (cards & review). pnpm workspaces: `server/`, `web/`, `shared/`, `skills/`,
 `examples/sample-set/`. Working title stays "Studium" (repo: learny).
+
+## D21 — Model credentials from the learner's Pi config · locked · 2026-09-28
+
+The app reuses Pi's own config directory (`getAgentDir()`: `PI_CODING_AGENT_DIR`, default
+`~/.pi/agent`) for `auth.json` / `models.json`. Providers (GitHub Copilot, zai coding plan,
+OpenAI, …) are set up once with Pi's own tooling; credentials never enter the study tree.
+Role → model mapping stays in `_global/config.yaml`. Docker: mount the Pi config dir
+read-write (OAuth tokens refresh). Supersedes the `_global/models.json` idea in the M0 plan.

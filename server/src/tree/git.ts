@@ -2,16 +2,9 @@ import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
+import type { CommitInfo } from "@studium/shared";
 
 const execFileAsync = promisify(execFile);
-
-// TODO(T2 merge): import from @studium/shared
-export interface CommitInfo {
-  sha: string;
-  date: string;
-  author: string;
-  subject: string;
-}
 
 export type Author = "tutor" | "user" | "system";
 
@@ -40,10 +33,16 @@ const SHA_PATTERN = /^[0-9a-f]{7,40}$/;
 const LOG_FORMAT = "%H%x1f%aI%x1f%an%x1f%s%x1e";
 
 async function git(root: string, args: string[], env: Record<string, string> = {}): Promise<string> {
-  const { stdout } = await execFileAsync("git", ["-C", root, "-c", "commit.gpgsign=false", ...args], {
-    env: { ...process.env, ...env },
-    maxBuffer: 16 * 1024 * 1024,
-  });
+  // Never let the caller's environment redirect git to another repo or run the user's global hooks.
+  const { GIT_DIR: _dir, GIT_WORK_TREE: _tree, GIT_INDEX_FILE: _index, ...baseEnv } = process.env;
+  const { stdout } = await execFileAsync(
+    "git",
+    ["-C", root, "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null", ...args],
+    {
+      env: { ...baseEnv, ...env },
+      maxBuffer: 16 * 1024 * 1024,
+    },
+  );
   return stdout;
 }
 
