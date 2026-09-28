@@ -3,9 +3,13 @@ import type {
   ChatSummary,
   CommitInfo,
   FileView,
+  InboxItem,
+  JobKind,
+  JobView,
   NoteSummary,
   SetSummary,
   SettingsView,
+  SourceSummary,
 } from "@studium/shared";
 
 export class UnauthorizedError extends Error {
@@ -28,11 +32,14 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  // FormData sets its own multipart boundary in the Content-Type header; letting fetch
+  // compute it (by not setting Content-Type ourselves) is required for multipart bodies.
+  const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
   const response = await fetch(path, {
     ...init,
     credentials: "same-origin",
     headers: {
-      ...(init?.body ? { "Content-Type": "application/json" } : {}),
+      ...(init?.body && !isFormData ? { "Content-Type": "application/json" } : {}),
       ...init?.headers,
     },
   });
@@ -52,11 +59,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(response.status, message, body);
   }
 
-  if (response.status === 204 || response.status === 202) {
+  if (response.status === 204) {
     return undefined as T;
   }
 
-  return (await response.json()) as T;
+  // Some endpoints return 202 with a body (e.g. `POST /api/library` → `{ jobId }`) and
+  // others with none (e.g. chat sendMessage); parse when there is something to parse.
+  try {
+    return (await response.json()) as T;
+  } catch {
+    return undefined as T;
+  }
 }
 
 function qs(params: Record<string, string | number | undefined>): string {
@@ -123,6 +136,27 @@ export const api = {
     },
   },
 
+  library: {
+    list(): Promise<SourceSummary[]> {
+      return request("/api/library");
+    },
+    get(id: string): Promise<LibrarySourceView> {
+      return request(`/api/library/${encodeURIComponent(id)}`);
+    },
+    addUrl(url: string, set?: string | null): Promise<LibraryAddResult> {
+      return request("/api/library", {
+        method: "POST",
+        body: JSON.stringify({ url, ...(set ? { set } : {}) }),
+      });
+    },
+    upload(file: File, set?: string | null): Promise<LibraryAddResult> {
+      const form = new FormData();
+      form.append("file", file);
+      if (set) form.append("set", set);
+      return request("/api/library", { method: "POST", body: form });
+    },
+  },
+
   settings: {
     get(): Promise<SettingsView> {
       return request("/api/settings");
@@ -131,4 +165,43 @@ export const api = {
       return request("/api/settings/models", { method: "PUT", body: JSON.stringify(body) });
     },
   },
+
+  // T9b: Jobs panel (jobs list/create/cancel) — see docs/plans/2026-09-29-m1-sources-to-notes.md "New API".
+  jobs: {
+    list(set?: string): Promise<JobView[]> {
+      return request(`/api/jobs${qs({ set })}`);
+    },
+    create(
+      body:
+        | { kind: Extract<JobKind, "draft-chapter">; set: string; title: string; brief?: string; sources?: string[] }
+        | { proposalId: string },
+    ): Promise<{ jobId: string }> {
+      return request("/api/jobs", { method: "POST", body: JSON.stringify(body) });
+    },
+    cancel(id: string): Promise<void> {
+      return request(`/api/jobs/${encodeURIComponent(id)}/cancel`, { method: "POST" });
+    },
+  },
+
+  // T9b: Inbox (chapter review + accept).
+  inbox: {
+    list(set: string): Promise<InboxItem[]> {
+      return request(`/api/sets/${encodeURIComponent(set)}/inbox`);
+    },
+    accept(set: string, path: string): Promise<{ sha: string }> {
+      return request(`/api/sets/${encodeURIComponent(set)}/notes/accept`, {
+        method: "POST",
+        body: JSON.stringify({ path }),
+      });
+    },
+  },
 };
+
+/** `GET /api/library/:id` response shape (server's `SourceView`, not re-exported from shared). */
+export interface LibrarySourceView {
+  source: SourceSummary;
+  body: string;
+  parsedFiles: string[];
+}
+
+export type LibraryAddResult = { jobId: string } | { sourceId: string; deduped: true };

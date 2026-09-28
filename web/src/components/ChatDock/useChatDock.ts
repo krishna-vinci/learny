@@ -85,6 +85,23 @@ export function useChatDock(set: string) {
     mutationFn: () => api.chats.abort(set, chatId as string),
   });
 
+  // T9b: Run a chat job-proposal card (decision 7) — POST /api/jobs {proposalId}, then mark
+  // the card "started" with the new job's id so the card can link to /jobs.
+  const startProposal = useMutation({
+    mutationFn: (proposalId: string) => api.jobs.create({ proposalId }),
+    onSuccess: ({ jobId }, proposalId) => {
+      dispatch({ type: "proposal_started", proposalId, jobId });
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof ApiError ? error.message : "Failed to start job.");
+    },
+  });
+
+  const dismissProposal = (proposalId: string) => {
+    dispatch({ type: "proposal_dismissed", proposalId });
+  };
+
   const handleSend = () => {
     const text = draft.trim();
     if (!text || !chatId || state.running) return;
@@ -116,6 +133,8 @@ export function useChatDock(set: string) {
     diffLink,
     handleSend,
     handleComposerKeyDown,
+    startProposal,
+    dismissProposal,
   };
 }
 

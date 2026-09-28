@@ -7,15 +7,71 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { formatEstimate } from "@/lib/job-format";
 import { cn } from "@/lib/utils";
 import ChatPicker from "./ChatPicker";
 import MessageMarkdown from "./MessageMarkdown";
-import type { ChatDockState } from "./reducer";
+import type { ChatDockState, JobProposalCard } from "./reducer";
 import ToolCallChip from "./ToolCallChip";
 import type { UseChatDockResult } from "./useChatDock";
 
-/** A message bubble, either a finalized ChatMessage or the in-flight streaming one. */
-function MessageBubble({ message }: { message: ChatDockState["messages"][number] | ChatDockState["streaming"] }) {
+/** Decision 7's chat job-proposal card: title, estimate, and Run / Dismiss. */
+function ProposalCard({
+  proposal,
+  isStarting,
+  onRun,
+  onDismiss,
+}: {
+  proposal: JobProposalCard;
+  isStarting: boolean;
+  onRun: () => void;
+  onDismiss: () => void;
+}) {
+  if (proposal.status === "started") {
+    return (
+      <div className="mt-1 max-w-[85%] rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-sm">
+        <p className="font-medium text-foreground">{proposal.title}</p>
+        <p className="mt-1 text-muted-foreground">
+          Started ·{" "}
+          <Link to="/jobs" className="text-primary underline">
+            view in Jobs
+          </Link>
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="mt-1 max-w-[85%] rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-sm">
+      <p className="font-medium text-foreground">{proposal.title}</p>
+      <p className="mt-0.5 text-2xs uppercase tracking-wide text-muted-foreground/70">{proposal.jobKind}</p>
+      <p className="mt-1 text-muted-foreground">{formatEstimate(proposal.estimate)}</p>
+      <div className="mt-2 flex gap-2">
+        <Button size="sm" onClick={onRun} disabled={isStarting}>
+          {isStarting ? "Starting…" : "Run"}
+        </Button>
+        <Button size="sm" variant="outline" onClick={onDismiss} disabled={isStarting}>
+          Dismiss
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/** A message bubble, either a finalized ChatMessage or the in-flight streaming one, plus any
+ * job-proposal cards attached to it. */
+function MessageBubble({
+  message,
+  proposals,
+  startingProposalId,
+  onRunProposal,
+  onDismissProposal,
+}: {
+  message: ChatDockState["messages"][number] | ChatDockState["streaming"];
+  proposals: JobProposalCard[];
+  startingProposalId: string | undefined;
+  onRunProposal: (proposalId: string) => void;
+  onDismissProposal: (proposalId: string) => void;
+}) {
   if (!message) return null;
   const isUser = message.role === "user";
   return (
@@ -39,6 +95,15 @@ function MessageBubble({ message }: { message: ChatDockState["messages"][number]
           <MessageMarkdown text={message.text} />
         )}
       </div>
+      {proposals.map((proposal) => (
+        <ProposalCard
+          key={proposal.proposalId}
+          proposal={proposal}
+          isStarting={startingProposalId === proposal.proposalId}
+          onRun={() => onRunProposal(proposal.proposalId)}
+          onDismiss={() => onDismissProposal(proposal.proposalId)}
+        />
+      ))}
     </div>
   );
 }
@@ -66,7 +131,10 @@ function ChatPanel({ chat, headerEnd, className, composerClassName }: ChatPanelP
     diffLink,
     handleSend,
     handleComposerKeyDown,
+    startProposal,
+    dismissProposal,
   } = chat;
+  const startingProposalId = startProposal.isPending ? startProposal.variables : undefined;
 
   return (
     <div className={cn("flex h-full min-h-0 flex-col bg-background", className)}>
@@ -96,9 +164,24 @@ function ChatPanel({ chat, headerEnd, className, composerClassName }: ChatPanelP
         ) : (
           <div className="flex flex-col gap-3">
             {state.messages.map((message) => (
-              <MessageBubble key={message.id} message={message} />
+              <MessageBubble
+                key={message.id}
+                message={message}
+                proposals={state.proposals.filter((p) => p.messageId === message.id && p.status !== "dismissed")}
+                startingProposalId={startingProposalId}
+                onRunProposal={(proposalId) => startProposal.mutate(proposalId)}
+                onDismissProposal={dismissProposal}
+              />
             ))}
-            {state.streaming && <MessageBubble message={state.streaming} />}
+            {state.streaming && (
+              <MessageBubble
+                message={state.streaming}
+                proposals={state.proposals.filter((p) => p.messageId === "streaming" && p.status !== "dismissed")}
+                startingProposalId={startingProposalId}
+                onRunProposal={(proposalId) => startProposal.mutate(proposalId)}
+                onDismissProposal={dismissProposal}
+              />
+            )}
             {diffLink && (
               <div className="rounded-md border border-border/70 bg-muted/40 px-3 py-2 text-sm">
                 Changes saved ·{" "}
