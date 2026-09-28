@@ -99,4 +99,21 @@ describe("startWatcher", () => {
     expect(paths).not.toContain(".cache/index.json");
     expect(paths).not.toContain("linear-algebra/chats/session.json");
   });
+
+  it("ignores the library _inbox drop folder", async () => {
+    const { events } = await collect();
+
+    await write("library/_inbox/dropped.md", "# dropped\n");
+    await write(NOTE, "after\n");
+
+    await vi.waitFor(
+      () => {
+        expect(events.some((event) => event.type === "file" && event.path === NOTE)).toBe(true);
+      },
+      { timeout: 5_000 },
+    );
+
+    const paths = events.map((event) => (event.type === "file" ? event.path : ""));
+    expect(paths).not.toContain("library/_inbox/dropped.md");
+  });
 });

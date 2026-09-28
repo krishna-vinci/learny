@@ -1,4 +1,4 @@
-import type { FileView, NoteSummary, SetSummary } from "@studium/shared";
+import type { FileView, NoteSummary, SetSummary, SettingsView } from "@studium/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./client";
 import { useStudiumEvents } from "./events";
@@ -8,6 +8,7 @@ export const queryKeys = {
   notes: (set: string) => ["sets", set, "notes"] as const,
   file: (set: string, path: string) => ["sets", set, "file", path] as const,
   history: (set: string, path?: string) => ["sets", set, "history", path ?? null] as const,
+  settings: ["settings"] as const,
 };
 
 export function useSets() {
@@ -20,6 +21,10 @@ export function useNotes(set: string | undefined) {
     queryFn: () => api.sets.notes(set as string),
     enabled: !!set,
   });
+}
+
+export function useSettings() {
+  return useQuery<SettingsView>({ queryKey: queryKeys.settings, queryFn: () => api.settings.get() });
 }
 
 export function useNoteFile(set: string | undefined, path: string | undefined) {

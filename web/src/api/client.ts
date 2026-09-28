@@ -1,4 +1,12 @@
-import type { ChatMessage, ChatSummary, CommitInfo, FileView, NoteSummary, SetSummary } from "@studium/shared";
+import type {
+  ChatMessage,
+  ChatSummary,
+  CommitInfo,
+  FileView,
+  NoteSummary,
+  SetSummary,
+  SettingsView,
+} from "@studium/shared";
 
 export class UnauthorizedError extends Error {
   constructor() {
@@ -112,6 +120,15 @@ export const api = {
     },
     abort(set: string, id: string): Promise<void> {
       return request(`/api/sets/${encodeURIComponent(set)}/chats/${encodeURIComponent(id)}/abort`, { method: "POST" });
+    },
+  },
+
+  settings: {
+    get(): Promise<SettingsView> {
+      return request("/api/settings");
+    },
+    saveModels(body: { default: string; roles: Record<string, string> }): Promise<SettingsView> {
+      return request("/api/settings/models", { method: "PUT", body: JSON.stringify(body) });
     },
   },
 };
