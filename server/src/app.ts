@@ -1,0 +1,48 @@
+import { existsSync } from "node:fs";
+import { serveStatic } from "@hono/node-server/serve-static";
+import { Hono } from "hono";
+import { authRoutes, requireAuth } from "./auth/routes.js";
+import type { AuthConfig } from "./auth/session.js";
+import type { EventHub } from "./events.js";
+import { eventsRoutes } from "./routes/events.js";
+import { setsRoutes } from "./routes/sets.js";
+import type { FileLocks } from "./tree/lock.js";
+
+export interface AppDeps {
+  root: string;
+  hub: EventHub;
+  locks: FileLocks;
+  auth: AuthConfig;
+  webDist?: string;
+}
+
+export function createApp(deps: AppDeps): Hono {
+  const app = new Hono();
+
+  app.route("/api/auth", authRoutes(deps.auth));
+
+  // Registered after authRoutes so the public login route is handled first.
+  app.use("/api/*", requireAuth(deps.auth));
+
+  app.route("/api/sets", setsRoutes({ root: deps.root, hub: deps.hub }));
+  app.route("/api/events", eventsRoutes(deps.hub));
+
+  // mount: chats
+
+  if (deps.webDist !== undefined && existsSync(deps.webDist)) {
+    const webRoot = deps.webDist;
+
+    app.use("*", async (c, next) => {
+      if (c.req.method !== "GET" || c.req.path.startsWith("/api/")) return next();
+      return serveStatic({ root: webRoot })(c, next);
+    });
+
+    // SPA fallback: unknown non-API GETs render the shell so client routing works.
+    app.get("*", async (c, next) => {
+      if (c.req.path.startsWith("/api/")) return next();
+      return serveStatic({ root: webRoot, rewriteRequestPath: () => "/index.html" })(c, next);
+    });
+  }
+
+  return app;
+}
