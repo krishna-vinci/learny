@@ -1,3 +1,4 @@
 **/original.*
 */chats/
 .cache/
+.*.tmp-*

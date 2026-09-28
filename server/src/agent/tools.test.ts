@@ -21,16 +21,20 @@ afterEach(async () => {
   await fs.rm(root, { recursive: true, force: true });
 });
 
-function tool(name: string) {
-  const found = tutorTools({ root, set: "linear-algebra", locks: new FileLocks(), holder: "test" }).find(
-    (candidate) => candidate.name === name,
-  );
+function tool(name: string, onWrite?: (rootRelativePath: string) => void) {
+  const found = tutorTools({
+    root,
+    set: "linear-algebra",
+    locks: new FileLocks(),
+    holder: "test",
+    ...(onWrite === undefined ? {} : { onWrite }),
+  }).find((candidate) => candidate.name === name);
   if (found === undefined) throw new Error(`missing tool ${name}`);
   return found;
 }
 
-async function execute(name: string, params: Record<string, unknown>) {
-  return tool(name).execute("call-1", params, undefined, undefined, undefined as never);
+async function execute(name: string, params: Record<string, unknown>, onWrite?: (rootRelativePath: string) => void) {
+  return tool(name, onWrite).execute("call-1", params, undefined, undefined, undefined as never);
 }
 
 describe("tutorTools", () => {
@@ -56,6 +60,27 @@ describe("tutorTools", () => {
     expect(result.details).toMatchObject({ isError: true });
     expect(result.content[0]).toMatchObject({ type: "text", text: expect.stringContaining("not writable") });
     await expect(fs.readFile(path.join(root, "linear-algebra/PLAN.md"), "utf8")).resolves.toBe(before);
+  });
+
+  it("calls onWrite with root-relative paths after successful writes only", async () => {
+    const written: string[] = [];
+    const collect = (rootRelativePath: string) => {
+      written.push(rootRelativePath);
+    };
+
+    await execute(
+      "study_edit",
+      {
+        path: "notes/03-svd.md",
+        old_string: "# Singular value decomposition",
+        new_string: "# SVD",
+      },
+      collect,
+    );
+    await execute("study_create", { path: "log/2026-09-28.md", content: "# Session\n" }, collect);
+    await execute("study_edit", { path: "PLAN.md", old_string: "Linear algebra", new_string: "Changed" }, collect);
+
+    expect(written).toEqual(["linear-algebra/notes/03-svd.md", "linear-algebra/log/2026-09-28.md"]);
   });
 
   it("returns an error result for a read that escapes the set", async () => {

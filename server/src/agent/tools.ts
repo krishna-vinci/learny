@@ -17,6 +17,7 @@ interface TutorToolContext {
   set: string;
   locks: FileLocks;
   holder: string;
+  onWrite?: (rootRelativePath: string) => void;
 }
 
 function result(summary: string, text = summary, details: Omit<ToolDetails, "isError" | "summary"> = {}) {
@@ -125,6 +126,7 @@ export function tutorTools(ctx: TutorToolContext): ToolDefinition[] {
         await editFile(ctx.root, ctx.locks, ctx.holder, combined, params.old_string, params.new_string, {
           replaceAll: params.replace_all ?? false,
         });
+        ctx.onWrite?.(combined);
         const added = countLines(params.new_string);
         const removed = countLines(params.old_string);
         const summary = `edited ${params.path} (+${added} −${removed} lines)`;
@@ -145,6 +147,7 @@ export function tutorTools(ctx: TutorToolContext): ToolDefinition[] {
       try {
         const combined = writableRootRelative(ctx, params.path);
         await createFile(ctx.root, ctx.locks, ctx.holder, combined, params.content);
+        ctx.onWrite?.(combined);
         const summary = `created ${params.path}`;
         return result(summary, summary, { path: params.path });
       } catch (error) {

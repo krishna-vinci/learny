@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { commitAll, diff, ensureRepo, log, RevertConflictError, revert } from "./git";
+import { commitAll, commitPaths, diff, ensureRepo, log, RevertConflictError, revert } from "./git";
 
 const execFile = promisify(execFileCb);
 
@@ -66,6 +66,40 @@ describe("study-tree git wrapper", () => {
     expect(await rawGit(root, "log", "-1", "--format=%an%x1f%ae%x1f%cn%x1f%ce")).toBe(
       "Studium Tutor\x1ftutor@studium.local\x1fStudium Tutor\x1ftutor@studium.local",
     );
+  });
+
+  it("runs concurrent scoped commits on different files without losing either", async () => {
+    await ensureRepo(root);
+    await writeFile(path.join(root, "a.md"), "one\nscoped\n");
+    await writeFile(path.join(root, "b.md"), "bee\nscoped\n");
+
+    const [shaA, shaB] = await Promise.all([
+      commitPaths(root, ["a.md"], "change a", "tutor"),
+      commitPaths(root, ["b.md"], "change b", "tutor"),
+    ]);
+
+    expect(shaA).toMatch(/^[0-9a-f]{40}$/);
+    expect(shaB).toMatch(/^[0-9a-f]{40}$/);
+    expect(shaA).not.toBe(shaB);
+
+    const subjects = (await log(root, { limit: 3 })).map((commit) => commit.subject);
+    expect(subjects).toEqual(expect.arrayContaining(["change a", "change b"]));
+    expect(await rawGit(root, "show", "--name-only", "--format=", requireSha(shaA))).toBe("a.md");
+    expect(await rawGit(root, "show", "--name-only", "--format=", requireSha(shaB))).toBe("b.md");
+    expect(await rawGit(root, "status", "--porcelain")).toBe("");
+  });
+
+  it("commitPaths leaves an unrelated modified file uncommitted", async () => {
+    await ensureRepo(root);
+    await writeFile(path.join(root, "a.md"), "one\nscoped\n");
+    await writeFile(path.join(root, "b.md"), "bee\nunrelated\n");
+
+    const sha = await commitPaths(root, ["a.md"], "change a", "tutor");
+
+    expect(sha).toMatch(/^[0-9a-f]{40}$/);
+    expect(await rawGit(root, "show", "--name-only", "--format=", requireSha(sha))).toBe("a.md");
+    expect(await rawGit(root, "status", "--porcelain")).toContain("b.md");
+    expect(await readFile(path.join(root, "b.md"), "utf8")).toBe("bee\nunrelated\n");
   });
 
   it("log filters by path and honors the limit", async () => {

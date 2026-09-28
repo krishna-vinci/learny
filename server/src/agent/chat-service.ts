@@ -16,7 +16,7 @@ import { ConfigYaml } from "@studium/shared";
 import { parse as parseYaml } from "yaml";
 import type { EventHub } from "../events.js";
 import { readText } from "../tree/edit.js";
-import { commitAll } from "../tree/git.js";
+import { commitPaths } from "../tree/git.js";
 import type { FileLocks } from "../tree/lock.js";
 import { resolveInRoot } from "../tree/paths.js";
 import { isSetSlug } from "../tree/read.js";
@@ -112,6 +112,7 @@ interface LiveChat {
   toolOutcomes: Map<string, ToolOutcome>;
   pendingAssistants: PendingAssistant[];
   turnError: string | null;
+  writtenPaths: Set<string>;
 }
 
 interface ChatServiceDeps {
@@ -356,6 +357,7 @@ export class ChatService {
   async #createLive(set: string, id: string, prompt: string, model: Model<Api>): Promise<LiveChat> {
     const manager = await this.#manager(set, id);
     const loader = new MutablePromptLoader(prompt);
+    const writtenPaths = new Set<string>();
     const { session } = await createAgentSession({
       cwd: this.#root,
       agentDir: getAgentDir(),
@@ -364,7 +366,15 @@ export class ChatService {
       modelRuntime: this.#runtime,
       resourceLoader: loader,
       tools: [...TUTOR_TOOL_NAMES],
-      customTools: tutorTools({ root: this.#root, set, locks: this.#locks, holder: `tutor:${id}` }),
+      customTools: tutorTools({
+        root: this.#root,
+        set,
+        locks: this.#locks,
+        holder: `tutor:${id}`,
+        onWrite: (rootRelativePath) => {
+          writtenPaths.add(rootRelativePath);
+        },
+      }),
       sessionManager: manager,
       settingsManager: SettingsManager.inMemory({
         compaction: { enabled: true },
@@ -379,6 +389,7 @@ export class ChatService {
       toolOutcomes: new Map(),
       pendingAssistants: [],
       turnError: null,
+      writtenPaths,
     };
     live.unsubscribe = this.#subscribe(set, id, live);
     this.#live.set(this.#key(set, id), live);
@@ -420,13 +431,15 @@ export class ChatService {
 
     const subject = `tutor: ${text.split(/\r?\n/, 1)[0]?.slice(0, 72) ?? ""}`;
     let sha: string | null = null;
-    try {
-      sha = await commitAll(this.#root, subject, "tutor");
-      if (sha !== null) {
-        this.#hub.publish({ type: "commit", sha, subject, author: "tutor" });
+    if (live.writtenPaths.size > 0) {
+      try {
+        sha = await commitPaths(this.#root, [...live.writtenPaths], subject, "tutor");
+        if (sha !== null) {
+          this.#hub.publish({ type: "commit", sha, subject, author: "tutor" });
+        }
+      } catch (error) {
+        this.#publish(set, id, { kind: "error", message: error instanceof Error ? error.message : String(error) });
       }
-    } catch (error) {
-      this.#publish(set, id, { kind: "error", message: error instanceof Error ? error.message : String(error) });
     }
 
     this.#publish(set, id, { kind: "settled", commitSha: sha });
@@ -486,6 +499,7 @@ export class ChatService {
       live.toolOutcomes.clear();
       live.pendingAssistants = [];
       live.turnError = null;
+      live.writtenPaths.clear();
       live.running = true;
       void this.#runTurn(set, id, text, live);
     } finally {

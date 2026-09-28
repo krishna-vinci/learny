@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
 import type { CommitInfo } from "@studium/shared";
+import { resolveInRoot } from "./paths.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -31,6 +32,29 @@ const AUTHOR_ENV: Record<Author, Record<string, string>> = {
 
 const SHA_PATTERN = /^[0-9a-f]{7,40}$/;
 const LOG_FORMAT = "%H%x1f%aI%x1f%an%x1f%s%x1e";
+
+const repoLocks = new Map<string, Promise<void>>();
+
+/**
+ * In-process async mutex per resolved study root. Git mutations share one
+ * index, so add/commit/revert sequences for a repository must not interleave.
+ * Waiters chain onto the tail of the lock map in call order (FIFO). Read-only
+ * operations run without the lock.
+ */
+function withRepoLock<T>(root: string, operation: () => Promise<T>): Promise<T> {
+  const key = path.resolve(root);
+  const previous = repoLocks.get(key) ?? Promise.resolve();
+  const result = previous.then(operation);
+  const tail = result.then(
+    () => undefined,
+    () => undefined,
+  );
+  repoLocks.set(key, tail);
+  void tail.then(() => {
+    if (repoLocks.get(key) === tail) repoLocks.delete(key);
+  });
+  return result;
+}
 
 async function git(root: string, args: string[], env: Record<string, string> = {}): Promise<string> {
   // Never let the caller's environment redirect git to another repo or run the user's global hooks.
@@ -88,15 +112,17 @@ function parseLog(output: string): CommitInfo[] {
 }
 
 export async function ensureRepo(root: string): Promise<void> {
-  if (!existsSync(path.join(root, ".git"))) {
-    await git(root, ["init", "-b", "main"]);
-  }
-  if (!(await repoHasCommits(root))) {
-    await commitAll(root, "system: init study tree", "system");
-  }
+  await withRepoLock(root, async () => {
+    if (!existsSync(path.join(root, ".git"))) {
+      await git(root, ["init", "-b", "main"]);
+    }
+    if (!(await repoHasCommits(root))) {
+      await commitAllUnlocked(root, "system: init study tree", "system");
+    }
+  });
 }
 
-export async function commitAll(root: string, message: string, author: Author): Promise<string | null> {
+async function commitAllUnlocked(root: string, message: string, author: Author): Promise<string | null> {
   await git(root, ["add", "-A"]);
   const staged = await git(root, ["diff", "--cached", "--name-only"]);
   if (staged.trim() === "") {
@@ -105,6 +131,53 @@ export async function commitAll(root: string, message: string, author: Author): 
   await git(root, ["commit", "-m", message], AUTHOR_ENV[author]);
   const sha = await git(root, ["rev-parse", "HEAD"]);
   return sha.trim();
+}
+
+export async function commitAll(root: string, message: string, author: Author): Promise<string | null> {
+  return withRepoLock(root, () => commitAllUnlocked(root, message, author));
+}
+
+export async function commitPaths(
+  root: string,
+  paths: string[],
+  message: string,
+  author: Author,
+): Promise<string | null> {
+  for (const rel of paths) {
+    resolveInRoot(root, rel);
+  }
+  if (paths.length === 0) {
+    return null;
+  }
+
+  return withRepoLock(root, async () => {
+    await git(root, ["add", "-A", "--", ...paths]);
+    const staged = await git(root, ["diff", "--cached", "--name-only", "--", ...paths]);
+    if (staged.trim() === "") {
+      return null;
+    }
+    // A pathspec makes git commit only those paths, leaving unrelated staged
+    // or unstaged changes out of the commit.
+    await git(root, ["commit", "-m", message, "--", ...paths], AUTHOR_ENV[author]);
+    const sha = await git(root, ["rev-parse", "HEAD"]);
+    return sha.trim();
+  });
+}
+
+/**
+ * List files tracked in HEAD that match a gitignore pattern. Used to warn
+ * when a repaired .gitignore came too late for already-committed files.
+ */
+export async function trackedFiles(root: string, ignorePattern: string): Promise<string[]> {
+  // Gitignore patterns do not behave identically as pathspecs; adapt the
+  // fixed shapes used by REQUIRED_IGNORES so ls-files matches the same files.
+  const pathspec = ignorePattern.endsWith("/")
+    ? `${ignorePattern}**`
+    : ignorePattern.includes("/")
+      ? ignorePattern
+      : `**/${ignorePattern}`;
+  const output = await git(root, ["ls-files", "--cached", "--", pathspec]);
+  return output.split("\n").filter((line) => line !== "");
 }
 
 export async function log(root: string, opts?: { path?: string; limit?: number }): Promise<CommitInfo[]> {
@@ -138,12 +211,14 @@ export async function revert(root: string, sha: string, author: Author): Promise
   if (!SHA_PATTERN.test(sha)) {
     throw new Error(`Invalid commit sha: ${sha}`);
   }
-  try {
-    await git(root, ["revert", "--no-edit", sha], AUTHOR_ENV[author]);
-  } catch (cause) {
-    await git(root, ["revert", "--abort"]).catch(() => undefined);
-    throw new RevertConflictError(`Revert of ${sha} failed`, { cause });
-  }
-  const newSha = await git(root, ["rev-parse", "HEAD"]);
-  return newSha.trim();
+  return withRepoLock(root, async () => {
+    try {
+      await git(root, ["revert", "--no-edit", sha], AUTHOR_ENV[author]);
+    } catch (cause) {
+      await git(root, ["revert", "--abort"]).catch(() => undefined);
+      throw new RevertConflictError(`Revert of ${sha} failed`, { cause });
+    }
+    const newSha = await git(root, ["rev-parse", "HEAD"]);
+    return newSha.trim();
+  });
 }

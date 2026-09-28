@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { lstat, mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
+import { lstat, mkdir, open, readFile, rename, unlink } from "node:fs/promises";
 import path from "node:path";
 import type { FileLocks } from "./lock";
 import { isWritableByAgent, PathError, resolveInRoot } from "./paths";
@@ -54,11 +54,31 @@ async function atomicWrite(abs: string, content: string): Promise<void> {
   const dir = path.dirname(abs);
   const tmp = path.join(dir, `.${path.basename(abs)}.tmp-${randomUUID()}`);
   try {
-    await writeFile(tmp, content, "utf8");
+    const handle = await open(tmp, "w");
+    try {
+      await handle.writeFile(content, "utf8");
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
     await rename(tmp, abs);
+    await fsyncDirectory(dir);
   } catch (error) {
     await unlink(tmp).catch(() => undefined);
     throw error;
+  }
+}
+
+async function fsyncDirectory(dir: string): Promise<void> {
+  try {
+    const handle = await open(dir, "r");
+    try {
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
+  } catch {
+    // Best effort: some platforms disallow opening or syncing directories.
   }
 }
 

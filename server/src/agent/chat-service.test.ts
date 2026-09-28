@@ -1,7 +1,9 @@
+import { execFile as execFileCb } from "node:child_process";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import { fauxAssistantMessage, fauxProvider, fauxText, fauxToolCall } from "@earendil-works/pi-ai/providers/faux";
 import type { ChatStreamEvent, StudiumEvent } from "@studium/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -12,6 +14,13 @@ import { BusyError, ChatService } from "./chat-service.js";
 import { createModelRuntime } from "./models.js";
 
 const SAMPLE_SET = fileURLToPath(new URL("../../../examples/sample-set", import.meta.url));
+
+const execFile = promisify(execFileCb);
+
+async function rawGit(root: string, ...args: string[]): Promise<string> {
+  const { stdout } = await execFile("git", ["-C", root, "-c", "commit.gpgsign=false", ...args]);
+  return stdout.trim();
+}
 
 let root: string;
 let agentDir: string;
@@ -145,6 +154,52 @@ describe("ChatService", () => {
 
     const commits = await log(root, { limit: 10 });
     expect(commits.filter((commit) => commit.subject === "tutor: Shorten the SVD heading")).toHaveLength(1);
+  });
+
+  it("does not commit a turn that only answers", async () => {
+    const { chats, faux, hub } = await setup();
+    const id = await chats.create("linear-algebra");
+    await fs.writeFile(path.join(root, "linear-algebra/PLAN.md"), "# Hand-edited plan\n");
+    faux.setResponses([fauxAssistantMessage(fauxText("Just an answer."))]);
+
+    const settled = waitForSettled(hub, id);
+    await chats.send("linear-algebra", id, "How is the plan looking?");
+    const settledEvent = await settled;
+
+    expect(settledEvent.commitSha).toBeNull();
+    expect(await log(root)).toHaveLength(1);
+    expect(await rawGit(root, "status", "--porcelain")).toContain("PLAN.md");
+  });
+
+  it("commits only the note the tutor edited while a hand-edited PLAN.md stays uncommitted", async () => {
+    const { chats, faux, hub } = await setup();
+    const id = await chats.create("linear-algebra");
+    await fs.writeFile(path.join(root, "linear-algebra/PLAN.md"), "# Hand-edited plan\n");
+    faux.setResponses([
+      fauxAssistantMessage(
+        fauxToolCall(
+          "study_edit",
+          {
+            path: "notes/03-svd.md",
+            old_string: "# Singular value decomposition",
+            new_string: "# SVD",
+          },
+          { id: "edit-1" },
+        ),
+        { stopReason: "toolUse" },
+      ),
+      fauxAssistantMessage(fauxText("Updated the heading.")),
+    ]);
+
+    const settled = waitForSettled(hub, id);
+    await chats.send("linear-algebra", id, "Shorten the SVD heading");
+    const settledEvent = await settled;
+
+    const sha = settledEvent.commitSha;
+    expect(sha).toMatch(/^[0-9a-f]{40}$/);
+    expect(await rawGit(root, "show", "--name-only", "--format=", sha ?? "")).toBe("linear-algebra/notes/03-svd.md");
+    expect(await rawGit(root, "status", "--porcelain")).toContain("PLAN.md");
+    expect(await fs.readFile(path.join(root, "linear-algebra/PLAN.md"), "utf8")).toBe("# Hand-edited plan\n");
   });
 
   it("rejects a second send while the first turn is running", async () => {
