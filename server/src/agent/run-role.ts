@@ -78,6 +78,8 @@ export interface RoleToolsetOptions {
   locks: FileLocks;
   mcp: McpManager;
   holder: string;
+  /** When set, replaces the role's default write policy for this run. */
+  canWrite?: (rootRelativePath: string) => boolean;
   onWrite?: (path: string) => void;
   extraTools?: ToolDefinition[];
 }
@@ -88,7 +90,7 @@ export function roleToolset(role: RoleName, opts: RoleToolsetOptions): { tools: 
     ...studyTools({
       root: opts.root,
       scope: spec.scope(opts.set),
-      write: (rel) => spec.write(opts.set, rel),
+      write: (rel) => (opts.canWrite === undefined ? spec.write(opts.set, rel) : opts.canWrite(rel)),
       locks: opts.locks,
       holder: opts.holder,
       ...(opts.onWrite === undefined ? {} : { onWrite: opts.onWrite }),
@@ -127,6 +129,10 @@ export async function runRole(
     hub?: EventHub;
     signal?: AbortSignal;
     images?: ImageContent[];
+    /** Job-specific write policy; defaults to the role's own. */
+    canWrite?: (rootRelativePath: string) => boolean;
+    /** Called with the provider id of the resolved model, for billing. */
+    onModel?: (provider: string) => void;
     onWrite?: (path: string) => void;
     extraTools?: ToolDefinition[];
   },
@@ -141,6 +147,9 @@ export async function runRole(
   ]);
   const config = ConfigYaml.parse(parseYaml(configText));
   const model = resolveRoleModel(opts.runtime, config, spec.modelRole);
+  const configured = config.models.roles[spec.modelRole] ?? config.models.default;
+  const slash = configured.indexOf("/");
+  opts.onModel?.(slash > 0 ? configured.slice(0, slash) : configured);
   const prompt = await spec.promptBuilder({ root: opts.root, set: opts.set, skills });
   const written = new Set<string>();
   const toolset = roleToolset(role, {
@@ -149,6 +158,7 @@ export async function runRole(
     locks: opts.locks,
     mcp: opts.mcp,
     holder: `${role}:${randomUUID()}`,
+    ...(opts.canWrite === undefined ? {} : { canWrite: opts.canWrite }),
     onWrite: (path) => {
       written.add(path);
       opts.onWrite?.(path);

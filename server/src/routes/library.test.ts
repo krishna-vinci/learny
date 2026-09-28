@@ -162,6 +162,15 @@ describe("POST /api/library", () => {
     expect(response.status).toBe(413);
   });
 
+  it("rejects more than one file part with 400", async () => {
+    const form = new FormData();
+    form.append("file", new File([new TextEncoder().encode("a")], "a.md", { type: "text/markdown" }));
+    form.append("file", new File([new TextEncoder().encode("b")], "b.md", { type: "text/markdown" }));
+
+    const response = await app.request("/api/library", { method: "POST", body: form });
+    expect(response.status).toBe(400);
+  });
+
   it("returns the existing source (200) when a file was already ingested", async () => {
     const fileBytes = new TextEncoder().encode("# Same\n\nbody\n");
     const { id } = await writeSource(root, makeExtracted({ url: null }), { bytes: fileBytes, ext: "pdf" });

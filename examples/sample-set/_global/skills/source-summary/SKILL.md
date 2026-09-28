@@ -49,6 +49,13 @@ Use exactly one tier with a one-line reason in the frontmatter:
 
 The reason must be source-specific. Prefer `credibility: C # named educator with course-site lecture notes` over an unexplained letter. If the user has overridden the tier, preserve it and do not silently change it.
 
+## Format formulas
+
+Write every formula as LaTeX math: inline in `$…$` and display in `$$…$$`. Never leave
+math bare: no standalone `*` or `^` outside dollar signs, and no Markdown emphasis
+(`*`, `_`, `**`) inside a formula. Keep symbols inside the delimiters as LaTeX
+(`$Av = \lambda v$`, `$x^2$`, `$a*b$`), not as prose or plain text.
+
 ## Complete the registry entry
 
 Use the `source.md` frontmatter contract: stable id, title, authors, type, optional URL, credibility, parse tier, checksum when supplied, and added date. Keep the id unchanged. The body contains the summary and table of contents.

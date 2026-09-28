@@ -3,6 +3,8 @@ import { type Extracted, UnsupportedInputError } from "./types.js";
 import { htmlToMarkdown } from "./web.js";
 
 const WIKI_HOST = "en.wikipedia.org";
+/** Wikipedia has no per-article author; credit the contributor community. */
+const WIKI_AUTHORS = ["Wikipedia contributors"];
 
 /** Extract a Wikipedia article (English) to markdown via the REST API. */
 export async function extractWikipedia(url: string, options: { signal?: AbortSignal } = {}): Promise<Extracted> {
@@ -12,7 +14,7 @@ export async function extractWikipedia(url: string, options: { signal?: AbortSig
   const converted = htmlToMarkdown(decodeBody(response.bytes, response.contentType), endpoint);
   return {
     title: converted.title ?? title.replace(/_/g, " "),
-    authors: [],
+    authors: [...WIKI_AUTHORS],
     markdown: converted.markdown,
     pages: null,
     parseTier: "basic",

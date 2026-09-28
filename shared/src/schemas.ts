@@ -48,6 +48,12 @@ export const ConfigYaml = z.looseObject({
     default: z.string(),
     roles: z.record(z.string(), z.string()).default({}),
   }),
+  // Providers (model-string prefixes) the learner pays a flat subscription for.
+  billing: z
+    .looseObject({
+      subscription: z.array(z.string()).default([]),
+    })
+    .optional(),
 });
 
 export type PlanFrontmatter = z.infer<typeof PlanFrontmatter>;

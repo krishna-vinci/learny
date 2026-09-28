@@ -28,6 +28,7 @@ describe("extractWikipedia", () => {
     expect(extracted.title).toBe("Linear algebra");
     expect(extracted.markdown).toContain("branch of mathematics");
     expect(extracted.url).toBe("https://en.wikipedia.org/wiki/Linear_algebra");
+    expect(extracted.authors).toEqual(["Wikipedia contributors"]);
 
     const requested = String(fetchMock.mock.calls[0]?.[0]);
     expect(requested).toBe("https://en.wikipedia.org/api/rest_v1/page/html/Linear_algebra");

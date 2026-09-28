@@ -4,7 +4,7 @@ import path from "node:path";
 import type { StudiumEvent } from "@studium/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EventHub } from "../events.js";
-import { FINISHED_JOB_LIMIT, JobRunner, usageFromPiMessages } from "./runner.js";
+import { classifyBilling, FINISHED_JOB_LIMIT, JobRunner, usageFromPiMessages } from "./runner.js";
 
 let root: string;
 
@@ -16,9 +16,16 @@ afterEach(async () => {
   await fs.rm(root, { recursive: true, force: true });
 });
 
-function makeRunner(overrides: { maxParallel?: number; hub?: EventHub } = {}) {
+function makeRunner(overrides: { maxParallel?: number; hub?: EventHub; subscriptionProviders?: string[] } = {}) {
   const hub = overrides.hub ?? new EventHub();
-  const runner = new JobRunner({ root, hub, maxParallel: overrides.maxParallel ?? 2 });
+  const runner = new JobRunner({
+    root,
+    hub,
+    maxParallel: overrides.maxParallel ?? 2,
+    ...(overrides.subscriptionProviders === undefined
+      ? {}
+      : { subscriptionProviders: overrides.subscriptionProviders }),
+  });
   return { runner, hub };
 }
 
@@ -170,6 +177,31 @@ describe("JobRunner", () => {
     await vi.waitFor(() => expect(runner.get(ids[0] ?? "")).toBeUndefined());
     expect(runner.get(ids[FINISHED_JOB_LIMIT - 1] ?? "")?.status).toBe("done");
     expect(runner.get(ids[FINISHED_JOB_LIMIT + 4] ?? "")?.status).toBe("done");
+  });
+
+  it("labels billing from the providers a job used and the subscription list", async () => {
+    const { runner } = makeRunner({ subscriptionProviders: ["zai", "github-copilot"] });
+    runner.register("ingest", async (input, ctx) => {
+      ctx.useProvider?.((input as { provider: string }).provider);
+      return undefined;
+    });
+
+    const onSubscription = runner.enqueue("ingest", { provider: "zai" }, { set: null, title: "Sub" });
+    const metered = runner.enqueue("ingest", { provider: "faux" }, { set: null, title: "Metered" });
+    await vi.waitFor(() => expect(runner.get(onSubscription.id)?.status).toBe("done"));
+    await vi.waitFor(() => expect(runner.get(metered.id)?.status).toBe("done"));
+
+    expect(runner.get(onSubscription.id)?.billing).toBe("subscription");
+    expect(runner.get(metered.id)?.billing).toBe("metered");
+  });
+});
+
+describe("classifyBilling", () => {
+  it("classifies every, some, and no provider as subscription, mixed, and metered", () => {
+    expect(classifyBilling(["zai", "github-copilot"], ["zai", "github-copilot"])).toBe("subscription");
+    expect(classifyBilling(["zai", "faux"], ["zai"])).toBe("mixed");
+    expect(classifyBilling(["faux"], ["zai"])).toBe("metered");
+    expect(classifyBilling([], ["zai"])).toBe("metered");
   });
 });
 

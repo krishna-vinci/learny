@@ -1,3 +1,4 @@
+import JSZip from "jszip";
 import { describe, expect, it } from "vitest";
 import { extractDocx } from "./docx.js";
 import { buildDocx } from "./fixtures.test-helper.js";
@@ -17,5 +18,12 @@ describe("extractDocx", () => {
     expect(extracted.originalExt).toBe("docx");
     expect(extracted.markdown).toContain("Revenue grew by a healthy margin.");
     expect(extracted.warning).toBeNull();
+  });
+
+  it("rejects a package without word/document.xml before mammoth", async () => {
+    const zip = new JSZip();
+    zip.file("[Content_Types].xml", "<Types />");
+    const bytes = await zip.generateAsync({ type: "uint8array" });
+    await expect(extractDocx(bytes)).rejects.toThrow(/word\/document\.xml/);
   });
 });

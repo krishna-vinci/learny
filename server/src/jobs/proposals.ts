@@ -8,6 +8,7 @@ import { parse as parseYaml } from "yaml";
 import { resolveRoleModel } from "../agent/models.js";
 import { readText } from "../tree/edit.js";
 import { resolveInRoot } from "../tree/paths.js";
+import { classifyBilling } from "./runner.js";
 
 const PROPOSAL_TTL_MS = 30 * 60 * 1000;
 const CHARS_PER_TOKEN = 4;
@@ -107,6 +108,12 @@ function costFor(model: Model<Api>, inputTokens: number, outputTokens: number): 
   return (inputTokens * rates.input + outputTokens * rates.output) / 1_000_000;
 }
 
+/** Provider id (model-string prefix) used for billing classification. */
+function providerOf(modelString: string): string {
+  const slash = modelString.indexOf("/");
+  return slash > 0 ? modelString.slice(0, slash) : modelString;
+}
+
 export async function estimateDraftJob(
   root: string,
   input: DraftChapterInput,
@@ -131,7 +138,14 @@ export async function estimateDraftJob(
   const checker = resolveRoleModel(runtime, config, "checker");
   const costUsd =
     costFor(drafter, baseInput, draftOutput) * 2 + costFor(checker, baseInput + draftOutput, checkOutput) * 2;
-  return { tokens, costUsd: costUsd === 0 ? null : costUsd };
+  const billing = classifyBilling(
+    [
+      providerOf(config.models.roles.drafter ?? config.models.default),
+      providerOf(config.models.roles.checker ?? config.models.default),
+    ],
+    config.billing?.subscription ?? [],
+  );
+  return { tokens, costUsd: costUsd === 0 ? null : costUsd, billing };
 }
 
 function errorResult(error: unknown) {

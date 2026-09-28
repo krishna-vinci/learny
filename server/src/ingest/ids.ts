@@ -8,9 +8,14 @@ export const LIBRARY_DIR = "library";
 export const MAX_ID_LENGTH = 48;
 
 const ARXIV_ID = /(?:\d{4}\.\d{4,5}(?:v\d+)?|[a-z-]+(?:\.[A-Z]{2})?\/\d{7}(?:v\d+)?)/;
+const ARXIV_ID_ANCHORED = new RegExp(`^(?:${ARXIV_ID.source})$`);
 const DOI_VALUE = /^10\.\d{4,9}\/\S+$/;
 // Query parameters that never change which document a URL points at.
 const TRACKING_PARAMS = new Set(["fbclid", "gclid", "ref", "source"]);
+// Placeholder authors that should never drive an id; the site label is better.
+const GENERIC_AUTHORS = new Set(["wikipedia contributors"]);
+// Second-level domains that are part of the public suffix, not the site name.
+const SECOND_LEVEL_TLDS = new Set(["ac", "co", "com", "edu", "gov", "net", "org"]);
 
 export function sha256Hex(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
@@ -33,9 +38,27 @@ export function slugify(text: string, maxLength = 40): string {
   return (lastDash > 0 ? cut.slice(0, lastDash) : cut).replace(/-+$/, "");
 }
 
+/** Registrable site name: `en.wikipedia.org`/`www.nature.com` -> `wikipedia`/`nature`. */
+export function siteLabel(hostname: string): string {
+  const labels = hostname
+    .toLowerCase()
+    .replace(/^www\./, "")
+    .split(".")
+    .filter((label) => label !== "");
+  // Drop a leading language subdomain such as the `en` in `en.wikipedia.org`.
+  if (labels.length >= 3 && /^[a-z]{2}(?:-[a-z0-9]+)?$/.test(labels[0] ?? "")) labels.shift();
+  let label = labels.length >= 2 ? labels[labels.length - 2] : labels[0];
+  // `example.co.uk` -> `example`, not the second-level `co`.
+  if (label !== undefined && SECOND_LEVEL_TLDS.has(label) && labels.length >= 3) {
+    label = labels[labels.length - 3];
+  }
+  return slugify((label ?? "").replace(/\./g, "-"), 24);
+}
+
 // `<author-or-site>`: the first author's last name, else the site hostname.
 function authorToken(authors: string[], url: string | null): string {
   for (const author of authors) {
+    if (GENERIC_AUTHORS.has(author.trim().toLowerCase())) continue;
     const words = author.trim().split(/\s+/);
     const last = words[words.length - 1] ?? "";
     const slug = slugify(last, 24);
@@ -43,8 +66,7 @@ function authorToken(authors: string[], url: string | null): string {
   }
   if (url !== null) {
     try {
-      const host = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
-      return slugify(host.replace(/\./g, "-"), 24);
+      return siteLabel(new URL(url).hostname);
     } catch {
       // Not a URL: fall through to an author-less id.
     }
@@ -112,14 +134,41 @@ export function normalizeUrl(value: string): string {
   return url.toString();
 }
 
+/**
+ * arXiv identifier from an exact `arxiv.org` `/abs/<id>` or `/pdf/<id>` URL, or
+ * from a bare identifier input. Arbitrary hosts and stray substrings yield null.
+ */
 export function arxivIdOf(value: string): string | null {
-  const fromUrl = /arxiv\.org\/(?:abs|pdf)\/([^?#]+)/i.exec(value);
-  const candidate = (fromUrl?.[1] ?? value)
-    .replace(/\.pdf$/i, "")
-    .replace(/^arxiv:/i, "")
-    .trim();
-  const match = ARXIV_ID.exec(candidate);
-  return match?.[0] ?? null;
+  const trimmed = value.trim();
+  let candidate: string;
+  if (/^https?:\/\//i.test(trimmed)) {
+    let url: URL;
+    try {
+      url = new URL(trimmed);
+    } catch {
+      return null;
+    }
+    if (url.hostname.toLowerCase() !== "arxiv.org") return null;
+    const path = /^\/(?:abs|pdf)\/([^?#]+)$/.exec(url.pathname);
+    if (path?.[1] === undefined) return null;
+    candidate = decodeArxivSegment(path[1]);
+  } else {
+    candidate = trimmed
+      .replace(/^arxiv:/i, "")
+      .replace(/\.pdf$/i, "")
+      .trim();
+  }
+  return ARXIV_ID_ANCHORED.test(candidate) ? candidate : null;
+}
+
+function decodeArxivSegment(segment: string): string {
+  let decoded = segment;
+  try {
+    decoded = decodeURIComponent(segment);
+  } catch {
+    // Keep the raw segment when it is not valid percent-encoding.
+  }
+  return decoded.replace(/\.pdf$/i, "").trim();
 }
 
 export function doiOf(value: string): string | null {

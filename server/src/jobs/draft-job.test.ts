@@ -109,6 +109,38 @@ describe("draft chapter job", () => {
     );
   });
 
+  it("fails when the drafter writes outside its reserved note path", async () => {
+    const runtime = await createModelRuntime();
+    const faux = fauxProvider({ provider: "faux", models: [{ id: "echo" }] });
+    runtime.registerNativeProvider(faux.provider);
+    faux.setResponses([
+      fauxAssistantMessage(
+        fauxToolCall(
+          "study_create",
+          { path: "notes/99-other.md", content: "---\ntitle: Other\nstatus: draft\n---\n" },
+          { id: "wrong-note" },
+        ),
+        { stopReason: "toolUse" },
+      ),
+      fauxAssistantMessage(fauxText("Done.")),
+    ]);
+    const handler = createDraftJob({
+      root,
+      locks: new FileLocks(),
+      mcp: new McpManager([]),
+      runtime,
+      hub: new EventHub(),
+    });
+
+    await expect(
+      handler(
+        { set: "linear-algebra", title: "Eigenvalues" },
+        { signal: new AbortController().signal, progress: () => {}, addUsage: () => {} },
+      ),
+    ).rejects.toThrow(/drafter must create exactly notes\/04-eigenvalues\.md/);
+    await expect(fs.access(path.join(root, "linear-algebra/notes/99-other.md"))).rejects.toThrow();
+  });
+
   it("does not let the checker mark the bound note checked while a blocker remains", async () => {
     const note = "linear-algebra/notes/04-eigenvalues.md";
     const report = "linear-algebra/log/checks/04-eigenvalues.md";

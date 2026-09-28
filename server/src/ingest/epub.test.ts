@@ -1,5 +1,6 @@
+import JSZip from "jszip";
 import { describe, expect, it } from "vitest";
-import { extractEpub } from "./epub.js";
+import { EPUB_MAX_ENTRIES, extractEpub } from "./epub.js";
 import { buildEpub } from "./fixtures.test-helper.js";
 
 describe("extractEpub", () => {
@@ -24,5 +25,12 @@ describe("extractEpub", () => {
 
   it("rejects data that is not an EPUB", async () => {
     await expect(extractEpub(new TextEncoder().encode("not a zip"))).rejects.toBeInstanceOf(Error);
+  });
+
+  it("rejects an archive with too many entries before inflating", async () => {
+    const zip = new JSZip();
+    for (let index = 0; index <= EPUB_MAX_ENTRIES; index++) zip.file(`entry-${index}.txt`, "x");
+    const bytes = await zip.generateAsync({ type: "uint8array" });
+    await expect(extractEpub(bytes)).rejects.toThrow(/too many archive entries/);
   });
 });

@@ -95,6 +95,52 @@ export async function findDuplicate(root: string, key: DedupeKey): Promise<strin
   return null;
 }
 
+/** True when a stored source still carries the pending-summary marker. */
+export async function isSourcePending(root: string, id: string): Promise<boolean> {
+  const frontmatter = await readFrontmatter(root, id);
+  return frontmatter !== null && frontmatter.credibility === PENDING_CREDIBILITY;
+}
+
+/** Lock keys that identify a dedupe bucket (normalized URL / arXiv / DOI / sha256). */
+export function dedupeLockKeys(key: DedupeKey): string[] {
+  const keys: string[] = [];
+  if (typeof key.sha256 === "string" && key.sha256 !== "") keys.push(`sha256:${key.sha256}`);
+  if (typeof key.url === "string" && key.url !== "") keys.push(`url:${key.url}`);
+  if (typeof key.arxivId === "string" && key.arxivId !== "") keys.push(`arxiv:${key.arxivId}`);
+  if (typeof key.doi === "string" && key.doi !== "") keys.push(`doi:${key.doi}`);
+  return keys;
+}
+
+// In-process async mutex per dedupe key. Jobs that could touch the same source
+// take every key in sorted order so lookup → extract → write cannot race.
+const dedupeLocks = new Map<string, Promise<void>>();
+
+function acquireDedupeLock(key: string): Promise<() => void> {
+  const previous = dedupeLocks.get(key) ?? Promise.resolve();
+  let release!: () => void;
+  const next = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const tail = previous.then(() => next);
+  dedupeLocks.set(key, tail);
+  void tail.then(() => {
+    if (dedupeLocks.get(key) === tail) dedupeLocks.delete(key);
+  });
+  return previous.then(() => release);
+}
+
+/** Run `fn` while holding the in-process lock for every supplied dedupe key. */
+export async function withDedupeLock<T>(keys: readonly string[], fn: () => Promise<T>): Promise<T> {
+  const unique = [...new Set(keys)].sort();
+  const releases: Array<() => void> = [];
+  try {
+    for (const key of unique) releases.push(await acquireDedupeLock(key));
+    return await fn();
+  } finally {
+    for (const release of releases.reverse()) release();
+  }
+}
+
 function dedupeKeyFor(extracted: Extracted, sha256: string | null): DedupeKey {
   const key = extracted.url === null ? {} : dedupeKeyFromUrl(extracted.url);
   return { ...key, sha256 };

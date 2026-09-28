@@ -2,15 +2,23 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { ImageContent } from "@earendil-works/pi-ai";
 import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
-import { ConfigYaml, PlanFrontmatter, parseFrontmatter } from "@studium/shared";
+import { ConfigYaml, type JobResult, PlanFrontmatter, parseFrontmatter } from "@studium/shared";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { resolveRoleModel } from "../agent/models.js";
 import { runRole } from "../agent/run-role.js";
 import type { EventHub } from "../events.js";
 import { cleanMarkdown } from "../ingest/clean.js";
 import { detectInput } from "../ingest/detect.js";
-import { dedupeKeyFromUrl, sha256Hex } from "../ingest/ids.js";
-import { findDuplicate, type IngestJobInput, readSource, writeSource } from "../ingest/library.js";
+import { type DedupeKey, dedupeKeyFromUrl, sha256Hex } from "../ingest/ids.js";
+import {
+  dedupeLockKeys,
+  findDuplicate,
+  type IngestJobInput,
+  isSourcePending,
+  readSource,
+  withDedupeLock,
+  writeSource,
+} from "../ingest/library.js";
 import { SAFE_FETCH_MAX_BYTES, safeFetch } from "../ingest/safe-fetch.js";
 import type { Extracted, InputKind } from "../ingest/types.js";
 import { extract } from "../ingest/types.js";
@@ -253,6 +261,94 @@ function librarianTask(sourceId: string, parsedFiles: string[], hasImage: boolea
   ].join("\n");
 }
 
+type InboxFile = { rel: string; abs: string };
+
+/** Lock keys that identify this input's dedupe bucket (URL / arXiv / DOI / sha256). */
+function ingestLockKeys(input: IngestJobInput): string[] {
+  const key: DedupeKey = input.url === undefined ? {} : dedupeKeyFromUrl(input.url);
+  if (input.bytes !== undefined) key.sha256 = sha256Hex(input.bytes);
+  return dedupeLockKeys(key);
+}
+
+/**
+ * Run the Librarian to replace the pending summary in `library/<id>/source.md`
+ * and commit it. Throws when the model leaves the summary pending.
+ */
+async function runLibrarian(
+  deps: IngestJobDeps,
+  sourceId: string,
+  ctx: JobContext,
+  images?: ImageContent[],
+): Promise<string> {
+  ctx.progress("Summarizing source");
+  const sourceRel = `library/${sourceId}/source.md`;
+  const writtenByLibrarian = new Set<string>();
+  const view = await readSource(deps.root, sourceId);
+  if (view === null) throw new Error(`library source disappeared: ${sourceId}`);
+  const result = await runRole("librarian", {
+    root: deps.root,
+    set: null,
+    task: librarianTask(sourceId, view.parsedFiles, images !== undefined),
+    locks: deps.locks,
+    mcp: deps.mcp,
+    runtime: deps.runtime,
+    hub: deps.hub,
+    signal: ctx.signal,
+    onModel: (provider) => ctx.useProvider?.(provider),
+    ...(images === undefined ? {} : { images }),
+    onWrite: (file) => writtenByLibrarian.add(file),
+  });
+  ctx.addUsage(usageFromPiMessages(result.messages));
+  if (!writtenByLibrarian.has(sourceRel)) throw new Error("librarian must update source.md");
+  ctx.signal.throwIfAborted();
+  const commitSha = await commitPaths(deps.root, [sourceRel], `librarian: summarize ${sourceId}`, "librarian");
+  if (commitSha === null) throw new Error("librarian produced no summary changes");
+  deps.hub.publish({
+    type: "commit",
+    sha: commitSha,
+    subject: `librarian: summarize ${sourceId}`,
+    author: "librarian",
+  });
+  return commitSha;
+}
+
+/**
+ * Finish an ingest that matched an existing source: link it to the target set,
+ * clear the inbox file, and resume the Librarian when the summary is still pending.
+ */
+async function handleExisting(
+  deps: IngestJobDeps,
+  ctx: JobContext,
+  sourceId: string,
+  set: string | null,
+  inbox: InboxFile | null,
+): Promise<JobResult> {
+  if (await isSourcePending(deps.root, sourceId)) {
+    ctx.progress("Resuming summary");
+    const commitSha = await runLibrarian(deps, sourceId, ctx);
+    if (set !== null) {
+      ctx.signal.throwIfAborted();
+      await linkSourceToSet(deps, set, sourceId);
+    }
+    if (inbox !== null) {
+      ctx.signal.throwIfAborted();
+      await removeInbox(inbox);
+    }
+    ctx.progress("Source ready");
+    return { sourceId, commitSha };
+  }
+  if (set !== null) {
+    ctx.signal.throwIfAborted();
+    await linkSourceToSet(deps, set, sourceId);
+  }
+  if (inbox !== null) {
+    ctx.signal.throwIfAborted();
+    await removeInbox(inbox);
+  }
+  ctx.progress("Found existing source");
+  return { sourceId };
+}
+
 export function createIngestJob(deps: IngestJobDeps): JobHandler {
   return async (rawInput: unknown, ctx: JobContext) => {
     const input = parseIngestJobInput(rawInput);
@@ -260,73 +356,47 @@ export function createIngestJob(deps: IngestJobDeps): JobHandler {
     const inbox = inboxFile(deps.root, input.inboxPath);
     ctx.signal.throwIfAborted();
 
-    try {
-      ctx.progress("Detecting input");
-      const kind = detectInput(input);
+    // Serialize lookup → extract → write (and the Librarian completion) for this
+    // dedupe bucket, so two concurrent jobs cannot create duplicate sources.
+    return withDedupeLock(ingestLockKeys(input), async () => {
+      try {
+        ctx.progress("Detecting input");
+        const kind = detectInput(input);
 
-      ctx.progress("Checking for duplicates");
-      const duplicate = await incomingDuplicate(deps.root, input);
-      if (duplicate !== null) {
-        if (set !== null) await linkSourceToSet(deps, set, duplicate);
-        if (inbox !== null) await removeInbox(inbox);
-        ctx.progress("Found existing source");
-        return { sourceId: duplicate };
+        ctx.progress("Checking for duplicates");
+        const duplicate = await incomingDuplicate(deps.root, input);
+        if (duplicate !== null) return await handleExisting(deps, ctx, duplicate, set, inbox);
+
+        ctx.progress("Extracting source");
+        const extraction = await extractInput(deps, input, kind, ctx.signal);
+        ctx.signal.throwIfAborted();
+        if (extraction.extracted.title !== null) ctx.setTitle?.(extraction.extracted.title);
+        ctx.progress("Cleaning extracted text");
+        const extracted = { ...extraction.extracted, markdown: cleanMarkdown(extraction.extracted.markdown) };
+
+        ctx.progress("Writing library source");
+        ctx.signal.throwIfAborted();
+        const written = await writeSource(deps.root, extracted, extraction.original);
+        const sourceId = written.id;
+        if (written.deduped) return await handleExisting(deps, ctx, sourceId, set, inbox);
+        if (set !== null) {
+          ctx.progress("Linking source to set");
+          ctx.signal.throwIfAborted();
+          await linkSourceToSet(deps, set, sourceId);
+        }
+
+        const commitSha = await runLibrarian(deps, sourceId, ctx, extraction.images);
+
+        if (inbox !== null) {
+          ctx.signal.throwIfAborted();
+          await removeInbox(inbox);
+        }
+        ctx.progress("Source ready");
+        return { sourceId, commitSha };
+      } catch (error) {
+        if (inbox !== null) await moveInboxToFailed(deps.root, inbox).catch(() => undefined);
+        throw error;
       }
-
-      ctx.progress("Extracting source");
-      const extraction = await extractInput(deps, input, kind, ctx.signal);
-      ctx.signal.throwIfAborted();
-      ctx.progress("Cleaning extracted text");
-      const extracted = { ...extraction.extracted, markdown: cleanMarkdown(extraction.extracted.markdown) };
-
-      ctx.progress("Writing library source");
-      const written = await writeSource(deps.root, extracted, extraction.original);
-      const sourceId = written.id;
-      if (written.deduped) {
-        if (set !== null) await linkSourceToSet(deps, set, sourceId);
-        if (inbox !== null) await removeInbox(inbox);
-        ctx.progress("Found existing source");
-        return { sourceId };
-      }
-      if (set !== null) {
-        ctx.progress("Linking source to set");
-        await linkSourceToSet(deps, set, sourceId);
-      }
-
-      ctx.progress("Summarizing source");
-      const sourceRel = `library/${sourceId}/source.md`;
-      const writtenByLibrarian = new Set<string>();
-      const view = await readSource(deps.root, sourceId);
-      if (view === null) throw new Error(`library source disappeared: ${sourceId}`);
-      const result = await runRole("librarian", {
-        root: deps.root,
-        set: null,
-        task: librarianTask(sourceId, view.parsedFiles, extraction.images !== undefined),
-        locks: deps.locks,
-        mcp: deps.mcp,
-        runtime: deps.runtime,
-        hub: deps.hub,
-        signal: ctx.signal,
-        ...(extraction.images === undefined ? {} : { images: extraction.images }),
-        onWrite: (file) => writtenByLibrarian.add(file),
-      });
-      ctx.addUsage(usageFromPiMessages(result.messages));
-      if (!writtenByLibrarian.has(sourceRel)) throw new Error("librarian must update source.md");
-      const commitSha = await commitPaths(deps.root, [sourceRel], `librarian: summarize ${sourceId}`, "librarian");
-      if (commitSha === null) throw new Error("librarian produced no summary changes");
-      deps.hub.publish({
-        type: "commit",
-        sha: commitSha,
-        subject: `librarian: summarize ${sourceId}`,
-        author: "librarian",
-      });
-
-      if (inbox !== null) await removeInbox(inbox);
-      ctx.progress("Source ready");
-      return { sourceId, commitSha };
-    } catch (error) {
-      if (inbox !== null) await moveInboxToFailed(deps.root, inbox).catch(() => undefined);
-      throw error;
-    }
+    });
   };
 }

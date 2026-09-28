@@ -28,7 +28,9 @@ describe("initStudyTree", () => {
     expect(result).toEqual({ created: true });
 
     expect(await fs.readFile(path.join(root, "_global/studium.yaml"), "utf8")).toBe("schema_version: 1\n");
-    expect(await fs.readFile(path.join(root, "_global/config.yaml"), "utf8")).toContain("default: faux/echo");
+    const configText = await fs.readFile(path.join(root, "_global/config.yaml"), "utf8");
+    expect(configText).toContain("default: faux/echo");
+    expect(configText).toContain("subscription: [github-copilot, openai-codex, zai]");
     expect(await fs.readFile(path.join(root, "_global/profile.md"), "utf8")).toContain("# Learner profile");
     expect(await fs.readFile(path.join(root, ".gitignore"), "utf8")).toBe(`${REQUIRED_IGNORES.join("\n")}\n`);
     expect(parseYaml(await fs.readFile(path.join(root, "_global/mcp.json"), "utf8"))).toEqual({

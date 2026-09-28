@@ -9,7 +9,7 @@ export const SUPPORTED_SCHEMA_VERSION = 1;
 
 const STUDIUM_YAML = `schema_version: ${SUPPORTED_SCHEMA_VERSION}\n`;
 
-const CONFIG_YAML = `# Role -> model map. Model strings are "<provider>/<model-id>".\nmodels:\n  default: faux/echo\n  roles: {}\n`;
+const CONFIG_YAML = `# Role -> model map. Model strings are "<provider>/<model-id>".\nmodels:\n  default: faux/echo\n  roles: {}\n# Providers billed by a flat subscription; other providers are metered.\nbilling:\n  subscription: [github-copilot, openai-codex, zai]\n`;
 
 const PROFILE_MD = `# Learner profile\n- Goal:\n- Background:\n- Pace:\n- Style:\n`;
 

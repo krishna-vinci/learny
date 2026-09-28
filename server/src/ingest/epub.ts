@@ -10,9 +10,15 @@ export interface EpubExtractOptions {
   filename?: string | null;
 }
 
+/** Caps on a declared archive, checked before any entry is inflated. */
+export const EPUB_MAX_UNCOMPRESSED_BYTES = 200 * 1024 * 1024;
+export const EPUB_MAX_ENTRIES = 5000;
+export const EPUB_MAX_SPINE = 2000;
+
 /** Extract an EPUB: unzip the OPF spine and convert each XHTML chapter to markdown. */
 export async function extractEpub(bytes: Uint8Array, options: EpubExtractOptions = {}): Promise<Extracted> {
   const zip = await JSZip.loadAsync(bytes);
+  assertArchiveWithinLimits(zip);
 
   const containerFile = zip.file("META-INF/container.xml");
   if (containerFile === null) throw new UnsupportedInputError("epub", "EPUB is missing META-INF/container.xml");
@@ -46,6 +52,9 @@ export async function extractEpub(bytes: Uint8Array, options: EpubExtractOptions
   if (spine.length === 0) {
     for (const href of manifest.values()) spine.push(resolveHref(baseDir, href));
   }
+  if (spine.length > EPUB_MAX_SPINE) {
+    throw new UnsupportedInputError("epub", `EPUB spine has too many items (${spine.length})`);
+  }
 
   const turndown = createTurndown();
   const chapters: string[] = [];
@@ -69,6 +78,33 @@ export async function extractEpub(bytes: Uint8Array, options: EpubExtractOptions
     url: options.url ?? null,
     originalExt: "epub",
   };
+}
+
+/**
+ * Reject a zip whose declared central-directory sizes/counts are oversized,
+ * before JSZip inflates a single entry (decision: aggregate bomb protection).
+ */
+function assertArchiveWithinLimits(zip: JSZip): void {
+  const entries = Object.values(zip.files).filter((entry) => !entry.dir);
+  if (entries.length > EPUB_MAX_ENTRIES) {
+    throw new UnsupportedInputError("epub", `EPUB has too many archive entries (${entries.length})`);
+  }
+  let total = 0;
+  for (const entry of entries) total += declaredUncompressedSize(entry);
+  if (total > EPUB_MAX_UNCOMPRESSED_BYTES) {
+    throw new UnsupportedInputError(
+      "epub",
+      `EPUB expands to too much data (${Math.round(total / 1024 / 1024)} MB uncompressed)`,
+    );
+  }
+}
+
+/** The declared uncompressed byte count JSZip read from the zip central directory. */
+function declaredUncompressedSize(entry: unknown): number {
+  if (typeof entry !== "object" || entry === null) return 0;
+  const data = (entry as { _data?: { uncompressedSize?: unknown } })._data;
+  const size = data?.uncompressedSize;
+  return typeof size === "number" && Number.isFinite(size) && size > 0 ? size : 0;
 }
 
 function parseXml(xml: string): ReturnType<DOMParser["parseFromString"]> {

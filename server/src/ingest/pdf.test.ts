@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { makePdf } from "./fixtures.test-helper.js";
-import { extractPdf } from "./pdf.js";
+import { extractPdf, PDF_MAX_PAGES } from "./pdf.js";
 
 const PAGE_ONE = "The quick brown fox jumps over the lazy dog and keeps on running for a while. ".repeat(4);
 const PAGE_TWO = "Linear algebra studies vectors, matrices and the linear maps between them. ".repeat(4);
@@ -36,6 +36,11 @@ describe("extractPdf", () => {
     expect(extracted.parseTier).toBe("basic");
     expect(extracted.warning).toContain("poor PDF text layer");
     expect(extracted.warning).toContain("MINERU_URL");
+  });
+
+  it("rejects a PDF that declares too many pages before extracting text", async () => {
+    const bytes = makePdf(Array.from({ length: PDF_MAX_PAGES + 1 }, () => "one"));
+    await expect(extractPdf(bytes)).rejects.toThrow(/too many pages/);
   });
 
   it("falls back to MinerU when the text layer is poor", async () => {

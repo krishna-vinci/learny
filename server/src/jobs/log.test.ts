@@ -16,6 +16,7 @@ function makeJob(overrides: Partial<JobView> = {}): JobView {
     startedAt: "2026-09-29T09:59:00.000Z",
     finishedAt: "2026-09-29T10:00:30.000Z",
     usage: { input: 12_300, output: 2_100, cacheRead: 0, cacheWrite: 0, costUsd: 0.04 },
+    billing: "metered",
     result: { notePath: "notes/04-svd.md", commitSha: "abc1234def5678" },
     ...overrides,
   };

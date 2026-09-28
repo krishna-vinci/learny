@@ -1,7 +1,12 @@
-import { extractText, getDocumentProxy, getMeta } from "unpdf";
+import { getDocumentProxy, getMeta } from "unpdf";
 import { cleanMarkdown, pdfQuality } from "./clean.js";
 import { mineruParse } from "./mineru.js";
-import type { Extracted } from "./types.js";
+import { type Extracted, UnsupportedInputError } from "./types.js";
+
+/** Reject a PDF whose declared page count exceeds this before parsing pages. */
+export const PDF_MAX_PAGES = 2000;
+/** Stop collecting page text once this many characters have been extracted. */
+export const PDF_MAX_TEXT_CHARS = 20_000_000;
 
 export interface PdfExtractOptions {
   url?: string | null;
@@ -20,17 +25,35 @@ export async function extractPdf(bytes: Uint8Array, options: PdfExtractOptions =
   // a copy and keep `bytes` intact for the MinerU fallback and the original file.
   const document = await getDocumentProxy(bytes.slice());
   let info: Record<string, unknown> = {};
-  let pages: string[] = [];
+  const pages: string[] = [];
   let totalPages = 0;
+  let truncated = false;
   try {
+    totalPages = document.numPages;
+    if (totalPages > PDF_MAX_PAGES) {
+      throw new UnsupportedInputError("pdf", `PDF has too many pages (${totalPages}); limit is ${PDF_MAX_PAGES}`);
+    }
     try {
       info = (await getMeta(document)).info as Record<string, unknown>;
     } catch {
       info = {};
     }
-    const result = (await extractText(document, { mergePages: false })) as { totalPages: number; text: string[] };
-    pages = result.text;
-    totalPages = result.totalPages;
+    let chars = 0;
+    for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
+      // Honor cancellation between pages so a huge PDF stops promptly.
+      options.signal?.throwIfAborted();
+      const page = await document.getPage(pageNumber);
+      const content = await page.getTextContent();
+      const text = content.items
+        .flatMap((item) => ("str" in item && item.str != null ? [item.str + (item.hasEOL ? "\n" : "")] : []))
+        .join("");
+      pages.push(text);
+      chars += text.length;
+      if (chars >= PDF_MAX_TEXT_CHARS) {
+        truncated = pageNumber < totalPages;
+        break;
+      }
+    }
   } finally {
     const cleanup = (document as { cleanup?: () => Promise<void> }).cleanup;
     if (typeof cleanup === "function") await cleanup.call(document).catch(() => undefined);
@@ -55,6 +78,8 @@ export async function extractPdf(bytes: Uint8Array, options: PdfExtractOptions =
     }
   } else if (!quality.ok) {
     warning = `poor PDF text layer (${quality.reason}); set MINERU_URL for better extraction`;
+  } else if (truncated) {
+    warning = `extraction truncated after ${PDF_MAX_TEXT_CHARS} characters`;
   }
 
   return {

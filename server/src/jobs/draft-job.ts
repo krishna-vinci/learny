@@ -1,13 +1,16 @@
+import { promises as fs } from "node:fs";
 import path from "node:path";
 import { defineTool, type ModelRuntime, type ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { PlanFrontmatter, parseFrontmatter } from "@studium/shared";
 import { Type } from "typebox";
 import { runRole } from "../agent/run-role.js";
 import type { EventHub } from "../events.js";
+import { slugify } from "../ingest/ids.js";
 import type { McpManager } from "../mcp/bridge.js";
 import { editFile, readText } from "../tree/edit.js";
 import { commitPaths } from "../tree/git.js";
 import type { FileLocks } from "../tree/lock.js";
+import { resolveInRoot } from "../tree/paths.js";
 import { isSetSlug } from "../tree/read.js";
 import type { DraftChapterInput } from "./proposals.js";
 import type { JobContext, JobHandler } from "./runner.js";
@@ -15,6 +18,9 @@ import { usageFromPiMessages } from "./runner.js";
 
 const NOTE_PATH = /^notes\/[0-9]{2,}-[a-z0-9][a-z0-9-]*\.md$/;
 const SOURCE_ID = /^lib-[a-z0-9][a-z0-9-]*$/;
+
+// Note numbers reserved by in-flight draft jobs, keyed by the set's notes dir.
+const reservedNoteOrders = new Map<string, Set<number>>();
 
 export interface DraftJobDeps {
   root: string;
@@ -146,13 +152,54 @@ export function setNoteStatusTool(opts: {
   });
 }
 
-function draftTask(input: DraftChapterInput, plan: string, curriculum: string, sources: string[]): string {
+/**
+ * Reserve the next free `<set>/notes/NN-<slug>.md` for this draft before the
+ * Drafter runs, so its write policy can be pinned to exactly that path.
+ */
+async function reserveNotePath(
+  root: string,
+  set: string,
+  title: string,
+): Promise<{ notePath: string; release: () => void }> {
+  const notesAbs = resolveInRoot(root, `${set}/notes`);
+  let existing: string[] = [];
+  try {
+    existing = await fs.readdir(notesAbs);
+  } catch (error) {
+    if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
+  }
+
+  const reserved = reservedNoteOrders.get(notesAbs) ?? new Set<number>();
+  reservedNoteOrders.set(notesAbs, reserved);
+
+  const used = new Set<number>(reserved);
+  for (const name of existing) {
+    const match = /^([0-9]+)-/.exec(name);
+    if (match?.[1] !== undefined) used.add(Number.parseInt(match[1], 10));
+  }
+  let order = 1;
+  for (const number of used) if (number >= order) order = number + 1;
+  reserved.add(order);
+
+  const slug = slugify(title, 40) || "note";
+  const notePath = `notes/${String(order).padStart(2, "0")}-${slug}.md`;
+  return { notePath, release: () => reserved.delete(order) };
+}
+
+function draftTask(
+  input: DraftChapterInput,
+  notePath: string,
+  plan: string,
+  curriculum: string,
+  sources: string[],
+): string {
   return [
     "Load the draft-chapter and note-authoring skills, then draft one new chapter.",
     `Title: ${input.title}`,
     `Brief: ${input.brief ?? "Follow the approved plan and curriculum."}`,
     `Allowed source ids: ${sources.join(", ") || "(none)"}`,
-    "Create exactly one next-free numbered note under notes/ with status: draft.",
+    `Create exactly ${notePath} (this exact path was reserved for you) with status: draft.`,
+    "Do not create, edit, rename, or delete any other file.",
     "Read source.md and parsed.md or parsed/*.md directly under library/<id>/ for support.",
     "",
     "## PLAN.md",
@@ -187,109 +234,126 @@ export function createDraftJob(deps: DraftJobDeps): JobHandler {
     if (sources.some((source) => !SOURCE_ID.test(source))) throw new Error("PLAN.md contains an invalid source id");
     for (const source of sources) await readText(deps.root, `library/${source}/source.md`);
 
-    const written = new Set<string>();
-    const onWrite = (file: string) => written.add(file);
-    ctx.signal.throwIfAborted();
-    ctx.progress("Drafting chapter");
-    const draft = await runRole("drafter", {
-      root: deps.root,
-      set: input.set,
-      task: draftTask(input, plan, curriculum, sources),
-      locks: deps.locks,
-      mcp: deps.mcp,
-      runtime: deps.runtime,
-      hub: deps.hub,
-      signal: ctx.signal,
-      onWrite,
-    });
-    ctx.addUsage(usageFromPiMessages(draft.messages));
-    const noteRootPaths = [...written].filter((file) => file.startsWith(`${input.set}/notes/`));
-    if (noteRootPaths.length !== 1 || noteRootPaths[0] === undefined) {
-      throw new Error("drafter must write exactly one note");
-    }
-    const noteRootPath = noteRootPaths[0];
-    const notePath = noteRootPath.slice(input.set.length + 1);
-    if (!NOTE_PATH.test(notePath)) throw new Error(`drafter wrote an invalid note path: ${notePath}`);
+    // Reserve the target path before the model runs so its write policy can be
+    // pinned to exactly that file (create and, in revision, edit).
+    const reserved = await reserveNotePath(deps.root, input.set, input.title);
+    const notePath = reserved.notePath;
+    if (!NOTE_PATH.test(notePath)) throw new Error(`invalid reserved note path: ${notePath}`);
+    const noteRootPath = `${input.set}/${notePath}`;
+    const canWriteNote = (rel: string): boolean => rel === noteRootPath;
     const reportPath = `log/checks/${path.basename(notePath)}`;
     const reportRootPath = `${input.set}/${reportPath}`;
 
-    // Commit the draft as the drafter before the checker edits its status, so the
-    // checker's commit below carries the report and the `status: checked` edit.
-    const drafterSha = await commitPaths(deps.root, [...written].sort(), `drafter: ${input.title}`, "drafter");
-    if (drafterSha === null) throw new Error("draft job produced no changes to commit");
-    deps.hub.publish({ type: "commit", sha: drafterSha, subject: `drafter: ${input.title}`, author: "drafter" });
-
-    const check = async (recheck: boolean): Promise<boolean> => {
+    try {
       ctx.signal.throwIfAborted();
-      ctx.progress(recheck ? "Re-checking revised chapter" : "Checking chapter");
-      const currentNote = await readText(deps.root, noteRootPath);
-      if (noteStatus(currentNote) !== "draft") {
-        throw new Error("drafted note must have status draft");
-      }
-      const statusTool = setNoteStatusTool({
-        root: deps.root,
-        locks: deps.locks,
-        set: input.set,
-        notePath,
-        reportPath,
-        holder: `checker:${crypto.randomUUID()}`,
-        onWrite,
-      });
-      const result = await runRole("checker", {
+      ctx.progress("Drafting chapter");
+      const draft = await runRole("drafter", {
         root: deps.root,
         set: input.set,
-        task: checkerTask(notePath, reportPath, noteSources(currentNote), recheck),
+        task: draftTask(input, notePath, plan, curriculum, sources),
         locks: deps.locks,
         mcp: deps.mcp,
         runtime: deps.runtime,
         hub: deps.hub,
         signal: ctx.signal,
-        onWrite,
-        extraTools: [statusTool],
+        canWrite: canWriteNote,
+        onModel: (provider) => ctx.useProvider?.(provider),
+        onWrite: () => {},
       });
-      ctx.addUsage(usageFromPiMessages(result.messages));
-      const report = await readText(deps.root, reportRootPath);
-      const blocked = hasBlockingIssues(report);
-      if (!blocked) {
-        await setChecked(deps, noteRootPath, reportRootPath, `checker:${crypto.randomUUID()}`, onWrite);
+      ctx.addUsage(usageFromPiMessages(draft.messages));
+      if (draft.written.length !== 1 || draft.written[0] !== noteRootPath) {
+        throw new Error(`drafter must create exactly ${notePath}`);
       }
-      return blocked;
-    };
 
-    let blocked = await check(false);
-    if (blocked) {
+      // Commit the draft as the drafter before the checker edits its status, so the
+      // checker's commit below carries the report and the `status: checked` edit.
       ctx.signal.throwIfAborted();
-      ctx.progress("Revising blocker issues");
-      const revision = await runRole("drafter", {
-        root: deps.root,
-        set: input.set,
-        task: [
-          "Load the draft-chapter and note-authoring skills.",
-          `Revise ${notePath} surgically to resolve every blocker in ${reportPath}.`,
-          "Preserve correct content and citations, and keep status: draft for re-checking.",
-        ].join("\n"),
-        locks: deps.locks,
-        mcp: deps.mcp,
-        runtime: deps.runtime,
-        hub: deps.hub,
-        signal: ctx.signal,
-        onWrite,
-      });
-      ctx.addUsage(usageFromPiMessages(revision.messages));
-      blocked = await check(true);
-    }
+      const drafterSha = await commitPaths(deps.root, [noteRootPath], `drafter: ${input.title}`, "drafter");
+      if (drafterSha === null) throw new Error("draft job produced no changes to commit");
+      deps.hub.publish({ type: "commit", sha: drafterSha, subject: `drafter: ${input.title}`, author: "drafter" });
 
-    ctx.progress(blocked ? "Finished with open blocker issues" : "Chapter checked");
-    const checkerSha = await commitPaths(
-      deps.root,
-      [noteRootPath, reportRootPath],
-      `checker: ${input.title}`,
-      "checker",
-    );
-    if (checkerSha !== null) {
-      deps.hub.publish({ type: "commit", sha: checkerSha, subject: `checker: ${input.title}`, author: "checker" });
+      const check = async (recheck: boolean): Promise<boolean> => {
+        ctx.signal.throwIfAborted();
+        ctx.progress(recheck ? "Re-checking revised chapter" : "Checking chapter");
+        const currentNote = await readText(deps.root, noteRootPath);
+        if (noteStatus(currentNote) !== "draft") {
+          throw new Error("drafted note must have status draft");
+        }
+        const statusTool = setNoteStatusTool({
+          root: deps.root,
+          locks: deps.locks,
+          set: input.set,
+          notePath,
+          reportPath,
+          holder: `checker:${crypto.randomUUID()}`,
+          onWrite: () => {},
+        });
+        const result = await runRole("checker", {
+          root: deps.root,
+          set: input.set,
+          task: checkerTask(notePath, reportPath, noteSources(currentNote), recheck),
+          locks: deps.locks,
+          mcp: deps.mcp,
+          runtime: deps.runtime,
+          hub: deps.hub,
+          signal: ctx.signal,
+          onModel: (provider) => ctx.useProvider?.(provider),
+          onWrite: () => {},
+          extraTools: [statusTool],
+        });
+        ctx.addUsage(usageFromPiMessages(result.messages));
+        const report = await readText(deps.root, reportRootPath);
+        const blocked = hasBlockingIssues(report);
+        if (!blocked) {
+          ctx.signal.throwIfAborted();
+          await setChecked(deps, noteRootPath, reportRootPath, `checker:${crypto.randomUUID()}`, () => {});
+        }
+        return blocked;
+      };
+
+      let blocked = await check(false);
+      if (blocked) {
+        ctx.signal.throwIfAborted();
+        ctx.progress("Revising blocker issues");
+        const revision = await runRole("drafter", {
+          root: deps.root,
+          set: input.set,
+          task: [
+            "Load the draft-chapter and note-authoring skills.",
+            `Revise ${notePath} surgically to resolve every blocker in ${reportPath}.`,
+            "Preserve correct content and citations, and keep status: draft for re-checking.",
+          ].join("\n"),
+          locks: deps.locks,
+          mcp: deps.mcp,
+          runtime: deps.runtime,
+          hub: deps.hub,
+          signal: ctx.signal,
+          canWrite: canWriteNote,
+          onModel: (provider) => ctx.useProvider?.(provider),
+          onWrite: () => {},
+        });
+        ctx.addUsage(usageFromPiMessages(revision.messages));
+        if (revision.written.some((file) => file !== noteRootPath)) {
+          throw new Error("revision must only edit the reserved note");
+        }
+        blocked = await check(true);
+      }
+
+      ctx.progress(blocked ? "Finished with open blocker issues" : "Chapter checked");
+      ctx.signal.throwIfAborted();
+      const checkerSha = await commitPaths(
+        deps.root,
+        [noteRootPath, reportRootPath],
+        `checker: ${input.title}`,
+        "checker",
+      );
+      if (checkerSha !== null) {
+        deps.hub.publish({ type: "commit", sha: checkerSha, subject: `checker: ${input.title}`, author: "checker" });
+      }
+      const commitSha = checkerSha ?? drafterSha;
+      return { notePath, commitSha };
+    } finally {
+      reserved.release();
     }
-    const commitSha = checkerSha ?? drafterSha;
-    return { notePath, commitSha };
   };
 }

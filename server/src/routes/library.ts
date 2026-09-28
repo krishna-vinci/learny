@@ -2,6 +2,7 @@ import { promises as fs } from "node:fs";
 import type { ParsedFileView } from "@studium/shared";
 import type { Context } from "hono";
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { dedupeKeyFromUrl, sha256Hex } from "../ingest/ids.js";
 import { findDuplicate, type IngestJobInput, listSources, readParsedFile, readSource } from "../ingest/library.js";
 import type { JobRunner } from "../jobs/runner.js";
@@ -10,12 +11,16 @@ import { isSetSlug } from "../tree/read.js";
 
 /** Hard cap on a single multipart upload (decision: ≤ 100 MB). */
 export const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
+/** Multipart framing (boundaries, headers) allowed on top of the file cap. */
+const MULTIPART_OVERHEAD_BYTES = 1024 * 1024;
 
 export interface LibraryRoutesDeps {
   root: string;
   jobs: JobRunner;
   /** Overridable for tests; defaults to {@link MAX_UPLOAD_BYTES}. */
   maxUploadBytes?: number;
+  /** Overridable for tests; defaults to the upload cap plus multipart overhead. */
+  maxBodyBytes?: number;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -58,6 +63,7 @@ function jobTitle(url: string): string {
 export function libraryRoutes(deps: LibraryRoutesDeps): Hono {
   const { root } = deps;
   const maxUploadBytes = deps.maxUploadBytes ?? MAX_UPLOAD_BYTES;
+  const maxBodyBytes = deps.maxBodyBytes ?? maxUploadBytes + MULTIPART_OVERHEAD_BYTES;
   const app = new Hono();
 
   app.get("/", async (c) => c.json(await listSources(root)));
@@ -77,11 +83,16 @@ export function libraryRoutes(deps: LibraryRoutesDeps): Hono {
     return c.json(view);
   });
 
-  app.post("/", async (c) => {
-    const contentType = c.req.header("content-type") ?? "";
-    if (contentType.includes("multipart/form-data")) return addFile(c, deps, maxUploadBytes);
-    return addUrl(c, deps);
-  });
+  // Cap the whole request body while it streams, before any parser buffers it.
+  app.post(
+    "/",
+    bodyLimit({ maxSize: maxBodyBytes, onError: (c) => c.json({ error: "file too large" }, 413) }),
+    async (c) => {
+      const contentType = c.req.header("content-type") ?? "";
+      if (contentType.includes("multipart/form-data")) return addFile(c, deps, maxUploadBytes);
+      return addUrl(c, deps);
+    },
+  );
 
   return app;
 }
@@ -110,21 +121,25 @@ async function addUrl(c: Context, deps: LibraryRoutesDeps): Promise<Response> {
 }
 
 async function addFile(c: Context, deps: LibraryRoutesDeps, maxUploadBytes: number): Promise<Response> {
-  const declared = Number(c.req.header("content-length") ?? Number.NaN);
-  if (Number.isFinite(declared) && declared > maxUploadBytes) {
-    return c.json({ error: "file too large" }, 413);
-  }
-
   let form: Record<string, string | File | (string | File)[]>;
   try {
-    form = await c.req.parseBody();
+    form = await c.req.parseBody({ all: true });
   } catch {
     return c.json({ error: "invalid multipart body" }, 400);
   }
 
-  const raw = form.file;
-  const file = Array.isArray(raw) ? raw[0] : raw;
-  if (file === undefined || typeof file === "string") return c.json({ error: "file is required" }, 400);
+  const files: File[] = [];
+  for (const value of Object.values(form)) {
+    if (Array.isArray(value)) {
+      for (const item of value) if (typeof item !== "string") files.push(item);
+    } else if (typeof value !== "string") {
+      files.push(value);
+    }
+  }
+  if (files.length === 0) return c.json({ error: "file is required" }, 400);
+  if (files.length > 1) return c.json({ error: "only one file is allowed" }, 400);
+  const file = files[0];
+  if (file === undefined) return c.json({ error: "file is required" }, 400);
   if (file.size > maxUploadBytes) return c.json({ error: "file too large" }, 413);
 
   const set = await resolveSet(deps.root, form.set);

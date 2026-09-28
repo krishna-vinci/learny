@@ -5,3 +5,6 @@ models:
   default: faux/echo
   roles:
     tutor: faux/echo
+# Providers billed by a flat subscription; other providers are metered.
+billing:
+  subscription: [github-copilot, openai-codex, zai]

@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 import type { Message, TranscriptContext } from "@earendil-works/pi-ai";
 import { fauxAssistantMessage, fauxProvider, fauxText, fauxToolCall } from "@earendil-works/pi-ai/providers/faux";
 import { serve } from "@hono/node-server";
+import { ConfigYaml } from "@studium/shared";
+import { parse as parseYaml } from "yaml";
 import { ChatService } from "./agent/chat-service.js";
 import { createModelRuntime } from "./agent/models.js";
 import { createApp } from "./app.js";
@@ -15,6 +17,7 @@ import { createIngestJob } from "./jobs/ingest-job.js";
 import { JobRunner } from "./jobs/runner.js";
 import { McpManager } from "./mcp/bridge.js";
 import { loadMcpConfig } from "./mcp/config.js";
+import { readText } from "./tree/edit.js";
 import { ensureRepo } from "./tree/git.js";
 import { initStudyTree } from "./tree/init.js";
 import { FileLocks } from "./tree/lock.js";
@@ -50,10 +53,16 @@ const mcpConfig = loadMcpConfig(root, process.env);
 const mcp = new McpManager(mcpConfig.servers);
 mcp.setDisabledServers(mcpConfig.disabled);
 await mcp.start();
+
+// Providers the learner pays a flat subscription for, used to label job billing.
+const subscriptionProviders = await readText(root, "_global/config.yaml")
+  .then((text) => ConfigYaml.parse(parseYaml(text)).billing?.subscription ?? [])
+  .catch(() => []);
 const jobs = new JobRunner({
   root,
   hub,
   maxParallel: Number.isFinite(maxParallelJobs) && maxParallelJobs > 0 ? maxParallelJobs : 3,
+  subscriptionProviders,
 });
 jobs.register("draft-chapter", createDraftJob({ root, locks, mcp, runtime, hub }));
 jobs.register("ingest", createIngestJob({ root, locks, mcp, runtime, hub }));

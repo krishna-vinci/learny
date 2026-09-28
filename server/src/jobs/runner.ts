@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { JobKind, JobResult, JobStatus, JobUsage, JobView } from "@studium/shared";
+import type { JobBilling, JobKind, JobResult, JobStatus, JobUsage, JobView } from "@studium/shared";
 import type { EventHub } from "../events.js";
 import { appendJobLog } from "./log.js";
 
@@ -10,6 +10,10 @@ export interface JobContext {
   signal: AbortSignal;
   progress(text: string): void;
   addUsage(u: Partial<JobUsage>): void;
+  /** Replace the job's display title once a better one is known (e.g. extracted). */
+  setTitle?(title: string): void;
+  /** Record a provider id whose model this job used, for billing classification. */
+  useProvider?(provider: string): void;
 }
 
 export type JobHandler = (input: unknown, ctx: JobContext) => Promise<JobResult | undefined>;
@@ -18,6 +22,19 @@ export interface JobRunnerDeps {
   root: string;
   hub: EventHub;
   maxParallel: number;
+  /** Provider ids (model-string prefixes) covered by the learner's subscription. */
+  subscriptionProviders?: readonly string[];
+}
+
+/** Classify a job's billing from the providers it used and the subscription list. */
+export function classifyBilling(providers: Iterable<string>, subscription: readonly string[]): JobBilling {
+  const subscribed = new Set(subscription);
+  const used = new Set(providers);
+  if (used.size === 0) return "metered";
+  let covered = 0;
+  for (const provider of used) if (subscribed.has(provider)) covered += 1;
+  if (covered === 0) return "metered";
+  return covered === used.size ? "subscription" : "mixed";
 }
 
 // `list()` always includes running jobs and at most this many recent ones.
@@ -44,6 +61,7 @@ interface JobRecord {
   input: unknown;
   createdAt: number;
   controller: AbortController;
+  providers: Set<string>;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -89,6 +107,7 @@ export class JobRunner {
   readonly #root: string;
   readonly #hub: EventHub;
   readonly #maxParallel: number;
+  readonly #subscription: readonly string[];
   readonly #handlers = new Map<JobKind, JobHandler>();
   readonly #jobs = new Map<string, JobRecord>();
   readonly #queue: JobRecord[] = [];
@@ -98,6 +117,7 @@ export class JobRunner {
     this.#root = deps.root;
     this.#hub = deps.hub;
     this.#maxParallel = deps.maxParallel > 0 ? deps.maxParallel : 1;
+    this.#subscription = deps.subscriptionProviders ?? [];
   }
 
   register(kind: JobKind, handler: JobHandler): void {
@@ -118,6 +138,7 @@ export class JobRunner {
       input,
       createdAt: Date.now(),
       controller: new AbortController(),
+      providers: new Set(),
     };
     this.#jobs.set(record.id, record);
     this.#queue.push(record);
@@ -199,6 +220,15 @@ export class JobRunner {
         addUsage(record.usage, patch);
         this.#publish(record);
       },
+      setTitle: (title) => {
+        if (record.status !== "running") return;
+        record.title = title;
+        this.#publish(record);
+      },
+      useProvider: (provider) => {
+        if (record.status !== "running") return;
+        record.providers.add(provider);
+      },
     };
 
     try {
@@ -243,6 +273,7 @@ export class JobRunner {
       startedAt: record.startedAt,
       finishedAt: record.finishedAt,
       usage: { ...record.usage },
+      billing: classifyBilling(record.providers, this.#subscription),
       ...(record.result === undefined ? {} : { result: { ...record.result } }),
       ...(record.error === undefined ? {} : { error: record.error }),
     };

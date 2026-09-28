@@ -70,6 +70,8 @@ export interface ParsedFileView {
 
 export type JobKind = "ingest" | "draft-chapter";
 export type JobStatus = "queued" | "running" | "done" | "failed" | "cancelled";
+/** How a job's model usage is billed: flat subscription, metered list price, or both. */
+export type JobBilling = "subscription" | "metered" | "mixed";
 
 export interface JobUsage {
   input: number;
@@ -95,6 +97,7 @@ export interface JobView {
   startedAt: string | null;
   finishedAt: string | null;
   usage: JobUsage;
+  billing: JobBilling;
   result?: JobResult;
   error?: string;
 }
@@ -141,7 +144,7 @@ export type ChatStreamEvent =
       proposalId: string;
       jobKind: JobKind;
       title: string;
-      estimate: { tokens: number; costUsd: number | null };
+      estimate: { tokens: number; costUsd: number | null; billing?: JobBilling };
     };
 export type StudiumEvent =
   | { type: "file"; set: string | null; path: string; change: "add" | "change" | "unlink" }

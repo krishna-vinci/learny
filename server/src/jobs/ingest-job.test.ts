@@ -38,17 +38,23 @@ afterEach(async () => {
 function context() {
   const progress: string[] = [];
   const usage: unknown[] = [];
+  const titles: string[] = [];
+  const providers: string[] = [];
   const ctx: JobContext = {
     signal: new AbortController().signal,
     progress: (text: string) => progress.push(text),
     addUsage: (value) => {
       usage.push(value);
     },
+    setTitle: (title: string) => titles.push(title),
+    useProvider: (provider: string) => providers.push(provider),
   };
   return {
     progress,
     ctx,
     usage,
+    titles,
+    providers,
   };
 }
 
@@ -137,6 +143,7 @@ describe("ingest job", () => {
       "Summarizing source",
       "Source ready",
     ]);
+    expect(run.titles).toEqual(["Vectors"]);
     expect(run.usage).toHaveLength(1);
     expect(run.usage[0]).toMatchObject({ input: expect.any(Number), output: expect.any(Number) });
     expect((await log(root, { limit: 1 }))[0]).toMatchObject({
@@ -191,6 +198,72 @@ describe("ingest job", () => {
     const plan = await fs.readFile(path.join(root, "linear-algebra/PLAN.md"), "utf8");
     expect(plan).toContain("lib-existing");
     await expect(fs.access(path.join(root, "library/_inbox/source.txt"))).rejects.toThrow();
+  });
+
+  it("resumes the librarian when a duplicate source is still pending", async () => {
+    const sourceRel = "library/lib-pending/source.md";
+    await fs.mkdir(path.join(root, "library/lib-pending"), { recursive: true });
+    await fs.writeFile(
+      path.join(root, sourceRel),
+      [
+        "---",
+        "id: lib-pending",
+        "title: Pending source",
+        "authors: []",
+        "type: article",
+        "url: https://example.com/pending",
+        "credibility: pending",
+        "parse_tier: basic",
+        "added: 2026-09-29",
+        "---",
+        "",
+        "# Pending source - summary",
+        "",
+        "Summary pending.",
+        "",
+      ].join("\n"),
+    );
+    await fs.writeFile(path.join(root, "library/lib-pending/parsed.md"), "body\n");
+    const { runtime, faux } = await fauxRuntime();
+    faux.setResponses([
+      fauxAssistantMessage(
+        fauxToolCall(
+          "study_edit",
+          { path: sourceRel, old_string: "Summary pending.", new_string: "## Summary\n\nResumed summary." },
+          { id: "resume-summary" },
+        ),
+        { stopReason: "toolUse" },
+      ),
+      fauxAssistantMessage(
+        fauxToolCall(
+          "study_edit",
+          { path: sourceRel, old_string: "credibility: pending", new_string: "credibility: C # resumed" },
+          { id: "resume-credibility" },
+        ),
+        { stopReason: "toolUse" },
+      ),
+      fauxAssistantMessage(fauxText("Summarized.")),
+    ]);
+    const run = context();
+    const handler = createIngestJob({
+      root,
+      locks: new FileLocks(),
+      mcp: new McpManager([]),
+      runtime,
+      hub: new EventHub(),
+    });
+
+    const result = await handler({ url: "https://example.com/pending" }, run.ctx);
+
+    expect(result).toMatchObject({ sourceId: "lib-pending", commitSha: expect.stringMatching(/^[0-9a-f]{40}$/) });
+    await expect(fs.readFile(path.join(root, sourceRel), "utf8")).resolves.toContain("Resumed summary.");
+    expect(run.progress).toEqual([
+      "Detecting input",
+      "Checking for duplicates",
+      "Resuming summary",
+      "Summarizing source",
+      "Source ready",
+    ]);
   });
 
   it("passes an image to a vision-capable librarian", async () => {
