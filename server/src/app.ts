@@ -9,6 +9,7 @@ import type { EventHub } from "./events.js";
 import { requestGuard } from "./http/guard.js";
 import { jobsRoutes } from "./jobs/routes.js";
 import type { JobRunner } from "./jobs/runner.js";
+import { ankiRoutes } from "./routes/anki.js";
 import { cardsRoutes } from "./routes/cards.js";
 import { eventsRoutes } from "./routes/events.js";
 import { inboxRoutes } from "./routes/inbox.js";
@@ -44,6 +45,7 @@ export function createApp(deps: AppDeps | LegacyAppDeps): Hono {
   app.route("/api/sets", setsRoutes({ root: deps.root, hub: deps.hub }));
   app.route("/api/sets/:set", inboxRoutes({ root: deps.root, locks: deps.locks, hub: deps.hub }));
   app.route("/api/sets/:set/cards", cardsRoutes({ root: deps.root, locks: deps.locks, hub: deps.hub }));
+  app.route("/api/sets/:set/anki", ankiRoutes({ root: deps.root, locks: deps.locks, hub: deps.hub }));
   app.route("/api/events", eventsRoutes(deps.hub));
 
   if (deps.jobs !== undefined) {
