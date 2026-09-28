@@ -94,6 +94,7 @@ const app = createApp({
   auth,
   chats,
   jobs,
+  settings: { runtime, mcp, env: process.env },
   ...(existsSync(webDist) ? { webDist } : {}),
 });
 

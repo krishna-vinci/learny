@@ -114,6 +114,15 @@ export interface ServiceHealth {
   tools?: number;
 }
 
+// `GET /api/settings` view: configured role models plus live availability,
+// warnings, and service health.
+export interface SettingsView {
+  models: { default: string; roles: Record<string, string> };
+  available: string[];
+  warnings: string[];
+  services: ServiceHealth[];
+}
+
 export type ChatStreamEvent =
   | { kind: "text_delta"; delta: string }
   | { kind: "tool_start"; toolCallId: string; name: string; args: Record<string, unknown> }
