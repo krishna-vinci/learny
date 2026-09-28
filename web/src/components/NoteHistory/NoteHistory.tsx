@@ -1,12 +1,13 @@
 import type { CommitInfo } from "@studium/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { RotateCcwIcon, XIcon } from "lucide-react";
-import { useState } from "react";
+import { ChevronLeftIcon, RotateCcwIcon, XIcon } from "lucide-react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { api } from "@/api/client";
 import { queryKeys } from "@/api/queries";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
 import { DiffView } from "./DiffView";
 
@@ -15,6 +16,8 @@ export interface NoteHistoryProps {
   path: string;
   className?: string;
   onClose?: () => void;
+  /** Commit to preselect, e.g. from a chat "view diff" link's `?commit=` query param. */
+  initialSha?: string;
 }
 
 function formatDate(iso: string): string {
@@ -23,11 +26,22 @@ function formatDate(iso: string): string {
 }
 
 /** History panel: commit list (`GET /history`), diff for the selected commit (`GET /diff`),
- * and a revert action (`POST /revert`) that refetches the note, its notes list, and its history. */
-export function NoteHistory({ set, path, className, onClose }: NoteHistoryProps) {
+ * and a revert action (`POST /revert`) that refetches the note, its notes list, and its history.
+ *
+ * Below `lg` this renders as a full-screen sheet (list and diff are separate screens, with a
+ * back button between them) instead of the desktop side panel, so the note reader never gets
+ * crushed into a sliver next to it on phones. */
+export function NoteHistory({ set, path, className, onClose, initialSha }: NoteHistoryProps) {
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
   const queryClient = useQueryClient();
-  const [selectedSha, setSelectedSha] = useState<string | undefined>(undefined);
+  const [selectedSha, setSelectedSha] = useState<string | undefined>(initialSha);
   const [reverting, setReverting] = useState(false);
+
+  // A commit link (chat "view diff", or re-navigating to the same route with a new `?commit=`)
+  // can arrive while this panel is already mounted; sync the selection when it changes.
+  useEffect(() => {
+    if (initialSha) setSelectedSha(initialSha);
+  }, [initialSha]);
 
   const historyQuery = useQuery<CommitInfo[]>({
     queryKey: queryKeys.history(set, path),
@@ -42,6 +56,7 @@ export function NoteHistory({ set, path, className, onClose }: NoteHistoryProps)
 
   const handleRevert = async () => {
     if (!selectedSha) return;
+    if (!window.confirm("Revert this note to this version? This cannot be undone.")) return;
     setReverting(true);
     try {
       await api.sets.revert(set, selectedSha);
@@ -50,6 +65,7 @@ export function NoteHistory({ set, path, className, onClose }: NoteHistoryProps)
         queryClient.invalidateQueries({ queryKey: queryKeys.history(set, path) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.notes(set) }),
       ]);
+      toast.success("Reverted");
       setSelectedSha(undefined);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Revert failed");
@@ -58,10 +74,95 @@ export function NoteHistory({ set, path, className, onClose }: NoteHistoryProps)
     }
   };
 
+  const commitList = (
+    <ul>
+      {historyQuery.data?.map((commit) => (
+        <li key={commit.sha}>
+          <button
+            type="button"
+            onClick={() => setSelectedSha(commit.sha)}
+            aria-pressed={commit.sha === selectedSha}
+            className={cn(
+              "w-full px-3 py-2 text-left text-xs hover:bg-accent/50",
+              commit.sha === selectedSha && "bg-accent text-accent-foreground",
+            )}
+          >
+            <div className="truncate font-medium">{commit.subject}</div>
+            <div className="text-muted-foreground">
+              {commit.author} · {formatDate(commit.date)} · {commit.sha.slice(0, 7)}
+            </div>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+
+  const commitListPanel = (
+    <ScrollArea className={isDesktop ? "max-h-48 shrink-0 border-b border-border/70" : "min-h-0 flex-1"}>
+      {historyQuery.isLoading && <div className="p-3 text-sm text-muted-foreground">Loading…</div>}
+      {historyQuery.isError && <div className="p-3 text-sm text-destructive">Failed to load history.</div>}
+      {historyQuery.data?.length === 0 && <div className="p-3 text-sm text-muted-foreground">No commits yet.</div>}
+      {commitList}
+    </ScrollArea>
+  );
+
+  const diffPanel = (
+    <>
+      <div className="flex items-center justify-between px-3 py-2">
+        <span className="text-xs text-muted-foreground">{selectedSha?.slice(0, 7)}</span>
+      </div>
+      <ScrollArea className="min-h-0 flex-1 px-3 pb-3">
+        {diffQuery.isLoading && <div className="text-sm text-muted-foreground">Loading diff…</div>}
+        {diffQuery.isError && <div className="text-sm text-destructive">Failed to load diff.</div>}
+        {diffQuery.data && <DiffView diff={diffQuery.data.diff} className="max-w-full" />}
+      </ScrollArea>
+      <div className="shrink-0 border-t border-border/70 px-3 py-2">
+        <Button variant="outline" size="sm" disabled={reverting} onClick={handleRevert} className="w-full">
+          <RotateCcwIcon />
+          {reverting ? "Reverting…" : "Revert"}
+        </Button>
+      </div>
+    </>
+  );
+
+  if (isDesktop) {
+    return (
+      <aside className={cn("flex min-h-0 flex-col bg-background", className)}>
+        <div className="flex items-center justify-between border-b border-border/70 px-3 py-2">
+          <h2 className="text-sm font-medium text-foreground">History</h2>
+          {onClose && (
+            <Button variant="ghost" size="icon-sm" aria-label="Close history" onClick={onClose}>
+              <XIcon />
+            </Button>
+          )}
+        </div>
+
+        {commitListPanel}
+
+        <div className="flex min-h-0 flex-1 flex-col">
+          {!selectedSha && <div className="p-3 text-sm text-muted-foreground">Select a commit to view its diff.</div>}
+          {selectedSha && diffPanel}
+        </div>
+      </aside>
+    );
+  }
+
+  // Mobile: full-screen sheet over the reader (same pattern as MobileChatDock), with the
+  // commit list and the diff as separate screens so the diff always gets the full width.
   return (
-    <aside className={cn("flex min-h-0 flex-col bg-background", className)}>
-      <div className="flex items-center justify-between border-b border-border/70 px-3 py-2">
-        <h2 className="text-sm font-medium text-foreground">History</h2>
+    <div className="fixed inset-0 z-50 flex h-[100dvh] min-w-0 flex-col bg-background">
+      <div
+        className="flex items-center justify-between border-b border-border/70 px-3 py-2"
+        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.5rem)" }}
+      >
+        {selectedSha ? (
+          <Button variant="ghost" size="sm" onClick={() => setSelectedSha(undefined)}>
+            <ChevronLeftIcon />
+            Commits
+          </Button>
+        ) : (
+          <h2 className="text-sm font-medium text-foreground">History</h2>
+        )}
         {onClose && (
           <Button variant="ghost" size="icon-sm" aria-label="Close history" onClick={onClose}>
             <XIcon />
@@ -69,51 +170,16 @@ export function NoteHistory({ set, path, className, onClose }: NoteHistoryProps)
         )}
       </div>
 
-      <ScrollArea className="max-h-48 shrink-0 border-b border-border/70">
-        {historyQuery.isLoading && <div className="p-3 text-sm text-muted-foreground">Loading…</div>}
-        {historyQuery.isError && <div className="p-3 text-sm text-destructive">Failed to load history.</div>}
-        {historyQuery.data?.length === 0 && <div className="p-3 text-sm text-muted-foreground">No commits yet.</div>}
-        <ul>
-          {historyQuery.data?.map((commit) => (
-            <li key={commit.sha}>
-              <button
-                type="button"
-                onClick={() => setSelectedSha(commit.sha)}
-                aria-pressed={commit.sha === selectedSha}
-                className={cn(
-                  "w-full px-3 py-2 text-left text-xs hover:bg-accent/50",
-                  commit.sha === selectedSha && "bg-accent text-accent-foreground",
-                )}
-              >
-                <div className="truncate font-medium">{commit.subject}</div>
-                <div className="text-muted-foreground">
-                  {commit.author} · {formatDate(commit.date)} · {commit.sha.slice(0, 7)}
-                </div>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </ScrollArea>
+      {!selectedSha && commitListPanel}
 
-      <div className="flex min-h-0 flex-1 flex-col">
-        {!selectedSha && <div className="p-3 text-sm text-muted-foreground">Select a commit to view its diff.</div>}
-        {selectedSha && (
-          <>
-            <div className="flex items-center justify-between px-3 py-2">
-              <span className="text-xs text-muted-foreground">{selectedSha.slice(0, 7)}</span>
-              <Button variant="outline" size="sm" disabled={reverting} onClick={handleRevert}>
-                <RotateCcwIcon />
-                {reverting ? "Reverting…" : "Revert"}
-              </Button>
-            </div>
-            <ScrollArea className="min-h-0 flex-1 px-3 pb-3">
-              {diffQuery.isLoading && <div className="text-sm text-muted-foreground">Loading diff…</div>}
-              {diffQuery.isError && <div className="text-sm text-destructive">Failed to load diff.</div>}
-              {diffQuery.data && <DiffView diff={diffQuery.data.diff} />}
-            </ScrollArea>
-          </>
-        )}
-      </div>
-    </aside>
+      {selectedSha && (
+        <div
+          className="flex min-h-0 flex-1 min-w-0 flex-col"
+          style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+        >
+          {diffPanel}
+        </div>
+      )}
+    </div>
   );
 }

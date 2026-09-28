@@ -22,7 +22,7 @@ export function DiffView({ diff, className }: DiffViewProps) {
         // Diff lines have no stable identity beyond position; the whole diff is replaced
         // whenever the selected commit changes (see NoteHistory), so index keys are safe here.
         // biome-ignore lint/suspicious/noArrayIndexKey: diff lines have no stable identity.
-        <div key={index} className={cn("whitespace-pre", lineClass(line))}>
+        <div key={index} className={cn("whitespace-pre-wrap break-words", lineClass(line))}>
           {line.length > 0 ? line : " "}
         </div>
       ))}

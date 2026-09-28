@@ -1,6 +1,7 @@
 import type { FileView } from "@studium/shared";
 import { HistoryIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { NoteHistory } from "@/components/NoteHistory";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -21,9 +22,30 @@ function titleFromFrontmatter(file: FileView): string {
 /** The note reader: title + rendered body, with a history panel toggled from the note header
  * (`GET /history`, `GET /diff`, `POST /revert` — see `NoteHistory`). */
 export function Reader({ set, path, file, className }: ReaderProps) {
-  const [historyOpen, setHistoryOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const commitParam = searchParams.get("commit") ?? undefined;
+  const [historyOpen, setHistoryOpen] = useState(!!commitParam);
+  // A chat "view diff" link (`?commit=<sha>`) should open history with that commit selected,
+  // even if it's navigated to while already on this note's route.
+  useEffect(() => {
+    if (commitParam) setHistoryOpen(true);
+  }, [commitParam]);
   // Notes usually open with their own `# Title`; only show the frontmatter title when they don't.
   const bodyHasTitle = /^\s*#\s/.test(file.body);
+
+  const closeHistory = () => {
+    setHistoryOpen(false);
+    if (commitParam) {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete("commit");
+          return next;
+        },
+        { replace: true },
+      );
+    }
+  };
 
   return (
     <div className={cn("flex min-h-full w-full items-stretch", className)}>
@@ -34,7 +56,7 @@ export function Reader({ set, path, file, className }: ReaderProps) {
             variant={historyOpen ? "secondary" : "outline"}
             size="sm"
             aria-pressed={historyOpen}
-            onClick={() => setHistoryOpen((open) => !open)}
+            onClick={() => (historyOpen ? closeHistory() : setHistoryOpen(true))}
           >
             <HistoryIcon />
             History
@@ -46,8 +68,9 @@ export function Reader({ set, path, file, className }: ReaderProps) {
         <NoteHistory
           set={set}
           path={path}
+          initialSha={commitParam}
           className="w-80 shrink-0 border-s border-border/70"
-          onClose={() => setHistoryOpen(false)}
+          onClose={closeHistory}
         />
       )}
     </div>
