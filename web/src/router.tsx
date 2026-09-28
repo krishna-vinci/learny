@@ -4,6 +4,7 @@ import { createBrowserRouter, Navigate, useLocation, useParams } from "react-rou
 import { api } from "@/api/client";
 import { useSets } from "@/api/queries";
 import RootLayout from "@/layouts/RootLayout";
+import NotePage from "@/pages/NotePage";
 import SignIn from "@/pages/SignIn";
 
 function AuthGate({ children }: { children: ReactNode }) {
@@ -31,16 +32,11 @@ function HomeRedirect() {
   return <Navigate to={`/s/${sets[0]?.slug}`} replace />;
 }
 
-// Placeholder pages: Task 8 (reader) and Task 9 (chat dock) fill the real content.
-// These exist so the router and sidebar navigation work end to end in this task.
+// Placeholder page: Task 9 (chat dock) fills the real content.
+// It exists so the router and sidebar navigation work end to end in this task.
 function SetOverviewPlaceholder() {
   const { set } = useParams<{ set: string }>();
   return <div className="p-6 text-sm text-muted-foreground">Select a note from “{set}” in the sidebar.</div>;
-}
-
-function NotePlaceholder() {
-  const params = useParams<{ set: string; "*": string }>();
-  return <div className="p-6 text-sm text-muted-foreground">Reader for notes/{params["*"]} — coming in Task 8.</div>;
 }
 
 export const router = createBrowserRouter([
@@ -55,7 +51,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <HomeRedirect /> },
       { path: "s/:set", element: <SetOverviewPlaceholder /> },
-      { path: "s/:set/n/*", element: <NotePlaceholder /> },
+      { path: "s/:set/n/*", element: <NotePage /> },
     ],
   },
 ]);
