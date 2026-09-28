@@ -9,6 +9,7 @@ import { createModelRuntime } from "./agent/models.js";
 import { createApp } from "./app.js";
 import { assertBindAllowed, authConfigFromEnv } from "./auth/session.js";
 import { EventHub } from "./events.js";
+import { JobRunner } from "./jobs/runner.js";
 import { ensureRepo } from "./tree/git.js";
 import { initStudyTree } from "./tree/init.js";
 import { FileLocks } from "./tree/lock.js";
@@ -22,6 +23,7 @@ if (existsSync(envFile)) process.loadEnvFile(envFile); // never overrides variab
 const host = process.env.HOST ?? "127.0.0.1";
 const port = Number(process.env.PORT ?? 3000);
 const root = path.resolve(repoRoot, process.env.STUDIUM_STUDY_ROOT ?? "./data/study");
+const maxParallelJobs = Number.parseInt(process.env.STUDIUM_MAX_PARALLEL_JOBS ?? "", 10);
 const auth = authConfigFromEnv(process.env);
 
 try {
@@ -39,6 +41,11 @@ await ensureRepo(root);
 const hub = new EventHub();
 const locks = new FileLocks();
 const runtime = await createModelRuntime();
+const jobs = new JobRunner({
+  root,
+  hub,
+  maxParallel: Number.isFinite(maxParallelJobs) && maxParallelJobs > 0 ? maxParallelJobs : 3,
+});
 
 function messageText(message: Message): string {
   if (message.role !== "user") return "";
@@ -82,6 +89,7 @@ const app = createApp({
   locks,
   auth,
   chats,
+  jobs,
   ...(existsSync(webDist) ? { webDist } : {}),
 });
 
