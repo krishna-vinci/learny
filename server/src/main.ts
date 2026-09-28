@@ -14,9 +14,14 @@ import { initStudyTree } from "./tree/init.js";
 import { FileLocks } from "./tree/lock.js";
 import { startWatcher } from "./watcher.js";
 
+// pnpm runs this with server/ as cwd: resolve relative paths and .env against the repo root.
+const repoRoot = fileURLToPath(new URL("../../", import.meta.url));
+const envFile = path.join(repoRoot, ".env");
+if (existsSync(envFile)) process.loadEnvFile(envFile); // never overrides variables already set
+
 const host = process.env.HOST ?? "127.0.0.1";
 const port = Number(process.env.PORT ?? 3000);
-const root = path.resolve(process.env.STUDIUM_STUDY_ROOT ?? "./data/study");
+const root = path.resolve(repoRoot, process.env.STUDIUM_STUDY_ROOT ?? "./data/study");
 const auth = authConfigFromEnv(process.env);
 
 try {

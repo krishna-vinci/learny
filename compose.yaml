@@ -1,0 +1,9 @@
+services:
+  app:
+    build: .
+    image: studium:local
+    env_file: .env
+    ports: ["127.0.0.1:3000:3000"]
+    volumes:
+      - "./data/study:/study" # only study volume; chats + cache live inside
+      - "${PI_AGENT_DIR:-~/.pi/agent}:/pi-agent" # Pi auth.json/models.json (tokens refresh)
