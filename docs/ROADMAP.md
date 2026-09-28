@@ -26,3 +26,11 @@ learny/                     # pnpm workspaces
 | M3 | Plan & daily loop | intake + Outliner, Today page, retention pull + leeches, webhook nudge, MinerU, book PDF, server-side AnkiConnect | app says what to do today and learns from Anki stats |
 | M4 | Mastery | Scout, placement quiz, levels, teach-back, problem sets, literature review | |
 | M5 | Polish & ecosystem | PWA, git remote backup, migration tooling, i18n, skill gallery, public release | |
+
+## M0 follow-ups (deferred, 2026-09-28)
+
+- Revert scope: a commit shown in one set's history may touch another set; scope `POST /revert` to the set's paths or warn (audit finding 6).
+- `editFile`/`createFile` enforce the agent write allowlist; the M1 manual note editor needs a user-write path with its own rules.
+- `PLAN.md` / note frontmatter fall back to defaults when any single field is invalid; make the fallback per field.
+- Directive attributes (`:::definition{title="…"}`) are not rendered yet.
+- Web bundle is ~540 kB+ (mermaid, katex, highlight.js); add code-splitting.
