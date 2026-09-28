@@ -60,6 +60,12 @@ function flush(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
+async function markSummarized(id: string): Promise<void> {
+  const file = path.join(root, "library", id, "source.md");
+  const text = await fs.readFile(file, "utf8");
+  await fs.writeFile(file, text.replace("credibility: pending", "credibility: B"));
+}
+
 describe("GET /api/library", () => {
   it("lists sources and returns a source view", async () => {
     expect(await (await app.request("/api/library")).json()).toEqual([]);
@@ -126,11 +132,20 @@ describe("POST /api/library", () => {
 
   it("returns the existing source (200) when a URL is already ingested", async () => {
     const { id } = await writeSource(root, makeExtracted({ url: "https://example.com/article" }));
+    await markSummarized(id);
     const response = await postJson({ url: "https://example.com/article#section" });
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ sourceId: id, deduped: true });
     expect(jobs.list()).toHaveLength(0);
+  });
+
+  it("enqueues a job (202) for a duplicate whose summary is still pending, so the job can resume it", async () => {
+    await writeSource(root, makeExtracted({ url: "https://example.com/article" }));
+    const response = await postJson({ url: "https://example.com/article" });
+
+    expect(response.status).toBe(202);
+    expect(jobs.list()).toHaveLength(1);
   });
 
   it("rejects a missing URL, a non-URL and an unknown set", async () => {
@@ -174,6 +189,7 @@ describe("POST /api/library", () => {
   it("returns the existing source (200) when a file was already ingested", async () => {
     const fileBytes = new TextEncoder().encode("# Same\n\nbody\n");
     const { id } = await writeSource(root, makeExtracted({ url: null }), { bytes: fileBytes, ext: "pdf" });
+    await markSummarized(id);
 
     const form = new FormData();
     form.append("file", new File([fileBytes], "same.pdf", { type: "application/pdf" }));

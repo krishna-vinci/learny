@@ -4,7 +4,14 @@ import type { Context } from "hono";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { dedupeKeyFromUrl, sha256Hex } from "../ingest/ids.js";
-import { findDuplicate, type IngestJobInput, listSources, readParsedFile, readSource } from "../ingest/library.js";
+import {
+  findDuplicate,
+  type IngestJobInput,
+  isSourcePending,
+  listSources,
+  readParsedFile,
+  readSource,
+} from "../ingest/library.js";
 import type { JobRunner } from "../jobs/runner.js";
 import { resolveInRoot } from "../tree/paths.js";
 import { isSetSlug } from "../tree/read.js";
@@ -113,7 +120,10 @@ async function addUrl(c: Context, deps: LibraryRoutesDeps): Promise<Response> {
   if (set === false) return c.json({ error: "unknown set" }, 400);
 
   const existing = await findDuplicate(deps.root, dedupeKeyFromUrl(url));
-  if (existing !== null) return c.json({ sourceId: existing, deduped: true }, 200);
+  // A source whose summary is still pending goes through the job, which resumes the Librarian.
+  if (existing !== null && !(await isSourcePending(deps.root, existing))) {
+    return c.json({ sourceId: existing, deduped: true }, 200);
+  }
 
   const input: IngestJobInput = { url, set };
   const job = deps.jobs.enqueue("ingest", input, { set, title: jobTitle(url) });
@@ -147,7 +157,9 @@ async function addFile(c: Context, deps: LibraryRoutesDeps, maxUploadBytes: numb
 
   const bytes = new Uint8Array(await file.arrayBuffer());
   const existing = await findDuplicate(deps.root, { sha256: sha256Hex(bytes) });
-  if (existing !== null) return c.json({ sourceId: existing, deduped: true }, 200);
+  if (existing !== null && !(await isSourcePending(deps.root, existing))) {
+    return c.json({ sourceId: existing, deduped: true }, 200);
+  }
 
   const filename = file.name === "" ? "upload" : file.name;
   const input: IngestJobInput = {
