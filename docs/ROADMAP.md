@@ -34,3 +34,5 @@ learny/                     # pnpm workspaces
 - `PLAN.md` / note frontmatter fall back to defaults when any single field is invalid; make the fallback per field.
 - Directive attributes (`:::definition{title="…"}`) are not rendered yet.
 - Web bundle is ~540 kB+ (mermaid, katex, highlight.js); add code-splitting.
+- Pending Tutor job proposals are only in the event stream; after a reload the card is gone. Persist unexpired proposals per chat and re-render them.
+- A resumed ingest job keeps the URL-derived title instead of the source title.
