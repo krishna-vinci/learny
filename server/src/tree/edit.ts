@@ -27,10 +27,10 @@ function toEditForbidden(error: unknown): unknown {
   return error;
 }
 
-function writableAbsolutePath(root: string, rel: string): string {
+function writableAbsolutePath(root: string, rel: string, canWrite = isWritableByAgent): string {
   try {
     const abs = resolveInRoot(root, rel);
-    if (!isWritableByAgent(rel)) {
+    if (!canWrite(rel)) {
       throw new EditError("forbidden", `Path is not writable by agents: ${rel}`);
     }
     return abs;
@@ -98,7 +98,7 @@ export async function editFile(
   rel: string,
   oldString: string,
   newString: string,
-  opts?: { replaceAll?: boolean },
+  opts?: { replaceAll?: boolean; canWrite?: (rootRelativePath: string) => boolean },
 ): Promise<{ replacements: number }> {
   if (oldString === newString) {
     throw new Error("oldString and newString must be different");
@@ -106,7 +106,7 @@ export async function editFile(
   if (oldString === "") {
     throw new Error("oldString must not be empty");
   }
-  const abs = writableAbsolutePath(root, rel);
+  const abs = writableAbsolutePath(root, rel, opts?.canWrite);
 
   return locks.withLock(rel, holder, async () => {
     const content = await readUtf8(abs, rel);
@@ -136,8 +136,9 @@ export async function createFile(
   holder: string,
   rel: string,
   content: string,
+  opts?: { canWrite?: (rootRelativePath: string) => boolean },
 ): Promise<void> {
-  const abs = writableAbsolutePath(root, rel);
+  const abs = writableAbsolutePath(root, rel, opts?.canWrite);
 
   await locks.withLock(rel, holder, async () => {
     try {

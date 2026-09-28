@@ -74,6 +74,24 @@ describe("edit", () => {
     });
   });
 
+  it("supports a custom write policy while the default still forbids the same path", async () => {
+    const sourceRel = "library/x/source.md";
+    const canWriteSource = (rel: string) => rel === sourceRel;
+
+    await createFile(root, locks, "librarian", sourceRel, "pending summary\n", { canWrite: canWriteSource });
+    await expect(
+      editFile(root, locks, "librarian", sourceRel, "pending summary", "trusted summary", {
+        canWrite: canWriteSource,
+      }),
+    ).resolves.toEqual({ replacements: 1 });
+    await expect(readText(root, sourceRel)).resolves.toBe("trusted summary\n");
+
+    await expect(editFile(root, locks, "agent", sourceRel, "trusted", "changed")).rejects.toMatchObject({
+      name: "EditError",
+      code: "forbidden",
+    });
+  });
+
   it("rejects traversal and .git paths as forbidden edits", async () => {
     await expect(editFile(root, locks, "agent", "../outside.md", "a", "b")).rejects.toMatchObject({
       name: "EditError",

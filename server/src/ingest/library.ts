@@ -183,8 +183,7 @@ export async function writeSource(
     await fs.writeFile(resolveInRoot(root, `${dir}/original.${original.ext}`), original.bytes);
   }
 
-  // TODO(T5 merge): author librarian
-  await commitPaths(root, tracked, `librarian: ingest ${id}`, "system");
+  await commitPaths(root, tracked, `librarian: ingest ${id}`, "librarian");
   return { id, deduped: false };
 }
 

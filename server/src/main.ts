@@ -11,6 +11,8 @@ import { assertBindAllowed, authConfigFromEnv } from "./auth/session.js";
 import { EventHub } from "./events.js";
 import { startInboxWatcher } from "./ingest/inbox-watcher.js";
 import { JobRunner } from "./jobs/runner.js";
+import { McpManager } from "./mcp/bridge.js";
+import { loadMcpConfig } from "./mcp/config.js";
 import { ensureRepo } from "./tree/git.js";
 import { initStudyTree } from "./tree/init.js";
 import { FileLocks } from "./tree/lock.js";
@@ -42,6 +44,8 @@ await ensureRepo(root);
 const hub = new EventHub();
 const locks = new FileLocks();
 const runtime = await createModelRuntime();
+const mcp = new McpManager(loadMcpConfig(root, process.env).servers);
+await mcp.start();
 const jobs = new JobRunner({
   root,
   hub,
@@ -83,7 +87,7 @@ if (process.env.STUDIUM_FAUX === "1") {
   runtime.registerNativeProvider(faux.provider);
 }
 
-const chats = new ChatService({ root, hub, locks, runtime });
+const chats = new ChatService({ root, hub, locks, mcp, runtime });
 const app = createApp({
   root,
   hub,
@@ -91,6 +95,7 @@ const app = createApp({
   auth,
   chats,
   jobs,
+  settings: { runtime, mcp, env: process.env },
   ...(existsSync(webDist) ? { webDist } : {}),
 });
 
@@ -108,6 +113,7 @@ async function shutdown(signal: string): Promise<void> {
   console.log(`received ${signal}, shutting down`);
   await stopWatcher().catch(() => undefined);
   await stopInboxWatcher().catch(() => undefined);
+  await mcp.stop().catch(() => undefined);
   server.close(() => process.exit(0));
 }
 

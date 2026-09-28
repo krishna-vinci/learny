@@ -12,6 +12,7 @@ import type { JobRunner } from "./jobs/runner.js";
 import { eventsRoutes } from "./routes/events.js";
 import { libraryRoutes } from "./routes/library.js";
 import { setsRoutes } from "./routes/sets.js";
+import { type SettingsRouteDeps, settingsRoutes } from "./routes/settings.js";
 import type { FileLocks } from "./tree/lock.js";
 
 export interface AppDeps {
@@ -21,6 +22,7 @@ export interface AppDeps {
   auth: AuthConfig;
   chats: ChatService;
   jobs?: JobRunner;
+  settings?: SettingsRouteDeps;
   webDist?: string;
 }
 
@@ -43,6 +45,10 @@ export function createApp(deps: AppDeps | LegacyAppDeps): Hono {
   if (deps.jobs !== undefined) {
     app.route("/api/jobs", jobsRoutes({ runner: deps.jobs }));
     app.route("/api/library", libraryRoutes({ root: deps.root, jobs: deps.jobs }));
+  }
+
+  if (deps.settings !== undefined) {
+    app.route("/api/settings", settingsRoutes({ root: deps.root, locks: deps.locks, ...deps.settings }));
   }
 
   if ("chats" in deps) {

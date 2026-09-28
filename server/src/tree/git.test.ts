@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { commitAll, commitPaths, diff, ensureRepo, log, RevertConflictError, revert } from "./git";
+import { type Author, commitAll, commitPaths, diff, ensureRepo, log, RevertConflictError, revert } from "./git";
 
 const execFile = promisify(execFileCb);
 
@@ -66,6 +66,22 @@ describe("study-tree git wrapper", () => {
     expect(await rawGit(root, "log", "-1", "--format=%an%x1f%ae%x1f%cn%x1f%ce")).toBe(
       "Studium Tutor\x1ftutor@studium.local\x1fStudium Tutor\x1ftutor@studium.local",
     );
+  });
+
+  it.each<[Author, string, string]>([
+    ["librarian", "Studium Librarian", "librarian@studium.local"],
+    ["drafter", "Studium Drafter", "drafter@studium.local"],
+    ["checker", "Studium Checker", "checker@studium.local"],
+  ])("uses the %s git identity", async (author, name, email) => {
+    await ensureRepo(root);
+    await writeFile(path.join(root, "a.md"), `one\n${author}\n`);
+
+    await commitPaths(root, ["a.md"], `${author}: update`, author);
+
+    expect(await rawGit(root, "log", "-1", "--format=%an%x1f%ae%x1f%cn%x1f%ce")).toBe(
+      `${name}\x1f${email}\x1f${name}\x1f${email}`,
+    );
+    expect((await log(root, { limit: 1 }))[0]).toMatchObject({ author, subject: `${author}: update` });
   });
 
   it("runs concurrent scoped commits on different files without losing either", async () => {

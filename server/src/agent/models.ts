@@ -2,6 +2,7 @@ import path from "node:path";
 import type { Api, Model } from "@earendil-works/pi-ai";
 import { getAgentDir, ModelRuntime } from "@earendil-works/pi-coding-agent";
 import type { ConfigYaml } from "@studium/shared";
+import type { RoleName } from "./roles.js";
 
 export async function createModelRuntime(): Promise<ModelRuntime> {
   const agentDir = getAgentDir();
@@ -11,7 +12,7 @@ export async function createModelRuntime(): Promise<ModelRuntime> {
   });
 }
 
-export function resolveRoleModel(runtime: ModelRuntime, config: ConfigYaml, role: "tutor"): Model<Api> {
+export function resolveRoleModel(runtime: ModelRuntime, config: ConfigYaml, role: RoleName): Model<Api> {
   const configured = config.models.roles[role] ?? config.models.default;
   const slash = configured.indexOf("/");
   if (slash <= 0 || slash === configured.length - 1) {
