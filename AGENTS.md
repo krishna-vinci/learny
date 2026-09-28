@@ -16,9 +16,9 @@ Read before planning or claiming behaviour:
 
 | Path | What |
 | --- | --- |
-| `server/` | Hono API + SSE; `agent/` (Pi SDK wrapper — the only place that imports Pi), `jobs/`, `ingest/`, `tree/` (study-tree fs, per-file lock, git), `anki/` |
-| `web/` | React 19 + Vite + Tailwind 4 + shadcn UI, derived from Memos |
-| `shared/` | zod schemas (frontmatter, config), shared types, AnkiConnect client |
+| `server/` (`@studium/server`) | Hono API + SSE, code in `server/src/`: `agent/` (Pi SDK wrapper — the only place that imports Pi), `jobs/`, `ingest/`, `tree/` (study-tree fs, per-file lock, git), `anki/` |
+| `web/` (`@studium/web`) | React 19 + Vite + Tailwind 4 + shadcn UI, derived from Memos |
+| `shared/` (`@studium/shared`) | zod schemas (frontmatter, config), shared types, AnkiConnect client |
 | `skills/` | default Agent Skills (`<name>/SKILL.md`), copied into new study trees |
 | `examples/sample-set/` | hand-made study tree used by dev and tests |
 | `reference/memos/` | gitignored Memos checkout — read-only reference; in a worktree use `/home/krishna/learny/reference/memos/` |
@@ -40,13 +40,13 @@ Some of these directories do not exist until their milestone lands; create only 
 
 Changes here need the wider test scope (see table) and extra care:
 
-- **Study-tree file tools** (`server/tree/`): path confinement to the study root (realpath, no symlink escape), per-file lock, exact-string edits. A bug here corrupts or leaks user files.
-- **Git auto-commit / revert** (`server/tree/git*`): never rewrites history, never commits gitignored originals/chats.
-- **Auth** (`server/auth/`): cookie signing, rate limit, localhost-only bind without a password.
-- **Agent tool allowlists** (`server/agent/`): per-role tools; no bash; agents never write to Anki.
+- **Study-tree file tools** (`server/src/tree/`): path confinement to the study root (realpath, no symlink escape), per-file lock, exact-string edits. A bug here corrupts or leaks user files.
+- **Git auto-commit / revert** (`server/src/tree/git*`): never rewrites history, never commits gitignored originals/chats.
+- **Auth** (`server/src/auth/`): cookie signing, rate limit, localhost-only bind without a password.
+- **Agent tool allowlists** (`server/src/agent/`): per-role tools; no bash; agents never write to Anki.
 - **Sandboxed artifacts** (`web/` iframe for agent JS): `sandbox="allow-scripts"` without `allow-same-origin`.
-- **Study-tree schema + migrations** (`shared/` schemas, `server/tree/migrations/`): data loss risk.
-- **Anki export** (`server/anki/`): note GUID = card id; changing it duplicates users' cards.
+- **Study-tree schema + migrations** (`shared/` schemas, `server/src/tree/migrations/`): data loss risk.
+- **Anki export** (`server/src/anki/`): note GUID = card id; changing it duplicates users' cards.
 
 ## Testing policy (important)
 
@@ -61,14 +61,14 @@ Test what the change touches, not the whole repo. Full-suite runs are **not** al
 | New feature / new behavior | The new tests you wrote + existing test files for the changed modules. |
 | Shared helper or public interface (`shared/`, exported server APIs) | Above, plus test files that import the changed symbol (`grep -rl "<symbol>" server web shared --include=*.test.ts*`). Cap at the few most relevant. |
 | Types / signatures changed | Above + `tsc --noEmit` for each affected package. |
-| High-risk area (list above) | Whole test directory for that area, e.g. `server/tree/`. Still not the full suite. |
+| High-risk area (list above) | Whole test directory for that area, e.g. `server/src/tree/`. Still not the full suite. |
 | Frontend component | Its `*.test.tsx` (if any) + biome on changed files + `tsc --noEmit` for `web` if props/types changed. |
 
 ### Commands (run from repo or worktree root)
 
-- Tests: `pnpm --filter <server|web|shared> exec vitest run <path/to/file.test.ts> [-t "<name>"]`. Tests sit next to source: `server/tree/lock.ts` → `server/tree/lock.test.ts`.
+- Tests: `pnpm --filter @studium/<server|web|shared> exec vitest run <path relative to that package> [-t "<name>"]`, e.g. `pnpm --filter @studium/server exec vitest run src/tree/lock.test.ts`. Tests sit next to source: `server/src/tree/lock.ts` → `server/src/tree/lock.test.ts`.
 - Lint/format: `pnpm exec biome check <changed files>` (add `--write` to fix formatting of your own files only).
-- Types: `pnpm --filter <pkg> exec tsc --noEmit`.
+- Types: `pnpm --filter @studium/<pkg> exec tsc --noEmit`.
 - Never run bare `pnpm test` / `vitest` without a path from the repo root.
 - Tests that touch the filesystem use a temp dir (`fs.mkdtemp(os.tmpdir())`) or a copy of `examples/sample-set/`; never the real study tree or `~/`.
 - Tests never call real LLM providers or network services. Use fakes/stubs for Pi, MCP, AnkiConnect, MinerU, Firecrawl, SearXNG.
