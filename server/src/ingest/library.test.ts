@@ -44,9 +44,10 @@ afterEach(async () => {
 describe("writeSource", () => {
   it("writes source.md, parsed.md and original, then commits the librarian paths", async () => {
     const bytes = bytesOf("%PDF-1.4 fake body");
-    const { id, deduped } = await writeSource(root, makeExtracted(), { bytes, ext: "pdf" });
+    const { id, deduped, commitSha } = await writeSource(root, makeExtracted(), { bytes, ext: "pdf" });
 
     expect(deduped).toBe(false);
+    expect(commitSha).toMatch(/^[0-9a-f]{40}$/);
     expect(id).toBe("lib-strang-introduction-to-linear-algebra");
 
     const sourceText = await fs.readFile(path.join(root, "library", id, "source.md"), "utf8");
@@ -69,6 +70,7 @@ describe("writeSource", () => {
 
     const history = await log(root, { limit: 1 });
     expect(history[0]?.subject).toBe(`librarian: ingest ${id}`);
+    expect(history[0]?.sha).toBe(commitSha);
     // TODO(T5 merge): the native author becomes "librarian".
     expect(["system", "librarian"]).toContain(history[0]?.author);
   });
@@ -84,7 +86,7 @@ describe("writeSource", () => {
       ext: "pdf",
     });
 
-    expect(second).toEqual({ id: first.id, deduped: true });
+    expect(second).toEqual({ id: first.id, deduped: true, commitSha: null });
     const dirs = (await fs.readdir(path.join(root, "library"))).filter((name) => !name.startsWith("_"));
     expect(dirs).toEqual([first.id]);
   });
@@ -99,7 +101,7 @@ describe("writeSource", () => {
       makeExtracted({ title: "Duplicate title", url: "https://example.com/guide/" }),
     );
 
-    expect(second).toEqual({ id: first.id, deduped: true });
+    expect(second).toEqual({ id: first.id, deduped: true, commitSha: null });
   });
 
   it("suffixes a colliding id with -2 for different content", async () => {

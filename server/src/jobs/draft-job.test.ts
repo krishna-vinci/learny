@@ -254,4 +254,70 @@ describe("draft chapter job", () => {
       "Chapter checked",
     ]);
   });
+
+  it("refuses to fall back to the drafter's model for the checker", async () => {
+    const runtime = await createModelRuntime();
+    const faux = fauxProvider({ provider: "faux", models: [{ id: "echo" }, { id: "glm" }] });
+    runtime.registerNativeProvider(faux.provider);
+    await fs.writeFile(
+      path.join(root, "_global/config.yaml"),
+      [
+        "models:",
+        "  default: faux/echo",
+        "  roles:",
+        "    drafter: faux/echo",
+        "    checker: faux/glm",
+        "billing:",
+        "  subscription: [zai]",
+        "",
+      ].join("\n"),
+    );
+    const calls: string[] = [];
+    faux.setResponses([
+      (_context, _options, _state, model) => {
+        calls.push(model.id);
+        return fauxAssistantMessage(
+          fauxToolCall(
+            "study_create",
+            {
+              path: "notes/04-eigenvalues.md",
+              content:
+                "---\ntitle: Eigenvalues\norder: 4\nstatus: draft\nsources: [lib-strang-la]\n---\n\n# Eigenvalues\n",
+            },
+            { id: "draft-create" },
+          ),
+          { stopReason: "toolUse" },
+        );
+      },
+      (_context, _options, _state, model) => {
+        calls.push(model.id);
+        return fauxAssistantMessage(fauxText("Drafted."));
+      },
+      (_context, _options, _state, model) => {
+        calls.push(model.id);
+        return fauxAssistantMessage(fauxText(""), {
+          stopReason: "error",
+          // Non-retryable quota text so the session surfaces it without backoff.
+          errorMessage: '429 {"code":"1308","message":"Monthly usage limit reached"}',
+        });
+      },
+    ]);
+    const progress: string[] = [];
+    const handler = createDraftJob({
+      root,
+      locks: new FileLocks(),
+      mcp: new McpManager([]),
+      runtime,
+      hub: new EventHub(),
+    });
+
+    await expect(
+      handler(
+        { set: "linear-algebra", title: "Eigenvalues" },
+        { signal: new AbortController().signal, progress: (text) => progress.push(text), addUsage: () => {} },
+      ),
+    ).rejects.toThrow(/Checker model faux\/glm failed:.*drafter model/);
+    expect(calls).toEqual(["echo", "echo", "glm"]);
+    expect(progress).not.toContain("Checker model rate-limited; using faux/echo");
+  });
 });

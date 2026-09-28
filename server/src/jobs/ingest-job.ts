@@ -5,7 +5,7 @@ import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
 import { ConfigYaml, type JobResult, PlanFrontmatter, parseFrontmatter } from "@studium/shared";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { resolveRoleModel } from "../agent/models.js";
-import { runRole } from "../agent/run-role.js";
+import { RoleModelError, runRole } from "../agent/run-role.js";
 import type { EventHub } from "../events.js";
 import { cleanMarkdown } from "../ingest/clean.js";
 import { detectInput } from "../ingest/detect.js";
@@ -271,45 +271,67 @@ function ingestLockKeys(input: IngestJobInput): string[] {
 }
 
 /**
+ * Outcome of the summary step. A source is already durably committed by
+ * `writeSource`, so a model failure here degrades to a warning and leaves the
+ * source `credibility: pending` for the resume-on-duplicate path to finish.
+ */
+type SummaryOutcome = { commitSha: string | null; warning: string | null };
+
+function summaryPending(reason: string): SummaryOutcome {
+  return { commitSha: null, warning: `Summary pending: ${reason}` };
+}
+
+/**
  * Run the Librarian to replace the pending summary in `library/<id>/source.md`
- * and commit it. Throws when the model leaves the summary pending.
+ * and commit it. A model error, or a run that never edits the file, resolves to
+ * a warning instead of throwing; real infrastructure errors still throw.
  */
 async function runLibrarian(
   deps: IngestJobDeps,
   sourceId: string,
   ctx: JobContext,
   images?: ImageContent[],
-): Promise<string> {
+): Promise<SummaryOutcome> {
   ctx.progress("Summarizing source");
   const sourceRel = `library/${sourceId}/source.md`;
   const writtenByLibrarian = new Set<string>();
   const view = await readSource(deps.root, sourceId);
   if (view === null) throw new Error(`library source disappeared: ${sourceId}`);
-  const result = await runRole("librarian", {
-    root: deps.root,
-    set: null,
-    task: librarianTask(sourceId, view.parsedFiles, images !== undefined),
-    locks: deps.locks,
-    mcp: deps.mcp,
-    runtime: deps.runtime,
-    hub: deps.hub,
-    signal: ctx.signal,
-    onModel: (provider) => ctx.useProvider?.(provider),
-    ...(images === undefined ? {} : { images }),
-    onWrite: (file) => writtenByLibrarian.add(file),
-  });
+  let result: Awaited<ReturnType<typeof runRole>>;
+  try {
+    result = await runRole("librarian", {
+      root: deps.root,
+      set: null,
+      task: librarianTask(sourceId, view.parsedFiles, images !== undefined),
+      locks: deps.locks,
+      mcp: deps.mcp,
+      runtime: deps.runtime,
+      hub: deps.hub,
+      signal: ctx.signal,
+      onModel: (provider) => ctx.useProvider?.(provider),
+      onFallback: (_from, to) => ctx.progress(`Librarian model rate-limited; using ${to}`),
+      ...(images === undefined ? {} : { images }),
+      onWrite: (file) => writtenByLibrarian.add(file),
+    });
+  } catch (error) {
+    ctx.signal.throwIfAborted();
+    if (error instanceof RoleModelError) {
+      return summaryPending(`Librarian model ${error.model} failed: ${error.message}`);
+    }
+    throw error;
+  }
   ctx.addUsage(usageFromPiMessages(result.messages));
-  if (!writtenByLibrarian.has(sourceRel)) throw new Error("librarian must update source.md");
+  if (!writtenByLibrarian.has(sourceRel)) return summaryPending("Librarian did not update source.md");
   ctx.signal.throwIfAborted();
   const commitSha = await commitPaths(deps.root, [sourceRel], `librarian: summarize ${sourceId}`, "librarian");
-  if (commitSha === null) throw new Error("librarian produced no summary changes");
+  if (commitSha === null) return summaryPending("Librarian did not update source.md");
   deps.hub.publish({
     type: "commit",
     sha: commitSha,
     subject: `librarian: summarize ${sourceId}`,
     author: "librarian",
   });
-  return commitSha;
+  return { commitSha, warning: null };
 }
 
 /**
@@ -325,7 +347,7 @@ async function handleExisting(
 ): Promise<JobResult> {
   if (await isSourcePending(deps.root, sourceId)) {
     ctx.progress("Resuming summary");
-    const commitSha = await runLibrarian(deps, sourceId, ctx);
+    const summary = await runLibrarian(deps, sourceId, ctx);
     if (set !== null) {
       ctx.signal.throwIfAborted();
       await linkSourceToSet(deps, set, sourceId);
@@ -335,7 +357,11 @@ async function handleExisting(
       await removeInbox(inbox);
     }
     ctx.progress("Source ready");
-    return { sourceId, commitSha };
+    return {
+      sourceId,
+      ...(summary.commitSha === null ? {} : { commitSha: summary.commitSha }),
+      ...(summary.warning === null ? {} : { warning: summary.warning }),
+    };
   }
   if (set !== null) {
     ctx.signal.throwIfAborted();
@@ -359,13 +385,18 @@ export function createIngestJob(deps: IngestJobDeps): JobHandler {
     // Serialize lookup → extract → write (and the Librarian completion) for this
     // dedupe bucket, so two concurrent jobs cannot create duplicate sources.
     return withDedupeLock(ingestLockKeys(input), async () => {
+      // Once the library source exists, later failures must not discard the drop.
+      let sourceExists = false;
       try {
         ctx.progress("Detecting input");
         const kind = detectInput(input);
 
         ctx.progress("Checking for duplicates");
         const duplicate = await incomingDuplicate(deps.root, input);
-        if (duplicate !== null) return await handleExisting(deps, ctx, duplicate, set, inbox);
+        if (duplicate !== null) {
+          sourceExists = true;
+          return await handleExisting(deps, ctx, duplicate, set, inbox);
+        }
 
         ctx.progress("Extracting source");
         const extraction = await extractInput(deps, input, kind, ctx.signal);
@@ -378,6 +409,7 @@ export function createIngestJob(deps: IngestJobDeps): JobHandler {
         ctx.signal.throwIfAborted();
         const written = await writeSource(deps.root, extracted, extraction.original);
         const sourceId = written.id;
+        sourceExists = true;
         if (written.deduped) return await handleExisting(deps, ctx, sourceId, set, inbox);
         if (set !== null) {
           ctx.progress("Linking source to set");
@@ -385,16 +417,22 @@ export function createIngestJob(deps: IngestJobDeps): JobHandler {
           await linkSourceToSet(deps, set, sourceId);
         }
 
-        const commitSha = await runLibrarian(deps, sourceId, ctx, extraction.images);
+        const summary = await runLibrarian(deps, sourceId, ctx, extraction.images);
 
         if (inbox !== null) {
           ctx.signal.throwIfAborted();
           await removeInbox(inbox);
         }
         ctx.progress("Source ready");
-        return { sourceId, commitSha };
+        const commitSha = summary.commitSha ?? written.commitSha;
+        return {
+          sourceId,
+          ...(commitSha === null ? {} : { commitSha }),
+          ...(summary.warning === null ? {} : { warning: summary.warning }),
+        };
       } catch (error) {
-        if (inbox !== null) await moveInboxToFailed(deps.root, inbox).catch(() => undefined);
+        // Only failures before the source exists discard the drop into failed/.
+        if (inbox !== null && !sourceExists) await moveInboxToFailed(deps.root, inbox).catch(() => undefined);
         throw error;
       }
     });

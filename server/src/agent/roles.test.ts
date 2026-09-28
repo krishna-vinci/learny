@@ -10,7 +10,7 @@ import { createFakeMcpServer, type FakeMcpServer } from "../mcp/fake-server.test
 import { FileLocks } from "../tree/lock.js";
 import { createModelRuntime } from "./models.js";
 import { ROLES, type RoleName } from "./roles.js";
-import { roleToolset, runRole } from "./run-role.js";
+import { isRateLimitError, roleToolset, runRole } from "./run-role.js";
 
 const SAMPLE_SET = fileURLToPath(new URL("../../../examples/sample-set", import.meta.url));
 
@@ -89,6 +89,15 @@ async function execute(role: RoleName, name: string, params: Record<string, unkn
 }
 
 describe("role system", () => {
+  it("recognizes provider rate/usage limits and leaves other errors alone", () => {
+    expect(isRateLimitError('429 {"code":"1308","message":"Usage limit reached for 5 hour"}')).toBe(true);
+    expect(isRateLimitError("rate limit exceeded")).toBe(true);
+    expect(isRateLimitError("quota exceeded for this month")).toBe(true);
+    expect(isRateLimitError("Too many requests, slow down")).toBe(true);
+    expect(isRateLimitError("500 upstream exploded")).toBe(false);
+    expect(isRateLimitError("invalid_api_key")).toBe(false);
+  });
+
   it.each<RoleName>(["tutor", "librarian", "drafter", "checker"])(
     "%s receives exactly its allowlisted tools",
     async (role) => {

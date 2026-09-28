@@ -31,6 +31,8 @@ export interface WriteSourceResult {
   id: string;
   /** True when an identical source already existed and nothing was written. */
   deduped: boolean;
+  /** SHA of the `librarian: ingest` commit; null when the source was already present. */
+  commitSha: string | null;
 }
 
 export interface SourceView {
@@ -188,7 +190,7 @@ export async function writeSource(
 ): Promise<WriteSourceResult> {
   const sha256 = original === undefined ? null : sha256Hex(original.bytes);
   const existing = await findDuplicate(root, dedupeKeyFor(extracted, sha256));
-  if (existing !== null) return { id: existing, deduped: true };
+  if (existing !== null) return { id: existing, deduped: true, commitSha: null };
 
   const id = await uniqueSourceId(
     root,
@@ -229,8 +231,8 @@ export async function writeSource(
     await fs.writeFile(resolveInRoot(root, `${dir}/original.${original.ext}`), original.bytes);
   }
 
-  await commitPaths(root, tracked, `librarian: ingest ${id}`, "librarian");
-  return { id, deduped: false };
+  const commitSha = await commitPaths(root, tracked, `librarian: ingest ${id}`, "librarian");
+  return { id, deduped: false, commitSha };
 }
 
 async function writePart(root: string, dir: string, part: ParsedPart): Promise<string> {

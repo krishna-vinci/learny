@@ -85,6 +85,8 @@ export interface JobResult {
   notePath?: string;
   sourceId?: string;
   commitSha?: string;
+  /** Non-fatal note (e.g. the source was stored but its summary is still pending). */
+  warning?: string;
 }
 
 export interface JobView {

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { AssistantMessage, ImageContent } from "@earendil-works/pi-ai";
+import type { Api, AssistantMessage, ImageContent, Model } from "@earendil-works/pi-ai";
 import {
   createAgentSession,
   createExtensionRuntime,
@@ -19,7 +19,6 @@ import type { FileLocks } from "../tree/lock.js";
 import { listSkills, skillTools } from "./builtins/skills.js";
 import { webFetchTool } from "./builtins/web-fetch.js";
 import { wikiTools } from "./builtins/wiki.js";
-import { resolveRoleModel } from "./models.js";
 import { ROLES, type RoleName } from "./roles.js";
 import { studyTools } from "./tools.js";
 
@@ -117,40 +116,85 @@ function assistantText(message: AssistantMessage | undefined): string {
     .join("");
 }
 
-export async function runRole(
-  role: RoleName,
-  opts: {
-    root: string;
-    set: string | null;
-    task: string;
-    locks: FileLocks;
-    mcp: McpManager;
-    runtime: ModelRuntime;
-    hub?: EventHub;
-    signal?: AbortSignal;
-    images?: ImageContent[];
-    /** Job-specific write policy; defaults to the role's own. */
-    canWrite?: (rootRelativePath: string) => boolean;
-    /** Called with the provider id of the resolved model, for billing. */
-    onModel?: (provider: string) => void;
-    onWrite?: (path: string) => void;
-    extraTools?: ToolDefinition[];
-  },
-): Promise<{ text: string; messages: unknown[]; written: string[] }> {
-  const spec = ROLES[role];
-  if (spec.requiresSet && opts.set === null) throw new Error(`The ${role} role requires a study set`);
-  opts.signal?.throwIfAborted();
+/**
+ * A model request failed at the provider. `message` is the provider's reported
+ * `errorMessage` (truncated); the job layer turns it into the learner-facing
+ * failure text via {@link rethrowRoleModelError}.
+ */
+export class RoleModelError extends Error {
+  readonly role: RoleName;
+  readonly model: string;
 
-  const [configText, skills] = await Promise.all([
-    readText(opts.root, "_global/config.yaml"),
-    listSkills(opts.root, [...spec.skills]),
-  ]);
-  const config = ConfigYaml.parse(parseYaml(configText));
-  const model = resolveRoleModel(opts.runtime, config, spec.modelRole);
-  const configured = config.models.roles[spec.modelRole] ?? config.models.default;
+  constructor(role: RoleName, model: string, message: string) {
+    super(message);
+    this.name = "RoleModelError";
+    this.role = role;
+    this.model = model;
+  }
+}
+
+const ROLE_LABELS: Record<RoleName, string> = {
+  tutor: "Tutor",
+  librarian: "Librarian",
+  drafter: "Drafter",
+  checker: "Checker",
+};
+
+/** True when a provider error message reports a rate/usage limit (HTTP 429). */
+export function isRateLimitError(message: string): boolean {
+  return /\b429\b|rate[\s_-]?limit|usage limit|quota|too many requests/i.test(message);
+}
+
+/**
+ * Turn a {@link RoleModelError} into the job's failure message and rethrow;
+ * any other error passes through untouched.
+ */
+export function rethrowRoleModelError(error: unknown): never {
+  if (error instanceof RoleModelError) {
+    throw new Error(`${ROLE_LABELS[error.role]} model ${error.model} failed: ${error.message}`);
+  }
+  throw error;
+}
+
+function resolveConfiguredModel(runtime: ModelRuntime, configured: string): Model<Api> {
   const slash = configured.indexOf("/");
-  opts.onModel?.(slash > 0 ? configured.slice(0, slash) : configured);
-  const prompt = await spec.promptBuilder({ root: opts.root, set: opts.set, skills });
+  if (slash <= 0 || slash === configured.length - 1) throw new Error(`Unknown model: ${configured}`);
+  const model = runtime.getModel(configured.slice(0, slash), configured.slice(slash + 1));
+  if (model === undefined) throw new Error(`Unknown model: ${configured}`);
+  return model;
+}
+
+interface RunRoleOptions {
+  root: string;
+  set: string | null;
+  task: string;
+  locks: FileLocks;
+  mcp: McpManager;
+  runtime: ModelRuntime;
+  hub?: EventHub;
+  signal?: AbortSignal;
+  images?: ImageContent[];
+  /** Job-specific write policy; defaults to the role's own. */
+  canWrite?: (rootRelativePath: string) => boolean;
+  /** Called with the provider id of the resolved model, for billing. */
+  onModel?: (provider: string) => void;
+  /** Called when a rate-limited role model is retried on the default model. */
+  onFallback?: (from: string, to: string) => void;
+  onWrite?: (path: string) => void;
+  extraTools?: ToolDefinition[];
+}
+
+/**
+ * Run one role turn in a fresh in-memory session. Throws {@link RoleModelError}
+ * when the model reports an error stop (or an abort that no caller requested).
+ */
+async function runSession(
+  role: RoleName,
+  opts: RunRoleOptions,
+  prompt: string,
+  model: Model<Api>,
+  modelString: string,
+): Promise<{ text: string; messages: unknown[]; written: string[] }> {
   const written = new Set<string>();
   const toolset = roleToolset(role, {
     root: opts.root,
@@ -194,9 +238,60 @@ export async function runRole(
     opts.signal?.throwIfAborted();
     const messages = [...session.messages];
     const lastAssistant = messages.findLast((message): message is AssistantMessage => message.role === "assistant");
+    const failed =
+      lastAssistant !== undefined &&
+      (lastAssistant.stopReason === "error" ||
+        (lastAssistant.stopReason === "aborted" && opts.signal?.aborted !== true));
+    if (failed) {
+      const reported = lastAssistant.errorMessage ?? "the model request failed";
+      throw new RoleModelError(role, modelString, reported.slice(0, 300));
+    }
     return { text: assistantText(lastAssistant), messages, written: [...written] };
   } finally {
     opts.signal?.removeEventListener("abort", abort);
     session.dispose();
+  }
+}
+
+export async function runRole(
+  role: RoleName,
+  opts: RunRoleOptions,
+): Promise<{ text: string; messages: unknown[]; written: string[] }> {
+  const spec = ROLES[role];
+  if (spec.requiresSet && opts.set === null) throw new Error(`The ${role} role requires a study set`);
+  opts.signal?.throwIfAborted();
+
+  const [configText, skills] = await Promise.all([
+    readText(opts.root, "_global/config.yaml"),
+    listSkills(opts.root, [...spec.skills]),
+  ]);
+  const config = ConfigYaml.parse(parseYaml(configText));
+  const configured = config.models.roles[spec.modelRole] ?? config.models.default;
+  const defaultModel = config.models.default;
+  const drafterModel = config.models.roles.drafter ?? config.models.default;
+  const prompt = await spec.promptBuilder({ root: opts.root, set: opts.set, skills });
+
+  const attempt = (modelString: string) => {
+    const slash = modelString.indexOf("/");
+    opts.onModel?.(slash > 0 ? modelString.slice(0, slash) : modelString);
+    return runSession(role, opts, prompt, resolveConfiguredModel(opts.runtime, modelString), modelString);
+  };
+
+  try {
+    return await attempt(configured);
+  } catch (error) {
+    if (!(error instanceof RoleModelError) || !isRateLimitError(error.message)) throw error;
+    if (configured === defaultModel) throw error;
+    // Principle 3: the checker must not run on the drafter's model. Falling back
+    // to the default would collapse that separation, so fail loudly instead.
+    if (role === "checker" && drafterModel === defaultModel) {
+      throw new RoleModelError(
+        role,
+        configured,
+        `rate-limited; the default model ${defaultModel} is also the drafter model, so falling back would break the checker/drafter model separation (Principle 3). Provider error: ${error.message}`,
+      );
+    }
+    opts.onFallback?.(configured, defaultModel);
+    return await attempt(defaultModel);
   }
 }

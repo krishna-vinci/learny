@@ -3,7 +3,7 @@ import path from "node:path";
 import { defineTool, type ModelRuntime, type ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { PlanFrontmatter, parseFrontmatter } from "@studium/shared";
 import { Type } from "typebox";
-import { runRole } from "../agent/run-role.js";
+import { rethrowRoleModelError, runRole } from "../agent/run-role.js";
 import type { EventHub } from "../events.js";
 import { slugify } from "../ingest/ids.js";
 import type { McpManager } from "../mcp/bridge.js";
@@ -258,8 +258,9 @@ export function createDraftJob(deps: DraftJobDeps): JobHandler {
         signal: ctx.signal,
         canWrite: canWriteNote,
         onModel: (provider) => ctx.useProvider?.(provider),
+        onFallback: (_from, to) => ctx.progress(`Drafter model rate-limited; using ${to}`),
         onWrite: () => {},
-      });
+      }).catch(rethrowRoleModelError);
       ctx.addUsage(usageFromPiMessages(draft.messages));
       if (draft.written.length !== 1 || draft.written[0] !== noteRootPath) {
         throw new Error(`drafter must create exactly ${notePath}`);
@@ -298,9 +299,10 @@ export function createDraftJob(deps: DraftJobDeps): JobHandler {
           hub: deps.hub,
           signal: ctx.signal,
           onModel: (provider) => ctx.useProvider?.(provider),
+          onFallback: (_from, to) => ctx.progress(`Checker model rate-limited; using ${to}`),
           onWrite: () => {},
           extraTools: [statusTool],
-        });
+        }).catch(rethrowRoleModelError);
         ctx.addUsage(usageFromPiMessages(result.messages));
         const report = await readText(deps.root, reportRootPath);
         const blocked = hasBlockingIssues(report);
@@ -330,8 +332,9 @@ export function createDraftJob(deps: DraftJobDeps): JobHandler {
           signal: ctx.signal,
           canWrite: canWriteNote,
           onModel: (provider) => ctx.useProvider?.(provider),
+          onFallback: (_from, to) => ctx.progress(`Drafter model rate-limited; using ${to}`),
           onWrite: () => {},
-        });
+        }).catch(rethrowRoleModelError);
         ctx.addUsage(usageFromPiMessages(revision.messages));
         if (revision.written.some((file) => file !== noteRootPath)) {
           throw new Error("revision must only edit the reserved note");

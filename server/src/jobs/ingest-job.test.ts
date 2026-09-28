@@ -58,11 +58,55 @@ function context() {
   };
 }
 
-async function fauxRuntime() {
+async function fauxRuntime(models: readonly string[] = ["echo"]) {
   const runtime = await createModelRuntime();
-  const faux = fauxProvider({ provider: "faux", models: [{ id: "echo" }] });
+  const faux = fauxProvider({ provider: "faux", models: models.map((id) => ({ id })) });
   runtime.registerNativeProvider(faux.provider);
   return { runtime, faux };
+}
+
+/** Overwrite the study tree's role→model map for a test. */
+async function writeModels(defaultModel: string, roles: Record<string, string>): Promise<void> {
+  await fs.writeFile(
+    path.join(root, "_global/config.yaml"),
+    [
+      "models:",
+      `  default: ${defaultModel}`,
+      "  roles:",
+      ...Object.entries(roles).map(([role, model]) => `    ${role}: ${model}`),
+      "billing:",
+      "  subscription: [zai]",
+      "",
+    ].join("\n"),
+  );
+}
+
+/** Seed a library source whose summary is still pending, so ingest resumes the librarian. */
+async function writePendingSource(id: string, url: string): Promise<string> {
+  const rel = `library/${id}/source.md`;
+  await fs.mkdir(path.join(root, `library/${id}`), { recursive: true });
+  await fs.writeFile(
+    path.join(root, rel),
+    [
+      "---",
+      `id: ${id}`,
+      "title: Pending source",
+      "authors: []",
+      "type: article",
+      `url: ${url}`,
+      "credibility: pending",
+      "parse_tier: basic",
+      "added: 2026-09-29",
+      "---",
+      "",
+      "# Pending source - summary",
+      "",
+      "Summary pending.",
+      "",
+    ].join("\n"),
+  );
+  await fs.writeFile(path.join(root, `library/${id}/parsed.md`), "body\n");
+  return rel;
 }
 
 describe("parseIngestJobInput", () => {
@@ -340,5 +384,194 @@ describe("ingest job", () => {
     ).rejects.toThrow("Audio ingestion is unsupported");
     await expect(fs.access(path.join(root, "library/_inbox/failed/lecture.mp3"))).resolves.toBeUndefined();
     await expect(fs.access(path.join(root, "library/_inbox/lecture.mp3"))).rejects.toThrow();
+  });
+
+  it("falls back to the default model when the librarian hits a rate limit", async () => {
+    const { runtime, faux } = await fauxRuntime(["echo", "glm"]);
+    await writeModels("faux/echo", { librarian: "faux/glm" });
+    const sourceRel = await writePendingSource("lib-pending", "https://example.com/pending");
+    const calls: string[] = [];
+    faux.setResponses([
+      (_context, _options, _state, model) => {
+        calls.push(model.id);
+        return fauxAssistantMessage(fauxText(""), {
+          stopReason: "error",
+          // Non-retryable quota text so the session surfaces it without backoff.
+          errorMessage: '429 {"code":"1308","message":"Monthly usage limit reached"}',
+        });
+      },
+      (_context, _options, _state, model) => {
+        calls.push(model.id);
+        return fauxAssistantMessage(
+          fauxToolCall(
+            "study_edit",
+            { path: sourceRel, old_string: "Summary pending.", new_string: "## Summary\n\nFallback summary." },
+            { id: "fallback-summary" },
+          ),
+          { stopReason: "toolUse" },
+        );
+      },
+      fauxAssistantMessage(
+        fauxToolCall(
+          "study_edit",
+          { path: sourceRel, old_string: "credibility: pending", new_string: "credibility: C # fallback" },
+          { id: "fallback-credibility" },
+        ),
+        { stopReason: "toolUse" },
+      ),
+      fauxAssistantMessage(fauxText("Summarized.")),
+    ]);
+    const run = context();
+    const handler = createIngestJob({
+      root,
+      locks: new FileLocks(),
+      mcp: new McpManager([]),
+      runtime,
+      hub: new EventHub(),
+    });
+
+    const result = await handler({ url: "https://example.com/pending" }, run.ctx);
+
+    expect(result).toMatchObject({ sourceId: "lib-pending", commitSha: expect.stringMatching(/^[0-9a-f]{40}$/) });
+    expect(calls).toEqual(["glm", "echo"]);
+    expect(run.progress).toEqual([
+      "Detecting input",
+      "Checking for duplicates",
+      "Resuming summary",
+      "Summarizing source",
+      "Librarian model rate-limited; using faux/echo",
+      "Source ready",
+    ]);
+    await expect(fs.readFile(path.join(root, sourceRel), "utf8")).resolves.toContain("Fallback summary.");
+  });
+
+  it("warns without falling back on a non-rate-limit librarian error", async () => {
+    const { runtime, faux } = await fauxRuntime(["echo", "glm"]);
+    await writeModels("faux/echo", { librarian: "faux/glm" });
+    const sourceRel = await writePendingSource("lib-pending", "https://example.com/pending");
+    const calls: string[] = [];
+    faux.setResponses([
+      (_context, _options, _state, model) => {
+        calls.push(model.id);
+        return fauxAssistantMessage(fauxText(""), {
+          stopReason: "error",
+          errorMessage: "401 invalid_api_key: bad credentials",
+        });
+      },
+    ]);
+    const run = context();
+    const handler = createIngestJob({
+      root,
+      locks: new FileLocks(),
+      mcp: new McpManager([]),
+      runtime,
+      hub: new EventHub(),
+    });
+
+    const result = await handler({ url: "https://example.com/pending" }, run.ctx);
+
+    expect(calls).toEqual(["glm"]);
+    expect(result).toEqual({
+      sourceId: "lib-pending",
+      warning: "Summary pending: Librarian model faux/glm failed: 401 invalid_api_key: bad credentials",
+    });
+    await expect(fs.readFile(path.join(root, sourceRel), "utf8")).resolves.toContain("credibility: pending");
+  });
+
+  it("keeps the source and warns when the librarian model fails after a fallback", async () => {
+    const { runtime, faux } = await fauxRuntime(["echo", "glm"]);
+    await writeModels("faux/echo", { librarian: "faux/glm" });
+    const calls: string[] = [];
+    const rateLimited = '429 {"code":"1308","message":"Monthly usage limit reached"}';
+    faux.setResponses([
+      (_context, _options, _state, model) => {
+        calls.push(model.id);
+        return fauxAssistantMessage(fauxText(""), { stopReason: "error", errorMessage: rateLimited });
+      },
+      (_context, _options, _state, model) => {
+        calls.push(model.id);
+        return fauxAssistantMessage(fauxText(""), { stopReason: "error", errorMessage: rateLimited });
+      },
+    ]);
+    const run = context();
+    const handler = createIngestJob({
+      root,
+      locks: new FileLocks(),
+      mcp: new McpManager([]),
+      runtime,
+      hub: new EventHub(),
+    });
+    await fs.writeFile(path.join(root, "library/_inbox/vectors.md"), "# Vectors\n\nA vector is an ordered list.\n");
+
+    const result = await handler(
+      {
+        filename: "vectors.md",
+        bytes: new TextEncoder().encode("# Vectors\n\nA vector is an ordered list.\n"),
+        set: "linear-algebra",
+        inboxPath: "library/_inbox/vectors.md",
+      },
+      run.ctx,
+    );
+
+    expect(calls).toEqual(["glm", "echo"]);
+    expect(result).toMatchObject({
+      sourceId: "lib-vectors",
+      commitSha: expect.stringMatching(/^[0-9a-f]{40}$/),
+      warning: `Summary pending: Librarian model faux/echo failed: ${rateLimited}`,
+    });
+    // Source is stored but still pending, and the drop was deleted, not quarantined.
+    await expect(fs.readFile(path.join(root, "library/lib-vectors/source.md"), "utf8")).resolves.toContain(
+      "credibility: pending",
+    );
+    await expect(fs.access(path.join(root, "library/_inbox/vectors.md"))).rejects.toThrow();
+    await expect(fs.access(path.join(root, "library/_inbox/failed/vectors.md"))).rejects.toThrow();
+    // The set link still happened, and the result cites the ingest commit.
+    const plan = await fs.readFile(path.join(root, "linear-algebra/PLAN.md"), "utf8");
+    expect(plan).toContain("lib-vectors");
+    const commit = (await log(root, { limit: 20 })).find((entry) => entry.sha === result?.commitSha);
+    expect(commit).toMatchObject({ subject: "librarian: ingest lib-vectors" });
+  });
+
+  it("warns and keeps the source pending when the librarian edits nothing", async () => {
+    const { runtime, faux } = await fauxRuntime(["echo", "glm"]);
+    await writeModels("faux/echo", { librarian: "faux/glm" });
+    const calls: string[] = [];
+    faux.setResponses([
+      (_context, _options, _state, model) => {
+        calls.push(model.id);
+        return fauxAssistantMessage(fauxText("Nothing to summarize."));
+      },
+    ]);
+    const run = context();
+    const handler = createIngestJob({
+      root,
+      locks: new FileLocks(),
+      mcp: new McpManager([]),
+      runtime,
+      hub: new EventHub(),
+    });
+    await fs.writeFile(path.join(root, "library/_inbox/vectors.md"), "# Vectors\n\nA vector is an ordered list.\n");
+
+    const result = await handler(
+      {
+        filename: "vectors.md",
+        bytes: new TextEncoder().encode("# Vectors\n\nA vector is an ordered list.\n"),
+        set: "linear-algebra",
+        inboxPath: "library/_inbox/vectors.md",
+      },
+      run.ctx,
+    );
+
+    expect(calls).toEqual(["glm"]);
+    expect(result).toMatchObject({
+      sourceId: "lib-vectors",
+      commitSha: expect.stringMatching(/^[0-9a-f]{40}$/),
+      warning: "Summary pending: Librarian did not update source.md",
+    });
+    await expect(fs.readFile(path.join(root, "library/lib-vectors/source.md"), "utf8")).resolves.toContain(
+      "credibility: pending",
+    );
+    await expect(fs.access(path.join(root, "library/_inbox/vectors.md"))).rejects.toThrow();
+    await expect(fs.access(path.join(root, "library/_inbox/failed/vectors.md"))).rejects.toThrow();
   });
 });
