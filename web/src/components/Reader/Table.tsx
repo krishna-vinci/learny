@@ -62,7 +62,10 @@ interface TableHeaderCellProps extends React.ThHTMLAttributes<HTMLTableCellEleme
 
 export const TableHeaderCell = ({ children, className, node: _node, ...props }: TableHeaderCellProps) => {
   return (
-    <th className={cn("px-2 py-1 text-left align-middle text-sm font-medium text-muted-foreground", className)} {...props}>
+    <th
+      className={cn("px-2 py-1 text-left align-middle text-sm font-medium text-muted-foreground", className)}
+      {...props}
+    >
       {children}
     </th>
   );

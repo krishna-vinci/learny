@@ -1,4 +1,4 @@
-export { DiffView } from "./DiffView";
 export type { DiffViewProps } from "./DiffView";
-export { NoteHistory } from "./NoteHistory";
+export { DiffView } from "./DiffView";
 export type { NoteHistoryProps } from "./NoteHistory";
+export { NoteHistory } from "./NoteHistory";

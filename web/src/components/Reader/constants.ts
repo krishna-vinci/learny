@@ -27,7 +27,10 @@ export const SANITIZE_SCHEMA = {
   clobber: [],
   attributes: {
     ...defaultSchema.attributes,
-    code: [...(defaultSchema.attributes?.code || []), ["className", ...KATEX_INLINE_CLASS_NAMES, ...KATEX_BLOCK_CLASS_NAMES]],
+    code: [
+      ...(defaultSchema.attributes?.code || []),
+      ["className", ...KATEX_INLINE_CLASS_NAMES, ...KATEX_BLOCK_CLASS_NAMES],
+    ],
     div: [...(defaultSchema.attributes?.div || []), ["data*"]],
     sup: [...(defaultSchema.attributes?.sup || []), ["data*"]],
     details: [...(defaultSchema.attributes?.details || []), "open"],

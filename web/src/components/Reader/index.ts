@@ -1,4 +1,4 @@
-export { MarkdownView } from "./MarkdownView";
 export type { MarkdownViewProps } from "./MarkdownView";
-export { Reader } from "./Reader";
+export { MarkdownView } from "./MarkdownView";
 export type { ReaderProps } from "./Reader";
+export { Reader } from "./Reader";

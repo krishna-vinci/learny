@@ -79,7 +79,10 @@ function MarkdownViewComponent({ content, className }: MarkdownViewProps) {
     >
       <ReactMarkdown
         remarkPlugins={[remarkMath, remarkGfm, remarkDirective, remarkStudiumDirectives, remarkStudiumCitations]}
-        rehypePlugins={[[rehypeSanitize, SANITIZE_SCHEMA], [rehypeKatex, { throwOnError: false, strict: false }]]}
+        rehypePlugins={[
+          [rehypeSanitize, SANITIZE_SCHEMA],
+          [rehypeKatex, { throwOnError: false, strict: false }],
+        ]}
         components={markdownComponents}
       >
         {content}

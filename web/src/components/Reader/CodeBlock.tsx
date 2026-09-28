@@ -112,7 +112,7 @@ const HighlightedCodeBlock = ({ codeContent, language }: HighlightedCodeBlockPro
           className={cn("block px-3 py-2 text-sm leading-relaxed", `language-${language}`)}
           // The highlighted output is from highlight.js against this block's own code content
           // (escaped as a fallback before highlighting resolves), not raw untrusted HTML.
-          // biome-ignore lint/security/noDangerouslySetinnerHTML: highlight.js-produced markup or the escaped fallback.
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: highlight.js-produced markup or the escaped fallback.
           dangerouslySetInnerHTML={{ __html: renderedCode }}
         />
       </div>

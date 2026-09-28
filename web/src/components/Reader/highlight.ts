@@ -80,12 +80,14 @@ const loadCommonLanguage = (language: CommonLanguage): Promise<HLJSApi> => {
     return existingPromise;
   }
 
-  const languagePromise = Promise.all([loadCore(), commonLanguageLoaders[language]()]).then(([hljs, languageModule]) => {
-    if (!hljs.getLanguage(language)) {
-      hljs.registerLanguage(language, languageModule.default);
-    }
-    return hljs;
-  });
+  const languagePromise = Promise.all([loadCore(), commonLanguageLoaders[language]()]).then(
+    ([hljs, languageModule]) => {
+      if (!hljs.getLanguage(language)) {
+        hljs.registerLanguage(language, languageModule.default);
+      }
+      return hljs;
+    },
+  );
   registeredLanguagePromises.set(language, languagePromise);
   return languagePromise;
 };

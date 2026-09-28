@@ -84,7 +84,7 @@ export const MermaidBlock = ({ children, className }: MermaidBlockProps) => {
       className={cn("mermaid-diagram my-2 flex w-full items-center justify-center overflow-x-auto", className)}
       // Mermaid's SVG is generated locally from the note's own code fence, not remote/user HTML,
       // and is never passed through the rehype-sanitize pipeline used for the rest of the body.
-      // biome-ignore lint/security/noDangerouslySetinnerHTML: locally rendered mermaid SVG.
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: locally rendered mermaid SVG.
       dangerouslySetInnerHTML={{ __html: svg }}
     />
   );
