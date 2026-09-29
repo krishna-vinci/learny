@@ -203,7 +203,12 @@ Migration: existing `data/study` moves into the admin's tree with history intact
 ## D26 — Backups: bring-your-own restic target · locked · 2026-09-29
 
 - Built-in restic: repository = any restic backend (local path, `sftp:`, `rest:`,
-  `s3:` incl. MinIO/B2/Wasabi, `rclone:`), password from env/file.
+  `s3:` incl. MinIO/B2/Wasabi, `rclone:`).
+- Setup happens entirely in the UI (admin Settings → Backups), no `.env` editing: pick a
+  destination type → per-type form (path / host+user / URL / bucket+keys / rclone remote) →
+  Test connection → initialise repo. The app generates the repository password and shows a
+  one-time "recovery kit" (password + restore steps) to save. Secrets are stored encrypted
+  in SQLite (key derived from the instance secret). `.env` values, if present, only prefill.
 - Admin Settings: schedule, retention (default 7 daily / 4 weekly / 12 monthly), Back up
   now, snapshot list, restore (note / set / all), monthly `restic check`, last-run status.
 - Consistent: writes paused (repo lock) during snapshot; SQLite copied via online backup
