@@ -14,6 +14,18 @@ description: Review assigned cards against the twenty rules, source support, and
 
 Judge the card that exists, not the intention behind it. A polished sentence still fails if it tests several facts, lacks a unique answer, or is unsupported.
 
+## Hard checks (run first; any failure → reject)
+
+These are mechanical. Do them before the judgment calls below, and write down the count for each card.
+
+- **Count the facts in the answer.** Split the expected answer at "and", commas, semicolons, "then", and list items. If it contains more than one independently forgettable fact, reject with **rule 4** and name the split (e.g. "rule 4: answer has 3 facts (V rotates, Σ stretches, U rotates); split into 3 cards or 3 clozes").
+- **Count the facts the question asks for.** A question asking "what does each factor do", "list", "name the steps", "how and why", or "what are the properties" is a set → reject with rule 4 (or rule 9 for enumerations: suggest overlapping clozes).
+- **"How" / "Why" answers longer than one short sentence** → reject with rule 4 unless the answer is a single causal link.
+- **A secondary claim appended to the answer** ("…; this is also the best approximation in both norms") → reject with rule 4; the appended claim is its own card.
+- **Answer restates the question** or the question contains the answer → reject with rule 13/14.
+
+Leniency is the most common Critic failure. When in doubt between ok and reject, reject with the concrete split; the Cardsmith can repair it in one round, while a bad card costs the learner every review.
+
 ## Review each assigned card
 
 Check in this order:
