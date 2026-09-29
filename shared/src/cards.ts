@@ -25,7 +25,7 @@ import { parseFrontmatter } from "./frontmatter.js";
  * byte-for-byte. Comment keys keep their file order; unknown keys survive an edit.
  */
 
-export const CARD_ID_PATTERN = /^c-[0-9a-f]{4,}$/;
+export const CARD_ID_PATTERN = /^c-[0-9a-f]{8}$/;
 
 export const CARD_STATUSES: readonly CardStatus[] = ["draft", "approved", "rejected", "exported"];
 export const CARD_TYPES: readonly CardType[] = ["basic", "cloze"];
@@ -233,12 +233,17 @@ export function setCardCommentField(card: ParsedCard, key: string, value: string
 
 function replaceBodyField(body: string, field: CardBodyField, value: string): string {
   const label = BODY_LABELS[field];
-  const pattern = new RegExp(`^\\*\\*${label}:\\*\\*[^\\n]*$`, "m");
-  if (!pattern.test(body)) throw new Error(`card body has no **${label}:** line`);
-  return body.replace(pattern, `**${label}:** ${value}`);
+  const fields = [...body.matchAll(/^\*\*(Q|A|Text|Extra):\*\*[^\n]*$/gm)];
+  const index = fields.findIndex((match) => match[1] === label);
+  const match = fields[index];
+  if (match?.index === undefined) throw new Error(`card body has no **${label}:** line`);
+  const end = fields[index + 1]?.index ?? body.length;
+  const oldField = body.slice(match.index, end);
+  const trailingWhitespace = /(?:\r?\n[ \t]*)+$/.exec(oldField)?.[0] ?? "";
+  return `${body.slice(0, match.index)}**${label}:** ${value}${trailingWhitespace}${body.slice(end)}`;
 }
 
-/** Replace one body line (`**Q:**`, `**A:**`, `**Text:**`, `**Extra:**`) in place. */
+/** Replace one complete body field, including continuation lines, in place. */
 export function setCardBodyField(card: ParsedCard, field: CardBodyField, value: string): ParsedCard {
   const body = replaceBodyField(card.body, field, value);
   return finalize({ ...toCore(card), body, raw: renderCardSectionText(card.head, card.comment, body) });
@@ -273,6 +278,13 @@ export function parseCardFile(text: string): ParsedCardFile {
     const section = body.slice(start, end);
     const heading = match[1] ?? "";
     if (!CARD_ID_PATTERN.test(heading)) {
+      if (heading.startsWith("c-")) {
+        malformed.push({
+          heading,
+          reason: "card id must match c- followed by 8 lowercase hex characters",
+          raw: section,
+        });
+      }
       blocks.push({ kind: "verbatim", text: section });
       continue;
     }

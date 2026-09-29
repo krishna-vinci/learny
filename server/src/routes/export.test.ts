@@ -105,4 +105,13 @@ describe("GET /api/sets/:set/export.apkg", () => {
     expect((await app.request("/api/sets/linear-algebra/export.apkg?note=..%2FPLAN.md")).status).toBe(400);
     expect((await app.request("/api/sets/missing/export.apkg")).status).toBe(404);
   });
+
+  it("returns 400 when a card section has a non-conforming id", async () => {
+    await fs.writeFile(path.join(root, "linear-algebra/cards/03-svd.md"), CARD_FILE.replace("c-8f3a1b2c", "c-abcde"));
+
+    const response = await app.request("/api/sets/linear-algebra/export.apkg?cards=approved%2Bexported");
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({ error: expect.stringMatching(/8 lowercase hex/) });
+  });
 });

@@ -189,6 +189,8 @@ export interface CardFileView {
   stale: boolean;
   noteCommitsSince: number;
   counts: Record<CardStatus, number>;
+  /** Present when this file could not be parsed completely; other files remain usable. */
+  error?: string;
 }
 
 /** `GET /api/sets/:set/cards/file?path=…` */
@@ -198,6 +200,8 @@ export interface CardFileDetail {
   deck: string | null;
   stale: boolean;
   cards: CardView[];
+  /** Present when this file could not be parsed completely. */
+  error?: string;
 }
 
 /** `PATCH /api/sets/:set/cards/:id` body. */

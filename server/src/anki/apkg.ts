@@ -7,6 +7,7 @@
  * `col`, and new cards use queue/type zero with an empty revlog and graves table.
  */
 import { createHash } from "node:crypto";
+import { CARD_ID_PATTERN } from "@studium/shared";
 import JSZip from "jszip";
 import initSqlJs from "sql.js";
 import { escapeHtml, markdownToAnkiHtml } from "./html.js";
@@ -28,6 +29,13 @@ export interface ApkgOptions {
   baseUrl?: string | null;
   sourceLabels?: Readonly<Record<string, string>>;
   now?: Date;
+}
+
+export class AnkiPackageInputError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AnkiPackageInputError";
+  }
 }
 
 const FIELD_SEPARATOR = "\x1f";
@@ -262,16 +270,20 @@ function noteTags(card: ExportCard, options: ApkgOptions): string {
 function validateCards(cards: ExportCard[]): void {
   const ids = new Set<string>();
   for (const card of cards) {
-    if (!/^c-[0-9a-f]{8}$/.test(card.id)) throw new Error(`Invalid card id: ${card.id}`);
-    if (ids.has(card.id)) throw new Error(`Duplicate card id: ${card.id}`);
-    ids.add(card.id);
-    if (card.deck.trim() === "") throw new Error(`Card ${card.id} has no deck`);
-    if (card.type === "basic" && (card.q === undefined || card.a === undefined)) {
-      throw new Error(`Basic card ${card.id} requires q and a`);
+    if (!CARD_ID_PATTERN.test(card.id)) {
+      throw new AnkiPackageInputError(`Card id ${card.id} must match c- followed by 8 lowercase hex characters`);
     }
-    if (card.type === "cloze" && card.text === undefined) throw new Error(`Cloze card ${card.id} requires text`);
+    if (ids.has(card.id)) throw new AnkiPackageInputError(`Duplicate card id: ${card.id}`);
+    ids.add(card.id);
+    if (card.deck.trim() === "") throw new AnkiPackageInputError(`Card ${card.id} has no deck`);
+    if (card.type === "basic" && (card.q === undefined || card.a === undefined)) {
+      throw new AnkiPackageInputError(`Basic card ${card.id} requires q and a`);
+    }
+    if (card.type === "cloze" && card.text === undefined) {
+      throw new AnkiPackageInputError(`Cloze card ${card.id} requires text`);
+    }
     if (card.type === "cloze" && clozeOrdinals(card.text ?? "").length === 0) {
-      throw new Error(`Cloze card ${card.id} requires at least one {{cN::}} deletion`);
+      throw new AnkiPackageInputError(`Cloze card ${card.id} requires at least one {{cN::}} deletion`);
     }
   }
 }

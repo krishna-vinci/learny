@@ -4,13 +4,14 @@ import {
   AnkiConnectClient,
   AnkiConnectError,
   parseFrontmatter,
-  type SyncCard,
+  type SyncFailure,
   syncCards,
 } from "@studium/shared";
 import type { Context } from "hono";
 import { Hono } from "hono";
-import { escapeHtml, markdownToAnkiHtml } from "../anki/html.js";
+import { AnkiPackageInputError, createApkg, type ExportCard } from "../anki/apkg.js";
 import { CARD_FILE_PATH, listCardFiles, markCardsExported, readCardFile } from "../cards/store.js";
+import { cardExportError } from "../cards/validation.js";
 import type { EventHub } from "../events.js";
 import type { FileLocks } from "../tree/lock.js";
 import { resolveInRoot } from "../tree/paths.js";
@@ -18,9 +19,8 @@ import { isSetSlug } from "../tree/read.js";
 
 /**
  * `POST /api/sets/:set/anki/sync` — push approved/exported cards to desktop Anki over
- * AnkiConnect. The note types, field names and field content mirror the `.apkg` writer
- * (see `shared/src/ankiconnect.ts` and `server/src/anki/apkg.ts`), so a synced note and
- * an exported note are the same note. Disabled (503) unless `ANKICONNECT_URL` is set.
+ * AnkiConnect. The route builds the same `.apkg` as the download path and imports it,
+ * preserving `guid = card id`. Disabled (503) unless `ANKICONNECT_URL` is set.
  */
 export interface AnkiRoutesDeps {
   root: string;
@@ -33,18 +33,11 @@ export interface AnkiRoutesDeps {
   client?: AnkiClient;
 }
 
-/** A syncable card enriched with the deck and note path the route derives for it. */
-interface SyncSourceCard extends SyncCard {
-  deck: string;
-  notePath: string;
-  q?: string;
-  a?: string;
-  text?: string;
-  extra?: string;
-  src?: string;
-}
-
 const SOURCE_ID = /^lib-[a-z0-9][a-z0-9-]*$/;
+const NOTE_PATH = /^notes\/[0-9]{2,}-[a-z0-9][a-z0-9-]*\.md$/;
+
+class SyncInputError extends Error {}
+type SyncPackageCard = ExportCard & { existing: boolean };
 
 async function setExists(root: string, set: string): Promise<boolean> {
   if (!isSetSlug(set)) return false;
@@ -70,36 +63,57 @@ async function jsonBody(c: Context): Promise<Record<string, unknown>> {
  * Read the set's approved/exported cards (or one `cards/NN-slug.md`). The deck mirrors
  * the `.apkg` writer: `Studium::<set>::<NN-slug>`, so synced and exported notes agree.
  */
-async function readSyncCards(root: string, set: string, only?: string): Promise<SyncSourceCard[]> {
-  const paths = (await listCardFiles(root, set))
-    .map((file) => file.path)
-    .filter((path) => only === undefined || path === only);
-  const cards: SyncSourceCard[] = [];
+async function readSyncCards(
+  root: string,
+  set: string,
+  only?: string,
+): Promise<{ cards: SyncPackageCard[]; failed: SyncFailure[] }> {
+  const files = (await listCardFiles(root, set)).filter((file) => only === undefined || file.path === only);
+  const cards: SyncPackageCard[] = [];
+  const failed: SyncFailure[] = [];
 
-  for (const path of paths) {
-    const detail = await readCardFile(root, set, path);
+  for (const file of files) {
+    if (file.error !== undefined) throw new SyncInputError(`${file.path}: ${file.error}`);
+    const detail = await readCardFile(root, set, file.path);
     if (detail === null) continue;
-    const deck = `Studium::${set}::${path.slice("cards/".length).replace(/\.md$/, "")}`;
+    if (detail.error !== undefined) throw new SyncInputError(`${file.path}: ${detail.error}`);
+    if (detail.note === null || !NOTE_PATH.test(detail.note)) {
+      throw new SyncInputError(`Invalid note path in ${file.path}`);
+    }
+    const deck = `Studium::${set}::${file.path.slice("cards/".length).replace(/\.md$/, "")}`;
     for (const card of detail.cards) {
       if (card.status !== "approved" && card.status !== "exported") continue;
-      cards.push({
+      const validationError = cardExportError(card);
+      if (validationError !== null) {
+        failed.push({ id: card.id, error: validationError });
+        continue;
+      }
+      const common = {
         id: card.id,
-        type: card.type,
         deck,
-        notePath: detail.note ?? "",
-        ...(card.q === undefined ? {} : { q: card.q }),
-        ...(card.a === undefined ? {} : { a: card.a }),
-        ...(card.text === undefined ? {} : { text: card.text }),
-        ...(card.extra === undefined ? {} : { extra: card.extra }),
+        notePath: detail.note,
+        existing: card.status === "exported" || card.ankiId !== undefined,
         ...(card.src === undefined ? {} : { src: card.src }),
-      });
+      };
+      if (card.type === "basic") {
+        if (card.q === undefined || card.a === undefined) continue;
+        cards.push({ ...common, type: "basic", q: card.q, a: card.a });
+      } else {
+        if (card.text === undefined) continue;
+        cards.push({
+          ...common,
+          type: "cloze",
+          text: card.text,
+          ...(card.extra === undefined ? {} : { extra: card.extra }),
+        });
+      }
     }
   }
-  return cards;
+  return { cards, failed };
 }
 
 /** `Source: <title> — <locator>` labels, matching the `.apkg` export. */
-async function sourceLabels(root: string, cards: readonly SyncSourceCard[]): Promise<Record<string, string>> {
+async function sourceLabels(root: string, cards: readonly ExportCard[]): Promise<Record<string, string>> {
   const labels: Record<string, string> = {};
   const sources = new Set(cards.flatMap((card) => (card.src === undefined ? [] : [card.src])));
   for (const source of sources) {
@@ -116,29 +130,6 @@ async function sourceLabels(root: string, cards: readonly SyncSourceCard[]): Pro
     }
   }
   return labels;
-}
-
-function noteLink(baseUrl: string | undefined, set: string, notePath: string): string {
-  const base = baseUrl?.replace(/\/+$/, "");
-  if (base === undefined || base === "") return escapeHtml(notePath);
-  const rest = notePath.replace(/^notes\//, "");
-  const href = `${base}/s/${encodeURIComponent(set)}/n/${rest.split("/").map(encodeURIComponent).join("/")}`;
-  return `<a href="${escapeHtml(href)}">${escapeHtml(notePath)}</a>`;
-}
-
-/** Field values keyed by the Studium note type's field names (same as `.apkg`). */
-function fieldsFor(
-  card: SyncSourceCard,
-  set: string,
-  labels: Record<string, string>,
-  baseUrl: string | undefined,
-): Record<string, string> {
-  const source = card.src === undefined ? "" : escapeHtml(labels[card.src] ?? card.src);
-  const link = noteLink(baseUrl, set, card.notePath);
-  const common = { CardId: escapeHtml(card.id), Source: source, NoteLink: link };
-  return card.type === "basic"
-    ? { Front: markdownToAnkiHtml(card.q ?? ""), Back: markdownToAnkiHtml(card.a ?? ""), ...common }
-    : { Text: markdownToAnkiHtml(card.text ?? ""), Extra: markdownToAnkiHtml(card.extra ?? ""), ...common };
 }
 
 export function ankiRoutes(deps: AnkiRoutesDeps): Hono {
@@ -158,21 +149,24 @@ export function ankiRoutes(deps: AnkiRoutesDeps): Hono {
       return c.json({ error: "invalid card path" }, 400);
     }
 
-    const cards = await readSyncCards(deps.root, set, typeof only === "string" ? only : undefined);
-    if (cards.length === 0) return c.json({ error: "no cards to sync" }, 400);
-
-    const client =
-      deps.client ?? new AnkiConnectClient({ url, ...(deps.fetch === undefined ? {} : { fetch: deps.fetch }) });
-    const labels = await sourceLabels(deps.root, cards);
-    const baseUrl = deps.baseUrl === undefined ? process.env.STUDIUM_BASE_URL : (deps.baseUrl ?? undefined);
-
     try {
-      const result = await syncCards(client, cards, {
-        deckFor: (card) => card.deck,
-        toFields: (card) => fieldsFor(card, set, labels, baseUrl),
-      });
+      const prepared = await readSyncCards(deps.root, set, typeof only === "string" ? only : undefined);
+      if (prepared.cards.length === 0 && prepared.failed.length === 0)
+        return c.json({ error: "no cards to sync" }, 400);
+      if (prepared.cards.length === 0) return c.json({ added: 0, updated: 0, failed: prepared.failed });
 
-      const syncedIds = cards.filter((card) => result.ankiIds[card.id] !== undefined).map((card) => card.id);
+      const client =
+        deps.client ?? new AnkiConnectClient({ url, ...(deps.fetch === undefined ? {} : { fetch: deps.fetch }) });
+      const baseUrl = deps.baseUrl === undefined ? process.env.STUDIUM_BASE_URL : deps.baseUrl;
+      const packageBytes = await createApkg(prepared.cards, {
+        set,
+        baseUrl,
+        sourceLabels: await sourceLabels(deps.root, prepared.cards),
+      });
+      const result = await syncCards(client, prepared.cards, packageBytes);
+      result.failed.push(...prepared.failed);
+
+      const syncedIds = prepared.cards.filter((card) => result.ankiIds[card.id] !== undefined).map((card) => card.id);
       if (syncedIds.length > 0) {
         const marked = await markCardsExported(deps.root, deps.locks, set, syncedIds, result.ankiIds);
         if (marked.commit.sha !== null) {
@@ -182,6 +176,9 @@ export function ankiRoutes(deps: AnkiRoutesDeps): Hono {
 
       return c.json({ added: result.added, updated: result.updated, failed: result.failed });
     } catch (error) {
+      if (error instanceof SyncInputError || error instanceof AnkiPackageInputError) {
+        return c.json({ error: error.message }, 400);
+      }
       if (error instanceof AnkiConnectError) return c.json({ error: error.message }, 502);
       throw error;
     }

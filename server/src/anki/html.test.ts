@@ -27,4 +27,10 @@ describe("markdownToAnkiHtml", () => {
       "<p>{{c1::&lt;script&gt;alert(1)&lt;/script&gt;}}</p>",
     );
   });
+
+  it("does not interpret a currency range as inline math", () => {
+    expect(markdownToAnkiHtml("The price fell from $5-$10, while $x+y$ stayed symbolic.")).toBe(
+      "<p>The price fell from $5-$10, while \\(x+y\\) stayed symbolic.</p>",
+    );
+  });
 });

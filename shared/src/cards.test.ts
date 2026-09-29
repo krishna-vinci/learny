@@ -119,6 +119,21 @@ describe("parseCardFile", () => {
     ]);
     expect(serializeCardFile(parsed)).toBe(text);
   });
+
+  it("keeps non-conforming card ids verbatim and reports them as malformed", () => {
+    const text = sampleFile().replaceAll("c-8f3a1b2c", "c-abcde");
+
+    const parsed = parseCardFile(text);
+
+    expect(parsed.cards.map((card) => card.id)).toEqual(["c-91bd07e4"]);
+    expect(parsed.malformed).toEqual([
+      expect.objectContaining({
+        heading: "c-abcde",
+        reason: "card id must match c- followed by 8 lowercase hex characters",
+      }),
+    ]);
+    expect(serializeCardFile(parsed)).toBe(text);
+  });
 });
 
 describe("card edits", () => {
@@ -147,6 +162,23 @@ describe("card edits", () => {
     expect(edited.a).toBe("Updated answer.");
     expect(edited.raw).toContain("**A:** Updated answer.");
     expect(edited.raw).toContain("**Q:** What does the SVD factor $A$ into?");
+  });
+
+  it("replaces all continuation lines of a multiline body field", () => {
+    const parsed = parseCardFile(
+      sampleFile().replace(
+        "**Q:** What does the SVD factor $A$ into?",
+        "**Q:** What does the SVD factor\nacross this old continuation\ninto?",
+      ),
+    );
+    const card = parsed.cards[0];
+    if (card === undefined) throw new Error("missing card");
+
+    const edited = setCardBodyField(card, "q", "What are the SVD factors?");
+
+    expect(edited.q).toBe("What are the SVD factors?");
+    expect(edited.raw).not.toContain("old continuation");
+    expect(edited.a).toBe("$A = U\\Sigma V^\\top$ with orthogonal factors.");
   });
 });
 

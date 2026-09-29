@@ -3,8 +3,9 @@ import path from "node:path";
 import { parseFrontmatter } from "@studium/shared";
 import type { Context } from "hono";
 import { Hono } from "hono";
-import { createApkg, type ExportCard } from "../anki/apkg.js";
+import { AnkiPackageInputError, createApkg, type ExportCard } from "../anki/apkg.js";
 import { listCardFiles, markCardsExported, readCardFile } from "../cards/store.js";
+import { cardExportError } from "../cards/validation.js";
 import type { EventHub } from "../events.js";
 import type { FileLocks } from "../tree/lock.js";
 import { resolveInRoot } from "../tree/paths.js";
@@ -38,8 +39,10 @@ async function setExists(root: string, set: string): Promise<boolean> {
 async function readExportCards(root: string, set: string, noteFilter?: string): Promise<AdaptedCard[]> {
   const cards: AdaptedCard[] = [];
   for (const file of await listCardFiles(root, set)) {
+    if (file.error !== undefined) throw new ExportInputError(`${file.path}: ${file.error}`);
     const detail = await readCardFile(root, set, file.path);
     if (detail === null) continue;
+    if (detail.error !== undefined) throw new ExportInputError(`${file.path}: ${detail.error}`);
     const notePath = detail.note;
     if (notePath === null || !NOTE_PATH.test(notePath)) throw new ExportInputError(`Invalid note path in ${file.path}`);
     if (noteFilter !== undefined && notePath !== noteFilter) continue;
@@ -47,6 +50,8 @@ async function readExportCards(root: string, set: string, noteFilter?: string): 
     const deck = `Studium::${set}::${path.basename(file.path, ".md")}`;
     for (const card of detail.cards) {
       if (card.status !== "approved" && card.status !== "exported") continue;
+      const validationError = cardExportError(card);
+      if (validationError !== null) throw new ExportInputError(validationError);
       const common = {
         id: card.id,
         status: card.status,
@@ -55,15 +60,11 @@ async function readExportCards(root: string, set: string, noteFilter?: string): 
         ...(card.src === undefined ? {} : { src: card.src }),
       } as const;
       if (card.type === "basic") {
-        if (card.q === undefined || card.a === undefined) {
-          throw new ExportInputError(`Basic card ${card.id} requires Q and A fields`);
-        }
+        if (card.q === undefined || card.a === undefined)
+          throw new ExportInputError(`Basic card ${card.id} is invalid`);
         cards.push({ ...common, type: "basic", q: card.q, a: card.a });
       } else {
-        if (card.text === undefined) throw new ExportInputError(`Cloze card ${card.id} requires a Text field`);
-        if (!/{{c\d+::/i.test(card.text)) {
-          throw new ExportInputError(`Cloze card ${card.id} requires at least one {{cN::}} deletion`);
-        }
+        if (card.text === undefined) throw new ExportInputError(`Cloze card ${card.id} is invalid`);
         cards.push({
           ...common,
           type: "cloze",
@@ -147,7 +148,9 @@ export function exportRoutes(deps: ExportRoutesDeps): Hono {
         "content-length": String(packageBytes.byteLength),
       });
     } catch (error) {
-      if (error instanceof ExportInputError) return c.json({ error: error.message }, 400);
+      if (error instanceof ExportInputError || error instanceof AnkiPackageInputError) {
+        return c.json({ error: error.message }, 400);
+      }
       throw error;
     }
   });

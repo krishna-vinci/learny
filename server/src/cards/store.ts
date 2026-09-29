@@ -1,7 +1,9 @@
 import { promises as fs } from "node:fs";
 import type { CardFileDetail, CardFileView, CardPatch, CardView } from "@studium/shared";
 import {
+  CARD_ID_PATTERN,
   countCardStatuses,
+  FrontmatterError,
   type ParsedCard,
   parseCardFile,
   setCardBodyField,
@@ -12,6 +14,7 @@ import { editFile } from "../tree/edit.js";
 import { commitPaths, log } from "../tree/git.js";
 import type { FileLocks } from "../tree/lock.js";
 import { resolveInRoot } from "../tree/paths.js";
+import { cardExportError } from "./validation.js";
 
 /**
  * Reads and mutates `<set>/cards/NN-slug.md`. Card edits are exact-string
@@ -23,7 +26,7 @@ import { resolveInRoot } from "../tree/paths.js";
 export const CARD_FILE_PATH = /^cards\/[0-9]{2,}-[a-z0-9][a-z0-9-]*\.md$/;
 export const CARD_FILE_NAME = /^[0-9]{2,}-[a-z0-9][a-z0-9-]*\.md$/;
 const NOTE_PATH = /^notes\/[0-9]{2,}-[a-z0-9][a-z0-9-]*\.md$/;
-export const CARD_ID = /^c-[0-9a-f]{4,}$/;
+export const CARD_ID = CARD_ID_PATTERN;
 
 /** How many commits touching the note we scan when computing `noteCommitsSince`. */
 const STALE_LOG_LIMIT = 100;
@@ -95,14 +98,33 @@ async function readCardText(root: string, set: string, name: string): Promise<st
   return fs.readFile(resolveInRoot(root, `${set}/cards/${name}`), "utf8");
 }
 
+function malformedError(heading: string, reason: string): string {
+  return `Malformed card ${heading}: ${reason}`;
+}
+
 /** One `CardFileView` per card file, with derived stale info and status counts. */
 export async function listCardFiles(root: string, set: string): Promise<CardFileView[]> {
   const names = await cardFileNames(root, set);
   return Promise.all(
     names.map(async (name) => {
       const text = await readCardText(root, set, name);
-      const parsed = parseCardFile(text);
+      let parsed: ReturnType<typeof parseCardFile>;
+      try {
+        parsed = parseCardFile(text);
+      } catch (error) {
+        if (!(error instanceof FrontmatterError)) throw error;
+        return {
+          path: `cards/${name}`,
+          note: null,
+          deck: null,
+          stale: false,
+          noteCommitsSince: 0,
+          counts: countCardStatuses([]),
+          error: error.message,
+        };
+      }
       const { stale, noteCommitsSince } = await staleInfo(root, set, parsed.note, parsed.noteSha);
+      const malformed = parsed.malformed[0];
       return {
         path: `cards/${name}`,
         note: parsed.note,
@@ -110,6 +132,7 @@ export async function listCardFiles(root: string, set: string): Promise<CardFile
         stale,
         noteCommitsSince,
         counts: countCardStatuses(parsed.cards),
+        ...(malformed === undefined ? {} : { error: malformedError(malformed.heading, malformed.reason) }),
       };
     }),
   );
@@ -126,14 +149,29 @@ export async function readCardFile(root: string, set: string, rel: string): Prom
     if (error instanceof Error && "code" in error && error.code === "ENOENT") return null;
     throw error;
   }
-  const parsed = parseCardFile(text);
+  let parsed: ReturnType<typeof parseCardFile>;
+  try {
+    parsed = parseCardFile(text);
+  } catch (error) {
+    if (!(error instanceof FrontmatterError)) throw error;
+    return {
+      path: rel,
+      note: null,
+      deck: null,
+      stale: false,
+      cards: [],
+      error: error.message,
+    };
+  }
   const { stale } = await staleInfo(root, set, parsed.note, parsed.noteSha);
+  const malformed = parsed.malformed[0];
   return {
     path: rel,
     note: parsed.note,
     deck: parsed.deck,
     stale,
     cards: parsed.cards.map(toCardView),
+    ...(malformed === undefined ? {} : { error: malformedError(malformed.heading, malformed.reason) }),
   };
 }
 
@@ -147,7 +185,16 @@ async function findCard(root: string, set: string, id: string): Promise<FoundCar
   if (!CARD_ID.test(id)) throw new CardStoreError("invalid", `invalid card id: ${id}`);
   for (const name of await cardFileNames(root, set)) {
     const text = await readCardText(root, set, name);
-    const parsed = parseCardFile(text);
+    let parsed: ReturnType<typeof parseCardFile>;
+    try {
+      parsed = parseCardFile(text);
+    } catch (error) {
+      if (!(error instanceof FrontmatterError)) throw error;
+      if (text.split(/\r?\n/).some((line) => line.trim() === `## ${id}`)) {
+        throw new CardStoreError("malformed", `card file cards/${name} has invalid frontmatter`);
+      }
+      continue;
+    }
     const card = parsed.cards.find((candidate) => candidate.id === id);
     if (card !== undefined) {
       return { rootRel: `${set}/cards/${name}`, card };
@@ -197,6 +244,11 @@ export async function patchCard(
   if (patch.a !== undefined) next = setCardBodyField(next, "a", patch.a);
   if (patch.text !== undefined) next = setCardBodyField(next, "text", patch.text);
   if (patch.extra !== undefined) next = setCardBodyField(next, "extra", patch.extra);
+
+  if (patch.q !== undefined || patch.a !== undefined || patch.text !== undefined || patch.extra !== undefined) {
+    const validationError = cardExportError(toCardView(next));
+    if (validationError !== null) throw new CardStoreError("invalid", validationError);
+  }
 
   if (next.raw === found.card.raw) throw new CardStoreError("no_change", `no change for card ${id}`);
 
@@ -273,11 +325,48 @@ export async function markCardsExported(
   const subject = `user: mark ${updated} card${updated === 1 ? "" : "s"} exported`;
   if (updated === 0) return { updated: 0, commit: { sha: null, subject } };
 
-  const paths: string[] = [];
+  const mutations: { rootRel: string; old: string; next: string }[] = [];
   for (const [rootRel, edits] of editsByFile) {
-    await applySectionEdits(root, locks, holder, rootRel, edits);
-    paths.push(rootRel);
+    const old = await fs.readFile(resolveInRoot(root, rootRel), "utf8");
+    let next = old;
+    for (const edit of edits) {
+      const matches = next.split(edit.old).length - 1;
+      if (matches !== 1) {
+        throw new CardStoreError("invalid", `card file changed while marking cards exported: ${rootRel}`);
+      }
+      next = next.replace(edit.old, edit.next);
+    }
+    mutations.push({ rootRel, old, next });
   }
-  const sha = await commitPaths(root, paths, subject, "user");
+
+  const applied: typeof mutations = [];
+  try {
+    for (const mutation of mutations) {
+      await editFile(root, locks, holder, mutation.rootRel, mutation.old, mutation.next, {
+        canWrite: (candidate) => candidate === mutation.rootRel,
+      });
+      applied.push(mutation);
+    }
+  } catch (error) {
+    const rollbackErrors: unknown[] = [];
+    for (const mutation of applied.reverse()) {
+      try {
+        await editFile(root, locks, holder, mutation.rootRel, mutation.next, mutation.old, {
+          canWrite: (candidate) => candidate === mutation.rootRel,
+        });
+      } catch (rollbackError) {
+        rollbackErrors.push(rollbackError);
+      }
+    }
+    if (rollbackErrors.length > 0)
+      throw new AggregateError([error, ...rollbackErrors], "failed to roll back export marks");
+    throw error;
+  }
+  const sha = await commitPaths(
+    root,
+    mutations.map((mutation) => mutation.rootRel),
+    subject,
+    "user",
+  );
   return { updated, commit: { sha, subject } };
 }

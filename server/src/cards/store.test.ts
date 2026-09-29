@@ -101,6 +101,26 @@ describe("listCardFiles", () => {
     const files = await listCardFiles(root, SET);
     expect(files[0]).toMatchObject({ stale: true, noteCommitsSince: 1 });
   });
+
+  it("reports invalid frontmatter per file without blocking valid card files", async () => {
+    await writeCards(cardsText("0000000000000000000000000000000000000000"));
+    await fs.writeFile(path.join(root, SET, "cards/02-broken.md"), "---\ndeck: [unclosed\n---\n");
+
+    const files = await listCardFiles(root, SET);
+
+    expect(files[0]).toMatchObject({
+      path: "cards/02-broken.md",
+      counts: { draft: 0, approved: 0, rejected: 0, exported: 0 },
+    });
+    expect(files[0]?.error).toMatch(/invalid frontmatter YAML/);
+    await expect(readCardFile(root, SET, "cards/02-broken.md")).resolves.toMatchObject({
+      cards: [],
+      error: expect.stringMatching(/invalid frontmatter YAML/),
+    });
+    await expect(patchCard(root, locks, SET, "c-91bd07e4", { status: "approved" })).resolves.toMatchObject({
+      card: { id: "c-91bd07e4", status: "approved" },
+    });
+  });
 });
 
 describe("readCardFile", () => {
@@ -188,5 +208,27 @@ describe("markCardsExported", () => {
   it("refuses to export cards that are not approved", async () => {
     await writeCards(cardsText("0000000000000000000000000000000000000000"));
     await expect(markCardsExported(root, locks, SET, ["c-91bd07e4"])).rejects.toMatchObject({ code: "invalid" });
+  });
+
+  it("does not leave earlier files changed when a later file cannot be edited exactly", async () => {
+    await writeCards(cardsText("0000000000000000000000000000000000000000"));
+    const duplicate = [
+      "## c-feedface",
+      `<!-- status: approved ${SEP} type: basic -->`,
+      "**Q:** Duplicate?",
+      "**A:** Yes.",
+      "",
+    ].join("\n");
+    await fs.writeFile(
+      path.join(root, SET, "cards/04-duplicate.md"),
+      `---\ndeck: D\nnote: ${NOTE_REL}\nnote_sha: old\n---\n\n${duplicate}${duplicate}`,
+    );
+    const before = await fs.readFile(path.join(root, SET, CARD_REL), "utf8");
+
+    await expect(markCardsExported(root, locks, SET, ["c-abc12345", "c-feedface"])).rejects.toThrow(
+      /changed while marking cards exported/,
+    );
+
+    await expect(fs.readFile(path.join(root, SET, CARD_REL), "utf8")).resolves.toBe(before);
   });
 });

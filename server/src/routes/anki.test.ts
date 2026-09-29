@@ -1,8 +1,10 @@
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { AnkiClient, NewAnkiNote, StudiumEvent } from "@studium/shared";
+import type { AnkiClient, StudiumEvent } from "@studium/shared";
 import { Hono } from "hono";
+import JSZip from "jszip";
+import initSqlJs from "sql.js";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { EventHub } from "../events.js";
 import { ensureRepo } from "../tree/git.js";
@@ -39,39 +41,53 @@ const CARD_FILE = [
 
 interface FakeAnki {
   client: AnkiClient;
-  addedNotes: NewAnkiNote[];
-  updates: { noteId: number; fields: Record<string, string> }[];
-  createdDecks: string[];
+  stored: { filename: string; data: string }[];
+  imported: string[];
+  deleted: string[];
 }
 
 function fakeClient(existing: Record<string, number>): FakeAnki {
-  const addedNotes: NewAnkiNote[] = [];
-  const updates: { noteId: number; fields: Record<string, string> }[] = [];
-  const createdDecks: string[] = [];
+  const stored: { filename: string; data: string }[] = [];
+  const imported: string[] = [];
+  const deleted: string[] = [];
+  let importedPackage = false;
   let nextNoteId = 9001;
+  const added = new Map<string, number>();
   const client: AnkiClient = {
     version: async () => 6,
-    modelNames: async () => ["Studium Basic", "Studium Cloze"],
-    deckNames: async () => ["Default"],
-    createModel: async () => ({ id: 1 }),
-    createDeck: async (deck) => {
-      createdDecks.push(deck);
-      return 1;
-    },
     findNotes: async (query) => {
-      const noteId = existing[query.slice("CardId:".length)];
+      const id = query.slice("CardId:".length);
+      if (importedPackage && existing[id] === undefined && !added.has(id)) added.set(id, nextNoteId++);
+      const noteId = existing[id] ?? added.get(id);
       return noteId === undefined ? [] : [noteId];
     },
-    notesInfo: async () => [],
-    addNotes: async (notes) => {
-      addedNotes.push(...notes);
-      return notes.map(() => nextNoteId++);
+    storeMediaFile: async (filename, data) => {
+      stored.push({ filename, data });
+      return filename;
     },
-    updateNoteFields: async (noteId, fields) => {
-      updates.push({ noteId, fields });
+    getMediaDirPath: async () => "/anki/media",
+    importPackage: async (packagePath) => {
+      imported.push(packagePath);
+      importedPackage = true;
+    },
+    deleteMediaFile: async (filename) => {
+      deleted.push(filename);
     },
   };
-  return { client, addedNotes, updates, createdDecks };
+  return { client, stored, imported, deleted };
+}
+
+async function storedPackageGuids(data: string): Promise<string[]> {
+  const zip = await JSZip.loadAsync(Buffer.from(data, "base64"));
+  const bytes = await zip.file("collection.anki2")?.async("uint8array");
+  if (bytes === undefined) throw new Error("missing collection.anki2");
+  const SQL = await initSqlJs();
+  const db = new SQL.Database(bytes);
+  try {
+    return (db.exec("SELECT guid FROM notes ORDER BY guid")[0]?.values ?? []).map((row) => String(row[0]));
+  } finally {
+    db.close();
+  }
 }
 
 let root: string;
@@ -129,7 +145,7 @@ describe("anki sync route", () => {
     expect(response.status).toBe(404);
   });
 
-  it("adds new notes, updates existing ones, and marks cards exported", async () => {
+  it("imports one package with card-id GUIDs, resolves note ids, and marks cards exported", async () => {
     const fake = fakeClient({ "c-91bd07e4": 1234 });
     const app = makeApp({ env: { ANKICONNECT_URL: "http://localhost:8765" }, client: fake.client });
     const events: StudiumEvent[] = [];
@@ -139,20 +155,10 @@ describe("anki sync route", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ added: 1, updated: 1, failed: [] });
 
-    expect(fake.createdDecks).toEqual([`Studium::${SET}::03-svd`]);
-    expect(fake.addedNotes).toHaveLength(1);
-    expect(fake.addedNotes[0]).toMatchObject({
-      deckName: `Studium::${SET}::03-svd`,
-      modelName: "Studium Basic",
-      fields: {
-        CardId: "c-8f3a1b2c",
-        Front: "<p>What is \\(A\\)?</p>",
-        Source: "Introduction to Linear Algebra — p364",
-      },
-    });
-    expect(fake.updates).toHaveLength(1);
-    expect(fake.updates[0]?.noteId).toBe(1234);
-    expect(fake.updates[0]?.fields.Text).toContain("{{c1::");
+    expect(fake.stored).toHaveLength(1);
+    await expect(storedPackageGuids(fake.stored[0]?.data ?? "")).resolves.toEqual(["c-8f3a1b2c", "c-91bd07e4"]);
+    expect(fake.imported).toEqual([`/anki/media/${fake.stored[0]?.filename}`]);
+    expect(fake.deleted).toEqual([fake.stored[0]?.filename]);
 
     const text = await cardsText();
     expect(text).toContain(
@@ -171,5 +177,24 @@ describe("anki sync route", () => {
       body: JSON.stringify({ path: "../PLAN.md" }),
     });
     expect(response.status).toBe(400);
+  });
+
+  it("reports an invalid cloze individually without sending it to Anki", async () => {
+    await fs.writeFile(
+      path.join(root, SET, CARD_REL),
+      CARD_FILE.replace("$A$ has {{c1::left}} and {{c2::right}} singular vectors.", "$A$ has singular vectors."),
+    );
+    const fake = fakeClient({});
+    const app = makeApp({ env: { ANKICONNECT_URL: "http://localhost:8765" }, client: fake.client });
+
+    const response = await app.request(`/api/sets/${SET}/anki/sync`, { method: "POST" });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      added: 1,
+      updated: 0,
+      failed: [{ id: "c-91bd07e4", error: "Cloze card c-91bd07e4 requires at least one {{cN::}} deletion" }],
+    });
+    await expect(storedPackageGuids(fake.stored[0]?.data ?? "")).resolves.toEqual(["c-8f3a1b2c"]);
   });
 });

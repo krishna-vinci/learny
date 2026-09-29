@@ -131,6 +131,29 @@ describe("cards routes", () => {
       body: JSON.stringify({ status: "approved" }),
     });
     expect(missing.status).toBe(404);
+
+    const shortId = await app.request(`/api/sets/${SET}/cards/c-abcde`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ status: "approved" }),
+    });
+    expect(shortId.status).toBe(400);
+    await expect(shortId.json()).resolves.toEqual({
+      error: "card id must match c- followed by 8 lowercase hex characters",
+    });
+  });
+
+  it("rejects a cloze edit that removes every deletion", async () => {
+    const response = await app.request(`/api/sets/${SET}/cards/c-abc12345`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text: "The singular values are non-negative." }),
+    });
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Cloze card c-abc12345 requires at least one {{cN::}} deletion",
+    });
   });
 
   it("approves every critic-clean draft", async () => {
@@ -155,6 +178,23 @@ describe("cards routes", () => {
     const text = await fs.readFile(path.join(root, SET, CARD_REL), "utf8");
     expect(text).toContain(`status: exported ${SEP} type: cloze`);
     expect(text).toContain("anki: 1712345678");
+  });
+
+  it("rejects every malformed ankiIds key or value instead of dropping it", async () => {
+    const requests = [
+      { ids: ["c-abc12345"], ankiIds: { "c-abc12345": "9001" } },
+      { ids: ["c-abc12345"], ankiIds: { "c-short": 9001 } },
+      { ids: ["c-abc12345"], ankiIds: { "c-deadbeef": 9001 } },
+    ];
+
+    for (const body of requests) {
+      const response = await app.request(`/api/sets/${SET}/cards/exported`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      expect(response.status).toBe(400);
+    }
   });
 
   it("flags stale card files after the note changes", async () => {

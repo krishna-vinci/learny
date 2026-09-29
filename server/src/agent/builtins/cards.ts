@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { defineTool, type ToolDefinition } from "@earendil-works/pi-coding-agent";
-import { parseCardFile, renderCritic, setCardCommentField } from "@studium/shared";
+import { CARD_ID_PATTERN, parseCardFile, renderCritic, setCardCommentField } from "@studium/shared";
 import { Type } from "typebox";
 import { editFile } from "../../tree/edit.js";
 import type { FileLocks } from "../../tree/lock.js";
@@ -149,7 +149,7 @@ export function reviewCardTool(opts: ReviewCardToolOptions): ToolDefinition {
     label: "Review a card",
     description: "Record the Critic verdict for one card assigned to this review run.",
     parameters: Type.Object({
-      id: Type.String({ pattern: "^c-[0-9a-f]{8}$" }),
+      id: Type.String({ pattern: CARD_ID_PATTERN.source }),
       verdict: Type.Union([Type.Literal("ok"), Type.Literal("reject")]),
       rule: Type.Optional(Type.Union([Type.Integer({ minimum: 1, maximum: 20 }), Type.Null()])),
       reason: Type.Optional(Type.Union([Type.String(), Type.Null()])),

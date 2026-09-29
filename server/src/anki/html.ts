@@ -30,9 +30,12 @@ function tokenise(markdown: string): { text: string; tokens: Token[] } {
   });
 
   text = text.replace(/`([^`\n]+)`/g, (_match, code: string) => add(`<code>${escapeHtml(code)}</code>`, false));
-  text = text.replace(/(^|[^\\$])\$(?!\s|\$)([^$\n]*?\S)\$(?!\$)/g, (_match, prefix: string, math: string) => {
-    return `${prefix}${add(`\\(${escapeHtml(math)}\\)`, false)}`;
-  });
+  text = text.replace(
+    /(^|[^\\$])\$(?!\s|\$)([^$\n]*?\S)\$(?!\$)(?=$|[\s.,;:!?)}\]])/g,
+    (_match, prefix: string, math: string) => {
+      return `${prefix}${add(`\\(${escapeHtml(math)}\\)`, false)}`;
+    },
+  );
 
   return { text, tokens };
 }

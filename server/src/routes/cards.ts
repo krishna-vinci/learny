@@ -1,5 +1,11 @@
 import { promises as fs } from "node:fs";
-import type { CardFileDetail, CardFileView, CardPatch, CardStatus } from "@studium/shared";
+import {
+  CARD_ID_PATTERN,
+  type CardFileDetail,
+  type CardFileView,
+  type CardPatch,
+  type CardStatus,
+} from "@studium/shared";
 import type { Context } from "hono";
 import { Hono } from "hono";
 import {
@@ -22,7 +28,6 @@ export interface CardsRoutesDeps {
   hub: EventHub;
 }
 
-const CARD_ID = /^c-[0-9a-f]{4,}$/;
 const PATCH_STATUSES: readonly CardStatus[] = ["draft", "approved", "rejected"];
 
 function notFound(c: Context): Response {
@@ -102,7 +107,8 @@ export function cardsRoutes(deps: CardsRoutesDeps): Hono {
     const set = c.req.param("set");
     if (set === undefined || !(await setExists(deps.root, set))) return notFound(c);
     const id = c.req.param("id");
-    if (!CARD_ID.test(id)) return c.json({ error: "invalid card id" }, 400);
+    if (!CARD_ID_PATTERN.test(id))
+      return c.json({ error: "card id must match c- followed by 8 lowercase hex characters" }, 400);
     const patch = parsePatch(await jsonBody(c));
     if (patch instanceof Response) return patch;
     try {
@@ -139,8 +145,8 @@ export function cardsRoutes(deps: CardsRoutesDeps): Hono {
     if (set === undefined || !(await setExists(deps.root, set))) return notFound(c);
     const body = await jsonBody(c);
     const rawIds = body.ids;
-    if (!Array.isArray(rawIds) || !rawIds.every((id) => typeof id === "string" && CARD_ID.test(id))) {
-      return c.json({ error: "ids must be an array of card ids" }, 400);
+    if (!Array.isArray(rawIds) || !rawIds.every((id) => typeof id === "string" && CARD_ID_PATTERN.test(id))) {
+      return c.json({ error: "ids must contain only c- followed by 8 lowercase hex characters" }, 400);
     }
     const ankiIds: Record<string, number> = {};
     if (body.ankiIds !== undefined) {
@@ -148,7 +154,13 @@ export function cardsRoutes(deps: CardsRoutesDeps): Hono {
         return c.json({ error: "ankiIds must be an object" }, 400);
       }
       for (const [id, value] of Object.entries(body.ankiIds as Record<string, unknown>)) {
-        if (typeof value === "number" && Number.isFinite(value)) ankiIds[id] = value;
+        if (!CARD_ID_PATTERN.test(id)) return c.json({ error: `invalid card id in ankiIds: ${id}` }, 400);
+        if (!(rawIds as unknown[]).includes(id))
+          return c.json({ error: `ankiIds key is not present in ids: ${id}` }, 400);
+        if (typeof value !== "number" || !Number.isFinite(value) || !Number.isInteger(value)) {
+          return c.json({ error: `ankiIds value must be a finite integer: ${id}` }, 400);
+        }
+        ankiIds[id] = value;
       }
     }
     try {
