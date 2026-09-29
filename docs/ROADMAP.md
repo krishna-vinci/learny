@@ -2,6 +2,8 @@
 
 Locked 2026-09-28 (D20). MVP = M0 + M1 + M2.
 
+**Status (2026-09-29):** M0, M1, M2 done — each verified end-to-end (API + real models + browser at 390/1440 px; M2 `.apkg` validated with the official Anki importer). Next: M3.
+
 ## Repo layout
 
 ```
