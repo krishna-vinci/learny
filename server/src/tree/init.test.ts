@@ -43,6 +43,7 @@ describe("initStudyTree", () => {
         papers: {
           url: papersUrl,
           headers: { Authorization: `Bearer ${papersToken}` },
+          disabledTools: ["download_scihub"],
         },
       },
     });
