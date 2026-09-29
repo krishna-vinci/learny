@@ -172,3 +172,59 @@ read-write (OAuth tokens refresh). Supersedes the `_global/models.json` idea in 
 - MCP config `_global/mcp.json` (Claude-style `mcpServers`), `${ENV}` interpolation;
   stdio MCP servers get only PATH + their own env (no provider keys).
 - Anki (for M2): AnkiConnect / Anki MCP when available, else `.apkg` export.
+
+## D23 — Anki: `.apkg` only, no stats · locked · 2026-09-29
+
+Anki stays an optional export: `.apkg` download is primary; the existing browser
+AnkiConnect sync button is kept but frozen (no further work). No retention pull, leeches,
+or server-side AnkiConnect. Progress signal comes from in-app practice (D27) instead.
+Supersedes the Anki parts of M3 in D20.
+
+## D24 — Accounts like Memos · locked · 2026-09-29
+
+- First-run setup screen creates the admin; `STUDIUM_USERNAME`/password hash in `.env` retire
+  (migrated once into the admin account).
+- Roles admin / user. Instance settings: allow sign-up (default off), disallow password
+  login (once an SSO provider works).
+- SSO: generic OAuth2 identity providers managed by the admin in Settings (templates:
+  GitHub, Google, GitLab; custom = auth/token/userinfo URLs + scopes + field mapping, covers
+  Authentik/Keycloak/Authelia/Pocket ID). Mirrors Memos `idp_service` / `AuthCallback`.
+- Personal access tokens, session list with per-device sign-out, profile/password/avatar.
+- Storage: SQLite (`data/studium.db`) for users, sessions, tokens, IdPs, instance settings
+  only. Study content stays plain files (P-principles unchanged).
+
+## D25 — Multi-user data: one study tree per user · locked · 2026-09-29
+
+`data/users/<username>/` is a full study tree (own sets, library, git repo, chats, jobs).
+All tree paths resolve inside the signed-in user's root. The admin's model providers (Pi
+config, D21) are shared; the admin can allow/deny AI jobs per user. Set sharing: later.
+Migration: existing `data/study` moves into the admin's tree with history intact.
+
+## D26 — Backups: bring-your-own restic target · locked · 2026-09-29
+
+- Built-in restic: repository = any restic backend (local path, `sftp:`, `rest:`,
+  `s3:` incl. MinIO/B2/Wasabi, `rclone:`), password from env/file.
+- Admin Settings: schedule, retention (default 7 daily / 4 weekly / 12 monthly), Back up
+  now, snapshot list, restore (note / set / all), monthly `restic check`, last-run status.
+- Consistent: writes paused (repo lock) during snapshot; SQLite copied via online backup
+  first. Covers everything under `data/` including gitignored chats and originals.
+- Per-user "Download all my data" (zip). Docs: `data/` is one volume, so Backrest,
+  borgmatic, Duplicati or ZFS snapshots work too.
+- Git history is versioning, not backup.
+- Learner's own setup: restic rest-server on 192.168.0.55, optional rclone cloud copy.
+
+## D27 — Notifications, background jobs, practice · locked · 2026-09-29
+
+- Notifications: Web Push (PWA, VAPID) and ntfy (topic URL). Events: job done/failed,
+  backup failed.
+- Drafting never blocks the UI: the user stays on the page; a global activity indicator
+  shows running jobs; the note list shows a "drafting…" placeholder; done → toast + push
+  with "Open note". Many jobs can be queued.
+- Practice (M5): quizzes with weak-spot tracking, teach-back, problem sets. Placement quiz
+  and levels dropped; Scout deferred to M6.
+- Frontend work uses the `ui-ux-pro-max` skill.
+
+## D28 — Roadmap after MVP · locked · 2026-09-29
+
+M3a Platform · M3b Comfort · M4 Study loop · M5 Practice · M6 Polish (see
+`docs/ROADMAP.md`). Supersedes M3–M5 of D20.
