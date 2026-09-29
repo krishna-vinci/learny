@@ -51,7 +51,7 @@ export function createApp(deps: AppDeps | LegacyAppDeps): Hono {
   app.route("/api/events", eventsRoutes(deps.hub));
 
   if (deps.jobs !== undefined) {
-    app.route("/api/jobs", jobsRoutes({ runner: deps.jobs }));
+    app.route("/api/jobs", jobsRoutes({ runner: deps.jobs, root: deps.root }));
     app.route("/api/library", libraryRoutes({ root: deps.root, jobs: deps.jobs }));
   }
 

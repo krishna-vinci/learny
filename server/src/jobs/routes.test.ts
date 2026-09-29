@@ -26,6 +26,22 @@ afterEach(async () => {
 });
 
 describe("jobs routes", () => {
+  it("rejects make-cards for a note that does not exist (404) when the root is known", async () => {
+    const rooted = new Hono();
+    rooted.route("/api/jobs", jobsRoutes({ runner, proposals, root }));
+    await fs.mkdir(path.join(root, "alpha", "notes"), { recursive: true });
+    await fs.writeFile(path.join(root, "alpha", "notes", "01-a.md"), "# A\n");
+    runner.register("make-cards", async () => undefined);
+    const post = (note: string) =>
+      rooted.request("/api/jobs", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ kind: "make-cards", set: "alpha", note }),
+      });
+    expect((await post("notes/99-missing.md")).status).toBe(404);
+    expect((await post("notes/01-a.md")).status).toBe(202);
+  });
+
   it("starts a draft job directly or from a one-shot proposal", async () => {
     runner.register("draft-chapter", async () => undefined);
     const direct = await app.request("/api/jobs", {

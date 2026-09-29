@@ -1,4 +1,6 @@
+import { existsSync } from "node:fs";
 import { Hono } from "hono";
+import { resolveInRoot } from "../tree/paths.js";
 import { parseMakeCardsInput } from "./cards-job.js";
 import { parseDraftChapterInput } from "./draft-job.js";
 import { jobProposals, type ProposalStore } from "./proposals.js";
@@ -6,6 +8,8 @@ import type { JobRunner } from "./runner.js";
 
 export interface JobsRoutesDeps {
   runner: JobRunner;
+  /** Study root; when set, make-cards requests for a missing note are rejected up front. */
+  root?: string;
   proposals?: ProposalStore;
 }
 
@@ -38,6 +42,9 @@ export function jobsRoutes(deps: JobsRoutesDeps): Hono {
       }
       if (typeof input === "object" && input !== null && "kind" in input && input.kind === "make-cards") {
         const parsed = parseMakeCardsInput(input);
+        if (deps.root !== undefined && !existsSync(resolveInRoot(deps.root, `${parsed.set}/${parsed.note}`))) {
+          return c.json({ error: `note not found: ${parsed.note}` }, 404);
+        }
         const job = deps.runner.enqueue("make-cards", parsed, {
           set: parsed.set,
           title: `Cards for ${parsed.note}`,

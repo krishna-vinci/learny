@@ -284,6 +284,7 @@ export function createCardsJob(deps: CardsJobDeps): JobHandler {
       lastCommit = sha;
       deps.hub.publish({ type: "commit", sha, subject, author });
     };
+    let lastCardsmithText = "";
     const runCardsmith = async (task: string, maxAdds: number, allowEdits: boolean, addedIds: string[]) => {
       ctx.signal.throwIfAborted();
       const result = await runRole("cardsmith", {
@@ -302,6 +303,7 @@ export function createCardsJob(deps: CardsJobDeps): JobHandler {
         cards: { rootPath: cardRootPath, maxAdds, onAdd: (id) => addedIds.push(id) },
       }).catch(rethrowRoleModelError);
       ctx.addUsage(usageFromPiMessages(result.messages));
+      lastCardsmithText = result.text.trim().slice(0, 300);
       if (result.written.some((written) => written !== cardRootPath)) {
         throw new Error(`cardsmith must only edit ${cardPath}`);
       }
@@ -346,8 +348,9 @@ export function createCardsJob(deps: CardsJobDeps): JobHandler {
           addedIds,
         );
         ctx.signal.throwIfAborted();
-        if (addedIds.length === 0)
-          throw new Error("Cardsmith added no cards (every add_card call failed or none was made)");
+        if (addedIds.length === 0) {
+          throw new Error(`Cardsmith added no cards. Its last message: ${lastCardsmithText || "(none)"}`);
+        }
         const subject = `cardsmith: ${noteTitle}`;
         const sha = await commitPaths(deps.root, [cardRootPath], subject, "cardsmith");
         publishCommit(sha, subject, "cardsmith");
