@@ -2,7 +2,7 @@
 
 Locked 2026-09-28 (D20). MVP = M0 + M1 + M2.
 
-**Status (2026-09-29):** M0, M1, M2 done — each verified end-to-end (API + real models + browser at 390/1440 px; M2 `.apkg` validated with the official Anki importer). Next: M3a (D28). Anki stays `.apkg` + frozen browser sync (D23).
+**Status (2026-09-29):** M0, M1, M2 done — each verified end-to-end (API + real models + browser at 390/1440 px; M2 `.apkg` validated with the official Anki importer). M3a done 2026-09-29 (accounts + SSO, per-user trees, restic backups, ntfy/Web Push, export, systemd user service). Next: M3b (D28). Anki stays `.apkg` + frozen browser sync (D23).
 
 ## Repo layout
 
