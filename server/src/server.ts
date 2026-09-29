@@ -1,4 +1,5 @@
-import { existsSync } from "node:fs";
+import { existsSync, promises as fs } from "node:fs";
+import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { type Context, Hono } from "hono";
@@ -24,7 +25,10 @@ import { requestGuard } from "./http/guard.js";
 import { identityProviderAdminRoutes, identityRoutes, ssoAuthRoutes } from "./sso/routes.js";
 
 export interface WorkspaceProvider {
-  for(user: User): { app: Hono };
+  for(user: User): Promise<{ app: Hono }>;
+  provision(username: string, templateFromRoot?: string): Promise<unknown>;
+  stop(username: string): Promise<void>;
+  rootFor(username: string): string | null;
 }
 
 export interface ServerDeps {
@@ -58,6 +62,14 @@ function validInstanceUrl(value: string): boolean {
   } catch {
     return false;
   }
+}
+
+function aiRouteDisabled(method: string, pathname: string): boolean {
+  if (method !== "POST") return false;
+  const path = pathname.endsWith("/") && pathname.length > 1 ? pathname.slice(0, -1) : pathname;
+  if (path === "/api/jobs" || path === "/api/library") return true;
+  const chatMatch = /^\/api\/sets\/[^/]+\/chats(\/.*)?$/.exec(path);
+  return chatMatch !== null && chatMatch[1] !== undefined;
 }
 
 function meRoutes(db: DatabaseSync): Hono {
@@ -139,7 +151,7 @@ function meRoutes(db: DatabaseSync): Hono {
   return app;
 }
 
-function adminRoutes(db: DatabaseSync, _workspaces: WorkspaceProvider): Hono {
+function adminRoutes(db: DatabaseSync, workspaces: WorkspaceProvider): Hono {
   const app = new Hono();
 
   app.get("/users", (c) => c.json({ users: listUsers(db) }));
@@ -166,6 +178,12 @@ function adminRoutes(db: DatabaseSync, _workspaces: WorkspaceProvider): Hono {
         ...(typeof body.email === "string" ? { email: body.email } : {}),
         ...(typeof body.aiEnabled === "boolean" ? { aiEnabled: body.aiEnabled } : {}),
       });
+      try {
+        await workspaces.provision(user.username);
+      } catch (error) {
+        deleteUser(db, user.id);
+        throw error;
+      }
       return c.json({ user }, 201);
     } catch (error) {
       return c.json({ error: error instanceof Error ? error.message : "could not create user" }, 400);
@@ -203,10 +221,11 @@ function adminRoutes(db: DatabaseSync, _workspaces: WorkspaceProvider): Hono {
     if (typeof body.password === "string") patch.passwordHash = await hashPassword(body.password);
     const user = updateUser(db, target.id, patch);
     if (patch.passwordHash !== undefined || patch.state === "ARCHIVED") revokeAllSessions(db, target.id);
+    if (body.aiEnabled !== undefined || patch.state === "ARCHIVED") await workspaces.stop(target.username);
     return c.json({ user });
   });
 
-  app.delete("/users/:id", (c) => {
+  app.delete("/users/:id", async (c) => {
     const id = parseId(c.req.param("id"));
     const target = id === null ? null : getUserById(db, id);
     if (target === null) return c.json({ error: "not found" }, 404);
@@ -215,8 +234,18 @@ function adminRoutes(db: DatabaseSync, _workspaces: WorkspaceProvider): Hono {
       return c.json({ error: "cannot remove the last admin" }, 409);
     }
     revokeAllSessions(db, target.id);
-    if (c.req.query("purge") === "1") deleteUser(db, target.id);
-    else updateUser(db, target.id, { state: "ARCHIVED" });
+    await workspaces.stop(target.username);
+    if (c.req.query("purge") === "1") {
+      const root = workspaces.rootFor(target.username);
+      if (root !== null) {
+        const trash = path.join(path.dirname(path.dirname(root)), "trash");
+        await fs.mkdir(trash, { recursive: true });
+        await fs.rename(root, path.join(trash, `${target.username}-${new Date().toISOString().replaceAll(":", "-")}`));
+      }
+      deleteUser(db, target.id);
+    } else {
+      updateUser(db, target.id, { state: "ARCHIVED" });
+    }
     return c.body(null, 204);
   });
 
@@ -260,7 +289,13 @@ export function createServer(deps: ServerDeps): Hono {
   app.use("/api/admin/*", requireAdmin);
   app.route("/api/admin/identity-providers", identityProviderAdminRoutes(ssoOptions));
   app.route("/api/admin", adminRoutes(deps.db, deps.workspaces));
-  app.all("/api/*", (c) => deps.workspaces.for(c.get("user")).app.fetch(c.req.raw, c.env));
+  app.use("/api/*", async (c, next) => {
+    if (!c.get("user").aiEnabled && aiRouteDisabled(c.req.method, c.req.path)) {
+      return c.json({ error: "AI features are disabled for this account" }, 403);
+    }
+    await next();
+  });
+  app.all("/api/*", async (c) => (await deps.workspaces.for(c.get("user"))).app.fetch(c.req.raw, c.env));
 
   if (deps.webDist !== undefined && existsSync(deps.webDist)) {
     const webRoot = deps.webDist;
