@@ -71,8 +71,9 @@ function systemText(context: TranscriptContext): string {
 
 function expectedTools(role: RoleName): string[] {
   const mcpNames = ROLES[role].mcpServers.flatMap((server) => [`mcp_${server}_echo`, `mcp_${server}_fail`]);
-  // Job tools are chat-only contextual tools, supplied by ChatService with its set and runner.
-  return [...ROLES[role].tools.filter((name) => name !== "start_job" && name !== "add_source"), ...mcpNames].sort();
+  // These contextual tools need a job target or runner and are supplied by their caller.
+  const contextual = new Set(["start_job", "add_source", "record_quiz_result", "add_card", "review_card"]);
+  return [...ROLES[role].tools.filter((name) => !contextual.has(name)), ...mcpNames].sort();
 }
 
 async function execute(role: RoleName, name: string, params: Record<string, unknown>) {
@@ -98,7 +99,7 @@ describe("role system", () => {
     expect(isRateLimitError("invalid_api_key")).toBe(false);
   });
 
-  it.each<RoleName>(["tutor", "librarian", "drafter", "checker"])(
+  it.each<RoleName>(["tutor", "librarian", "drafter", "checker", "cardsmith", "critic"])(
     "%s receives exactly its allowlisted tools",
     async (role) => {
       const runtime = await createModelRuntime();

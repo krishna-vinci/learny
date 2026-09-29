@@ -29,6 +29,22 @@ describe("ProposalStore", () => {
     now += 30 * 60 * 1_000;
     expect(store.take(expired.proposalId)).toBeNull();
   });
+
+  it("stores a make-cards proposal with its discriminator", () => {
+    const store = new ProposalStore();
+    const event = store.createCards(
+      { kind: "make-cards", set: "linear-algebra", note: "notes/03-svd.md", count: 8 },
+      { tokens: 2_000, costUsd: null },
+    );
+
+    expect(event).toMatchObject({ jobKind: "make-cards", title: "Cards for notes/03-svd.md" });
+    expect(store.take(event.proposalId)).toEqual({
+      kind: "make-cards",
+      set: "linear-algebra",
+      note: "notes/03-svd.md",
+      count: 8,
+    });
+  });
 });
 
 describe("estimateDraftJob billing", () => {

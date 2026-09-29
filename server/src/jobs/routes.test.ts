@@ -54,7 +54,44 @@ describe("jobs routes", () => {
     expect(runner.list().map((job) => job.set)).toEqual(["beta", "alpha"]);
   });
 
-  it("rejects a direct request without the draft-chapter discriminator", async () => {
+  it("starts a make-cards job directly or from a proposal", async () => {
+    runner.register("make-cards", async () => undefined);
+    const direct = await app.request("/api/jobs", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ kind: "make-cards", set: "alpha", note: "notes/03-svd.md", count: 0 }),
+    });
+    expect(direct.status).toBe(202);
+
+    const proposal = proposals.createCards(
+      { kind: "make-cards", set: "beta", note: "notes/04-rank.md", count: 12 },
+      { tokens: 5_000, costUsd: null },
+    );
+    const proposed = await app.request("/api/jobs", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ proposalId: proposal.proposalId }),
+    });
+    expect(proposed.status).toBe(202);
+    expect(runner.list().map((job) => job.kind)).toEqual(["make-cards", "make-cards"]);
+  });
+
+  it("validates make-cards note paths and counts", async () => {
+    const invalidPath = await app.request("/api/jobs", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ kind: "make-cards", set: "alpha", note: "../PLAN.md" }),
+    });
+    const invalidCount = await app.request("/api/jobs", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ kind: "make-cards", set: "alpha", note: "notes/03-svd.md", count: 41 }),
+    });
+    expect(invalidPath.status).toBe(400);
+    expect(invalidCount.status).toBe(400);
+  });
+
+  it("rejects a direct request without a supported job discriminator", async () => {
     const response = await app.request("/api/jobs", {
       method: "POST",
       headers: { "content-type": "application/json" },

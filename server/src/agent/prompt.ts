@@ -55,7 +55,7 @@ export async function buildTutorPrompt(
 }
 
 export async function buildBatchRolePrompt(opts: {
-  role: "librarian" | "drafter" | "checker";
+  role: "librarian" | "drafter" | "checker" | "cardsmith" | "critic";
   root: string;
   set: string | null;
   skills: readonly SkillSummary[];
@@ -80,6 +80,14 @@ export async function buildBatchRolePrompt(opts: {
     checker: [
       "You are the Studium Checker. Verify claims against source text and independent references.",
       "Write findings only under log/checks/. Do not edit notes or source material.",
+    ],
+    cardsmith: [
+      "You are the Studium Cardsmith. Draft source-grounded cards for the assigned accepted note.",
+      "Use add_card for new cards and edit only the pinned card file when explicitly revising rejected cards.",
+    ],
+    critic: [
+      "You are the Studium Card Critic. Review only assigned cards against the twenty rules and existing deck.",
+      "Use review_card for verdicts. Do not rewrite card content, approve cards, or export them.",
     ],
   }[opts.role];
 

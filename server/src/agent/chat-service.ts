@@ -386,6 +386,7 @@ export class ChatService {
       onWrite: (rootRelativePath) => {
         writtenPaths.add(rootRelativePath);
       },
+      quizResults: true,
       extraTools: [
         startJobTool({ root: this.#root, set, runtime: this.#runtime, store: jobProposals }),
         addSourceTool({ set, jobs: this.#jobs }),

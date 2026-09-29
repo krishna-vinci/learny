@@ -1,12 +1,11 @@
-import type { Dirent } from "node:fs";
 import { promises as fs } from "node:fs";
+import path from "node:path";
 import { parseFrontmatter } from "@studium/shared";
 import type { Context } from "hono";
 import { Hono } from "hono";
 import { createApkg, type ExportCard } from "../anki/apkg.js";
+import { listCardFiles, markCardsExported, readCardFile } from "../cards/store.js";
 import type { EventHub } from "../events.js";
-import { editFile } from "../tree/edit.js";
-import { commitPaths } from "../tree/git.js";
 import type { FileLocks } from "../tree/lock.js";
 import { resolveInRoot } from "../tree/paths.js";
 import { isSetSlug } from "../tree/read.js";
@@ -21,14 +20,9 @@ export interface ExportRoutesDeps {
 type ExportStatus = "approved" | "exported";
 type AdaptedCard = ExportCard & {
   status: ExportStatus;
-  filePath: string;
-  section: string;
 };
 
 const NOTE_PATH = /^notes\/[0-9]{2,}-[a-z0-9][a-z0-9-]*\.md$/;
-const CARD_FILE = /^[0-9]{2,}-[a-z0-9][a-z0-9-]*\.md$/;
-const CARD_HEADING = /^## (c-[0-9a-f]{8})[ \t]*\r?\n([\s\S]*?)(?=^##[ \t]+|(?![\s\S]))/gm;
-const CARD_FIELD = /^\*\*(Q|A|Text|Extra):\*\*[ \t]*([\s\S]*?)(?=^\*\*(?:Q|A|Text|Extra):\*\*|(?![\s\S]))/gm;
 
 class ExportInputError extends Error {}
 
@@ -41,94 +35,40 @@ async function setExists(root: string, set: string): Promise<boolean> {
   }
 }
 
-function commentMetadata(sectionBody: string): Record<string, string> {
-  const comment = /<!--[ \t]*([\s\S]*?)[ \t]*-->/.exec(sectionBody)?.[1];
-  if (comment === undefined) return {};
-  const metadata: Record<string, string> = {};
-  for (const part of comment.split("·")) {
-    const separator = part.indexOf(":");
-    if (separator < 0) continue;
-    const key = part.slice(0, separator).trim();
-    const value = part.slice(separator + 1).trim();
-    if (key !== "") metadata[key] = value;
-  }
-  return metadata;
-}
-
-function cardFields(sectionBody: string): Record<string, string> {
-  const fields: Record<string, string> = {};
-  for (const match of sectionBody.matchAll(CARD_FIELD)) {
-    const name = match[1];
-    const value = match[2];
-    if (name !== undefined && value !== undefined) fields[name] = value.trim();
-  }
-  return fields;
-}
-
-// TODO(T1 merge): use shared/src/cards.ts instead of this temporary read adapter.
 async function readExportCards(root: string, set: string, noteFilter?: string): Promise<AdaptedCard[]> {
-  const cardsDirectory = resolveInRoot(root, `${set}/cards`);
-  let entries: Dirent[];
-  try {
-    entries = await fs.readdir(cardsDirectory, { withFileTypes: true });
-  } catch (error) {
-    if (error instanceof Error && "code" in error && error.code === "ENOENT") return [];
-    throw error;
-  }
-
   const cards: AdaptedCard[] = [];
-  for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
-    if (!entry.isFile() || !CARD_FILE.test(entry.name)) continue;
-    const filePath = `${set}/cards/${entry.name}`;
-    const text = await fs.readFile(resolveInRoot(root, filePath), "utf8");
-    let parsed: ReturnType<typeof parseFrontmatter>;
-    try {
-      parsed = parseFrontmatter(text);
-    } catch (cause) {
-      throw new ExportInputError(`Invalid card file frontmatter: ${entry.name}`, { cause });
-    }
-    const notePath = parsed.frontmatter.note;
-    if (typeof notePath !== "string" || !NOTE_PATH.test(notePath)) {
-      throw new ExportInputError(`Invalid note path in cards/${entry.name}`);
-    }
+  for (const file of await listCardFiles(root, set)) {
+    const detail = await readCardFile(root, set, file.path);
+    if (detail === null) continue;
+    const notePath = detail.note;
+    if (notePath === null || !NOTE_PATH.test(notePath)) throw new ExportInputError(`Invalid note path in ${file.path}`);
     if (noteFilter !== undefined && notePath !== noteFilter) continue;
 
-    const deck = `Studium::${set}::${entry.name.replace(/\.md$/, "")}`;
-    for (const match of parsed.body.matchAll(CARD_HEADING)) {
-      const id = match[1];
-      const body = match[2];
-      if (id === undefined || body === undefined) continue;
-      const metadata = commentMetadata(body);
-      if (metadata.status !== "approved" && metadata.status !== "exported") continue;
-      if (metadata.type !== "basic" && metadata.type !== "cloze") {
-        throw new ExportInputError(`Card ${id} has an invalid type`);
-      }
-      const fields = cardFields(body);
+    const deck = `Studium::${set}::${path.basename(file.path, ".md")}`;
+    for (const card of detail.cards) {
+      if (card.status !== "approved" && card.status !== "exported") continue;
       const common = {
-        id,
-        status: metadata.status,
-        type: metadata.type,
+        id: card.id,
+        status: card.status,
         deck,
         notePath,
-        filePath,
-        section: match[0],
-        ...(metadata.src === undefined ? {} : { src: metadata.src }),
+        ...(card.src === undefined ? {} : { src: card.src }),
       } as const;
-      if (metadata.type === "basic") {
-        if (fields.Q === undefined || fields.A === undefined) {
-          throw new ExportInputError(`Basic card ${id} requires Q and A fields`);
+      if (card.type === "basic") {
+        if (card.q === undefined || card.a === undefined) {
+          throw new ExportInputError(`Basic card ${card.id} requires Q and A fields`);
         }
-        cards.push({ ...common, type: "basic", q: fields.Q, a: fields.A });
+        cards.push({ ...common, type: "basic", q: card.q, a: card.a });
       } else {
-        if (fields.Text === undefined) throw new ExportInputError(`Cloze card ${id} requires a Text field`);
-        if (!/{{c\d+::/i.test(fields.Text)) {
-          throw new ExportInputError(`Cloze card ${id} requires at least one {{cN::}} deletion`);
+        if (card.text === undefined) throw new ExportInputError(`Cloze card ${card.id} requires a Text field`);
+        if (!/{{c\d+::/i.test(card.text)) {
+          throw new ExportInputError(`Cloze card ${card.id} requires at least one {{cN::}} deletion`);
         }
         cards.push({
           ...common,
           type: "cloze",
-          text: fields.Text,
-          ...(fields.Extra === undefined ? {} : { extra: fields.Extra }),
+          text: card.text,
+          ...(card.extra === undefined ? {} : { extra: card.extra }),
         });
       }
     }
@@ -159,30 +99,18 @@ async function sourceLabels(root: string, cards: ExportCard[]): Promise<Record<s
   return labels;
 }
 
-async function markApprovedExported(deps: ExportRoutesDeps, cards: AdaptedCard[]): Promise<void> {
+async function markApprovedExported(deps: ExportRoutesDeps, set: string, cards: AdaptedCard[]): Promise<void> {
   const approved = cards.filter((card) => card.status === "approved");
   if (approved.length === 0) return;
-
-  const changedPaths = new Set<string>();
-  for (const card of approved) {
-    const updatedSection = card.section.replace(/(<!--[\s\S]*?\bstatus:\s*)approved\b/, "$1exported");
-    if (updatedSection === card.section) throw new ExportInputError(`Card ${card.id} has no editable status`);
-    await editFile(
-      deps.root,
-      deps.locks,
-      `user:export:${crypto.randomUUID()}`,
-      card.filePath,
-      card.section,
-      updatedSection,
-      { canWrite: (candidate) => candidate === card.filePath },
-    );
-    changedPaths.add(card.filePath);
+  const result = await markCardsExported(
+    deps.root,
+    deps.locks,
+    set,
+    approved.map((card) => card.id),
+  );
+  if (result.commit.sha !== null) {
+    deps.hub?.publish({ type: "commit", sha: result.commit.sha, subject: result.commit.subject, author: "user" });
   }
-
-  const paths = [...changedPaths].sort();
-  const subject = `user: export ${approved.length} card${approved.length === 1 ? "" : "s"}`;
-  const sha = await commitPaths(deps.root, paths, subject, "user");
-  if (sha !== null) deps.hub?.publish({ type: "commit", sha, subject, author: "user" });
 }
 
 function queryMode(c: Context): "approved" | "approved+exported" | null {
@@ -211,7 +139,7 @@ export function exportRoutes(deps: ExportRoutesDeps): Hono {
         baseUrl,
         sourceLabels: await sourceLabels(deps.root, included),
       });
-      await markApprovedExported(deps, included);
+      await markApprovedExported(deps, set, included);
 
       return c.body(Uint8Array.from(packageBytes).buffer, 200, {
         "content-type": "application/octet-stream",

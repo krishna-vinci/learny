@@ -12,6 +12,7 @@ import { createApp } from "./app.js";
 import { assertBindAllowed, authConfigFromEnv } from "./auth/session.js";
 import { EventHub } from "./events.js";
 import { startInboxWatcher } from "./ingest/inbox-watcher.js";
+import { createCardsJob } from "./jobs/cards-job.js";
 import { createDraftJob } from "./jobs/draft-job.js";
 import { createIngestJob } from "./jobs/ingest-job.js";
 import { JobRunner } from "./jobs/runner.js";
@@ -63,6 +64,7 @@ const jobs = new JobRunner({
   subscriptionProviders,
 });
 jobs.register("draft-chapter", createDraftJob({ root, locks, mcp, runtime, hub }));
+jobs.register("make-cards", createCardsJob({ root, locks, mcp, runtime, hub }));
 jobs.register("ingest", createIngestJob({ root, locks, mcp, runtime, hub }));
 
 function messageText(message: Message): string {

@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { parseMakeCardsInput } from "./cards-job.js";
 import { parseDraftChapterInput } from "./draft-job.js";
 import { jobProposals, type ProposalStore } from "./proposals.js";
 import type { JobRunner } from "./runner.js";
@@ -25,8 +26,23 @@ export function jobsRoutes(deps: JobsRoutesDeps): Hono {
         if (typeof proposalId !== "string" || proposalId === "") throw new Error("proposalId is required");
         input = (deps.proposals ?? jobProposals).take(proposalId);
         if (input === null) return c.json({ error: "proposal not found or expired" }, 404);
-      } else if (!(typeof body === "object" && body !== null && "kind" in body && body.kind === "draft-chapter")) {
-        throw new Error('kind must be "draft-chapter"');
+      } else if (
+        !(
+          typeof body === "object" &&
+          body !== null &&
+          "kind" in body &&
+          (body.kind === "draft-chapter" || body.kind === "make-cards")
+        )
+      ) {
+        throw new Error('kind must be "draft-chapter" or "make-cards"');
+      }
+      if (typeof input === "object" && input !== null && "kind" in input && input.kind === "make-cards") {
+        const parsed = parseMakeCardsInput(input);
+        const job = deps.runner.enqueue("make-cards", parsed, {
+          set: parsed.set,
+          title: `Cards for ${parsed.note}`,
+        });
+        return c.json({ jobId: job.id }, 202);
       }
       const parsed = parseDraftChapterInput(input);
       const job = deps.runner.enqueue("draft-chapter", parsed, { set: parsed.set, title: parsed.title });

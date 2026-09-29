@@ -16,6 +16,7 @@ import type { EventHub } from "../events.js";
 import type { McpManager } from "../mcp/bridge.js";
 import { readText } from "../tree/edit.js";
 import type { FileLocks } from "../tree/lock.js";
+import { addCardTool, recordQuizResultTool, reviewCardTool } from "./builtins/cards.js";
 import { listSkills, skillTools } from "./builtins/skills.js";
 import { webFetchTool } from "./builtins/web-fetch.js";
 import { wikiTools } from "./builtins/wiki.js";
@@ -81,10 +82,19 @@ export interface RoleToolsetOptions {
   canWrite?: (rootRelativePath: string) => boolean;
   onWrite?: (path: string) => void;
   extraTools?: ToolDefinition[];
+  quizResults?: boolean;
+  cards?: {
+    rootPath: string;
+    maxAdds?: number;
+    allowedIds?: readonly string[];
+    onAdd?: (id: string) => void;
+    onReview?: (id: string) => void;
+  };
 }
 
 export function roleToolset(role: RoleName, opts: RoleToolsetOptions): { tools: ToolDefinition[]; names: string[] } {
   const spec = ROLES[role];
+  const holder = opts.holder;
   const builtins: ToolDefinition[] = [
     ...studyTools({
       root: opts.root,
@@ -100,6 +110,43 @@ export function roleToolset(role: RoleName, opts: RoleToolsetOptions): { tools: 
       ...(process.env.FIRECRAWL_API_KEY === undefined ? {} : { firecrawlKey: process.env.FIRECRAWL_API_KEY }),
     }),
     ...skillTools(opts.root, [...spec.skills]),
+    ...(opts.set === null || opts.quizResults !== true
+      ? []
+      : [
+          recordQuizResultTool({
+            root: opts.root,
+            set: opts.set,
+            locks: opts.locks,
+            holder,
+            ...(opts.onWrite === undefined ? {} : { onWrite: opts.onWrite }),
+          }),
+        ]),
+    ...(role === "cardsmith" && opts.cards !== undefined
+      ? [
+          addCardTool({
+            root: opts.root,
+            locks: opts.locks,
+            holder,
+            cardRootPath: opts.cards.rootPath,
+            maxAdds: opts.cards.maxAdds ?? 0,
+            ...(opts.onWrite === undefined ? {} : { onWrite: opts.onWrite }),
+            ...(opts.cards.onAdd === undefined ? {} : { onAdd: opts.cards.onAdd }),
+          }),
+        ]
+      : []),
+    ...(role === "critic" && opts.cards !== undefined
+      ? [
+          reviewCardTool({
+            root: opts.root,
+            locks: opts.locks,
+            holder,
+            cardRootPath: opts.cards.rootPath,
+            allowedIds: opts.cards.allowedIds ?? [],
+            ...(opts.onWrite === undefined ? {} : { onWrite: opts.onWrite }),
+            ...(opts.cards.onReview === undefined ? {} : { onReview: opts.cards.onReview }),
+          }),
+        ]
+      : []),
   ];
   const allowed = new Set(spec.tools);
   const selected = builtins.filter((tool) => allowed.has(tool.name));
@@ -138,6 +185,8 @@ const ROLE_LABELS: Record<RoleName, string> = {
   librarian: "Librarian",
   drafter: "Drafter",
   checker: "Checker",
+  cardsmith: "Cardsmith",
+  critic: "Critic",
 };
 
 /** True when a provider error message reports a rate/usage limit (HTTP 429). */
@@ -182,6 +231,7 @@ interface RunRoleOptions {
   onFallback?: (from: string, to: string) => void;
   onWrite?: (path: string) => void;
   extraTools?: ToolDefinition[];
+  cards?: RoleToolsetOptions["cards"];
 }
 
 /**
@@ -208,6 +258,7 @@ async function runSession(
       opts.onWrite?.(path);
     },
     ...(opts.extraTools === undefined ? {} : { extraTools: opts.extraTools }),
+    ...(opts.cards === undefined ? {} : { cards: opts.cards }),
   });
   const { session } = await createAgentSession({
     cwd: opts.root,

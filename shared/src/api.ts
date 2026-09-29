@@ -68,7 +68,7 @@ export interface ParsedFileView {
   markdown: string;
 }
 
-export type JobKind = "ingest" | "draft-chapter";
+export type JobKind = "ingest" | "draft-chapter" | "make-cards";
 export type JobStatus = "queued" | "running" | "done" | "failed" | "cancelled";
 /** How a job's model usage is billed: flat subscription, metered list price, or both. */
 export type JobBilling = "subscription" | "metered" | "mixed";
@@ -83,6 +83,7 @@ export interface JobUsage {
 
 export interface JobResult {
   notePath?: string;
+  cardPath?: string;
   sourceId?: string;
   commitSha?: string;
   /** Non-fatal note (e.g. the source was stored but its summary is still pending). */

@@ -85,7 +85,10 @@ describe("GET /api/sets/:set/export.apkg", () => {
     expect(updated).toContain("## c-8f3a1b2c\n<!-- status: exported · type: basic");
     expect(updated).toContain("## c-91bd07e4\n<!-- status: exported · type: cloze");
     expect(updated).toContain("## c-deadbeef\n<!-- status: rejected · type: basic");
-    expect((await log(root, { limit: 1 }))[0]).toMatchObject({ author: "user", subject: "user: export 1 card" });
+    expect((await log(root, { limit: 1 }))[0]).toMatchObject({
+      author: "user",
+      subject: "user: mark 1 card exported",
+    });
   });
 
   it("can re-export exported cards and apply the optional note filter", async () => {

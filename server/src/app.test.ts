@@ -121,6 +121,12 @@ describe("createApp sets routes", () => {
     expect(reserved.status).toBe(404);
   });
 
+  it("mounts the card export route", async () => {
+    const response = await localRequest(makeApp(), "/api/sets/linear-algebra/export.apkg");
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "no cards to export" });
+  });
+
   it("requires a session for API routes once a password is configured", async () => {
     const auth: AuthConfig = {
       username: "learner",

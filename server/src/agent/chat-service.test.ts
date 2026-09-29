@@ -54,6 +54,7 @@ async function setup(options: { tokensPerSecond?: number } = {}) {
   const hub = new EventHub();
   const jobs = new JobRunner({ root, hub, maxParallel: 1 });
   jobs.register("ingest", async () => undefined);
+  jobs.register("make-cards", async () => undefined);
   const chats = new ChatService({
     root,
     hub,
@@ -218,6 +219,58 @@ describe("ChatService", () => {
         estimate: { costUsd: null },
       },
     });
+  });
+
+  it("publishes a make-cards proposal without starting it", async () => {
+    const { chats, faux, hub, jobs } = await setup();
+    const id = await chats.create("linear-algebra");
+    const events: StudiumEvent[] = [];
+    hub.subscribe((event) => events.push(event));
+    faux.setResponses([
+      fauxAssistantMessage(
+        fauxToolCall("start_job", { kind: "make-cards", note: "notes/03-svd.md", count: 8 }, { id: "cards-proposal" }),
+        { stopReason: "toolUse" },
+      ),
+      fauxAssistantMessage(fauxText("Please confirm the card job.")),
+    ]);
+
+    const settled = waitForSettled(hub, id);
+    await chats.send("linear-algebra", id, "Make cards for SVD");
+    await settled;
+
+    expect(jobs.list()).toHaveLength(0);
+    expect(
+      events.find((event) => event.type === "chat" && event.chatId === id && event.event.kind === "job_proposal"),
+    ).toMatchObject({
+      type: "chat",
+      event: { kind: "job_proposal", jobKind: "make-cards", title: "Cards for notes/03-svd.md" },
+    });
+  });
+
+  it("records quiz results and commits only the quiz log", async () => {
+    const { chats, faux, hub } = await setup();
+    const id = await chats.create("linear-algebra");
+    faux.setResponses([
+      fauxAssistantMessage(
+        fauxToolCall(
+          "record_quiz_result",
+          { topic: "SVD", question: "What does Sigma contain?", verdict: "right" },
+          { id: "quiz-result" },
+        ),
+        { stopReason: "toolUse" },
+      ),
+      fauxAssistantMessage(fauxText("Right — Sigma contains singular values.")),
+    ]);
+
+    const settled = waitForSettled(hub, id);
+    await chats.send("linear-algebra", id, "The singular values");
+    const settledEvent = await settled;
+
+    expect(settledEvent.commitSha).toMatch(/^[0-9a-f]{40}$/);
+    await expect(fs.readFile(path.join(root, "linear-algebra/log/quiz.md"), "utf8")).resolves.toContain(
+      "topic: SVD | question: What does Sigma contain? | verdict: right",
+    );
+    expect((await log(root, { limit: 1 }))[0]).toMatchObject({ author: "tutor" });
   });
 
   it("starts an ingest job directly from add_source", async () => {

@@ -72,6 +72,8 @@ describe("study-tree git wrapper", () => {
     ["librarian", "Studium Librarian", "librarian@studium.local"],
     ["drafter", "Studium Drafter", "drafter@studium.local"],
     ["checker", "Studium Checker", "checker@studium.local"],
+    ["cardsmith", "Studium Cardsmith", "cardsmith@studium.local"],
+    ["critic", "Studium Critic", "critic@studium.local"],
   ])("uses the %s git identity", async (author, name, email) => {
     await ensureRepo(root);
     await writeFile(path.join(root, "a.md"), `one\n${author}\n`);

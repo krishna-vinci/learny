@@ -7,7 +7,7 @@ import { resolveInRoot } from "./paths.js";
 
 const execFileAsync = promisify(execFile);
 
-export type Author = "tutor" | "librarian" | "drafter" | "checker" | "user" | "system";
+export type Author = "tutor" | "librarian" | "drafter" | "checker" | "cardsmith" | "critic" | "user" | "system";
 
 const AUTHOR_ENV: Record<Author, Record<string, string>> = {
   tutor: {
@@ -33,6 +33,18 @@ const AUTHOR_ENV: Record<Author, Record<string, string>> = {
     GIT_AUTHOR_EMAIL: "checker@studium.local",
     GIT_COMMITTER_NAME: "Studium Checker",
     GIT_COMMITTER_EMAIL: "checker@studium.local",
+  },
+  cardsmith: {
+    GIT_AUTHOR_NAME: "Studium Cardsmith",
+    GIT_AUTHOR_EMAIL: "cardsmith@studium.local",
+    GIT_COMMITTER_NAME: "Studium Cardsmith",
+    GIT_COMMITTER_EMAIL: "cardsmith@studium.local",
+  },
+  critic: {
+    GIT_AUTHOR_NAME: "Studium Critic",
+    GIT_AUTHOR_EMAIL: "critic@studium.local",
+    GIT_COMMITTER_NAME: "Studium Critic",
+    GIT_COMMITTER_EMAIL: "critic@studium.local",
   },
   user: {
     GIT_AUTHOR_NAME: "Studium User",
@@ -107,6 +119,10 @@ function mapAuthorName(name: string): string {
       return "drafter";
     case "Studium Checker":
       return "checker";
+    case "Studium Cardsmith":
+      return "cardsmith";
+    case "Studium Critic":
+      return "critic";
     case "Studium User":
       return "user";
     case "Studium":

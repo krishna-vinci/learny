@@ -8,6 +8,7 @@ import { parse as parseYaml } from "yaml";
 import { resolveRoleModel } from "../agent/models.js";
 import { readText } from "../tree/edit.js";
 import { resolveInRoot } from "../tree/paths.js";
+import { type MakeCardsInput, parseMakeCardsInput } from "./cards-job.js";
 import { classifyBilling } from "./runner.js";
 
 const PROPOSAL_TTL_MS = 30 * 60 * 1000;
@@ -22,9 +23,19 @@ export interface DraftChapterInput {
 
 export type JobProposalEvent = Extract<ChatStreamEvent, { kind: "job_proposal" }>;
 
+type ProposalInput = DraftChapterInput | MakeCardsInput;
+
 interface StoredProposal {
-  input: DraftChapterInput;
+  input: ProposalInput;
   expiresAt: number;
+}
+
+function cloneInput(input: ProposalInput): ProposalInput {
+  if ("note" in input) return { ...input };
+  return {
+    ...input,
+    ...(input.sources === undefined ? {} : { sources: [...input.sources] }),
+  };
 }
 
 export class ProposalStore {
@@ -36,27 +47,34 @@ export class ProposalStore {
   }
 
   create(input: DraftChapterInput, estimate: JobProposalEvent["estimate"]): JobProposalEvent {
+    return this.#create("draft-chapter", input.title, input, estimate);
+  }
+
+  createCards(input: MakeCardsInput, estimate: JobProposalEvent["estimate"]): JobProposalEvent {
+    return this.#create("make-cards", `Cards for ${input.note}`, input, estimate);
+  }
+
+  #create(
+    jobKind: "draft-chapter" | "make-cards",
+    title: string,
+    input: ProposalInput,
+    estimate: JobProposalEvent["estimate"],
+  ): JobProposalEvent {
     this.#prune();
     const proposalId = crypto.randomUUID();
     this.#items.set(proposalId, {
-      input: {
-        ...input,
-        ...(input.sources === undefined ? {} : { sources: [...input.sources] }),
-      },
+      input: cloneInput(input),
       expiresAt: this.#now() + PROPOSAL_TTL_MS,
     });
-    return { kind: "job_proposal", proposalId, jobKind: "draft-chapter", title: input.title, estimate };
+    return { kind: "job_proposal", proposalId, jobKind, title, estimate };
   }
 
-  take(proposalId: string): DraftChapterInput | null {
+  take(proposalId: string): ProposalInput | null {
     this.#prune();
     const stored = this.#items.get(proposalId);
     if (stored === undefined) return null;
     this.#items.delete(proposalId);
-    return {
-      ...stored.input,
-      ...(stored.input.sources === undefined ? {} : { sources: [...stored.input.sources] }),
-    };
+    return cloneInput(stored.input);
   }
 
   #prune(): void {
@@ -148,6 +166,39 @@ export async function estimateDraftJob(
   return { tokens, costUsd: costUsd === 0 ? null : costUsd, billing };
 }
 
+export async function estimateCardsJob(
+  root: string,
+  input: MakeCardsInput,
+  runtime: ModelRuntime,
+): Promise<JobProposalEvent["estimate"]> {
+  const cardPath = input.note.replace(/^notes\//, "cards/");
+  const [note, cards, configText] = await Promise.all([
+    readText(root, `${input.set}/${input.note}`),
+    optionalText(root, `${input.set}/${cardPath}`),
+    readText(root, "_global/config.yaml"),
+  ]);
+  const baseInput = Math.max(1, Math.ceil((note.length + cards.length) / CHARS_PER_TOKEN));
+  const cardOutput = Math.max(400, input.count * 120);
+  const criticOutput = Math.max(400, (input.count === 0 ? 12 : input.count) * 80);
+  const config = ConfigYaml.parse(parseYaml(configText));
+  const critic = resolveRoleModel(runtime, config, "critic");
+  const cardsmithRuns = input.count === 0 ? 0 : 2;
+  const criticRuns = input.count === 0 ? 1 : 2;
+  const cardsmith = cardsmithRuns === 0 ? null : resolveRoleModel(runtime, config, "cardsmith");
+  const tokens = baseInput * (cardsmithRuns + criticRuns) + cardOutput * cardsmithRuns + criticOutput * criticRuns;
+  const costUsd =
+    (cardsmith === null ? 0 : costFor(cardsmith, baseInput, cardOutput) * cardsmithRuns) +
+    costFor(critic, baseInput + cardOutput, criticOutput) * criticRuns;
+  const billing = classifyBilling(
+    [
+      ...(cardsmithRuns === 0 ? [] : [providerOf(config.models.roles.cardsmith ?? config.models.default)]),
+      providerOf(config.models.roles.critic ?? config.models.default),
+    ],
+    config.billing?.subscription ?? [],
+  );
+  return { tokens, costUsd: costUsd === 0 ? null : costUsd, billing };
+}
+
 function errorResult(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
   return {
@@ -165,15 +216,32 @@ export function startJobTool(opts: {
   return defineTool({
     name: "start_job",
     label: "Propose a background job",
-    description: "Propose a chapter-drafting job for learner confirmation. This does not start the job.",
-    parameters: Type.Object({
-      kind: Type.Literal("draft-chapter"),
-      title: Type.String({ minLength: 1 }),
-      brief: Type.Optional(Type.String()),
-      sources: Type.Optional(Type.Array(Type.String({ pattern: "^lib-[a-z0-9][a-z0-9-]*$" }))),
-    }),
+    description: "Propose a chapter-drafting or card-making job for learner confirmation. This does not start the job.",
+    parameters: Type.Union([
+      Type.Object({
+        kind: Type.Literal("draft-chapter"),
+        title: Type.String({ minLength: 1 }),
+        brief: Type.Optional(Type.String()),
+        sources: Type.Optional(Type.Array(Type.String({ pattern: "^lib-[a-z0-9][a-z0-9-]*$" }))),
+      }),
+      Type.Object({
+        kind: Type.Literal("make-cards"),
+        note: Type.String({ pattern: "^notes/[0-9]{2,}-[a-z0-9][a-z0-9-]*\\.md$" }),
+        count: Type.Optional(Type.Integer({ minimum: 0, maximum: 40 })),
+      }),
+    ]),
     async execute(_toolCallId, params) {
       try {
+        if (params.kind === "make-cards") {
+          const input = parseMakeCardsInput({ ...params, set: opts.set });
+          const estimate = await estimateCardsJob(opts.root, input, opts.runtime);
+          const proposal = (opts.store ?? jobProposals).createCards(input, estimate);
+          const summary = "awaiting learner confirmation";
+          return {
+            content: [{ type: "text" as const, text: summary }],
+            details: { isError: false, summary, proposal },
+          };
+        }
         const input: DraftChapterInput = {
           set: opts.set,
           title: params.title.trim(),
@@ -207,7 +275,7 @@ export function proposalFromToolResult(result: unknown): JobProposalEvent | null
     !("proposalId" in proposal) ||
     typeof proposal.proposalId !== "string" ||
     !("jobKind" in proposal) ||
-    proposal.jobKind !== "draft-chapter" ||
+    (proposal.jobKind !== "draft-chapter" && proposal.jobKind !== "make-cards") ||
     !("title" in proposal) ||
     typeof proposal.title !== "string" ||
     !("estimate" in proposal) ||
