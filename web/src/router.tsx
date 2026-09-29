@@ -5,6 +5,7 @@ import { NewSetDialog } from "@/components/NewSetDialog";
 import { Button } from "@/components/ui/button";
 import RootLayout from "@/layouts/RootLayout";
 import AdminSignIn from "@/pages/AdminSignIn";
+import AuthCallback from "@/pages/AuthCallback";
 import CardFilePage from "@/pages/CardFilePage";
 import CardsPage from "@/pages/CardsPage";
 import InboxPage from "@/pages/InboxPage";
@@ -72,6 +73,7 @@ export const router = createBrowserRouter([
   { path: "/setup", element: <Setup /> },
   { path: "/auth", element: <SignIn /> },
   { path: "/auth/admin", element: <AdminSignIn /> },
+  { path: "/auth/callback", element: <AuthCallback /> },
   {
     path: "/",
     element: (

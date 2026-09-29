@@ -34,10 +34,70 @@ export interface User {
   updatedAt: string;
 }
 
+/** Public identity-provider shape offered on `/api/auth/status` — no secrets. */
+export interface PublicIdentityProvider {
+  id: number;
+  title: string;
+  authUrl: string;
+  clientId: string;
+  scopes: string[];
+}
+
 export interface AuthStatus {
   setupRequired: boolean;
   disallowPasswordAuth: boolean;
   instanceUrl: string;
+  identityProviders: PublicIdentityProvider[];
+}
+
+export interface SsoRequest {
+  providerId: number;
+  code: string;
+  redirectUri: string;
+  codeVerifier?: string;
+}
+
+export interface LinkedIdentity {
+  providerId: number;
+  providerTitle: string;
+  subject: string;
+  createdAt: string;
+}
+
+export interface IdentityFieldMapping {
+  identifier: string;
+  displayName: string;
+  email: string;
+  avatarUrl: string;
+}
+
+export interface IdentityProviderAdmin {
+  id: number;
+  title: string;
+  type: "OAUTH2";
+  identifierFilter: string;
+  clientId: string;
+  authUrl: string;
+  tokenUrl: string;
+  userInfoUrl: string;
+  scopes: string[];
+  fieldMapping: IdentityFieldMapping;
+  hasClientSecret: boolean;
+  autoLinkByEmail: boolean;
+}
+
+export interface IdentityProviderInput {
+  title: string;
+  type: "OAUTH2";
+  identifierFilter: string;
+  clientId: string;
+  clientSecret?: string;
+  authUrl: string;
+  tokenUrl: string;
+  userInfoUrl: string;
+  scopes: string[];
+  fieldMapping: IdentityFieldMapping;
+  autoLinkByEmail: boolean;
 }
 
 export interface Session {
@@ -56,6 +116,95 @@ export interface AccessTokenSummary {
   createdAt: string;
   lastUsedAt: string | null;
   expiresAt: string | null;
+}
+
+// --- Backups (slice c) --------------------------------------------------------------
+
+export type BackupDestination =
+  | { type: "local"; path: string }
+  | { type: "sftp"; host: string; port: number; user: string; path: string }
+  | { type: "rest"; url: string; username?: string; password?: string }
+  | {
+      type: "s3";
+      endpoint: string;
+      bucket: string;
+      prefix: string;
+      accessKeyId: string;
+      secretAccessKey: string;
+      region?: string;
+    }
+  | { type: "rclone"; remote: string; path: string; rcloneConfig: string };
+
+export type RedactedBackupDestination =
+  | { type: "local"; path: string }
+  | { type: "sftp"; host: string; port: number; user: string; path: string }
+  | { type: "rest"; url: string; username?: string; hasPassword: boolean }
+  | { type: "s3"; endpoint: string; bucket: string; prefix: string; region?: string; hasKeys: boolean }
+  | { type: "rclone"; remote: string; path: string; hasConfig: boolean };
+
+export interface BackupSchedule {
+  enabled: boolean;
+  time: string;
+}
+export interface BackupRetention {
+  daily: number;
+  weekly: number;
+  monthly: number;
+}
+export interface BackupRunRecord {
+  at: string;
+  ok: boolean;
+  message: string;
+  snapshotId?: string;
+}
+export interface BackupCheckRecord {
+  at: string;
+  ok: boolean;
+  message: string;
+}
+export interface RedactedBackupConfig {
+  destination: RedactedBackupDestination | null;
+  hasRepoPassword: boolean;
+  schedule: BackupSchedule;
+  retention: BackupRetention;
+  lastRun: BackupRunRecord | null;
+  lastCheck: BackupCheckRecord | null;
+}
+export interface BackupStatus {
+  running: boolean;
+  phase: string | null;
+  startedAt: string | null;
+  lastRun: BackupRunRecord | null;
+}
+export interface SnapshotInfo {
+  id: string;
+  shortId: string;
+  time: string;
+  paths: string[];
+  sizeBytes?: number;
+}
+export interface RecoveryKit {
+  repository: string;
+  password: string;
+  restoreSteps: string[];
+}
+export interface ProbeResult {
+  ok: boolean;
+  state: "empty" | "existing" | "error";
+  message: string;
+}
+export interface RestoreResult {
+  path: string;
+  commitSha: string | null;
+}
+
+// --- Notifications + export (slice d) ------------------------------------------------
+
+export interface NotificationsView {
+  ntfy: { url: string; hasToken: boolean };
+  vapidPublicKey: string;
+  subscriptions: { id: string; userAgent: string; createdAt: string }[];
+  events: { jobDone: boolean; jobFailed: boolean };
 }
 
 export class UnauthorizedError extends Error {
@@ -141,6 +290,9 @@ export const api = {
     signout(): Promise<void> {
       return request("/api/auth/signout", { method: "POST" });
     },
+    sso(body: SsoRequest): Promise<{ user: User }> {
+      return request("/api/auth/sso", { method: "POST", body: JSON.stringify(body) });
+    },
     // Compatibility aliases kept on the server; prefer signin/signout above.
     login(username: string, password: string): Promise<void> {
       return request("/api/auth/login", { method: "POST", body: JSON.stringify({ username, password }) });
@@ -177,6 +329,38 @@ export const api = {
     },
     deleteAccessToken(id: string): Promise<void> {
       return request(`/api/me/access-tokens/${encodeURIComponent(id)}`, { method: "DELETE" });
+    },
+    identities(): Promise<{ identities: LinkedIdentity[] }> {
+      return request("/api/me/identities");
+    },
+    linkIdentity(body: SsoRequest): Promise<{ identity: LinkedIdentity }> {
+      return request("/api/me/identities", { method: "POST", body: JSON.stringify(body) });
+    },
+    unlinkIdentity(providerId: number): Promise<void> {
+      return request(`/api/me/identities/${providerId}`, { method: "DELETE" });
+    },
+    notifications: {
+      get(): Promise<NotificationsView> {
+        return request("/api/me/notifications");
+      },
+      putNtfy(body: { url: string; token?: string }): Promise<{ ntfy: { url: string; hasToken: boolean } }> {
+        return request("/api/me/notifications/ntfy", { method: "PUT", body: JSON.stringify(body) });
+      },
+      subscribePush(body: {
+        endpoint: string;
+        keys: { p256dh: string; auth: string };
+      }): Promise<{ subscription: { id: string; userAgent: string; createdAt: string } }> {
+        return request("/api/me/notifications/push", { method: "POST", body: JSON.stringify(body) });
+      },
+      deletePush(id: string): Promise<void> {
+        return request(`/api/me/notifications/push/${encodeURIComponent(id)}`, { method: "DELETE" });
+      },
+      patchEvents(body: { jobDone?: boolean; jobFailed?: boolean }): Promise<{ events: NotificationsView["events"] }> {
+        return request("/api/me/notifications/events", { method: "PATCH", body: JSON.stringify(body) });
+      },
+      test(): Promise<{ ok: boolean }> {
+        return request("/api/me/notifications/test", { method: "POST" });
+      },
     },
   },
 
@@ -218,6 +402,61 @@ export const api = {
       instanceUrl?: string;
     }): Promise<{ disallowPasswordAuth: boolean; instanceUrl: string }> {
       return request("/api/admin/instance", { method: "PATCH", body: JSON.stringify(patch) });
+    },
+    identityProviders: {
+      list(): Promise<{ identityProviders: IdentityProviderAdmin[] }> {
+        return request("/api/admin/identity-providers");
+      },
+      create(body: IdentityProviderInput): Promise<{ identityProvider: IdentityProviderAdmin }> {
+        return request("/api/admin/identity-providers", { method: "POST", body: JSON.stringify(body) });
+      },
+      update(id: number, body: Partial<IdentityProviderInput>): Promise<{ identityProvider: IdentityProviderAdmin }> {
+        return request(`/api/admin/identity-providers/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+      },
+      delete(id: number): Promise<void> {
+        return request(`/api/admin/identity-providers/${id}`, { method: "DELETE" });
+      },
+    },
+    backups: {
+      get(): Promise<{ config: RedactedBackupConfig; resticVersion: string }> {
+        return request("/api/admin/backups");
+      },
+      update(body: {
+        schedule?: Partial<BackupSchedule>;
+        retention?: Partial<BackupRetention>;
+      }): Promise<{ config: RedactedBackupConfig }> {
+        return request("/api/admin/backups", { method: "PATCH", body: JSON.stringify(body) });
+      },
+      test(destination: BackupDestination): Promise<ProbeResult> {
+        return request("/api/admin/backups/test", { method: "POST", body: JSON.stringify({ destination }) });
+      },
+      init(destination: BackupDestination, existingPassword?: string): Promise<{ recoveryKit: RecoveryKit }> {
+        return request("/api/admin/backups/init", {
+          method: "POST",
+          body: JSON.stringify({ destination, ...(existingPassword ? { existingPassword } : {}) }),
+        });
+      },
+      run(): Promise<BackupStatus> {
+        return request("/api/admin/backups/run", { method: "POST" });
+      },
+      status(): Promise<BackupStatus> {
+        return request("/api/admin/backups/status");
+      },
+      snapshots(): Promise<{ snapshots: SnapshotInfo[] }> {
+        return request("/api/admin/backups/snapshots");
+      },
+      restore(body: {
+        snapshotId: string;
+        scope: { type: "note" | "set"; username: string; path: string };
+      }): Promise<RestoreResult> {
+        return request("/api/admin/backups/restore", { method: "POST", body: JSON.stringify(body) });
+      },
+      check(): Promise<{ ok: boolean; message: string }> {
+        return request("/api/admin/backups/check", { method: "POST" });
+      },
+      sftpKey(): Promise<{ publicKey: string }> {
+        return request("/api/admin/backups/sftp-key", { method: "POST" });
+      },
     },
   },
 
@@ -408,3 +647,8 @@ export interface LibrarySourceView {
 }
 
 export type LibraryAddResult = { jobId: string } | { sourceId: string; deduped: true };
+
+/** `GET /api/me/export[?withHistory=1]` as a plain download link — used as an `<a href>`. */
+export function meExportUrl(opts?: { withHistory?: boolean }): string {
+  return `/api/me/export${qs({ withHistory: opts?.withHistory ? 1 : undefined })}`;
+}

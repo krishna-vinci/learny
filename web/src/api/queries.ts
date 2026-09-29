@@ -11,7 +11,18 @@ import type {
   SourceSummary,
 } from "@studium/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { AccessTokenSummary, AuthStatus, Session, User } from "./client";
+import type {
+  AccessTokenSummary,
+  AuthStatus,
+  BackupDestination,
+  BackupRetention,
+  BackupSchedule,
+  IdentityProviderInput,
+  NotificationsView,
+  Session,
+  SsoRequest,
+  User,
+} from "./client";
 import { api, type LibrarySourceView } from "./client";
 import { useStudiumEvents } from "./events";
 
@@ -20,8 +31,14 @@ export const queryKeys = {
   me: ["me"] as const,
   meSessions: ["me", "sessions"] as const,
   meAccessTokens: ["me", "accessTokens"] as const,
+  meIdentities: ["me", "identities"] as const,
+  meNotifications: ["me", "notifications"] as const,
   adminUsers: ["admin", "users"] as const,
   adminInstance: ["admin", "instance"] as const,
+  adminIdentityProviders: ["admin", "identityProviders"] as const,
+  adminBackups: ["admin", "backups"] as const,
+  adminBackupStatus: ["admin", "backups", "status"] as const,
+  adminBackupSnapshots: ["admin", "backups", "snapshots"] as const,
   sets: ["sets"] as const,
   notes: (set: string) => ["sets", set, "notes"] as const,
   file: (set: string, path: string) => ["sets", set, "file", path] as const,
@@ -146,6 +163,173 @@ export function useUpdateAdminInstance() {
       queryClient.invalidateQueries({ queryKey: queryKeys.authStatus });
     },
   });
+}
+
+// --- SSO (slice b) --------------------------------------------------------------------
+
+export function useIdentities() {
+  return useQuery({ queryKey: queryKeys.meIdentities, queryFn: () => api.me.identities() });
+}
+
+export function useLinkIdentity() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: SsoRequest) => api.me.linkIdentity(body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.meIdentities }),
+  });
+}
+
+export function useUnlinkIdentity() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (providerId: number) => api.me.unlinkIdentity(providerId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.meIdentities }),
+  });
+}
+
+export function useAdminIdentityProviders() {
+  return useQuery({ queryKey: queryKeys.adminIdentityProviders, queryFn: () => api.admin.identityProviders.list() });
+}
+
+export function useCreateIdentityProvider() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: IdentityProviderInput) => api.admin.identityProviders.create(body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.adminIdentityProviders }),
+  });
+}
+
+export function useUpdateIdentityProvider() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: number; patch: Partial<IdentityProviderInput> }) =>
+      api.admin.identityProviders.update(id, patch),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.adminIdentityProviders }),
+  });
+}
+
+export function useDeleteIdentityProvider() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api.admin.identityProviders.delete(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.adminIdentityProviders }),
+  });
+}
+
+// --- Backups (slice c) ------------------------------------------------------------------
+
+export function useAdminBackups() {
+  return useQuery({ queryKey: queryKeys.adminBackups, queryFn: () => api.admin.backups.get() });
+}
+
+export function useUpdateBackupSettings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { schedule?: Partial<BackupSchedule>; retention?: Partial<BackupRetention> }) =>
+      api.admin.backups.update(body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.adminBackups }),
+  });
+}
+
+export function useTestBackupDestination() {
+  return useMutation({ mutationFn: (destination: BackupDestination) => api.admin.backups.test(destination) });
+}
+
+export function useInitBackup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ destination, existingPassword }: { destination: BackupDestination; existingPassword?: string }) =>
+      api.admin.backups.init(destination, existingPassword),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.adminBackups }),
+  });
+}
+
+export function useRunBackup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.admin.backups.run(),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.adminBackupStatus }),
+  });
+}
+
+/** Polls status while a backup is running (2s interval); idle otherwise. */
+export function useBackupStatus() {
+  return useQuery({
+    queryKey: queryKeys.adminBackupStatus,
+    queryFn: () => api.admin.backups.status(),
+    refetchInterval: (query) => (query.state.data?.running ? 2000 : false),
+  });
+}
+
+export function useBackupSnapshots(enabled: boolean) {
+  return useQuery({ queryKey: queryKeys.adminBackupSnapshots, queryFn: () => api.admin.backups.snapshots(), enabled });
+}
+
+export function useCheckBackup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.admin.backups.check(),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.adminBackups }),
+  });
+}
+
+export function useRestoreBackup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { snapshotId: string; scope: { type: "note" | "set"; username: string; path: string } }) =>
+      api.admin.backups.restore(body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.sets }),
+  });
+}
+
+export function useSftpKey() {
+  return useMutation({ mutationFn: () => api.admin.backups.sftpKey() });
+}
+
+// --- Notifications + export (slice d) ----------------------------------------------------
+
+export function useNotifications() {
+  return useQuery<NotificationsView>({
+    queryKey: queryKeys.meNotifications,
+    queryFn: () => api.me.notifications.get(),
+  });
+}
+
+export function useUpdateNtfy() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { url: string; token?: string }) => api.me.notifications.putNtfy(body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.meNotifications }),
+  });
+}
+
+export function useSubscribePush() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { endpoint: string; keys: { p256dh: string; auth: string } }) =>
+      api.me.notifications.subscribePush(body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.meNotifications }),
+  });
+}
+
+export function useDeletePush() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.me.notifications.deletePush(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.meNotifications }),
+  });
+}
+
+export function usePatchNotificationEvents() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { jobDone?: boolean; jobFailed?: boolean }) => api.me.notifications.patchEvents(body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.meNotifications }),
+  });
+}
+
+export function useTestNotification() {
+  return useMutation({ mutationFn: () => api.me.notifications.test() });
 }
 
 export function useSets() {

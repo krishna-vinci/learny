@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import LinkedIdentitySection from "./LinkedIdentitySection";
 import SettingGroup from "./SettingGroup";
 import SettingSection from "./SettingSection";
 
@@ -190,6 +191,8 @@ const MyAccountSection = () => {
           </div>
         </div>
       </SettingGroup>
+
+      <LinkedIdentitySection />
 
       <EditProfileDialog open={editOpen} onOpenChange={setEditOpen} />
       <ChangePasswordDialog open={passwordOpen} onOpenChange={setPasswordOpen} />

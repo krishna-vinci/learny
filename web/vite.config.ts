@@ -31,6 +31,10 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // `push`/`notificationclick` handling for Web Push (M3a T6 slice d), spliced into
+        // the generated service worker rather than switching to `injectManifest` just for
+        // two listeners — see public/sw-push.js.
+        importScripts: ["sw-push.js"],
         // The app shell/build assets only — never intercept the API. SSE at /api/events
         // in particular must pass through untouched (no response buffering, no timeout).
         globPatterns: ["**/*.{js,css,html,svg,png,ico,woff,woff2}"],
