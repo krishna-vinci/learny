@@ -7,8 +7,18 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 unit_source="$repo_root/deploy/studium.service"
 unit_dir="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
 
+node_bin="$(dirname "$(command -v node)")"
+if ! command -v pnpm >/dev/null 2>&1; then
+  echo "pnpm is not on PATH; install it (corepack enable) and rerun." >&2
+  exit 1
+fi
+
 mkdir -p "$unit_dir"
-cp "$unit_source" "$unit_dir/studium.service"
+# systemd user services don't inherit your shell PATH (nvm, corepack), so pin the node
+# directory found now, and point WorkingDirectory/EnvironmentFile at this checkout.
+sed -e "s|%h/learny|$repo_root|g" \
+  -e "s|^ExecStart=.*|Environment=PATH=$node_bin:/usr/local/bin:/usr/bin:/bin\nExecStart=$node_bin/pnpm --filter @studium/server start|" \
+  "$unit_source" >"$unit_dir/studium.service"
 
 systemctl --user daemon-reload
 systemctl --user enable --now studium.service
