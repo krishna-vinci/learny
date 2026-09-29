@@ -1,7 +1,9 @@
 import type { FileView } from "@studium/shared";
-import { HistoryIcon } from "lucide-react";
+import { HistoryIcon, LayersIcon } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { toast } from "react-hot-toast";
+import { Link, useSearchParams } from "react-router-dom";
+import { ApiError, api } from "@/api/client";
 import { NoteHistory } from "@/components/NoteHistory";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -25,6 +27,26 @@ export function Reader({ set, path, file, className }: ReaderProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const commitParam = searchParams.get("commit") ?? undefined;
   const [historyOpen, setHistoryOpen] = useState(!!commitParam);
+  const [makingCards, setMakingCards] = useState(false);
+
+  async function makeCards() {
+    setMakingCards(true);
+    try {
+      await api.jobs.create({ kind: "make-cards", set, note: path });
+      toast.success(
+        <span>
+          Making cards…{" "}
+          <Link to="/jobs" className="underline" onClick={() => toast.dismiss()}>
+            View jobs
+          </Link>
+        </span>,
+      );
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Failed to start the cards job.");
+    } finally {
+      setMakingCards(false);
+    }
+  }
   // A chat "view diff" link (`?commit=<sha>`) should open history with that commit selected,
   // even if it's navigated to while already on this note's route.
   useEffect(() => {
@@ -52,15 +74,21 @@ export function Reader({ set, path, file, className }: ReaderProps) {
       <article className="min-w-0 flex-1 px-6 py-6">
         <div className={cn("flex items-start gap-4", bodyHasTitle ? "float-right ms-4 mb-2" : "mb-4 justify-between")}>
           {!bodyHasTitle && <h1 className="text-2xl font-semibold text-foreground">{titleFromFrontmatter(file)}</h1>}
-          <Button
-            variant={historyOpen ? "secondary" : "outline"}
-            size="sm"
-            aria-pressed={historyOpen}
-            onClick={() => (historyOpen ? closeHistory() : setHistoryOpen(true))}
-          >
-            <HistoryIcon />
-            History
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => void makeCards()} disabled={makingCards}>
+              <LayersIcon />
+              {makingCards ? "Starting…" : "Make cards"}
+            </Button>
+            <Button
+              variant={historyOpen ? "secondary" : "outline"}
+              size="sm"
+              aria-pressed={historyOpen}
+              onClick={() => (historyOpen ? closeHistory() : setHistoryOpen(true))}
+            >
+              <HistoryIcon />
+              History
+            </Button>
+          </div>
         </div>
         <MarkdownView content={file.body} />
       </article>

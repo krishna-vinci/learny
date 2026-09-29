@@ -4,6 +4,8 @@ import { createBrowserRouter, Navigate, useLocation, useParams } from "react-rou
 import { api } from "@/api/client";
 import { useSets } from "@/api/queries";
 import RootLayout from "@/layouts/RootLayout";
+import CardFilePage from "@/pages/CardFilePage";
+import CardsPage from "@/pages/CardsPage";
 import InboxPage from "@/pages/InboxPage";
 import JobsPage from "@/pages/JobsPage";
 import LibraryPage from "@/pages/LibraryPage";
@@ -59,6 +61,8 @@ export const router = createBrowserRouter([
       { path: "jobs", element: <JobsPage /> },
       { path: "s/:set", element: <SetOverviewPlaceholder /> },
       { path: "s/:set/inbox", element: <InboxPage /> },
+      { path: "s/:set/cards", element: <CardsPage /> },
+      { path: "s/:set/cards/*", element: <CardFilePage /> },
       { path: "s/:set/n/*", element: <NotePage /> },
       { path: "library", element: <LibraryPage /> },
       { path: "library/:id", element: <LibrarySourcePage /> },

@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { useInbox, useJobs, useNotes } from "@/api/queries";
+import { useCardFiles, useInbox, useJobs, useNotes } from "@/api/queries";
 import { AddSourceSheet } from "@/components/Library/AddSourceSheet";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -25,9 +25,6 @@ import SetSwitcher from "./SetSwitcher";
 import SidebarRow from "./SidebarRow";
 import SidebarSection, { SIDEBAR_SECTION_STACK_CLASSES } from "./SidebarSection";
 import { SIDEBAR_RAIL_CLASSES } from "./sidebar-layout";
-
-// "Library" is real (this task); the rest stay disabled placeholders for later M1 tasks.
-const OTHER_PLACEHOLDER_ROWS = [{ label: "Cards", icon: NotebookTextIcon }] as const;
 
 const NotesSection = ({ set, activeNotePath }: { set: string; activeNotePath?: string }) => {
   const { data: notes = [], isLoading } = useNotes(set);
@@ -65,6 +62,10 @@ const MoreSection = ({ set }: { set?: string }) => {
   const { data: jobs = [] } = useJobs();
   const runningJobCount = jobs.filter((job) => job.status === "queued" || job.status === "running").length;
   const { data: inboxItems = [] } = useInbox(set);
+  const { data: cardFiles = [] } = useCardFiles(set);
+  const draftCardCount = cardFiles.reduce((total, file) => total + (file.counts.draft ?? 0), 0);
+  const cardsActive =
+    !!set && (location.pathname === `/s/${set}/cards` || location.pathname.startsWith(`/s/${set}/cards/`));
   const goTo = (path: string) => {
     navigate(path);
     setMobileOpen(false);
@@ -105,9 +106,14 @@ const MoreSection = ({ set }: { set?: string }) => {
           state={location.pathname === "/jobs" ? "current" : "idle"}
           onClick={() => goTo("/jobs")}
         />
-        {OTHER_PLACEHOLDER_ROWS.map((row) => (
-          <SidebarRow key={row.label} icon={row.icon} label={row.label} disabled />
-        ))}
+        <SidebarRow
+          icon={NotebookTextIcon}
+          label="Cards"
+          count={draftCardCount}
+          disabled={!set}
+          state={cardsActive ? "current" : "idle"}
+          onClick={set ? () => goTo(`/s/${set}/cards`) : undefined}
+        />
         <SidebarRow
           icon={SettingsIcon}
           label="Settings"
