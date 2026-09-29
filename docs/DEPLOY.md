@@ -66,6 +66,13 @@ Env only. `config.yaml` holds no keys; settings shows set/unset only.
 
 - Study tree is git (history). Optional `STUDY_GIT_REMOTE`: daily auto-push to a private repo.
 - Originals and chats are gitignored → full backup = `tar ./data` or a restic snapshot.
+- Backups are configured from the UI (Admin → Backups): restic to a local path, sftp, rest,
+  s3, or rclone, with an optional daily schedule and retention. The repository password and
+  the destination credentials are stored encrypted and are shown once, at setup.
+- Per-note and per-set restores run from the UI; both land as a `system: restore …` commit.
+- A whole-instance restore is CLI-only: `restic restore latest --target /tmp/studium-restore`
+  with the repository URL and password from the recovery kit, then copy the files you need
+  back under `users/<username>/`.
 
 ## Upgrades
 

@@ -8,8 +8,10 @@ import { serve } from "@hono/node-server";
 import { ConfigYaml } from "@studium/shared";
 import { parse as parseYaml } from "yaml";
 import { bootstrapAccounts } from "./accounts/bootstrap.js";
-import { listUsers } from "./accounts/users.js";
+import { getUserByUsername, listUsers } from "./accounts/users.js";
 import { createModelRuntime } from "./agent/models.js";
+import { deriveBackupKey } from "./backups/config.js";
+import { BackupScheduler, BackupService } from "./backups/scheduler.js";
 import { migrate, openDb } from "./db/db.js";
 import { loadInstanceSecret } from "./db/secret.js";
 import { createServer } from "./server.js";
@@ -33,6 +35,7 @@ const baseUrl = process.env.STUDIUM_BASE_URL || null;
 const db = openDb(path.join(dataDir, "studium.db"));
 migrate(db);
 const instanceSecret = loadInstanceSecret(dataDir, process.env);
+const backupKey = deriveBackupKey(instanceSecret);
 const { setupRequired } = await bootstrapAccounts(db, process.env);
 const localHosts = new Set(["127.0.0.1", "::1", "localhost"]);
 const setupCode = setupRequired && !localHosts.has(host) ? randomBytes(6).toString("hex") : null;
@@ -56,6 +59,23 @@ const workspaces = new WorkspaceManager({
   runtime,
   maxParallelJobs: Number.isFinite(maxParallelJobs) && maxParallelJobs > 0 ? maxParallelJobs : 3,
   subscriptionProvidersFor,
+});
+
+const backupService = new BackupService({
+  db,
+  dataDir,
+  key: backupKey,
+  // Restores go through the user's workspace so they take its file locks.
+  treeFor: async (username) => {
+    const user = getUserByUsername(db, username);
+    if (user === null || user.state !== "NORMAL") throw new Error(`unknown or archived user: ${username}`);
+    const workspace = await workspaces.for(user);
+    return { root: workspace.root, locks: workspace.locks };
+  },
+});
+const backupScheduler = new BackupScheduler({
+  service: backupService,
+  onError: (error) => console.warn(`backup scheduler: ${error instanceof Error ? error.message : String(error)}`),
 });
 
 function messageText(message: Message): string {
@@ -98,6 +118,7 @@ const app = createServer({
   instanceSecret,
   workspaces,
   authOpts: { trustProxy, baseUrl, setupCode },
+  backups: { service: backupService, db, key: backupKey },
   ...(existsSync(webDist) ? { webDist } : {}),
 });
 await workspaces.startAll();
@@ -105,12 +126,14 @@ await workspaces.startAll();
 const server = serve({ fetch: app.fetch, port, hostname: host }, (info) => {
   console.log(`studium listening on http://${host}:${info.port} (data dir: ${dataDir})`);
 });
+backupScheduler.start();
 
 let shuttingDown = false;
 async function shutdown(signal: string): Promise<void> {
   if (shuttingDown) return;
   shuttingDown = true;
   console.log(`received ${signal}, shutting down`);
+  backupScheduler.stop();
   await workspaces.stopAll().catch(() => undefined);
   server.close(() => {
     db.close();

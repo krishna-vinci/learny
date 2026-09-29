@@ -20,6 +20,7 @@ import {
 import { requireAdmin, sessionAuth } from "./auth/middleware.js";
 import { hashPassword } from "./auth/password.js";
 import { type AuthRouteOptions, authRoutes } from "./auth/routes.js";
+import { type BackupRouteDeps, backupRoutes } from "./backups/routes.js";
 import { deriveKey } from "./db/secret.js";
 import { requestGuard } from "./http/guard.js";
 import { identityProviderAdminRoutes, identityRoutes, ssoAuthRoutes } from "./sso/routes.js";
@@ -37,6 +38,7 @@ export interface ServerDeps {
   workspaces: WorkspaceProvider;
   webDist?: string;
   authOpts: Omit<AuthRouteOptions, "db">;
+  backups?: BackupRouteDeps;
 }
 
 async function jsonBody(c: Context): Promise<Record<string, unknown> | null> {
@@ -289,6 +291,7 @@ export function createServer(deps: ServerDeps): Hono {
   app.use("/api/admin/*", requireAdmin);
   app.route("/api/admin/identity-providers", identityProviderAdminRoutes(ssoOptions));
   app.route("/api/admin", adminRoutes(deps.db, deps.workspaces));
+  if (deps.backups !== undefined) app.route("/api/admin/backups", backupRoutes(deps.backups));
   app.use("/api/*", async (c, next) => {
     if (!c.get("user").aiEnabled && aiRouteDisabled(c.req.method, c.req.path)) {
       return c.json({ error: "AI features are disabled for this account" }, 403);
