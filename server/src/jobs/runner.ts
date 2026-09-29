@@ -62,6 +62,7 @@ interface JobRecord {
   createdAt: number;
   controller: AbortController;
   providers: Set<string>;
+  billing?: JobBilling;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -122,6 +123,32 @@ export class JobRunner {
 
   register(kind: JobKind, handler: JobHandler): void {
     this.#handlers.set(kind, handler);
+  }
+
+  seedHistory(views: JobView[]): void {
+    for (const view of views) {
+      if (!isFinished(view.status)) continue;
+      const timestamp = Date.parse(view.finishedAt ?? view.startedAt ?? "");
+      this.#jobs.set(view.id, {
+        id: view.id,
+        kind: view.kind,
+        set: view.set,
+        title: view.title,
+        status: view.status,
+        progress: view.progress,
+        startedAt: view.startedAt,
+        finishedAt: view.finishedAt,
+        usage: { ...view.usage },
+        ...(view.result === undefined ? {} : { result: { ...view.result } }),
+        ...(view.error === undefined ? {} : { error: view.error }),
+        input: undefined,
+        createdAt: Number.isNaN(timestamp) ? 0 : timestamp,
+        controller: new AbortController(),
+        providers: new Set(),
+        billing: view.billing,
+      });
+    }
+    this.#pruneFinished();
   }
 
   enqueue(kind: JobKind, input: unknown, meta: { set: string | null; title: string }): JobView {
@@ -273,7 +300,7 @@ export class JobRunner {
       startedAt: record.startedAt,
       finishedAt: record.finishedAt,
       usage: { ...record.usage },
-      billing: classifyBilling(record.providers, this.#subscription),
+      billing: record.billing ?? classifyBilling(record.providers, this.#subscription),
       ...(record.result === undefined ? {} : { result: { ...record.result } }),
       ...(record.error === undefined ? {} : { error: record.error }),
     };

@@ -3,10 +3,11 @@
 // chain (RootLayout's `min-h-full` ancestors) doesn't reliably reach 100% of the viewport,
 // which is why the composer used to float mid-page instead of sitting at the bottom.
 import { PanelRightCloseIcon, PanelRightOpenIcon } from "lucide-react";
-import { type CSSProperties, useRef } from "react";
+import { type CSSProperties, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import ChatPanel from "./ChatPanel";
+import { OPEN_CHAT_DOCK_EVENT } from "./openChatDock";
 import ResizeHandle from "./ResizeHandle";
 import type { UseChatDockResult } from "./useChatDock";
 import { useChatDockCollapsed } from "./useChatDockCollapsed";
@@ -29,6 +30,13 @@ function DesktopChatDock({ chat }: { chat: UseChatDockResult }) {
   const { collapsed, setCollapsed } = useChatDockCollapsed();
   const { width, minWidth, maxWidth, setWidth } = useChatDockWidth();
   const panelRef = useRef<HTMLDivElement>(null);
+
+  // Lets pages outside the dock (SetHomePage's "Ask tutor") expand it — see openChatDock.ts.
+  useEffect(() => {
+    const listener = () => setCollapsed(false);
+    window.addEventListener(OPEN_CHAT_DOCK_EVENT, listener);
+    return () => window.removeEventListener(OPEN_CHAT_DOCK_EVENT, listener);
+  }, [setCollapsed]);
 
   if (collapsed) return <CollapsedRail onExpand={() => setCollapsed(false)} />;
 

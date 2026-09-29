@@ -15,6 +15,7 @@ import { startInboxWatcher } from "./ingest/inbox-watcher.js";
 import { createCardsJob } from "./jobs/cards-job.js";
 import { createDraftJob } from "./jobs/draft-job.js";
 import { createIngestJob } from "./jobs/ingest-job.js";
+import { loadJobHistory } from "./jobs/log.js";
 import { JobRunner } from "./jobs/runner.js";
 import { McpManager } from "./mcp/bridge.js";
 import { loadMcpConfig } from "./mcp/config.js";
@@ -66,6 +67,7 @@ const jobs = new JobRunner({
 jobs.register("draft-chapter", createDraftJob({ root, locks, mcp, runtime, hub }));
 jobs.register("make-cards", createCardsJob({ root, locks, mcp, runtime, hub }));
 jobs.register("ingest", createIngestJob({ root, locks, mcp, runtime, hub }));
+jobs.seedHistory(await loadJobHistory(root));
 
 function messageText(message: Message): string {
   if (message.role !== "user") return "";

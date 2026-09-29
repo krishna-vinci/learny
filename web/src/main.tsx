@@ -32,3 +32,18 @@ createRoot(container).render(
     </QueryClientProvider>
   </StrictMode>,
 );
+
+// VitePWA's `injectRegister: "auto"` (the default) already registers the service worker;
+// this just makes a fresh deploy actually take over an already-open tab (e.g. the PWA on
+// a phone that was never closed). `skipWaiting`/`clientsClaim` in vite.config.ts let a new
+// SW activate and take control immediately; the reload here — guarded so it fires once —
+// picks up the new `index.html`/bundle it now controls, instead of leaving the page
+// running on stale JS until the user manually reloads or clears the cache.
+if ("serviceWorker" in navigator) {
+  let reloading = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (reloading) return;
+    reloading = true;
+    window.location.reload();
+  });
+}

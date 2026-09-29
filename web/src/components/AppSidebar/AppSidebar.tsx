@@ -7,6 +7,7 @@ import {
   ArchiveIcon,
   BookOpenIcon,
   ListChecksIcon,
+  LogOutIcon,
   MenuIcon,
   NotebookTextIcon,
   PlusIcon,
@@ -17,9 +18,18 @@ import { useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useCardFiles, useInbox, useJobs, useNotes } from "@/api/queries";
 import { AddSourceSheet } from "@/components/Library/AddSourceSheet";
-import { Button } from "@/components/ui/button";
+import { NewChapterSheet } from "@/components/NewChapterSheet";
+import { NewNoteDialog } from "@/components/NewNoteDialog";
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useLastVisitedSet } from "@/pages/useLastVisitedSet";
+import { useSignOut } from "@/pages/useSignOut";
 import { useMobileSidebar } from "./MobileSidebarContext";
 import SetSwitcher from "./SetSwitcher";
 import SidebarRow from "./SidebarRow";
@@ -30,24 +40,64 @@ const NotesSection = ({ set, activeNotePath }: { set: string; activeNotePath?: s
   const { data: notes = [], isLoading } = useNotes(set);
   const { setMobileOpen } = useMobileSidebar();
   const navigate = useNavigate();
+  const [newChapterOpen, setNewChapterOpen] = useState(false);
+  const [newNoteOpen, setNewNoteOpen] = useState(false);
 
   return (
-    <SidebarSection label="Notes">
-      {isLoading && <div className="px-2 py-1 text-sm text-muted-foreground">Loading…</div>}
-      {!isLoading && notes.length === 0 && <div className="px-2 py-1 text-sm text-muted-foreground">No notes yet</div>}
-      {notes.map((note) => (
-        <SidebarRow
-          key={note.path}
-          icon={ListChecksIcon}
-          label={note.title}
-          state={note.path === activeNotePath ? "current" : "idle"}
-          onClick={() => {
-            navigate(`/s/${set}/n/${note.path.replace(/^notes\//, "")}`);
+    <>
+      <SidebarSection
+        label="Notes"
+        action={
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label="Add note"
+              title="Add note"
+              className={buttonVariants({ variant: "quiet", size: "icon-compact" })}
+            >
+              <PlusIcon className="size-3.5" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => setNewChapterOpen(true)}>New chapter</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setNewNoteOpen(true)}>Write a note</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        }
+      >
+        {isLoading && <div className="px-2 py-1 text-sm text-muted-foreground">Loading…</div>}
+        {!isLoading && notes.length === 0 && (
+          <div className="px-2 py-1 text-sm text-muted-foreground">No notes yet</div>
+        )}
+        {notes.map((note) => (
+          <SidebarRow
+            key={note.path}
+            icon={ListChecksIcon}
+            label={note.title}
+            state={note.path === activeNotePath ? "current" : "idle"}
+            onClick={() => {
+              navigate(`/s/${set}/n/${note.path.replace(/^notes\//, "")}`);
+              setMobileOpen(false);
+            }}
+          />
+        ))}
+      </SidebarSection>
+      {newChapterOpen && (
+        <NewChapterSheet
+          set={set}
+          onClose={() => {
+            setNewChapterOpen(false);
             setMobileOpen(false);
           }}
         />
-      ))}
-    </SidebarSection>
+      )}
+      <NewNoteDialog
+        set={set}
+        open={newNoteOpen}
+        onOpenChange={(open) => {
+          setNewNoteOpen(open);
+          if (!open) setMobileOpen(false);
+        }}
+      />
+    </>
   );
 };
 
@@ -66,6 +116,7 @@ const MoreSection = ({ set }: { set?: string }) => {
   const draftCardCount = cardFiles.reduce((total, file) => total + (file.counts.draft ?? 0), 0);
   const cardsActive =
     !!set && (location.pathname === `/s/${set}/cards` || location.pathname.startsWith(`/s/${set}/cards/`));
+  const { signOut, signingOut } = useSignOut();
   const goTo = (path: string) => {
     navigate(path);
     setMobileOpen(false);
@@ -77,7 +128,13 @@ const MoreSection = ({ set }: { set?: string }) => {
         label="More"
         ariaLabel="Library and other sections"
         action={
-          <Button variant="quiet" size="icon-compact" onClick={() => setAddSourceOpen(true)} aria-label="Add source">
+          <Button
+            variant="quiet"
+            size="icon-compact"
+            onClick={() => setAddSourceOpen(true)}
+            aria-label="Add source"
+            title="Add source"
+          >
             <PlusIcon className="size-3.5" />
           </Button>
         }
@@ -123,6 +180,7 @@ const MoreSection = ({ set }: { set?: string }) => {
             setMobileOpen(false);
           }}
         />
+        <SidebarRow icon={LogOutIcon} label={signingOut ? "Signing out…" : "Sign out"} onClick={signOut} />
       </SidebarSection>
       <AddSourceSheet open={addSourceOpen} onOpenChange={setAddSourceOpen} defaultSet={set ?? null} />
     </>

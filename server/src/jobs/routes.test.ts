@@ -132,6 +132,40 @@ describe("jobs routes", () => {
     expect(jobs.every((job) => job.set === "beta")).toBe(true);
   });
 
+  it("lists seeded history and filters it by set", async () => {
+    runner.seedHistory([
+      {
+        id: "log:alpha:1",
+        kind: "ingest",
+        set: "alpha",
+        title: "Old alpha job",
+        status: "done",
+        progress: "",
+        startedAt: null,
+        finishedAt: "2026-09-29T10:00Z",
+        usage: { input: 10, output: 2, cacheRead: 0, cacheWrite: 0, costUsd: 0.01 },
+        billing: "metered",
+      },
+      {
+        id: "log:beta:1",
+        kind: "make-cards",
+        set: "beta",
+        title: "Old beta job",
+        status: "failed",
+        progress: "",
+        startedAt: null,
+        finishedAt: "2026-09-29T11:00Z",
+        usage: { input: 20, output: 4, cacheRead: 0, cacheWrite: 0, costUsd: 0.02 },
+        billing: "metered",
+      },
+    ]);
+
+    const all = (await (await app.request("/api/jobs")).json()) as Array<{ id: string }>;
+    expect(all.map((job) => job.id)).toEqual(["log:beta:1", "log:alpha:1"]);
+    const alpha = (await (await app.request("/api/jobs?set=alpha")).json()) as Array<{ id: string }>;
+    expect(alpha.map((job) => job.id)).toEqual(["log:alpha:1"]);
+  });
+
   it("cancels a running job with 204", async () => {
     runner.register("ingest", async (_input, ctx) => {
       await new Promise<void>((_resolve, reject) => {

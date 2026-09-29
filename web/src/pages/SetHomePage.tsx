@@ -1,0 +1,233 @@
+// `/s/:set` — the set's home page (replaces the old `SetOverviewPlaceholder`, which left
+// phones on a blank screen since the note list lives behind the ☰ drawer there). Shows
+// the set's goal/next action, the primary authoring actions, the notes list, a "waiting
+// on you" summary, and — for a set with no notes yet — a "how it works" empty state.
+import { ArchiveIcon, ListChecksIcon, MessageSquareIcon, NotebookTextIcon, PlusIcon, WrenchIcon } from "lucide-react";
+import { useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { useCardFiles, useInbox, useJobs, useNoteFile, useNotes, useSets } from "@/api/queries";
+import { openChatDock } from "@/components/ChatDock/openChatDock";
+import { AddSourceSheet } from "@/components/Library/AddSourceSheet";
+import { NewChapterSheet } from "@/components/NewChapterSheet";
+import { NewNoteDialog } from "@/components/NewNoteDialog";
+import { cn } from "@/lib/utils";
+
+function ActionButton({
+  icon: Icon,
+  label,
+  description,
+  onClick,
+}: {
+  icon: typeof PlusIcon;
+  label: string;
+  description: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex min-h-[72px] flex-col items-start gap-1 rounded-lg border border-border/70 bg-background p-3 text-start shadow-xs transition-colors hover:bg-accent/40"
+    >
+      <span className="flex items-center gap-2 font-medium text-foreground">
+        <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        {label}
+      </span>
+      <span className="text-sm text-muted-foreground">{description}</span>
+    </button>
+  );
+}
+
+function NoteRow({ set, path, title, order }: { set: string; path: string; title: string; order: number | null }) {
+  return (
+    <li>
+      <Link
+        to={`/s/${set}/n/${path.replace(/^notes\//, "")}`}
+        className="flex min-h-11 items-center gap-2 border-b border-border/70 py-2.5 last:border-b-0 hover:bg-accent/40"
+      >
+        <ListChecksIcon className="size-4 shrink-0 text-muted-foreground/70" aria-hidden="true" />
+        {order != null && <span className="w-6 shrink-0 text-end text-sm text-muted-foreground">{order}</span>}
+        <span className="min-w-0 flex-1 truncate text-foreground">{title}</span>
+      </Link>
+    </li>
+  );
+}
+
+function WaitingRow({
+  icon: Icon,
+  label,
+  count,
+  to,
+}: {
+  icon: typeof ArchiveIcon;
+  label: string;
+  count: number;
+  to: string;
+}) {
+  if (count === 0) return null;
+  return (
+    <li>
+      <Link
+        to={to}
+        className="flex min-h-11 items-center gap-2 border-b border-border/70 py-2 last:border-b-0 hover:bg-accent/40"
+      >
+        <Icon className="size-4 shrink-0 text-muted-foreground/70" aria-hidden="true" />
+        <span className="min-w-0 flex-1 text-foreground">{label}</span>
+        <span className="shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">
+          {count}
+        </span>
+      </Link>
+    </li>
+  );
+}
+
+function HowItWorks({
+  onNewChapter,
+  onWriteNote,
+  onAddSource,
+}: {
+  onNewChapter: () => void;
+  onWriteNote: () => void;
+  onAddSource: () => void;
+}) {
+  const steps = [
+    { n: 1, title: "Add a source", body: "Bring in a web page, PDF, or paper to learn from." },
+    { n: 2, title: "New chapter", body: "The agent drafts a note from your sources, and a checker verifies it." },
+    { n: 3, title: "Make cards", body: "Turn a note into flashcards, review them, then send to Anki." },
+  ];
+  return (
+    <div className="mt-6 rounded-lg border border-dashed border-border/70 p-4">
+      <p className="text-sm font-medium text-foreground">How it works</p>
+      <ol className="mt-3 flex flex-col gap-3">
+        {steps.map((step) => (
+          <li key={step.n} className="flex items-start gap-3">
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
+              {step.n}
+            </span>
+            <div className="min-w-0">
+              <p className="font-medium text-foreground">{step.title}</p>
+              <p className="text-sm text-muted-foreground">{step.body}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <ActionButton icon={PlusIcon} label="Add source" description="Web page, PDF, paper…" onClick={onAddSource} />
+        <ActionButton
+          icon={NotebookTextIcon}
+          label="New chapter"
+          description="Draft from sources"
+          onClick={onNewChapter}
+        />
+        <ActionButton icon={ListChecksIcon} label="Write a note" description="Start from blank" onClick={onWriteNote} />
+      </div>
+    </div>
+  );
+}
+
+/** The PLAN.md "## Goal" section as one line; falls back to the text before the first heading. */
+function goalText(body: string): string {
+  const goal =
+    /^##\s+Goal\s*\n([\s\S]*?)(?=^#{1,6}\s|(?![\s\S]))/m.exec(body)?.[1] ?? body.split(/^#{1,6}\s/m)[0] ?? "";
+  return goal.replace(/\s+/g, " ").trim();
+}
+
+export default function SetHomePage() {
+  const params = useParams<{ set: string }>();
+  const set = params.set as string;
+  const { data: sets } = useSets();
+  const { data: notes = [], isLoading: notesLoading } = useNotes(set);
+  const { data: inboxItems = [] } = useInbox(set);
+  const { data: cardFiles = [] } = useCardFiles(set);
+  const { data: jobs = [] } = useJobs(set);
+  const { data: plan } = useNoteFile(set, "PLAN.md");
+
+  const [newChapterOpen, setNewChapterOpen] = useState(false);
+  const [newNoteOpen, setNewNoteOpen] = useState(false);
+  const [addSourceOpen, setAddSourceOpen] = useState(false);
+
+  const summary = sets?.find((s) => s.slug === set);
+  const draftCardCount = cardFiles.reduce((total, file) => total + (file.counts.draft ?? 0), 0);
+  const runningJobCount = jobs.filter((job) => job.status === "queued" || job.status === "running").length;
+
+  return (
+    <div className="mx-auto w-full max-w-3xl px-4 py-6 md:px-6">
+      <div>
+        <h1 className="text-xl font-semibold text-foreground">{summary?.title ?? set}</h1>
+        {summary?.nextAction && <p className="mt-1 text-sm text-muted-foreground">{summary.nextAction}</p>}
+        {plan?.body && <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{goalText(plan.body)}</p>}
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <ActionButton
+          icon={NotebookTextIcon}
+          label="New chapter"
+          description="Draft from sources"
+          onClick={() => setNewChapterOpen(true)}
+        />
+        <ActionButton
+          icon={ListChecksIcon}
+          label="Write a note"
+          description="Start from blank"
+          onClick={() => setNewNoteOpen(true)}
+        />
+        <ActionButton
+          icon={PlusIcon}
+          label="Add source"
+          description="Web page, PDF, paper…"
+          onClick={() => setAddSourceOpen(true)}
+        />
+        <ActionButton
+          icon={MessageSquareIcon}
+          label="Ask tutor"
+          description="Chat about this set"
+          onClick={() => openChatDock()}
+        />
+      </div>
+
+      {(inboxItems.length > 0 || draftCardCount > 0 || runningJobCount > 0) && (
+        <section className="mt-6">
+          <h2 className="text-sm font-semibold text-foreground">Waiting on you</h2>
+          <ul className={cn("mt-2 rounded-md border border-border/70 px-3")}>
+            <WaitingRow
+              icon={ArchiveIcon}
+              label="Chapters to review"
+              count={inboxItems.length}
+              to={`/s/${set}/inbox`}
+            />
+            <WaitingRow
+              icon={NotebookTextIcon}
+              label="Draft cards to review"
+              count={draftCardCount}
+              to={`/s/${set}/cards`}
+            />
+            <WaitingRow icon={WrenchIcon} label="Jobs running" count={runningJobCount} to="/jobs" />
+          </ul>
+        </section>
+      )}
+
+      <section className="mt-6">
+        <h2 className="text-sm font-semibold text-foreground">Notes</h2>
+        {notesLoading && <p className="mt-2 text-sm text-muted-foreground">Loading…</p>}
+        {!notesLoading && notes.length === 0 && (
+          <HowItWorks
+            onNewChapter={() => setNewChapterOpen(true)}
+            onWriteNote={() => setNewNoteOpen(true)}
+            onAddSource={() => setAddSourceOpen(true)}
+          />
+        )}
+        {!notesLoading && notes.length > 0 && (
+          <ul className="mt-2 rounded-md border border-border/70 px-3">
+            {notes.map((note) => (
+              <NoteRow key={note.path} set={set} path={note.path} title={note.title} order={note.order} />
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {newChapterOpen && <NewChapterSheet set={set} onClose={() => setNewChapterOpen(false)} />}
+      <NewNoteDialog set={set} open={newNoteOpen} onOpenChange={setNewNoteOpen} />
+      <AddSourceSheet open={addSourceOpen} onOpenChange={setAddSourceOpen} defaultSet={set} />
+    </div>
+  );
+}

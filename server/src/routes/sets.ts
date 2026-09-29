@@ -2,17 +2,23 @@ import { promises as fs } from "node:fs";
 import type { Context } from "hono";
 import { Hono } from "hono";
 import type { EventHub } from "../events.js";
+import { createNote, createSet, writeNoteAsUser } from "../tree/authoring.js";
+import { EditError } from "../tree/edit.js";
 import { diff, log, RevertConflictError, revert } from "../tree/git.js";
+import type { FileLocks } from "../tree/lock.js";
 import { PathError, resolveInRoot } from "../tree/paths.js";
 import { isSetSlug, listNotes, listSets, readSetFile } from "../tree/read.js";
 
 export interface SetsDeps {
   root: string;
   hub: EventHub;
+  locks: FileLocks;
 }
 
 const DEFAULT_HISTORY_LIMIT = 50;
 const MAX_HISTORY_LIMIT = 500;
+const MAX_NOTE_BYTES = 1024 * 1024;
+const NOTE_PATH = /^notes\/[a-z0-9][a-z0-9._-]*\.md$/;
 
 function notFound(c: Context): Response {
   return c.json({ error: "not found" }, 404);
@@ -63,15 +69,60 @@ async function readJsonBody(c: Context): Promise<Record<string, unknown>> {
 }
 
 export function setsRoutes(deps: SetsDeps): Hono {
-  const { root, hub } = deps;
+  const { root, hub, locks } = deps;
   const app = new Hono();
 
   app.get("/", async (c) => c.json(await listSets(root)));
+
+  app.post("/", async (c) => {
+    const body = await readJsonBody(c);
+    const title = typeof body.title === "string" ? body.title.trim() : "";
+    if (title.length < 1 || title.length > 120) {
+      return c.json({ error: "title must be between 1 and 120 characters" }, 400);
+    }
+    if (body.goal !== undefined && typeof body.goal !== "string") {
+      return c.json({ error: "goal must be a string" }, 400);
+    }
+    const goal = typeof body.goal === "string" ? body.goal : undefined;
+    if (goal !== undefined && goal.length > 2000) {
+      return c.json({ error: "goal must be at most 2000 characters" }, 400);
+    }
+
+    const result = await createSet(root, goal === undefined ? { title } : { title, goal });
+    if (result.sha !== null) {
+      hub.publish({ type: "commit", sha: result.sha, subject: result.subject, author: "user" });
+    }
+    return c.json({ slug: result.slug }, 201);
+  });
 
   app.get("/:set/notes", async (c) => {
     const set = c.req.param("set");
     if (!(await setExists(root, set))) return notFound(c);
     return c.json(await listNotes(root, set));
+  });
+
+  app.post("/:set/notes", async (c) => {
+    const set = c.req.param("set");
+    if (!(await setExists(root, set))) return notFound(c);
+
+    const body = await readJsonBody(c);
+    const title = typeof body.title === "string" ? body.title.trim() : "";
+    if (title.length < 1 || title.length > 120) {
+      return c.json({ error: "title must be between 1 and 120 characters" }, 400);
+    }
+
+    try {
+      const result = await createNote(root, locks, set, title);
+      if (result.sha !== null) {
+        hub.publish({ type: "commit", sha: result.sha, subject: result.subject, author: "user" });
+      }
+      return c.json({ path: result.path }, 201);
+    } catch (error) {
+      if (error instanceof PathError || (error instanceof EditError && error.code === "forbidden")) {
+        return invalidPath(c);
+      }
+      throw error;
+    }
   });
 
   app.get("/:set/file", async (c) => {
@@ -85,6 +136,36 @@ export function setsRoutes(deps: SetsDeps): Hono {
       if (view === null) return notFound(c);
       return c.json(view);
     } catch (error) {
+      if (error instanceof PathError) return invalidPath(c);
+      throw error;
+    }
+  });
+
+  app.put("/:set/file", async (c) => {
+    const set = c.req.param("set");
+    if (!(await setExists(root, set))) return notFound(c);
+
+    const body = await readJsonBody(c);
+    if (typeof body.path !== "string" || !NOTE_PATH.test(body.path)) return invalidPath(c);
+    if (typeof body.content !== "string" || typeof body.previous !== "string") {
+      return c.json({ error: "content and previous must be strings" }, 400);
+    }
+    if (Buffer.byteLength(body.content, "utf8") > MAX_NOTE_BYTES) {
+      return c.json({ error: "content must be at most 1 MB" }, 413);
+    }
+
+    try {
+      const result = await writeNoteAsUser(root, locks, `${set}/${body.path}`, body.content, body.previous);
+      if (result.sha !== null) {
+        hub.publish({ type: "commit", sha: result.sha, subject: result.subject, author: "user" });
+      }
+      return c.json({ sha: result.sha });
+    } catch (error) {
+      if (error instanceof EditError) {
+        if (error.code === "not_found") return notFound(c);
+        if (error.code === "conflict") return c.json({ error: "changed", current: error.current ?? "" }, 409);
+        if (error.code === "forbidden") return invalidPath(c);
+      }
       if (error instanceof PathError) return invalidPath(c);
       throw error;
     }

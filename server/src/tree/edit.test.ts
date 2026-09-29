@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readdir, readFile, rm, symlink, writeFile } from "node:
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createFile, EditError, editFile, readText } from "./edit";
+import { createFile, EditError, editFile, readText, replaceFile } from "./edit";
 import { FileLocks } from "./lock";
 
 describe("edit", () => {
@@ -55,6 +55,24 @@ describe("edit", () => {
       name: "EditError",
       code: "not_found",
     });
+  });
+
+  it("replaces a whole file only when its expected content is current", async () => {
+    const original = await readText(root, noteRel);
+    await replaceFile(root, locks, "user", noteRel, "# Updated\n", original);
+    await expect(readText(root, noteRel)).resolves.toBe("# Updated\n");
+
+    await expect(replaceFile(root, locks, "user", noteRel, "# Stale\n", original)).rejects.toMatchObject({
+      name: "EditError",
+      code: "conflict",
+      current: "# Updated\n",
+    });
+  });
+
+  it("reports not_found when replacing a missing file", async () => {
+    await expect(
+      replaceFile(root, locks, "user", "linear-algebra/notes/missing.md", "new", "old"),
+    ).rejects.toMatchObject({ name: "EditError", code: "not_found" });
   });
 
   it("rejects identical old and new strings", async () => {

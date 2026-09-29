@@ -43,7 +43,7 @@ export function createApp(deps: AppDeps | LegacyAppDeps): Hono {
   // Registered after authRoutes so the public login route is handled first.
   app.use("/api/*", requireAuth(deps.auth));
 
-  app.route("/api/sets", setsRoutes({ root: deps.root, hub: deps.hub }));
+  app.route("/api/sets", setsRoutes({ root: deps.root, hub: deps.hub, locks: deps.locks }));
   app.route("/api/sets/:set", inboxRoutes({ root: deps.root, locks: deps.locks, hub: deps.hub }));
   app.route("/api/sets/:set/cards", cardsRoutes({ root: deps.root, locks: deps.locks, hub: deps.hub }));
   app.route("/api/sets/:set/anki", ankiRoutes({ root: deps.root, locks: deps.locks, hub: deps.hub }));

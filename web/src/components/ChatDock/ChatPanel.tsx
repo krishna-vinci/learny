@@ -214,7 +214,7 @@ function ChatPanel({ chat, headerEnd, className, composerClassName }: ChatPanelP
       <div className="relative min-h-0 flex-1">
         <ScrollArea ref={scrollRef} onScroll={handleScroll} className="h-full px-3 py-3">
           {chatId === null ? (
-            <p className="p-2 text-sm text-muted-foreground">No chats yet — start one.</p>
+            <p className="p-2 text-sm text-muted-foreground">No chats yet. Type a message below to start one.</p>
           ) : (
             <div className="flex flex-col gap-3">
               {state.messages.map((message) => (
@@ -264,8 +264,8 @@ function ChatPanel({ chat, headerEnd, className, composerClassName }: ChatPanelP
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={handleComposerKeyDown}
-          disabled={!chatId || state.running}
-          placeholder={chatId ? "Message the tutor…" : "Start a chat first"}
+          disabled={state.running}
+          placeholder="Message the tutor…"
           rows={3}
           className="w-full resize-none rounded-md border border-border bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-muted-foreground disabled:opacity-50"
         />
@@ -275,7 +275,7 @@ function ChatPanel({ chat, headerEnd, className, composerClassName }: ChatPanelP
               <SquareIcon /> Stop
             </Button>
           ) : (
-            <Button size="sm" onClick={handleSend} disabled={!chatId || draft.trim() === ""}>
+            <Button size="sm" onClick={() => void handleSend()} disabled={draft.trim() === "" || createChat.isPending}>
               <SendIcon /> Send
             </Button>
           )}

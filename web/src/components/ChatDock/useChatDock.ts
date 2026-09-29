@@ -71,7 +71,8 @@ export function useChatDock(set: string) {
   });
 
   const sendMessage = useMutation({
-    mutationFn: (text: string) => api.chats.sendMessage(set, chatId as string, text, anchor ?? undefined),
+    mutationFn: ({ id, text }: { id: string; text: string }) =>
+      api.chats.sendMessage(set, id, text, anchor ?? undefined),
     onError: (error) => {
       if (error instanceof ApiError && error.status === 409) {
         toast.error("Chat is busy — wait for it to finish.");
@@ -102,17 +103,28 @@ export function useChatDock(set: string) {
     dispatch({ type: "proposal_dismissed", proposalId });
   };
 
-  const handleSend = () => {
+  // With no chat open, the first message starts one, so the composer is never a dead end.
+  const handleSend = async () => {
     const text = draft.trim();
-    if (!text || !chatId || state.running) return;
+    if (!text || state.running || createChat.isPending) return;
     setDraft("");
-    sendMessage.mutate(text);
+    let id = chatId;
+    if (id === null) {
+      try {
+        id = (await createChat.mutateAsync()).id;
+      } catch {
+        setDraft(text);
+        toast.error("Could not start a chat.");
+        return;
+      }
+    }
+    sendMessage.mutate({ id, text });
   };
 
   const handleComposerKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      handleSend();
+      void handleSend();
     }
   };
 

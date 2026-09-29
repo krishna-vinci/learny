@@ -10,7 +10,7 @@ import type {
   SettingsView,
   SourceSummary,
 } from "@studium/shared";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type LibrarySourceView } from "./client";
 import { useStudiumEvents } from "./events";
 
@@ -41,6 +41,46 @@ export function useNotes(set: string | undefined) {
     queryKey: queryKeys.notes(set ?? ""),
     queryFn: () => api.sets.notes(set as string),
     enabled: !!set,
+  });
+}
+
+// W1: NewSetDialog — creates a set, then refreshes the sidebar's set list.
+export function useCreateSet() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { title: string; goal?: string }) => api.sets.create(body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.sets });
+    },
+  });
+}
+
+// W1: NewNoteDialog ("Write a note") — creates a blank note, then refreshes that set's
+// notes list (sidebar + SetHomePage both read it).
+export function useCreateNote(set: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (title: string) => api.sets.createNote(set as string, title),
+    onSuccess: () => {
+      if (set) queryClient.invalidateQueries({ queryKey: queryKeys.notes(set) });
+    },
+  });
+}
+
+// W1: NotePage edit mode save — PUT the file, then refetch it (the saved `content` is
+// raw file text; `FileView.file`'s cache holds the parsed { frontmatter, body } shape, so
+// a refetch rather than a manual patch is what gets that split right).
+export function useSaveFile(set: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ path, content, previous }: { path: string; content: string; previous: string }) =>
+      api.sets.putFile(set as string, path, content, previous),
+    onSuccess: (_result, { path }) => {
+      if (!set) return;
+      queryClient.invalidateQueries({ queryKey: queryKeys.file(set, path) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notes(set) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.history(set, path) });
+    },
   });
 }
 

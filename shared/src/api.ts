@@ -16,6 +16,8 @@ export interface FileView {
   path: string;
   frontmatter: Record<string, unknown>;
   body: string;
+  /** Exact file text on disk; the note editor edits this and sends it back as `previous`. */
+  raw: string;
 }
 export interface CommitInfo {
   sha: string;

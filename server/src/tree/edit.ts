@@ -4,15 +4,17 @@ import path from "node:path";
 import type { FileLocks } from "./lock";
 import { canonicalRel, isWritableByAgent, PathError, resolveInRoot } from "./paths";
 
-export type EditErrorCode = "not_found" | "no_match" | "multiple_matches" | "exists" | "forbidden";
+export type EditErrorCode = "not_found" | "no_match" | "multiple_matches" | "exists" | "forbidden" | "conflict";
 
 export class EditError extends Error {
   readonly code: EditErrorCode;
+  readonly current?: string;
 
-  constructor(code: EditErrorCode, message: string) {
+  constructor(code: EditErrorCode, message: string, current?: string) {
     super(message);
     this.name = "EditError";
     this.code = code;
+    this.current = current;
   }
 }
 
@@ -127,6 +129,26 @@ export async function editFile(
     }
     await atomicWrite(abs, updated);
     return { replacements: opts?.replaceAll === true ? matches : 1 };
+  });
+}
+
+export async function replaceFile(
+  root: string,
+  locks: FileLocks,
+  holder: string,
+  rel: string,
+  content: string,
+  expected: string,
+  opts?: { canWrite?: (rootRelativePath: string) => boolean },
+): Promise<void> {
+  const abs = writableAbsolutePath(root, rel, opts?.canWrite);
+
+  await locks.withLock(rel, holder, async () => {
+    const current = await readUtf8(abs, rel);
+    if (current !== expected) {
+      throw new EditError("conflict", `File changed since it was read: ${rel}`, current);
+    }
+    await atomicWrite(abs, content);
   });
 }
 

@@ -165,6 +165,29 @@ describe("JobRunner", () => {
     expect(runner.list("missing")).toEqual([]);
   });
 
+  it("seeds finished history for list and get without making it cancellable", () => {
+    const { runner } = makeRunner();
+    runner.seedHistory([
+      {
+        id: "log:alpha:1",
+        kind: "draft-chapter",
+        set: "alpha",
+        title: "Vectors",
+        status: "done",
+        progress: "",
+        startedAt: null,
+        finishedAt: "2026-09-29T10:00Z",
+        usage: { input: 100, output: 20, cacheRead: 0, cacheWrite: 0, costUsd: 0.01 },
+        billing: "metered",
+        result: { commitSha: "abc1234" },
+      },
+    ]);
+
+    expect(runner.get("log:alpha:1")?.title).toBe("Vectors");
+    expect(runner.list("alpha").map((job) => job.id)).toEqual(["log:alpha:1"]);
+    expect(runner.cancel("log:alpha:1")).toBe(false);
+  });
+
   it("keeps at most 200 finished jobs in memory, dropping the oldest", async () => {
     const { runner } = makeRunner({ maxParallel: 8 });
     runner.register("ingest", async () => undefined);

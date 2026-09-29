@@ -121,11 +121,17 @@ describe("listNotes", () => {
 });
 
 describe("readSetFile", () => {
-  it("returns frontmatter and body for an existing file", async () => {
-    await write("linear-algebra/notes/01-a.md", "---\ntitle: Alpha\norder: 1\n---\n\n# Alpha\n");
+  it("returns frontmatter, body, and exact raw text for an existing file", async () => {
+    const text = "---\ntitle: Alpha\norder: 1\n---\n\n# Alpha\n";
+    await write("linear-algebra/notes/01-a.md", text);
 
     const view = await readSetFile(root, "linear-algebra", "notes/01-a.md");
-    expect(view).toEqual({ path: "notes/01-a.md", frontmatter: { title: "Alpha", order: 1 }, body: "\n# Alpha\n" });
+    expect(view).toEqual({
+      path: "notes/01-a.md",
+      frontmatter: { title: "Alpha", order: 1 },
+      body: "\n# Alpha\n",
+      raw: text,
+    });
   });
 
   it("returns null for a missing file", async () => {

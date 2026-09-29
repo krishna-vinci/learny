@@ -103,11 +103,30 @@ export const api = {
     list(): Promise<SetSummary[]> {
       return request("/api/sets");
     },
+    // W1: NewSetDialog — creates `<slug>/PLAN.md` and empty notes/cards/log dirs.
+    create(body: { title: string; goal?: string }): Promise<{ slug: string }> {
+      return request("/api/sets", { method: "POST", body: JSON.stringify(body) });
+    },
     notes(set: string): Promise<NoteSummary[]> {
       return request(`/api/sets/${encodeURIComponent(set)}/notes`);
     },
+    // W1: "Write a note" flow (NewNoteDialog) — creates a blank `notes/NN-slug.md`.
+    createNote(set: string, title: string): Promise<{ path: string }> {
+      return request(`/api/sets/${encodeURIComponent(set)}/notes`, {
+        method: "POST",
+        body: JSON.stringify({ title }),
+      });
+    },
     file(set: string, path: string): Promise<FileView> {
       return request(`/api/sets/${encodeURIComponent(set)}/file${qs({ path })}`);
+    },
+    // W1: note editor save (NotePage edit mode). 409 body is `{ error: "changed", current }`;
+    // callers read `ApiError.body` for `current` to offer "Overwrite".
+    putFile(set: string, path: string, content: string, previous: string): Promise<{ sha: string | null }> {
+      return request(`/api/sets/${encodeURIComponent(set)}/file`, {
+        method: "PUT",
+        body: JSON.stringify({ path, content, previous }),
+      });
     },
     history(set: string, opts?: { path?: string; limit?: number }): Promise<CommitInfo[]> {
       return request(`/api/sets/${encodeURIComponent(set)}/history${qs({ path: opts?.path, limit: opts?.limit })}`);

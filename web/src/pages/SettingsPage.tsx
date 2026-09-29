@@ -2,7 +2,7 @@
 // docs/plans/2026-09-29-m1-sources-to-notes.md "T9c Settings".
 import type { ServiceHealth } from "@studium/shared";
 import { useQueryClient } from "@tanstack/react-query";
-import { RefreshCwIcon, TriangleAlertIcon } from "lucide-react";
+import { LogOutIcon, RefreshCwIcon, TriangleAlertIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { ApiError, api } from "@/api/client";
@@ -10,6 +10,7 @@ import { queryKeys, useSettings } from "@/api/queries";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { groupModelsByProvider } from "./settings-utils";
+import { useSignOut } from "./useSignOut";
 
 interface RoleInfo {
   key: string;
@@ -112,6 +113,7 @@ function SettingsPage() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
   const seededFor = useRef<string | null>(null);
+  const { signOut, signingOut } = useSignOut();
 
   useEffect(() => {
     if (!data) return;
@@ -244,6 +246,19 @@ function SettingsPage() {
             <ServiceRow key={service.name} service={service} />
           ))}
         </ul>
+      </section>
+
+      <section className="mt-8">
+        <h2 className="text-sm font-semibold text-foreground">Account</h2>
+        <Button
+          variant="outline"
+          className="mt-3 h-11 w-full justify-start md:w-auto"
+          onClick={() => void signOut()}
+          disabled={signingOut}
+        >
+          <LogOutIcon className="size-4" aria-hidden="true" />
+          {signingOut ? "Signing out…" : "Sign out"}
+        </Button>
       </section>
     </div>
   );

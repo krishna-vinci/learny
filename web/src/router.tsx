@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import type { ReactNode } from "react";
-import { createBrowserRouter, Navigate, useLocation, useParams } from "react-router-dom";
+import { type ReactNode, useState } from "react";
+import { createBrowserRouter, Navigate, useLocation } from "react-router-dom";
 import { api } from "@/api/client";
 import { useSets } from "@/api/queries";
+import { NewSetDialog } from "@/components/NewSetDialog";
+import { Button } from "@/components/ui/button";
 import RootLayout from "@/layouts/RootLayout";
 import CardFilePage from "@/pages/CardFilePage";
 import CardsPage from "@/pages/CardsPage";
@@ -11,6 +13,7 @@ import JobsPage from "@/pages/JobsPage";
 import LibraryPage from "@/pages/LibraryPage";
 import LibrarySourcePage from "@/pages/LibrarySourcePage";
 import NotePage from "@/pages/NotePage";
+import SetHomePage from "@/pages/SetHomePage";
 import SettingsPage from "@/pages/SettingsPage";
 import SignIn from "@/pages/SignIn";
 
@@ -32,18 +35,23 @@ function AuthGate({ children }: { children: ReactNode }) {
 
 function HomeRedirect() {
   const { data: sets, isLoading } = useSets();
+  const [newSetOpen, setNewSetOpen] = useState(false);
   if (isLoading) return null;
   if (!sets || sets.length === 0) {
-    return <div className="p-6 text-sm text-muted-foreground">No study sets yet.</div>;
+    return (
+      <div className="mx-auto flex w-full max-w-md flex-col items-center gap-3 px-4 py-16 text-center">
+        <p className="text-lg font-semibold text-foreground">Create your first study set</p>
+        <p className="text-sm text-muted-foreground">
+          A study set holds the notes, sources, and cards for one thing you're learning.
+        </p>
+        <Button className="mt-2 h-11" onClick={() => setNewSetOpen(true)}>
+          New study set
+        </Button>
+        <NewSetDialog open={newSetOpen} onOpenChange={setNewSetOpen} />
+      </div>
+    );
   }
   return <Navigate to={`/s/${sets[0]?.slug}`} replace />;
-}
-
-// Placeholder page: Task 9 (chat dock) fills the real content.
-// It exists so the router and sidebar navigation work end to end in this task.
-function SetOverviewPlaceholder() {
-  const { set } = useParams<{ set: string }>();
-  return <div className="p-6 text-sm text-muted-foreground">Select a note from “{set}” in the sidebar.</div>;
 }
 
 export const router = createBrowserRouter([
@@ -59,7 +67,7 @@ export const router = createBrowserRouter([
       { index: true, element: <HomeRedirect /> },
       { path: "settings", element: <SettingsPage /> },
       { path: "jobs", element: <JobsPage /> },
-      { path: "s/:set", element: <SetOverviewPlaceholder /> },
+      { path: "s/:set", element: <SetHomePage /> },
       { path: "s/:set/inbox", element: <InboxPage /> },
       { path: "s/:set/cards", element: <CardsPage /> },
       { path: "s/:set/cards/*", element: <CardFilePage /> },

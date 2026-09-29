@@ -3,13 +3,22 @@
 // so opening/closing the sheet, or resizing across the lg breakpoint, never loses the
 // selected chat or an in-flight stream.
 import { MessageSquareIcon, XIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import ChatPanel from "./ChatPanel";
+import { OPEN_CHAT_DOCK_EVENT } from "./openChatDock";
 import type { UseChatDockResult } from "./useChatDock";
 
 function MobileChatDock({ chat }: { chat: UseChatDockResult }) {
   const [open, setOpen] = useState(false);
+
+  // Lets pages outside the dock (SetHomePage's "Ask tutor") open the same sheet — see
+  // openChatDock.ts.
+  useEffect(() => {
+    const listener = () => setOpen(true);
+    window.addEventListener(OPEN_CHAT_DOCK_EVENT, listener);
+    return () => window.removeEventListener(OPEN_CHAT_DOCK_EVENT, listener);
+  }, []);
 
   return (
     <>

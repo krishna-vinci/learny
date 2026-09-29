@@ -42,6 +42,13 @@ export default defineConfig({
             handler: "NetworkOnly",
           },
         ],
+        // A new deploy must take over immediately, not just for tabs opened after every
+        // other tab closes: the new SW activates as soon as it's installed (skipWaiting)
+        // and takes control of already-open clients right away (clientsClaim). Paired
+        // with the `controllerchange` reload in main.tsx, a phone with the PWA already
+        // open picks up a fresh build without a manual cache clear.
+        skipWaiting: true,
+        clientsClaim: true,
       },
     }),
   ],

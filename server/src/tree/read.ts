@@ -114,9 +114,9 @@ export async function readSetFile(root: string, set: string, rel: string): Promi
 
   try {
     const { frontmatter, body } = parseFrontmatter(text);
-    return { path: rel, frontmatter, body };
+    return { path: rel, frontmatter, body, raw: text };
   } catch {
     // Broken frontmatter in a user file: still show the raw text rather than fail.
-    return { path: rel, frontmatter: {}, body: text };
+    return { path: rel, frontmatter: {}, body: text, raw: text };
   }
 }
