@@ -38,3 +38,4 @@ learny/                     # pnpm workspaces
 - Web bundle is ~540 kB+ (mermaid, katex, highlight.js); add code-splitting.
 - Pending Tutor job proposals are only in the event stream; after a reload the card is gone. Persist unexpired proposals per chat and re-render them.
 - A resumed ingest job keeps the URL-derived title instead of the source title.
+- `initStudyTree` writes `_global/mcp.json` without committing it, and the job runner appends to `<set>/log/jobs.md` without committing — commit both (author system) so the tree stays clean.
