@@ -220,6 +220,7 @@ export function createCardsJob(deps: CardsJobDeps): JobHandler {
       lastCommit = sha;
       deps.hub.publish({ type: "commit", sha, subject, author });
     };
+    let lastCardsmithText = "";
     const runCardsmith = async (task: string, maxAdds: number, allowEdits: boolean, addedIds: string[]) => {
       ctx.signal.throwIfAborted();
       const result = await runRole("cardsmith", {
@@ -238,6 +239,7 @@ export function createCardsJob(deps: CardsJobDeps): JobHandler {
         cards: { rootPath: cardRootPath, maxAdds, onAdd: (id) => addedIds.push(id) },
       }).catch(rethrowRoleModelError);
       ctx.addUsage(usageFromPiMessages(result.messages));
+      lastCardsmithText = result.text.trim().slice(0, 300);
       if (result.written.some((written) => written !== cardRootPath)) {
         throw new Error(`cardsmith must only edit ${cardPath}`);
       }
