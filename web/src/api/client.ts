@@ -1,4 +1,8 @@
 import type {
+  CardFileDetail,
+  CardFileView,
+  CardPatch,
+  CardView,
   ChatMessage,
   ChatSummary,
   CommitInfo,
@@ -178,6 +182,7 @@ export const api = {
     create(
       body:
         | { kind: Extract<JobKind, "draft-chapter">; set: string; title: string; brief?: string; sources?: string[] }
+        | { kind: Extract<JobKind, "make-cards">; set: string; note: string; count?: number }
         | { proposalId: string },
     ): Promise<{ jobId: string }> {
       return request("/api/jobs", { method: "POST", body: JSON.stringify(body) });
@@ -199,7 +204,57 @@ export const api = {
       });
     },
   },
+
+  // M2 T6: Cards (list, file detail, per-card patch, approve-all-clean, mark-exported).
+  cards: {
+    list(set: string): Promise<CardFileView[]> {
+      return request(`/api/sets/${encodeURIComponent(set)}/cards`);
+    },
+    file(set: string, path: string): Promise<CardFileDetail> {
+      return request(`/api/sets/${encodeURIComponent(set)}/cards/file${qs({ path })}`);
+    },
+    patch(set: string, id: string, body: CardPatch): Promise<CardView> {
+      return request(`/api/sets/${encodeURIComponent(set)}/cards/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      });
+    },
+    approveClean(set: string, path: string): Promise<{ approved: number }> {
+      return request(`/api/sets/${encodeURIComponent(set)}/cards/approve-clean`, {
+        method: "POST",
+        body: JSON.stringify({ path }),
+      });
+    },
+    markExported(set: string, ids: string[], ankiIds?: Record<string, number>): Promise<{ updated: number }> {
+      return request(`/api/sets/${encodeURIComponent(set)}/cards/exported`, {
+        method: "POST",
+        body: JSON.stringify({ ids, ...(ankiIds ? { ankiIds } : {}) }),
+      });
+    },
+  },
+
+  // M2 T6: server-side AnkiConnect sync (only available when ANKICONNECT_URL is set — a
+  // 503 means "not configured", not a real failure; see anki.syncServer callers).
+  anki: {
+    syncServer(
+      set: string,
+      path?: string,
+    ): Promise<{ added: number; updated: number; failed: { id: string; error: string }[] }> {
+      return request(`/api/sets/${encodeURIComponent(set)}/anki/sync`, {
+        method: "POST",
+        body: JSON.stringify(path ? { path } : {}),
+      });
+    },
+  },
 };
+
+/**
+ * `GET /api/sets/:set/export.apkg` as a plain download link (not run through `request`,
+ * which assumes a JSON response) — used directly as an `<a href>`.
+ */
+export function exportUrl(set: string, opts?: { cards?: "approved" | "approved+exported"; note?: string }): string {
+  return `/api/sets/${encodeURIComponent(set)}/export.apkg${qs({ cards: opts?.cards, note: opts?.note })}`;
+}
 
 /** `GET /api/library/:id` response shape (server's `SourceView`, not re-exported from shared). */
 export interface LibrarySourceView {

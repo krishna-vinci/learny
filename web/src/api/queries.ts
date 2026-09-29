@@ -1,4 +1,6 @@
 import type {
+  CardFileDetail,
+  CardFileView,
   FileView,
   InboxItem,
   JobView,
@@ -24,6 +26,10 @@ export const queryKeys = {
   // T9b: Jobs panel + Inbox.
   jobs: (set?: string) => ["jobs", set ?? null] as const,
   inbox: (set: string) => ["inbox", set] as const,
+  // M2 T6: Cards. `cardFile` nests under `cardFiles` so invalidating the list also
+  // invalidates every file detail query (React Query matches query keys by prefix).
+  cardFiles: (set: string) => ["sets", set, "cards"] as const,
+  cardFile: (set: string, path: string) => ["sets", set, "cards", path] as const,
 };
 
 export function useSets() {
@@ -64,6 +70,24 @@ export function useNoteFile(set: string | undefined, path: string | undefined) {
   });
 }
 
+// M2 T6: Cards — one entry per `<set>/cards/NN-slug.md`.
+export function useCardFiles(set: string | undefined) {
+  return useQuery<CardFileView[]>({
+    queryKey: queryKeys.cardFiles(set ?? ""),
+    queryFn: () => api.cards.list(set as string),
+    enabled: !!set,
+  });
+}
+
+// M2 T6: one card file's cards (review mode).
+export function useCardFile(set: string | undefined, path: string | undefined) {
+  return useQuery<CardFileDetail>({
+    queryKey: queryKeys.cardFile(set ?? "", path ?? ""),
+    queryFn: () => api.cards.file(set as string, path as string),
+    enabled: !!set && !!path,
+  });
+}
+
 export function useLibrary() {
   return useQuery<SourceSummary[]>({ queryKey: queryKeys.library, queryFn: () => api.library.list() });
 }
@@ -97,11 +121,20 @@ export function useLiveStudiumUpdates() {
         queryClient.invalidateQueries({ queryKey: ["sets", event.set, "notes"] });
         queryClient.invalidateQueries({ queryKey: ["sets", event.set, "file"] });
         queryClient.invalidateQueries({ queryKey: ["sets", event.set, "history"] });
+        // A note change can flip a card file's `stale` flag; a card file change (agent or
+        // user commit) changes counts/critic verdicts. `cardFiles(set)` also covers every
+        // `cardFile(set, path)` query, since the latter's key is the former's plus a path.
+        queryClient.invalidateQueries({ queryKey: queryKeys.cardFiles(event.set) });
       }
       return;
     }
     if (event.type === "commit") {
       queryClient.invalidateQueries({ predicate: (query) => query.queryKey.includes("history") });
+      // A user commit (card patch, approve-clean, exported) doesn't carry a `set`, so
+      // refresh every set's cards rather than trying to guess which one changed.
+      queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] === "sets" && query.queryKey[2] === "cards",
+      });
       return;
     }
     if (event.type === "job") {
@@ -112,6 +145,11 @@ export function useLiveStudiumUpdates() {
       if (job.kind === "draft-chapter" && job.set && finished) {
         queryClient.invalidateQueries({ queryKey: queryKeys.inbox(job.set) });
         queryClient.invalidateQueries({ queryKey: queryKeys.notes(job.set) });
+      }
+      // A finished make-cards job (fresh drafts, or a count:0 re-check) changes the
+      // target card file and its counts/stale flag in the cards list.
+      if (job.kind === "make-cards" && job.set && finished) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.cardFiles(job.set) });
       }
       // Ingest jobs write new library entries (or update the pending one); refresh the
       // list and, once we know the source id, its detail page too.
