@@ -25,7 +25,12 @@ beforeEach(() => {
   app = createServer({
     db,
     instanceSecret,
-    workspaces: { for: () => ({ app: new Hono() }) },
+    workspaces: {
+      for: async () => ({ app: new Hono() }),
+      provision: async () => undefined,
+      stop: async () => undefined,
+      rootFor: () => null,
+    },
     authOpts: { trustProxy: false, baseUrl: null, setupCode: null },
   });
 });
