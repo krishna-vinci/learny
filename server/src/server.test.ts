@@ -181,6 +181,29 @@ describe("top-level server", () => {
     expect(await verifyUserPassword(db, user.id, "new-password")).toBe(true);
   });
 
+  it("mounts notifications and export behind the session, ahead of the workspace delegate", async () => {
+    const user = await createUser(db, { username: "learner", role: "USER" });
+    const session = createSession(db, user.id, { userAgent: "", ip: "" });
+    const root = path.join(tempDir, "users", "learner");
+    roots.learner = root;
+    await fs.mkdir(path.join(root, "_global"), { recursive: true });
+    await fs.writeFile(path.join(root, "PLAN.md"), "# Plan\n");
+    const app = server();
+
+    expect((await app.request("/api/me/notifications")).status).toBe(401);
+    expect((await app.request("/api/me/export")).status).toBe(401);
+
+    const notifications = await app.request("/api/me/notifications", { headers: cookie(session.token) });
+    expect(notifications.status).toBe(200);
+    const body = (await notifications.json()) as { vapidPublicKey: string; ntfy: { url: string } };
+    expect(typeof body.vapidPublicKey).toBe("string");
+    expect(body.ntfy.url).toBe("");
+
+    const exported = await app.request("/api/me/export", { headers: cookie(session.token) });
+    expect(exported.status).toBe(200);
+    expect(exported.headers.get("content-type")).toBe("application/zip");
+  });
+
   it("serves static assets and the SPA fallback outside /api", async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "studium-web-"));
     tempDirs.push(dir);

@@ -13,7 +13,8 @@ import { createModelRuntime } from "./agent/models.js";
 import { deriveBackupKey } from "./backups/config.js";
 import { BackupScheduler, BackupService } from "./backups/scheduler.js";
 import { migrate, openDb } from "./db/db.js";
-import { loadInstanceSecret } from "./db/secret.js";
+import { deriveKey, loadInstanceSecret } from "./db/secret.js";
+import { Notifier } from "./notify/notifier.js";
 import { createServer } from "./server.js";
 import { readText } from "./tree/edit.js";
 import { WorkspaceManager } from "./workspaces/manager.js";
@@ -36,6 +37,7 @@ const db = openDb(path.join(dataDir, "studium.db"));
 migrate(db);
 const instanceSecret = loadInstanceSecret(dataDir, process.env);
 const backupKey = deriveBackupKey(instanceSecret);
+const notifier = new Notifier({ db, secretsKey: deriveKey(instanceSecret, "studium-secrets-v1") });
 const { setupRequired } = await bootstrapAccounts(db, process.env);
 const localHosts = new Set(["127.0.0.1", "::1", "localhost"]);
 const setupCode = setupRequired && !localHosts.has(host) ? randomBytes(6).toString("hex") : null;
@@ -59,12 +61,14 @@ const workspaces = new WorkspaceManager({
   runtime,
   maxParallelJobs: Number.isFinite(maxParallelJobs) && maxParallelJobs > 0 ? maxParallelJobs : 3,
   subscriptionProvidersFor,
+  notifier,
 });
 
 const backupService = new BackupService({
   db,
   dataDir,
   key: backupKey,
+  notifyAdmins: (title, body) => notifier.notifyAdmins({ title, body, url: "/settings" }),
   // Restores go through the user's workspace so they take its file locks.
   treeFor: async (username) => {
     const user = getUserByUsername(db, username);
@@ -117,6 +121,7 @@ const app = createServer({
   db,
   instanceSecret,
   workspaces,
+  notifier,
   authOpts: { trustProxy, baseUrl, setupCode },
   backups: { service: backupService, db, key: backupKey },
   ...(existsSync(webDist) ? { webDist } : {}),

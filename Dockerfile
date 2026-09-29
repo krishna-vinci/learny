@@ -27,13 +27,14 @@ ENV PNPM_HOME=/pnpm \
     PATH=/pnpm:$PATH \
     COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
     NODE_ENV=production \
-    STUDIUM_STUDY_ROOT=/study \
+    STUDIUM_DATA_DIR=/data \
+    STUDIUM_STUDY_ROOT=/data/study \
     HOST=0.0.0.0 \
     PORT=3000 \
     PI_CODING_AGENT_DIR=/pi-agent
 RUN corepack enable pnpm \
     && apt-get update \
-    && apt-get install -y --no-install-recommends git \
+    && apt-get install -y --no-install-recommends git restic rclone \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -51,8 +52,8 @@ COPY --chown=node:node shared ./shared
 COPY --chown=node:node server ./server
 COPY --chown=node:node --from=build /app/web/dist ./web/dist
 
-# Writable defaults for the two volumes: the study tree and Pi's config dir.
-RUN mkdir -p /study /pi-agent && chown -R node:node /study /pi-agent
+# Writable defaults for the two volumes: the data dir and Pi's config dir.
+RUN mkdir -p /data /pi-agent && chown -R node:node /data /pi-agent
 
 USER node
 

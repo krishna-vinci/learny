@@ -15,6 +15,7 @@ import { loadJobHistory } from "../jobs/log.js";
 import { JobRunner } from "../jobs/runner.js";
 import { McpManager } from "../mcp/bridge.js";
 import { loadMcpConfig } from "../mcp/config.js";
+import type { Notifier } from "../notify/notifier.js";
 import { commitAll, ensureRepo } from "../tree/git.js";
 import { initStudyTree } from "../tree/init.js";
 import { FileLocks } from "../tree/lock.js";
@@ -26,6 +27,8 @@ export interface WorkspaceManagerDeps {
   runtime: ModelRuntime;
   maxParallelJobs?: number;
   subscriptionProvidersFor(root: string): Promise<readonly string[]>;
+  /** When set, finished jobs notify their owner through this notifier. */
+  notifier?: Notifier;
 }
 
 export interface Workspace {
@@ -46,6 +49,7 @@ export class WorkspaceManager {
   readonly #runtime: ModelRuntime;
   readonly #maxParallelJobs: number;
   readonly #subscriptionProvidersFor: WorkspaceManagerDeps["subscriptionProvidersFor"];
+  readonly #notifier: Notifier | undefined;
   readonly #workspaces = new Map<string, Promise<Workspace>>();
 
   constructor(deps: WorkspaceManagerDeps) {
@@ -54,6 +58,7 @@ export class WorkspaceManager {
     this.#runtime = deps.runtime;
     this.#maxParallelJobs = deps.maxParallelJobs ?? 3;
     this.#subscriptionProvidersFor = deps.subscriptionProvidersFor;
+    this.#notifier = deps.notifier;
   }
 
   async for(user: User): Promise<Workspace> {
@@ -62,7 +67,7 @@ export class WorkspaceManager {
     const existing = this.#workspaces.get(username);
     if (existing !== undefined) return existing;
 
-    const created = this.#create(username, user.aiEnabled);
+    const created = this.#create(user);
     this.#workspaces.set(username, created);
     created.catch(() => this.#workspaces.delete(username));
     return created;
@@ -141,11 +146,13 @@ export class WorkspaceManager {
     return root;
   }
 
-  async #create(username: string, aiEnabled: boolean): Promise<Workspace> {
+  async #create(user: User): Promise<Workspace> {
+    const username = user.username;
     const root = await this.#initializeRoot(username);
     await ensureRepo(root);
 
     const hub = new EventHub();
+    const stopNotifications = this.#subscribeJobNotifications(hub, user);
     const locks = new FileLocks();
     const mcpConfig = loadMcpConfig(root, process.env);
     const mcp = new McpManager(mcpConfig.servers);
@@ -172,7 +179,7 @@ export class WorkspaceManager {
     });
 
     const stopWatcher = startWatcher(root, hub);
-    const stopInboxWatcher = aiEnabled ? startInboxWatcher({ root, jobs }) : null;
+    const stopInboxWatcher = user.aiEnabled ? startInboxWatcher({ root, jobs }) : null;
     let stopped = false;
     void mcp.start();
 
@@ -188,11 +195,37 @@ export class WorkspaceManager {
       async stop(): Promise<void> {
         if (stopped) return;
         stopped = true;
+        stopNotifications();
         await stopWatcher().catch(() => undefined);
         if (stopInboxWatcher !== null) await stopInboxWatcher().catch(() => undefined);
         await mcp.stop().catch(() => undefined);
       },
     };
+  }
+
+  /** Notify the owner once when a job reaches done/failed. Failures never touch job code. */
+  #subscribeJobNotifications(hub: EventHub, user: User): () => void {
+    const notifier = this.#notifier;
+    if (notifier === undefined) return () => undefined;
+    const notified = new Set<string>();
+    return hub.subscribe((event) => {
+      if (event.type !== "job") return;
+      const job = event.job;
+      if (job.status !== "done" && job.status !== "failed") return;
+      if (notified.has(job.id)) return;
+      notified.add(job.id);
+      const url = job.set === null ? "/jobs" : `/s/${job.set}`;
+      const notification =
+        job.status === "done"
+          ? { title: "Job finished", body: job.title, url, event: "jobDone" as const }
+          : {
+              title: "Job failed",
+              body: `${job.title}: ${job.error ?? "unknown error"}`,
+              url,
+              event: "jobFailed" as const,
+            };
+      void notifier.notifyUser(user.id, notification).catch(() => undefined);
+    });
   }
 }
 

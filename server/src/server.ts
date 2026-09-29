@@ -22,7 +22,10 @@ import { hashPassword } from "./auth/password.js";
 import { type AuthRouteOptions, authRoutes } from "./auth/routes.js";
 import { type BackupRouteDeps, backupRoutes } from "./backups/routes.js";
 import { deriveKey } from "./db/secret.js";
+import { exportRoutes } from "./export/routes.js";
 import { requestGuard } from "./http/guard.js";
+import { Notifier } from "./notify/notifier.js";
+import { notificationRoutes } from "./notify/routes.js";
 import { identityProviderAdminRoutes, identityRoutes, ssoAuthRoutes } from "./sso/routes.js";
 
 export interface WorkspaceProvider {
@@ -39,6 +42,7 @@ export interface ServerDeps {
   webDist?: string;
   authOpts: Omit<AuthRouteOptions, "db">;
   backups?: BackupRouteDeps;
+  notifier?: Notifier;
 }
 
 async function jsonBody(c: Context): Promise<Record<string, unknown> | null> {
@@ -277,9 +281,11 @@ function adminRoutes(db: DatabaseSync, workspaces: WorkspaceProvider): Hono {
 
 export function createServer(deps: ServerDeps): Hono {
   const app = new Hono();
+  const secretsKey = deriveKey(deps.instanceSecret, "studium-secrets-v1");
+  const notifier = deps.notifier ?? new Notifier({ db: deps.db, secretsKey });
   const ssoOptions = {
     db: deps.db,
-    secretsKey: deriveKey(deps.instanceSecret, "studium-secrets-v1"),
+    secretsKey,
     auth: { db: deps.db, ...deps.authOpts },
   };
   app.use("/api/*", requestGuard());
@@ -287,6 +293,8 @@ export function createServer(deps: ServerDeps): Hono {
   app.route("/api/auth", ssoAuthRoutes(ssoOptions));
   app.use("/api/*", sessionAuth(deps.db));
   app.route("/api/me/identities", identityRoutes(ssoOptions));
+  app.route("/api/me/notifications", notificationRoutes({ db: deps.db, secretsKey, notifier }));
+  app.route("/api/me/export", exportRoutes({ rootFor: (username) => deps.workspaces.rootFor(username) }));
   app.route("/api/me", meRoutes(deps.db));
   app.use("/api/admin/*", requireAdmin);
   app.route("/api/admin/identity-providers", identityProviderAdminRoutes(ssoOptions));

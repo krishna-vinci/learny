@@ -8,6 +8,7 @@ import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createUser, type User, updateUser } from "../accounts/users.js";
 import { migrate, openDb } from "../db/db.js";
+import type { Notifier } from "../notify/notifier.js";
 import { ensureRepo } from "../tree/git.js";
 import { initStudyTree } from "../tree/init.js";
 import { WorkspaceManager } from "./manager.js";
@@ -86,5 +87,38 @@ describe("WorkspaceManager", () => {
     updateUser(db, user.id, { state: "ARCHIVED" });
     await manager.stop(user.username);
     expect(manager.isRunning(user.username)).toBe(false);
+  });
+
+  it("notifies the owner once when a job finishes", async () => {
+    let deliver: (call: { userId: number; notification: unknown }) => void = () => undefined;
+    const notified = new Promise<{ userId: number; notification: unknown }>((resolve) => {
+      deliver = resolve;
+    });
+    const notifier = {
+      notifyUser: async (userId: number, notification: unknown) => {
+        deliver({ userId, notification });
+      },
+      notifyAdmins: async () => undefined,
+    } as unknown as Notifier;
+    manager = new WorkspaceManager({
+      dataDir: tempDir,
+      db,
+      runtime,
+      subscriptionProvidersFor: async () => [],
+      notifier,
+    });
+
+    const user = await createUser(db, { username: "learner", role: "USER" });
+    const workspace = await manager.for(user);
+    workspace.jobs.register("draft-chapter", async () => undefined);
+    workspace.jobs.enqueue("draft-chapter", {}, { set: "linear-algebra", title: "Chapter one" });
+
+    const call = await notified;
+    expect(call.userId).toBe(user.id);
+    expect(call.notification).toMatchObject({
+      title: "Job finished",
+      url: "/s/linear-algebra",
+      event: "jobDone",
+    });
   });
 });

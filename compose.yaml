@@ -3,7 +3,8 @@ services:
     build: .
     image: studium:local
     env_file: .env
+    environment: ["STUDIUM_DATA_DIR=/data"]
     ports: ["127.0.0.1:3000:3000"]
     volumes:
-      - "./data/study:/study" # only study volume; chats + cache live inside
+      - "./data:/data" # accounts db, secrets, every user's study tree, backups
       - "${PI_AGENT_DIR:-~/.pi/agent}:/pi-agent" # Pi auth.json/models.json (tokens refresh)

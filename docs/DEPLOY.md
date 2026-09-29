@@ -10,14 +10,20 @@ services:
     image: ghcr.io/<owner>/studium:latest
     env_file: .env
     ports: ["127.0.0.1:3000:3000"]
-    volumes: ["./data/study:/study"]   # only volume; chats + cache live inside
+    environment: ["STUDIUM_DATA_DIR=/data"]
+    volumes: ["./data:/data"]   # accounts db, secrets, every user's tree, backups
 ```
 
-- Image: Node 22 slim + git + pandoc + typst + uv/Python (for stdio MCP servers such as
-  paper-search-mcp). Multi-arch (amd64, arm64). Native run: `pnpm start`.
+- Image: Node 22 slim + git + restic + rclone + pandoc + typst + uv/Python (for stdio MCP
+  servers such as paper-search-mcp). Multi-arch (amd64, arm64). Native run: `pnpm start`.
 - MinerU, SearXNG, Firecrawl: external, by env URL (`MINERU_URL`, `SEARXNG_URL`,
   `FIRECRAWL_API_URL` + `FIRECRAWL_API_KEY`). Never shipped.
 - `mcp.json` supports stdio (run inside the container) and HTTP MCP servers.
+
+`STUDIUM_DATA_DIR` (container `/data`, host `./data`) holds everything stateful:
+`studium.db` (accounts, sessions, tokens, encrypted secrets), `.secret`,
+`users/<username>/` (one study tree each), `trash/`, and `.backup/`. The legacy
+`./data/study` tree is migrated into the first admin's directory on the first boot.
 
 ## Anki connection
 
@@ -60,7 +66,32 @@ warn against exposing port 3000 directly.
 
 ## Secrets
 
-Env only. `config.yaml` holds no keys; settings shows set/unset only.
+`data/.secret` (0600, auto-created, or `STUDIUM_SECRET`) keys everything encrypted. The
+ntfy token, the SSO client secret, the VAPID private key, and the restic repo password
+are AES-256-GCM encrypted in `studium.db` under a key derived from it; the UI shows
+`hasToken`/`hasClientSecret` rather than the value. `config.yaml` holds no keys.
+
+## Notifications
+
+- ntfy: per user, a topic URL plus an optional token (stored encrypted). Delivery POSTs
+  the message body with `Title`, `Click`, and `Tags` headers, 5 s timeout.
+- Web Push: VAPID keys are generated once and stored in `studium.db` (private key
+  encrypted). Each browser subscription is listed and revocable in Settings.
+- Events: job done, job failed (per user); backup failed (admins). A failure in any
+  channel is logged and never fails the job.
+
+## Data export
+
+`GET /api/me/export` streams a zip of the signed-in user's tree
+(`studium-<user>-<date>.zip`): notes, library, and `_global`, excluding `.git`, `.cache`,
+and `chats`. Add `?withHistory=1` to include `.git`.
+
+## systemd user service
+
+`scripts/install-service.sh` copies `deploy/studium.service` to
+`~/.config/systemd/user/`, runs `daemon-reload`, and `enable --now`. It never uses sudo.
+The unit runs from `%h/learny` with `EnvironmentFile=-%h/learny/.env`. To keep the app up
+while logged out, run `loginctl enable-linger $USER` (the script prints this hint).
 
 ## Backups
 

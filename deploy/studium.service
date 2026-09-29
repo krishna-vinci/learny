@@ -1,0 +1,15 @@
+[Unit]
+Description=Studium (self-hosted agent learning app)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/learny
+ExecStart=/usr/bin/env pnpm --filter @studium/server start
+Restart=on-failure
+Environment=NODE_ENV=production
+EnvironmentFile=-%h/learny/.env
+
+[Install]
+WantedBy=default.target

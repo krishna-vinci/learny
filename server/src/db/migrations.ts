@@ -53,4 +53,23 @@ export const migrations: string[] = [
       PRIMARY KEY (provider_id, subject)
     );
   `,
+  // 3: reserved for backups (T4)
+  "SELECT 1;",
+  `
+    CREATE TABLE user_settings (
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      key TEXT NOT NULL,
+      value TEXT NOT NULL,
+      PRIMARY KEY (user_id, key)
+    );
+    CREATE TABLE push_subscriptions (
+      id TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      endpoint TEXT NOT NULL UNIQUE,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      user_agent TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL
+    );
+  `,
 ];
