@@ -1,6 +1,7 @@
 // "Write a note" flow: a title, `POST /api/sets/:set/notes`, then straight into the new
 // note with the editor already open (`?edit=1`) so the user can start typing right away.
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { ApiError } from "@/api/client";
@@ -41,7 +42,9 @@ export function NewNoteDialog({ set, open, onOpenChange }: NewNoteDialogProps) {
     }
   }
 
-  return (
+  // Portal to <body>: opened from the phone drawer, the drawer's stacking context would
+  // otherwise put this sheet under the chat button.
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-overlay/50 md:items-center"
       role="dialog"
@@ -83,7 +86,8 @@ export function NewNoteDialog({ set, open, onOpenChange }: NewNoteDialogProps) {
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

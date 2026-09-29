@@ -2,6 +2,7 @@
 // job (see `Reader`'s "Make cards" for the sibling flow on an existing note). Extracted
 // from InboxPage so SetHomePage and the sidebar's "+" menu can open the same sheet.
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
@@ -56,7 +57,9 @@ export function NewChapterSheet({ set, onClose }: NewChapterSheetProps) {
     }
   }
 
-  return (
+  // Portal to <body>: opened from the phone drawer, the drawer's stacking context would
+  // otherwise put this sheet under the chat button.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-overlay/50 md:items-center">
       <div className="flex max-h-[90vh] w-full flex-col overflow-y-auto rounded-t-xl border border-border/70 bg-background p-4 shadow-2xl md:max-w-lg md:rounded-xl">
         <div className="flex items-center justify-between">
@@ -120,7 +123,8 @@ export function NewChapterSheet({ set, onClose }: NewChapterSheetProps) {
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

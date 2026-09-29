@@ -6,10 +6,12 @@
 import {
   ArchiveIcon,
   BookOpenIcon,
+  LibraryBigIcon,
   ListChecksIcon,
   LogOutIcon,
   MenuIcon,
   NotebookTextIcon,
+  PanelLeftCloseIcon,
   PlusIcon,
   SettingsIcon,
   WrenchIcon,
@@ -27,6 +29,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useLastVisitedSet } from "@/pages/useLastVisitedSet";
 import { useSignOut } from "@/pages/useSignOut";
@@ -57,8 +60,8 @@ const NotesSection = ({ set, activeNotePath }: { set: string; activeNotePath?: s
               <PlusIcon className="size-3.5" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={() => setNewChapterOpen(true)}>New chapter</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setNewNoteOpen(true)}>Write a note</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setNewChapterOpen(true)}>New chapter</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setNewNoteOpen(true)}>Write a note</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         }
@@ -140,6 +143,12 @@ const MoreSection = ({ set }: { set?: string }) => {
         }
       >
         <SidebarRow
+          icon={LibraryBigIcon}
+          label="All study sets"
+          state={location.pathname === "/sets" ? "current" : "idle"}
+          onClick={() => goTo("/sets")}
+        />
+        <SidebarRow
           icon={BookOpenIcon}
           label="Library"
           state={libraryActive ? "current" : "idle"}
@@ -187,13 +196,14 @@ const MoreSection = ({ set }: { set?: string }) => {
   );
 };
 
-const AppSidebar = ({ className }: { className?: string }) => {
+const AppSidebar = ({ className, onCollapse }: { className?: string; onCollapse?: () => void }) => {
   const params = useParams<{ set?: string; "*"?: string }>();
-  const set = params.set;
-  const activeNotePath = params["*"] ? `notes/${params["*"]}` : undefined;
-  // Outside `/s/:set` (library, jobs, settings), the switcher falls back to the last
-  // visited set instead of showing "Select a set", so the label still means something.
+  // Outside `/s/:set` (library, jobs, settings), everything in the sidebar — the switcher
+  // label, the notes list, and the Inbox/Cards links — falls back to the last visited set
+  // instead of going blank, so the sidebar stays useful while browsing those pages.
   const lastVisitedSet = useLastVisitedSet();
+  const set = params.set ?? lastVisitedSet ?? undefined;
+  const activeNotePath = params["*"] ? `notes/${params["*"]}` : undefined;
 
   return (
     <aside className={cn("flex h-full w-full select-none flex-col bg-sidebar text-sidebar-foreground", className)}>
@@ -201,7 +211,25 @@ const AppSidebar = ({ className }: { className?: string }) => {
         data-sidebar-header
         className={cn("flex h-13 shrink-0 items-center justify-between gap-2", SIDEBAR_RAIL_CLASSES)}
       >
-        <SetSwitcher currentSet={set ?? lastVisitedSet ?? undefined} className="min-w-0" />
+        <SetSwitcher currentSet={set} className="min-w-0 flex-1" />
+        {onCollapse && (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="quiet"
+                  size="icon-compact"
+                  onClick={onCollapse}
+                  aria-label="Collapse sidebar"
+                  className="shrink-0"
+                />
+              }
+            >
+              <PanelLeftCloseIcon className="size-4" />
+            </TooltipTrigger>
+            <TooltipContent side="right">Collapse sidebar</TooltipContent>
+          </Tooltip>
+        )}
       </div>
       <div className="mx-3 mt-2 border-t border-border/70" />
       <div

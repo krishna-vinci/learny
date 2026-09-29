@@ -2,6 +2,7 @@
 // into the new set. Same overlay pattern as `AddSourceSheet`/`NewChapterSheet` (there's
 // no shared dialog primitive in `components/ui` yet — see AGENTS.md, "no new deps").
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { ApiError } from "@/api/client";
@@ -47,7 +48,9 @@ export function NewSetDialog({ open, onOpenChange }: NewSetDialogProps) {
     }
   }
 
-  return (
+  // Portal to <body>: opened from the phone drawer, the drawer's stacking context would
+  // otherwise put this sheet under the chat button.
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-overlay/50 md:items-center"
       role="dialog"
@@ -102,7 +105,8 @@ export function NewSetDialog({ open, onOpenChange }: NewSetDialogProps) {
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

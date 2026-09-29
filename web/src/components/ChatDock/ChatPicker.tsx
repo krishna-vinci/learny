@@ -29,7 +29,7 @@ function ChatPicker({ chats, activeChatId, onSelect }: ChatPickerProps) {
           <div className="px-2 py-1.5 text-ui text-muted-foreground">No chats yet</div>
         ) : (
           chats.map((chat) => (
-            <DropdownMenuItem key={chat.id} onSelect={() => onSelect(chat.id)}>
+            <DropdownMenuItem key={chat.id} onClick={() => onSelect(chat.id)}>
               <span className="truncate">{chat.title || "Untitled chat"}</span>
             </DropdownMenuItem>
           ))

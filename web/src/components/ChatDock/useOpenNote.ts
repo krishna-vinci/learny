@@ -9,7 +9,12 @@ export interface OpenNote {
   anchorRest: string | null;
 }
 
-const ROUTE_PATTERN = /^\/s\/([^/]+)(?:\/n\/(.*))?$/;
+// `set` matches any route nested under `/s/:set` (home, inbox, cards, cards/*, n/*) so
+// consumers like the sidebar's set fallback and ChatDock's set-scoping work no matter
+// which set-scoped page the person is on, not just the set home and note reader; `anchor`
+// stays narrow — only the note reader actually has a note open to attach chat messages to.
+const SET_PATTERN = /^\/s\/([^/]+)(?:\/.*)?$/;
+const NOTE_PATTERN = /^\/s\/[^/]+\/n\/(.*)$/;
 
 /**
  * ChatDock lives in RootLayout, outside the `/s/:set` and `/s/:set/n/*` route elements'
@@ -18,11 +23,12 @@ const ROUTE_PATTERN = /^\/s\/([^/]+)(?:\/n\/(.*))?$/;
  * router.tsx for the matching route definitions).
  */
 export function parseOpenNote(pathname: string): OpenNote {
-  const match = ROUTE_PATTERN.exec(pathname);
-  if (!match) return { set: null, anchor: null, anchorRest: null };
-  const set = decodeURIComponent(match[1] ?? "");
-  const rest = match[2];
-  if (rest === undefined) return { set, anchor: null, anchorRest: null };
+  const setMatch = SET_PATTERN.exec(pathname);
+  const set = setMatch ? decodeURIComponent(setMatch[1] ?? "") : null;
+
+  const noteMatch = NOTE_PATTERN.exec(pathname);
+  if (!noteMatch) return { set, anchor: null, anchorRest: null };
+  const rest = noteMatch[1] ?? "";
   return { set, anchor: `notes/${rest}`, anchorRest: rest };
 }
 

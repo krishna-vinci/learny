@@ -14,8 +14,10 @@ import LibraryPage from "@/pages/LibraryPage";
 import LibrarySourcePage from "@/pages/LibrarySourcePage";
 import NotePage from "@/pages/NotePage";
 import SetHomePage from "@/pages/SetHomePage";
+import SetsPage from "@/pages/SetsPage";
 import SettingsPage from "@/pages/SettingsPage";
 import SignIn from "@/pages/SignIn";
+import { useLastVisitedSet } from "@/pages/useLastVisitedSet";
 
 function AuthGate({ children }: { children: ReactNode }) {
   const location = useLocation();
@@ -35,6 +37,7 @@ function AuthGate({ children }: { children: ReactNode }) {
 
 function HomeRedirect() {
   const { data: sets, isLoading } = useSets();
+  const lastVisitedSet = useLastVisitedSet();
   const [newSetOpen, setNewSetOpen] = useState(false);
   if (isLoading) return null;
   if (!sets || sets.length === 0) {
@@ -51,7 +54,13 @@ function HomeRedirect() {
       </div>
     );
   }
-  return <Navigate to={`/s/${sets[0]?.slug}`} replace />;
+  // "/" goes to the last-visited set if it still exists, else the only set, else the
+  // "All study sets" page — never a hardcoded first set that may not be the one the
+  // person meant to land on.
+  const remembered = lastVisitedSet && sets.some((set) => set.slug === lastVisitedSet) ? lastVisitedSet : null;
+  if (remembered) return <Navigate to={`/s/${remembered}`} replace />;
+  if (sets.length === 1) return <Navigate to={`/s/${sets[0]?.slug}`} replace />;
+  return <Navigate to="/sets" replace />;
 }
 
 export const router = createBrowserRouter([
@@ -65,6 +74,7 @@ export const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <HomeRedirect /> },
+      { path: "sets", element: <SetsPage /> },
       { path: "settings", element: <SettingsPage /> },
       { path: "jobs", element: <JobsPage /> },
       { path: "s/:set", element: <SetHomePage /> },

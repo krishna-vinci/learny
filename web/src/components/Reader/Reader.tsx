@@ -192,35 +192,37 @@ export function Reader({ set, path, file, className }: ReaderProps) {
   return (
     <div className={cn("flex min-h-full w-full items-stretch", className)}>
       <article className="min-w-0 flex-1 px-4 py-4 md:px-6 md:py-6">
-        {/* Phone: the toolbar gets its own row, since floating it beside the title clips it. */}
-        <div
-          className={cn(
-            "flex flex-wrap items-start gap-2 md:gap-4",
-            bodyHasTitle ? "mb-3 justify-end md:float-right md:ms-4 md:mb-2" : "mb-4 justify-between",
-          )}
-        >
-          {!bodyHasTitle && <h1 className="text-2xl font-semibold text-foreground">{titleFromFrontmatter(file)}</h1>}
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-              <PencilIcon />
-              Edit
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => void makeCards()} disabled={makingCards}>
-              <LayersIcon />
-              {makingCards ? "Starting…" : "Make cards"}
-            </Button>
-            <Button
-              variant={historyOpen ? "secondary" : "outline"}
-              size="sm"
-              aria-pressed={historyOpen}
-              onClick={() => (historyOpen ? closeHistory() : setHistoryOpen(true))}
-            >
-              <HistoryIcon />
-              History
-            </Button>
+        <div className="mx-auto w-full max-w-3xl">
+          {/* Phone: the toolbar gets its own row, since floating it beside the title clips it. */}
+          <div
+            className={cn(
+              "flex flex-wrap items-start gap-2 md:gap-4",
+              bodyHasTitle ? "mb-3 justify-end md:float-right md:ms-4 md:mb-2" : "mb-4 justify-between",
+            )}
+          >
+            {!bodyHasTitle && <h1 className="text-2xl font-semibold text-foreground">{titleFromFrontmatter(file)}</h1>}
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+                <PencilIcon />
+                Edit
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => void makeCards()} disabled={makingCards}>
+                <LayersIcon />
+                {makingCards ? "Starting…" : "Make cards"}
+              </Button>
+              <Button
+                variant={historyOpen ? "secondary" : "outline"}
+                size="sm"
+                aria-pressed={historyOpen}
+                onClick={() => (historyOpen ? closeHistory() : setHistoryOpen(true))}
+              >
+                <HistoryIcon />
+                History
+              </Button>
+            </div>
           </div>
+          <MarkdownView content={file.body} />
         </div>
-        <MarkdownView content={file.body} />
       </article>
       {historyOpen && (
         <NoteHistory
