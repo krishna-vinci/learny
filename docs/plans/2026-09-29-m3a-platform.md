@@ -88,16 +88,18 @@ workspace has its own `EventHub`.
 
 | id | model | depends on | scope |
 |---|---|---|---|
-| T1 | `glm` | — | db + accounts + auth rewrite + top-level server + bootstrap |
+| T1 | `sol` | — | db + accounts + auth rewrite + top-level server + bootstrap |
 | T2 | `glm` | T1 | workspaces, per-user trees, legacy migration, AI gate |
-| T3 | `glm` | T2 | SSO (OAuth2 IdPs, linked identities) |
-| T4 | `fast` | T2 | backups (restic) |
+| T3 | `sol` | T1 | SSO (OAuth2 IdPs, linked identities) |
+| T4 | `fast` | T1 | backups (restic) |
 | T5 | `fast` | T2 | notifications (ntfy + Web Push), data export, systemd/compose/docs |
-| T6 | Sonnet (+ `ui-ux-pro-max`) | T3–T5 merged | all web UI for M3a |
-| T7 | `precise` audit, then Claude browser check | T6 | security review + end-to-end |
+| T6 | one persistent Sonnet session (+ `ui-ux-pro-max`) | T1, then each slice | web UI, delivered in slices: (a) setup, sign-in, account, sessions, tokens, members, instance after T1; (b) SSO screens and callback after T3; (c) backup wizard after T4; (d) notifications and export after T5. The same agent is resumed with SendMessage so it keeps its context. |
+| T7 | `precise` audit, then Claude browser check | all | security review + end-to-end |
 
-GLM runs one at a time. T4 and T5 (DeepSeek) run in parallel with T3, each in its own
-worktree. Migration numbers are fixed so the parallel tasks don't collide: T1 = 1,
+After T1 merges, T2 (glm), T3 (sol) and T4 (fast) run in parallel, each in its own
+worktree. Only one GLM run happens at a time. Each task touches `server.ts`/`main.ts`
+only at its named mount/wiring lines, and the orchestrator resolves merge overlaps.
+Migration numbers are fixed so the parallel tasks don't collide: T1 = 1,
 T3 = 2, T4 = 3, T5 = 4. Each task adds one entry to `server/src/db/migrations.ts`.
 
 ---
