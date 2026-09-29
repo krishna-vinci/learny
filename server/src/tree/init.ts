@@ -22,7 +22,8 @@ const DEFAULT_MCP_JSON = `{
     },
     "papers": {
       "url": "\${PAPERS_MCP_URL}",
-      "headers": { "Authorization": "Bearer \${PAPERS_MCP_TOKEN}" }
+      "headers": { "Authorization": "Bearer \${PAPERS_MCP_TOKEN}" },
+      "disabledTools": ["download_scihub"]
     }
   }
 }\n`;

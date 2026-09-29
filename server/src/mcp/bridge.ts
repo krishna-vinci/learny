@@ -130,13 +130,16 @@ export class McpManager {
     const entries = this.#clients.flatMap((client): NamedRemoteTool[] => {
       const serverName = client.config.name;
       if (!allowed.has(serverName)) return [];
-      return client.tools.map((remote) => ({
-        serverName,
-        client,
-        remote,
-        normalized: `mcp_${serverName}_${remote.name}`.replace(/[^A-Za-z0-9]/g, "_"),
-        identity: `${serverName}/${remote.name}`,
-      }));
+      const hidden = new Set(client.config.disabledTools ?? []);
+      return client.tools
+        .filter((remote) => !hidden.has(remote.name))
+        .map((remote) => ({
+          serverName,
+          client,
+          remote,
+          normalized: `mcp_${serverName}_${remote.name}`.replace(/[^A-Za-z0-9]/g, "_"),
+          identity: `${serverName}/${remote.name}`,
+        }));
     });
     const names = assignToolNames(entries);
     return entries.map((entry, index) =>

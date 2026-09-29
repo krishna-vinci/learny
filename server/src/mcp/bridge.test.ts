@@ -43,6 +43,14 @@ describe("McpManager", () => {
     expect(result.details).toMatchObject({ isError: false });
   });
 
+  it("hides tools listed in the server's disabledTools", async () => {
+    const fake = createFakeMcpServer();
+    const manager = new McpManager([{ ...fake.config, disabledTools: ["fail"] }], fake.clientFactory);
+    running.push({ manager, fake });
+    await manager.start();
+    expect(manager.tools(["fake-server"]).map((tool) => tool.name)).toEqual(["mcp_fake_server_echo"]);
+  });
+
   it("maps MCP error results into Pi tool errors", async () => {
     const { manager } = await setup();
     const fail = manager.tools(["fake-server"]).find((tool) => tool.name === "mcp_fake_server_fail");

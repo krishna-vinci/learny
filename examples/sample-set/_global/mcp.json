@@ -2,12 +2,22 @@
   "mcpServers": {
     "searxng": {
       "command": "npx",
-      "args": ["-y", "mcp-searxng@2.4.0"],
-      "env": { "SEARXNG_URL": "${SEARXNG_URL}" }
+      "args": [
+        "-y",
+        "mcp-searxng@2.4.0"
+      ],
+      "env": {
+        "SEARXNG_URL": "${SEARXNG_URL}"
+      }
     },
     "papers": {
       "url": "${PAPERS_MCP_URL}",
-      "headers": { "Authorization": "Bearer ${PAPERS_MCP_TOKEN}" }
+      "headers": {
+        "Authorization": "Bearer ${PAPERS_MCP_TOKEN}"
+      },
+      "disabledTools": [
+        "download_scihub"
+      ]
     }
   }
 }

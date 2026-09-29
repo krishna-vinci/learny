@@ -8,6 +8,8 @@ export interface McpServerConfig {
   env?: Record<string, string>;
   url?: string;
   headers?: Record<string, string>;
+  /** Remote tool names never exposed to agents (e.g. download_scihub). */
+  disabledTools?: string[];
 }
 
 interface RawMcpConfig {
@@ -91,7 +93,16 @@ export function loadMcpConfig(
       continue;
     }
 
+    if (
+      entry.disabledTools !== undefined &&
+      (!Array.isArray(entry.disabledTools) || !entry.disabledTools.every((tool) => typeof tool === "string"))
+    ) {
+      disabled.push(invalid(name, "disabledTools must be an array of strings"));
+      continue;
+    }
+
     const config: McpServerConfig = { name };
+    if (entry.disabledTools !== undefined) config.disabledTools = entry.disabledTools as string[];
     if (typeof command === "string") {
       config.command = command;
       if (entry.args !== undefined) config.args = entry.args as string[];
