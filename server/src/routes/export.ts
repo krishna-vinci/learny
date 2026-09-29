@@ -119,6 +119,15 @@ function queryMode(c: Context): "approved" | "approved+exported" | null {
   return value === "approved" || value === "approved+exported" ? value : null;
 }
 
+/**
+ * `mark=0` asks for the package without the side effect of moving approved cards to
+ * `exported` — used by the browser sync path, which marks cards afterwards with the
+ * real AnkiConnect note ids. The default (and any other value) still marks.
+ */
+function shouldMark(c: Context): boolean {
+  return c.req.query("mark") !== "0";
+}
+
 export function exportRoutes(deps: ExportRoutesDeps): Hono {
   const app = new Hono();
 
@@ -140,7 +149,7 @@ export function exportRoutes(deps: ExportRoutesDeps): Hono {
         baseUrl,
         sourceLabels: await sourceLabels(deps.root, included),
       });
-      await markApprovedExported(deps, set, included);
+      if (shouldMark(c)) await markApprovedExported(deps, set, included);
 
       return c.body(Uint8Array.from(packageBytes).buffer, 200, {
         "content-type": "application/octet-stream",

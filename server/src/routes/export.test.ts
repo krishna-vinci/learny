@@ -100,6 +100,18 @@ describe("GET /api/sets/:set/export.apkg", () => {
     await expect(packageGuids(response)).resolves.toEqual(["c-8f3a1b2c", "c-91bd07e4"]);
   });
 
+  it("mark=0 builds the package without changing card statuses or committing", async () => {
+    const before = await fs.readFile(path.join(root, "linear-algebra/cards/03-svd.md"), "utf8");
+    const head = (await log(root, { limit: 1 }))[0];
+
+    const response = await app.request("/api/sets/linear-algebra/export.apkg?mark=0");
+
+    expect(response.status).toBe(200);
+    await expect(packageGuids(response)).resolves.toEqual(["c-8f3a1b2c"]);
+    expect(await fs.readFile(path.join(root, "linear-algebra/cards/03-svd.md"), "utf8")).toBe(before);
+    expect((await log(root, { limit: 1 }))[0]).toEqual(head);
+  });
+
   it("rejects invalid filters and unknown sets", async () => {
     expect((await app.request("/api/sets/linear-algebra/export.apkg?cards=all")).status).toBe(400);
     expect((await app.request("/api/sets/linear-algebra/export.apkg?note=..%2FPLAN.md")).status).toBe(400);

@@ -34,48 +34,6 @@ const ANKICONNECT_URL = "http://localhost:8765";
 const ANKICONNECT_PROBE_TIMEOUT_MS = 1200;
 const DESKTOP_MIN_WIDTH = 768;
 
-/** `cards/03-svd.md` -> `Studium::<set>::03-svd`, matching the server's `.apkg`/sync deck naming. */
-function deckNameFor(cardFilePath: string, set: string): string {
-  return `Studium::${set}::${cardFilePath.replace(/^cards\//, "").replace(/\.md$/, "")}`;
-}
-
-function escapeHtml(value: string): string {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-/**
- * A minimal client-side Markdown -> Anki HTML approximation for the browser sync path only
- * (bold/italic/code, paragraph breaks, `$…$`/`$$…$$` -> MathJax `\(…\)`/`\[…\]`). The
- * server's export/`sync` routes use the fuller converter in `server/src/anki/html.ts`; this
- * one just needs to produce a reasonable card face when AnkiConnect is reachable directly
- * from the browser, on the same machine as desktop Anki.
- */
-function mdToAnkiHtml(markdown: string): string {
-  const escaped = escapeHtml(markdown);
-  const withInline = escaped
-    .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
-    .replace(/\*([^*]+)\*/g, "<i>$1</i>")
-    .replace(/`([^`]+)`/g, "<code>$1</code>");
-  const withMath = withInline
-    .replace(/\$\$([\s\S]+?)\$\$/g, (_m, expr: string) => `\\[${expr}\\]`)
-    .replace(/\$([^$\n]+?)\$/g, (_m, expr: string) => `\\(${expr}\\)`);
-  return withMath
-    .split(/\n{2,}/)
-    .map((para) => `<p>${para.replace(/\n/g, "<br>")}</p>`)
-    .join("");
-}
-
-function fieldsForCard(card: CardView, notePath: string | null): Record<string, string> {
-  const common = {
-    CardId: escapeHtml(card.id),
-    Source: card.src ? escapeHtml(card.src) : "",
-    NoteLink: escapeHtml(notePath ?? ""),
-  };
-  return card.type === "basic"
-    ? { Front: mdToAnkiHtml(card.q ?? ""), Back: mdToAnkiHtml(card.a ?? ""), ...common }
-    : { Text: mdToAnkiHtml(card.text ?? ""), Extra: mdToAnkiHtml(card.extra ?? ""), ...common };
-}
-
 type SyncMode = "probing" | "browser" | "server" | "hidden";
 
 /** Fields the review textareas edit, keyed by the card's type. */
@@ -378,12 +336,25 @@ function CardFilePage() {
     }
     setSyncing(true);
     try {
+      // Ask the server for a package that already carries the card ids as GUIDs (so
+      // re-imports update instead of duplicating) but does not mark cards exported — the
+      // write-back below records the real AnkiConnect note ids. See the `mark=0` handling
+      // in `server/src/routes/export.ts`.
+      const packageResponse = await fetch(
+        exportUrl(set, { cards: "approved+exported", note: detail.note ?? undefined, mark: 0 }),
+        { credentials: "same-origin" },
+      );
+      if (!packageResponse.ok) {
+        const body = (await packageResponse.json().catch(() => null)) as { error?: string } | null;
+        throw new ApiError(packageResponse.status, body?.error ?? "Failed to build the Anki package.", body);
+      }
+      const packageBytes = new Uint8Array(await packageResponse.arrayBuffer());
       const client = new AnkiConnectClient({ url: ANKICONNECT_URL, timeoutMs: 10_000 });
-      const deck = deckNameFor(path, set);
-      const result = await syncCards(client, syncable, {
-        deckFor: () => deck,
-        toFields: (card) => fieldsForCard(card, detail.note),
-      });
+      const result = await syncCards(
+        client,
+        syncable.map((card) => ({ id: card.id, ...(card.status === "exported" ? { existing: true } : {}) })),
+        packageBytes,
+      );
       const ids = Object.keys(result.ankiIds);
       if (ids.length > 0) await api.cards.markExported(set, ids, result.ankiIds);
       if (result.failed.length > 0) toast.error(`Synced with ${result.failed.length} failure(s).`);

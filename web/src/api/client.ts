@@ -252,8 +252,11 @@ export const api = {
  * `GET /api/sets/:set/export.apkg` as a plain download link (not run through `request`,
  * which assumes a JSON response) — used directly as an `<a href>`.
  */
-export function exportUrl(set: string, opts?: { cards?: "approved" | "approved+exported"; note?: string }): string {
-  return `/api/sets/${encodeURIComponent(set)}/export.apkg${qs({ cards: opts?.cards, note: opts?.note })}`;
+export function exportUrl(
+  set: string,
+  opts?: { cards?: "approved" | "approved+exported"; note?: string; mark?: 0 | 1 },
+): string {
+  return `/api/sets/${encodeURIComponent(set)}/export.apkg${qs({ cards: opts?.cards, note: opts?.note, mark: opts?.mark })}`;
 }
 
 /** `GET /api/library/:id` response shape (server's `SourceView`, not re-exported from shared). */
