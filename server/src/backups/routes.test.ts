@@ -202,7 +202,7 @@ describe.skipIf(!resticAvailable)("backup routes against a real restic repositor
     };
     const snapshotId = snapshots.snapshots[0]?.id ?? "";
 
-    for (const scopePath of ["../escape.md", "/etc/passwd", "sample/../../escape.md"]) {
+    for (const scopePath of ["../escape.md", "/etc/passwd", "sample/../../escape.md", ".", ".git", ".git/config"]) {
       const response = await request("POST", "/api/admin/backups/restore", {
         snapshotId,
         scope: { type: "note", username: "learner", path: scopePath },
