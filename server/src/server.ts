@@ -10,6 +10,7 @@ import {
   countAdmins,
   createUser,
   deleteUser,
+  emailBelongsToAnotherUser,
   getUserById,
   listUsers,
   type User,
@@ -97,6 +98,9 @@ function meRoutes(db: DatabaseSync): Hono {
         return c.json({ error: `${bodyKey} must be a string` }, 400);
       if (typeof value === "string") patch[patchKey] = value;
     }
+    if (patch.email !== undefined && emailBelongsToAnotherUser(db, patch.email, c.get("user").id)) {
+      return c.json({ error: "email is already in use" }, 409);
+    }
     return c.json({ user: updateUser(db, c.get("user").id, patch) });
   });
 
@@ -175,6 +179,9 @@ function adminRoutes(db: DatabaseSync, workspaces: WorkspaceProvider): Hono {
       return c.json({ error: "email must be a string" }, 400);
     if (body.aiEnabled !== undefined && typeof body.aiEnabled !== "boolean")
       return c.json({ error: "aiEnabled must be boolean" }, 400);
+    if (typeof body.email === "string" && emailBelongsToAnotherUser(db, body.email)) {
+      return c.json({ error: "email is already in use" }, 409);
+    }
     try {
       const user = await createUser(db, {
         username: body.username,
@@ -214,6 +221,9 @@ function adminRoutes(db: DatabaseSync, workspaces: WorkspaceProvider): Hono {
     }
     if (typeof body.password === "string" && body.password.length < 8)
       return c.json({ error: "password must be at least 8 characters" }, 400);
+    if (typeof body.email === "string" && emailBelongsToAnotherUser(db, body.email, target.id)) {
+      return c.json({ error: "email is already in use" }, 409);
+    }
     const removesActiveAdmin =
       target.role === "ADMIN" && target.state === "NORMAL" && (body.role === "USER" || body.state === "ARCHIVED");
     if (removesActiveAdmin && countAdmins(db) === 1) return c.json({ error: "cannot remove the last admin" }, 409);

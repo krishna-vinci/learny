@@ -95,6 +95,16 @@ describe("backup config", () => {
       "host must be a non-empty string",
     );
     expect(() => parseDestination({ type: "rest", url: "ftp://example.com" })).toThrow("http(s) URL");
+    expect(() => parseDestination({ type: "sftp", host: "-oProxyCommand=x", user: "backup", path: "/srv" })).toThrow(
+      "valid hostname or IP address",
+    );
+    expect(() => parseDestination({ type: "sftp", host: "host", user: "backup", path: "/srv;id" })).toThrow(
+      "shell metacharacters",
+    );
+    expect(() => parseDestination({ type: "rclone", remote: "-evil", path: "" })).toThrow("must not start");
+    expect(() => parseDestination({ type: "s3", endpoint: "https://s3.example", bucket: "bad bucket" })).toThrow(
+      "whitespace",
+    );
     expect(parseDestination({ type: "sftp", host: "host", user: "backup", path: "/srv" })).toEqual({
       type: "sftp",
       host: "host",
@@ -102,6 +112,16 @@ describe("backup config", () => {
       user: "backup",
       path: "/srv",
     });
+    expect(parseDestination({ type: "sftp", host: "2001:db8::1", user: "backup", path: "~/repo" })).toMatchObject({
+      host: "2001:db8::1",
+      path: "~/repo",
+    });
+  });
+
+  it("rejects credentials embedded in REST repository URLs", () => {
+    for (const url of ["https://user:secret@rest.example/repo", "https://rest.example/repo?password=secret"]) {
+      expect(() => parseDestination({ type: "rest", url })).toThrow("put credentials in the username/password fields");
+    }
   });
 
   it("requires the credentials a destination cannot run without", () => {
@@ -145,7 +165,7 @@ describe("backup config", () => {
       username: "backup",
       password: "rest-password",
     });
-    expect(destinationSecrets(destination)).toEqual(["rest-password"]);
+    expect(destinationSecrets(destination)).toEqual(["https://rest.example.com", "backup", "rest-password"]);
     expect(destinationSecrets({ type: "local", path: "/tmp/repo" })).toEqual([]);
   });
 });

@@ -33,7 +33,7 @@ type VapidDetails = { subject: string; publicKey: string; privateKey: string };
 export type SendPush = (
   subscription: PushSubscriptionInput,
   payload: string,
-  options: { vapidDetails: VapidDetails },
+  options: { vapidDetails: VapidDetails; timeout: number },
 ) => Promise<unknown>;
 
 export interface PushDeps {
@@ -43,6 +43,13 @@ export interface PushDeps {
 }
 
 export type PushOutcome = "sent" | "gone" | "error";
+
+export class PushSubscriptionConflictError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PushSubscriptionConflictError";
+  }
+}
 
 interface SubscriptionRow {
   id: string;
@@ -100,12 +107,14 @@ export function upsertPushSubscription(
   input: PushSubscriptionInput,
   userAgent: string,
 ): PushSubscriptionRecord {
-  const existing = db.prepare("SELECT id FROM push_subscriptions WHERE endpoint = ?").get(input.endpoint) as
-    | { id: string }
+  const existing = db.prepare("SELECT id, user_id FROM push_subscriptions WHERE endpoint = ?").get(input.endpoint) as
+    | { id: string; user_id: number }
     | undefined;
   if (existing !== undefined) {
-    db.prepare("UPDATE push_subscriptions SET user_id = ?, p256dh = ?, auth = ?, user_agent = ? WHERE id = ?").run(
-      userId,
+    if (existing.user_id !== userId) {
+      throw new PushSubscriptionConflictError("push endpoint is already registered to another user");
+    }
+    db.prepare("UPDATE push_subscriptions SET p256dh = ?, auth = ?, user_agent = ? WHERE id = ?").run(
       input.keys.p256dh,
       input.keys.auth,
       userAgent,
@@ -114,6 +123,9 @@ export function upsertPushSubscription(
     return toRecord(
       db.prepare("SELECT * FROM push_subscriptions WHERE id = ?").get(existing.id) as unknown as SubscriptionRow,
     );
+  }
+  if (listPushSubscriptions(db, userId).length >= 10) {
+    throw new PushSubscriptionConflictError("push subscription limit reached");
   }
   const id = randomBytes(16).toString("hex");
   db.prepare(
@@ -149,7 +161,10 @@ export async function dispatchPush(
     await send(
       { endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } },
       JSON.stringify(notification),
-      { vapidDetails: { subject: vapidSubject(instanceUrl), publicKey: keys.publicKey, privateKey: keys.privateKey } },
+      {
+        vapidDetails: { subject: vapidSubject(instanceUrl), publicKey: keys.publicKey, privateKey: keys.privateKey },
+        timeout: 10_000,
+      },
     );
     return "sent";
   } catch (error) {

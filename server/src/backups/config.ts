@@ -1,3 +1,4 @@
+import { isIP } from "node:net";
 import type { DatabaseSync } from "node:sqlite";
 import { decryptSecret, encryptSecret } from "../db/crypto.js";
 import { deriveKey } from "../db/secret.js";
@@ -106,6 +107,10 @@ export function secretFieldsOf(type: string): string[] {
 export function destinationSecrets(destination: BackupDestination | null): string[] {
   if (destination === null) return [];
   const values: string[] = [];
+  if (destination.type === "rest") {
+    values.push(destination.url);
+    if (destination.username !== undefined && destination.username !== "") values.push(destination.username);
+  }
   for (const field of secretFieldsOf(destination.type)) {
     const value = (destination as unknown as Record<string, unknown>)[field];
     if (typeof value === "string" && value !== "") values.push(value);
@@ -276,6 +281,24 @@ function optionalString(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
+const SFTP_HOST_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?$/;
+const SFTP_USER_PATTERN = /^[a-z_][a-z0-9_.-]{0,31}$/;
+const SFTP_PATH_METACHAR_PATTERN = /["';|&$`<>]/;
+
+function hasControlOrWhitespace(value: string): boolean {
+  if (/\s/.test(value)) return true;
+  return Array.from(value).some((char) => {
+    const codePoint = char.codePointAt(0) ?? 0;
+    return codePoint < 0x20 || (codePoint >= 0x7f && codePoint <= 0x9f);
+  });
+}
+
+function rejectUnsafeName(value: string, field: string): void {
+  if (value.startsWith("-") || hasControlOrWhitespace(value)) {
+    throw new Error(`${field} must not start with '-' or contain whitespace or control characters`);
+  }
+}
+
 /** Validate an API payload into a destination, or throw an Error with a clear message. */
 export function parseDestination(value: unknown): BackupDestination {
   if (!isRecord(value)) throw new Error("destination must be an object");
@@ -290,6 +313,20 @@ export function parseDestination(value: unknown): BackupDestination {
       const user = requireString(value.user, "user");
       const dir = requireString(value.path, "path");
       const port = value.port === undefined ? 22 : value.port;
+      if (host.startsWith("-") || (isIP(host) === 0 && !SFTP_HOST_PATTERN.test(host))) {
+        throw new Error("sftp host must be a valid hostname or IP address");
+      }
+      if (!SFTP_USER_PATTERN.test(user)) {
+        throw new Error("sftp user must be a valid SSH username");
+      }
+      if (
+        (!dir.startsWith("/") && !dir.startsWith("~/")) ||
+        dir.startsWith("-") ||
+        hasControlOrWhitespace(dir) ||
+        SFTP_PATH_METACHAR_PATTERN.test(dir)
+      ) {
+        throw new Error("sftp path must be absolute or start with ~/ and contain no shell metacharacters");
+      }
       if (typeof port !== "number" || !Number.isInteger(port) || port < 1 || port > 65535) {
         throw new Error("sftp port must be an integer between 1 and 65535");
       }
@@ -297,11 +334,15 @@ export function parseDestination(value: unknown): BackupDestination {
     }
     case "rest": {
       const url = requireString(value.url, "url");
+      let parsed: URL;
       try {
-        const parsed = new URL(url);
+        parsed = new URL(url);
         if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error("bad protocol");
       } catch {
         throw new Error("rest url must be an http(s) URL");
+      }
+      if (parsed.username !== "" || parsed.password !== "" || parsed.search !== "") {
+        throw new Error("put credentials in the username/password fields");
       }
       const username = typeof value.username === "string" && value.username !== "" ? value.username : undefined;
       const password = typeof value.password === "string" && value.password !== "" ? value.password : undefined;
@@ -316,6 +357,8 @@ export function parseDestination(value: unknown): BackupDestination {
       const endpoint = requireString(value.endpoint, "endpoint");
       const bucket = requireString(value.bucket, "bucket");
       const prefix = typeof value.prefix === "string" ? value.prefix : "";
+      rejectUnsafeName(bucket, "s3 bucket");
+      if (prefix !== "") rejectUnsafeName(prefix, "s3 prefix");
       const accessKeyId = optionalString(value.accessKeyId);
       const secretAccessKey = optionalString(value.secretAccessKey);
       const region = typeof value.region === "string" && value.region !== "" ? value.region : undefined;
@@ -331,6 +374,7 @@ export function parseDestination(value: unknown): BackupDestination {
     }
     case "rclone": {
       const remote = requireString(value.remote, "remote");
+      rejectUnsafeName(remote, "rclone remote");
       const dir = typeof value.path === "string" ? value.path : "";
       const rcloneConfig = optionalString(value.rcloneConfig);
       return { type: "rclone", remote, path: dir, rcloneConfig };

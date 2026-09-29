@@ -1,3 +1,4 @@
+import { safeFetch } from "../ingest/safe-fetch.js";
 import type { NotificationPayload } from "./types.js";
 
 export interface NtfyConfig {
@@ -7,10 +8,13 @@ export interface NtfyConfig {
 
 export interface NtfyDeps {
   fetchImpl?: typeof fetch;
+  safeFetchImpl?: typeof safeFetch;
   timeoutMs?: number;
+  isAdmin?: boolean;
 }
 
 const DEFAULT_TIMEOUT_MS = 5_000;
+const MAX_RESPONSE_BYTES = 16 * 1024;
 
 export function validNtfyUrl(value: string): boolean {
   try {
@@ -30,7 +34,10 @@ export async function sendNtfy(
   notification: NotificationPayload,
   deps: NtfyDeps = {},
 ): Promise<void> {
-  const fetchImpl = deps.fetchImpl ?? fetch;
+  const isAdmin = deps.isAdmin === true;
+  if (!validNtfyUrl(config.url) || (!isAdmin && new URL(config.url).protocol !== "https:")) {
+    throw new Error(isAdmin ? "ntfy URL must be http(s)" : "ntfy URL must be public https");
+  }
   const headers: Record<string, string> = {
     Title: notification.title,
     Tags: (notification.tags ?? ["bell"]).join(","),
@@ -38,11 +45,21 @@ export async function sendNtfy(
   if (notification.url !== undefined && notification.url !== "") headers.Click = notification.url;
   if (config.token !== undefined && config.token !== "") headers.Authorization = `Bearer ${config.token}`;
 
-  const response = await fetchImpl(config.url, {
-    method: "POST",
-    headers,
-    body: notification.body,
-    signal: AbortSignal.timeout(deps.timeoutMs ?? DEFAULT_TIMEOUT_MS),
-  });
+  const response = isAdmin
+    ? await (deps.fetchImpl ?? fetch)(config.url, {
+        method: "POST",
+        headers,
+        body: notification.body,
+        redirect: "error",
+        signal: AbortSignal.timeout(deps.timeoutMs ?? DEFAULT_TIMEOUT_MS),
+      })
+    : await (deps.safeFetchImpl ?? safeFetch)(config.url, {
+        method: "POST",
+        headers,
+        body: notification.body,
+        timeoutMs: deps.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+        maxBytes: MAX_RESPONSE_BYTES,
+        allowErrorStatus: true,
+      });
   if (!response.ok) throw new Error(`ntfy responded with ${response.status}`);
 }

@@ -63,6 +63,23 @@ describe("auth routes", () => {
     ).toBe(409);
   });
 
+  it("rate limits the sixth failed setup code from one IP", async () => {
+    const app = makeApp("a1b2c3d4e5f6");
+    const statuses: number[] = [];
+    for (let index = 0; index < 6; index += 1) {
+      statuses.push(
+        (
+          await post(app, "/api/auth/setup", {
+            username: "admin",
+            password: "password1",
+            setupCode: "wrong",
+          })
+        ).status,
+      );
+    }
+    expect(statuses).toEqual([403, 403, 403, 403, 403, 429]);
+  });
+
   it("signs in through the new and compatibility routes and returns the compatible me shape", async () => {
     await createUser(db, { username: "learner", password: "study-password", role: "USER" });
     const app = makeApp();

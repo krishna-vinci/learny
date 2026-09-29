@@ -1,7 +1,17 @@
+import { chmod, mkdtemp, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { type BackupDestination, parseDestination } from "./config.js";
-import { buildResticEnv, isMissingRepository, parseSnapshotId, redactSecrets, repositoryString } from "./restic.js";
+import {
+  buildResticEnv,
+  isMissingRepository,
+  parseSnapshotId,
+  redactSecrets,
+  repositoryString,
+  runRestic,
+  sftpExtraArgs,
+} from "./restic.js";
 
 const dataDir = "/srv/studium/data";
 
@@ -64,6 +74,10 @@ describe("restic environment", () => {
     const cases: Array<[BackupDestination, string]> = [
       [{ type: "local", path: "/srv/repo" }, "/srv/repo"],
       [{ type: "sftp", host: "host", port: 22, user: "backup", path: "/srv/repo" }, "sftp:backup@host:/srv/repo"],
+      [
+        { type: "sftp", host: "2001:db8::1", port: 22, user: "backup", path: "/srv/repo" },
+        "sftp:backup@[2001:db8::1]:/srv/repo",
+      ],
       [{ type: "rest", url: "https://rest.example.com/" }, "https://rest.example.com/"],
       [
         {
@@ -110,5 +124,37 @@ describe("restic output helpers", () => {
     expect(parseSnapshotId(stdout)).toBe("abcdef0123456789");
     expect(parseSnapshotId("")).toBeNull();
     expect(parseSnapshotId("not json")).toBeNull();
+  });
+
+  it("kills restic and reports failure when a stream exceeds 1 MiB", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "studium-restic-cap-"));
+    const previousPath = process.env.PATH;
+    try {
+      const executable = path.join(dir, "restic");
+      process.env.PATH = dir;
+      for (const stream of ["stdout", "stderr"] as const) {
+        await writeFile(
+          executable,
+          `#!${process.execPath}\nprocess.${stream}.write(Buffer.alloc(1024 * 1024 + 1, "a"), () => setTimeout(() => {}, 10_000));\n`,
+        );
+        await chmod(executable, 0o700);
+        const result = await runRestic([], { type: "local", path: "/srv/repo" }, "password", { dataDir: dir });
+        expect(result.code).toBe(-1);
+        expect(Buffer.byteLength(result[stream])).toBeLessThanOrEqual(1024 * 1024);
+        expect(result.stderr).toContain("truncated");
+      }
+    } finally {
+      process.env.PATH = previousPath;
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("builds an sftp.command that names the host and sftp subsystem after --", () => {
+    const [flag, value] = sftpExtraArgs(
+      { type: "sftp", host: "backup.lan", port: 2222, user: "backup", path: "/srv/repo" },
+      "/data",
+    );
+    expect(flag).toBe("-o");
+    expect(value).toMatch(/^sftp\.command=ssh -p 2222 -i \S+ .* -s -- backup@backup\.lan sftp$/);
   });
 });

@@ -109,6 +109,36 @@ describe("top-level server", () => {
     expect(provisioned).toEqual(["bob"]);
   });
 
+  it("rejects duplicate emails in self-service and admin create or patch", async () => {
+    const admin = await createUser(db, { username: "admin", role: "ADMIN", email: "owner@example.com" });
+    const learner = await createUser(db, { username: "learner", role: "USER" });
+    const adminSession = createSession(db, admin.id, { userAgent: "", ip: "" });
+    const learnerSession = createSession(db, learner.id, { userAgent: "", ip: "" });
+    const app = server();
+    const headers = { ...cookie(adminSession.token), "content-type": "application/json" };
+
+    const created = await app.request("/api/admin/users", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ username: "duplicate", role: "USER", email: "OWNER@example.com" }),
+    });
+    expect(created.status).toBe(409);
+
+    const patched = await app.request(`/api/admin/users/${learner.id}`, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ email: "Owner@example.com" }),
+    });
+    expect(patched.status).toBe(409);
+
+    const selfPatched = await app.request("/api/me", {
+      method: "PATCH",
+      headers: { ...cookie(learnerSession.token), "content-type": "application/json" },
+      body: JSON.stringify({ email: "owner@example.com" }),
+    });
+    expect(selfPatched.status).toBe(409);
+  });
+
   it("stops workspaces on archive and moves a purged tree to trash", async () => {
     const admin = await createUser(db, { username: "admin", password: "admin-pass", role: "ADMIN" });
     const learner = await createUser(db, { username: "learner", password: "learner-pass", role: "USER" });

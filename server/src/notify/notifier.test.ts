@@ -5,6 +5,7 @@ import { updateInstanceSettings } from "../accounts/settings.js";
 import { createUser } from "../accounts/users.js";
 import { encryptSecret } from "../db/crypto.js";
 import { migrate, openDb } from "../db/db.js";
+import type { safeFetch } from "../ingest/safe-fetch.js";
 import { Notifier, writeNotificationEvents, writeNtfyConfig } from "./notifier.js";
 
 let db: DatabaseSync;
@@ -16,7 +17,28 @@ beforeEach(() => {
 });
 
 function notifier(fetchImpl: typeof fetch): Notifier {
-  return new Notifier({ db, secretsKey, fetchImpl, logger: () => undefined });
+  const safeFetchImpl = async (url: string, options: Parameters<typeof safeFetch>[1]) => {
+    const response = await fetchImpl(url, {
+      method: options?.method,
+      headers: options?.headers,
+      body: options?.body,
+    });
+    return {
+      url,
+      status: response.status,
+      ok: response.ok,
+      headers: response.headers,
+      contentType: response.headers.get("content-type"),
+      bytes: new Uint8Array(),
+    };
+  };
+  return new Notifier({
+    db,
+    secretsKey,
+    fetchImpl,
+    safeFetchImpl: safeFetchImpl as typeof safeFetch,
+    logger: () => undefined,
+  });
 }
 
 describe("Notifier", () => {

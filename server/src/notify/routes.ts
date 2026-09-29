@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { type Context, Hono } from "hono";
 import { encryptSecret } from "../db/crypto.js";
+import { assertPublicUrl } from "../ingest/safe-fetch.js";
 import {
   type Notifier,
   readNotificationEvents,
@@ -13,6 +14,7 @@ import {
   deletePushSubscription,
   getOrCreateVapidKeys,
   listPushSubscriptions,
+  PushSubscriptionConflictError,
   upsertPushSubscription,
 } from "./webpush.js";
 
@@ -67,6 +69,14 @@ export function notificationRoutes(deps: NotificationRoutesDeps): Hono {
     if (body.url !== "" && !validNtfyUrl(body.url)) {
       return c.json({ error: "url must be an http(s) URL or empty" }, 400);
     }
+    if (body.url !== "" && c.get("user").role !== "ADMIN") {
+      try {
+        if (new URL(body.url).protocol !== "https:") throw new Error("https required");
+        await assertPublicUrl(body.url);
+      } catch {
+        return c.json({ error: "url must be a public https URL or empty" }, 400);
+      }
+    }
     if (body.token !== undefined && typeof body.token !== "string") {
       return c.json({ error: "token must be a string" }, 400);
     }
@@ -90,8 +100,20 @@ export function notificationRoutes(deps: NotificationRoutesDeps): Hono {
   app.post("/push", async (c) => {
     const subscription = validPushSubscription(await jsonBody(c));
     if (subscription === null) return c.json({ error: "endpoint and keys are required" }, 400);
-    const record = upsertPushSubscription(deps.db, c.get("user").id, subscription, c.req.header("user-agent") ?? "");
-    return c.json({ subscription: { id: record.id, userAgent: record.userAgent, createdAt: record.createdAt } }, 201);
+    try {
+      const endpoint = new URL(subscription.endpoint);
+      if (endpoint.protocol !== "https:") throw new Error("https required");
+      await assertPublicUrl(subscription.endpoint);
+    } catch {
+      return c.json({ error: "endpoint must be a public https URL" }, 400);
+    }
+    try {
+      const record = upsertPushSubscription(deps.db, c.get("user").id, subscription, c.req.header("user-agent") ?? "");
+      return c.json({ subscription: { id: record.id, userAgent: record.userAgent, createdAt: record.createdAt } }, 201);
+    } catch (error) {
+      if (error instanceof PushSubscriptionConflictError) return c.json({ error: error.message }, 409);
+      throw error;
+    }
   });
 
   app.delete("/push/:id", (c) => {

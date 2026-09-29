@@ -114,6 +114,7 @@ export function authRoutes(options: AuthRouteOptions): Hono {
   const { db } = options;
   const app = new Hono();
   const attempts = new Map<string, LoginAttempt>();
+  const setupAttempts = new Map<string, LoginAttempt>();
   let setupInProgress = false;
 
   app.get("/status", (c) => {
@@ -130,6 +131,13 @@ export function authRoutes(options: AuthRouteOptions): Hono {
 
   app.post("/setup", async (c) => {
     if (setupInProgress || listUsers(db).length !== 0) return c.json({ error: "setup is already complete" }, 409);
+    const now = Date.now();
+    pruneExpiredAttempts(setupAttempts, now);
+    const ip = clientIp(c, options.trustProxy);
+    const attempt = setupAttempts.get(ip);
+    if (attempt !== undefined && attempt.failures >= MAX_FAILED_LOGINS) {
+      return c.json({ error: "too many attempts" }, 429);
+    }
     setupInProgress = true;
     try {
       const body = await jsonBody(c);
@@ -137,10 +145,12 @@ export function authRoutes(options: AuthRouteOptions): Hono {
       const password = typeof body?.password === "string" ? body.password : "";
       const suppliedCode = typeof body?.setupCode === "string" ? body.setupCode : "";
       if (options.setupCode !== null && !constantTimeEqual(suppliedCode, options.setupCode)) {
+        addFailedAttempt(setupAttempts, ip, now);
         return c.json({ error: "invalid setup code" }, 403);
       }
       if (password.length < 8) return c.json({ error: "password must be at least 8 characters" }, 400);
       const user = await createUser(db, { username, password, role: "ADMIN" });
+      setupAttempts.delete(ip);
       createSessionForRequest(c, options, user.id);
       return c.json({ user }, 201);
     } catch (error) {

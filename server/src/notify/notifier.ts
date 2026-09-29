@@ -2,6 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { getInstanceSettings } from "../accounts/settings.js";
 import { getUserById, listUsers } from "../accounts/users.js";
 import { decryptSecret } from "../db/crypto.js";
+import { safeFetch } from "../ingest/safe-fetch.js";
 import { type NtfyConfig, sendNtfy } from "./ntfy.js";
 import { DEFAULT_NOTIFICATION_EVENTS, type NotificationEvent, type NotificationEventSettings } from "./types.js";
 import { dispatchPush, listPushSubscriptions, type SendPush } from "./webpush.js";
@@ -20,6 +21,7 @@ export interface NotifierDeps {
   db: DatabaseSync;
   secretsKey: Buffer;
   fetchImpl?: typeof fetch;
+  safeFetchImpl?: typeof safeFetch;
   sendPush?: SendPush;
   logger?: (message: string) => void;
 }
@@ -110,6 +112,7 @@ export class Notifier {
   readonly #db: DatabaseSync;
   readonly #secretsKey: Buffer;
   readonly #fetchImpl: typeof fetch;
+  readonly #safeFetchImpl: typeof safeFetch;
   readonly #sendPush: SendPush | undefined;
   readonly #logger: (message: string) => void;
 
@@ -117,6 +120,7 @@ export class Notifier {
     this.#db = deps.db;
     this.#secretsKey = deps.secretsKey;
     this.#fetchImpl = deps.fetchImpl ?? fetch;
+    this.#safeFetchImpl = deps.safeFetchImpl ?? safeFetch;
     this.#sendPush = deps.sendPush;
     this.#logger = deps.logger ?? ((message) => console.warn(`studium: ${message}`));
   }
@@ -138,7 +142,11 @@ export class Notifier {
       const ntfy = ntfyConfigFor(this.#db, this.#secretsKey, userId);
       if (ntfy !== null) {
         try {
-          await sendNtfy(ntfy, payload, { fetchImpl: this.#fetchImpl });
+          await sendNtfy(ntfy, payload, {
+            fetchImpl: this.#fetchImpl,
+            safeFetchImpl: this.#safeFetchImpl,
+            isAdmin: user.role === "ADMIN",
+          });
         } catch (error) {
           this.#logger(`ntfy notification failed for ${user.username}: ${errorMessage(error)}`);
         }

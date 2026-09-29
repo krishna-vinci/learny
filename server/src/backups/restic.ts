@@ -4,6 +4,7 @@ import path from "node:path";
 import { type BackupDestination, destinationSecrets } from "./config.js";
 
 export const RESTIC_BINARY = "restic";
+const MAX_OUTPUT_BYTES = 1024 * 1024;
 
 export interface ResticResult {
   code: number;
@@ -43,7 +44,7 @@ export function repositoryString(destination: BackupDestination): string {
     case "local":
       return destination.path;
     case "sftp":
-      return `sftp:${destination.user}@${destination.host}:${destination.path}`;
+      return `sftp:${destination.user}@${destination.host.includes(":") ? `[${destination.host}]` : destination.host}:${destination.path}`;
     case "rest":
       return destination.url;
     case "s3": {
@@ -85,7 +86,7 @@ export function buildResticEnv(
   return env;
 }
 
-function sftpExtraArgs(destination: Extract<BackupDestination, { type: "sftp" }>, dataDir: string): string[] {
+export function sftpExtraArgs(destination: Extract<BackupDestination, { type: "sftp" }>, dataDir: string): string[] {
   const key = sftpKeyPath(dataDir);
   const command = [
     "ssh",
@@ -97,6 +98,12 @@ function sftpExtraArgs(destination: Extract<BackupDestination, { type: "sftp" }>
     "StrictHostKeyChecking=accept-new",
     "-o",
     `UserKnownHostsFile=${sftpKnownHostsPath(dataDir)}`,
+    // restic runs a custom sftp.command verbatim: it must name the host and the sftp
+    // subsystem itself. `--` ends ssh options, so a validated host can never be one.
+    "-s",
+    "--",
+    `${destination.user}@${destination.host}`,
+    "sftp",
   ].join(" ");
   return ["-o", `sftp.command=${command}`];
 }
@@ -149,9 +156,21 @@ export async function runRestic(
 
   return await new Promise<ResticResult>((resolve, reject) => {
     const child = spawn(RESTIC_BINARY, [...extraArgs, ...args, "--json"], { env, signal: options.signal });
-    let stdout = "";
-    let stderr = "";
+    const stdoutChunks: Buffer[] = [];
+    const stderrChunks: Buffer[] = [];
+    let stdoutBytes = 0;
+    let stderrBytes = 0;
     let timedOut = false;
+    let outputTruncated = false;
+    const retainChunk = (chunks: Buffer[], retainedBytes: number, chunk: Buffer): number => {
+      const remaining = MAX_OUTPUT_BYTES - retainedBytes;
+      if (remaining > 0) chunks.push(chunk.subarray(0, remaining));
+      if (chunk.byteLength > remaining && !outputTruncated) {
+        outputTruncated = true;
+        child.kill("SIGKILL");
+      }
+      return retainedBytes + Math.min(chunk.byteLength, Math.max(remaining, 0));
+    };
     const timer =
       options.timeoutMs === undefined || options.timeoutMs <= 0
         ? null
@@ -161,10 +180,10 @@ export async function runRestic(
           }, options.timeoutMs);
 
     child.stdout.on("data", (chunk: Buffer) => {
-      stdout += chunk.toString("utf8");
+      stdoutBytes = retainChunk(stdoutChunks, stdoutBytes, chunk);
     });
     child.stderr.on("data", (chunk: Buffer) => {
-      stderr += chunk.toString("utf8");
+      stderrBytes = retainChunk(stderrChunks, stderrBytes, chunk);
     });
     child.on("error", (error) => {
       if (timer !== null) clearTimeout(timer);
@@ -172,8 +191,22 @@ export async function runRestic(
     });
     child.on("close", (code) => {
       if (timer !== null) clearTimeout(timer);
-      const suffix = timedOut ? `\nrestic timed out after ${options.timeoutMs}ms` : "";
-      resolve({ code: timedOut ? -1 : (code ?? -1), stdout, stderr: stderr + suffix });
+      const stdout = Buffer.concat(stdoutChunks, stdoutBytes).toString("utf8");
+      const suffix = timedOut
+        ? `\nrestic timed out after ${options.timeoutMs}ms`
+        : outputTruncated
+          ? `\nrestic output exceeded ${MAX_OUTPUT_BYTES} bytes and was truncated`
+          : "";
+      const suffixBuffer = Buffer.from(suffix);
+      const stderrBuffer = Buffer.concat(stderrChunks, stderrBytes);
+      const stderr =
+        suffixBuffer.byteLength === 0
+          ? stderrBuffer.toString("utf8")
+          : Buffer.concat([
+              stderrBuffer.subarray(0, Math.max(0, MAX_OUTPUT_BYTES - suffixBuffer.byteLength)),
+              suffixBuffer,
+            ]).toString("utf8");
+      resolve({ code: timedOut || outputTruncated ? -1 : (code ?? -1), stdout, stderr });
     });
   });
 }

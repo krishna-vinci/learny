@@ -37,13 +37,16 @@ describe("web push", () => {
       "Mozilla/5.0",
     );
 
-    const sent: Array<{ subscription: unknown; payload: string; options: { vapidDetails: { publicKey: string } } }> =
-      [];
+    const sent: Array<{
+      subscription: unknown;
+      payload: string;
+      options: { vapidDetails: { publicKey: string }; timeout: number };
+    }> = [];
     const send = vi.fn(
       async (
         subscription: unknown,
         payload: string,
-        options: { vapidDetails: { publicKey: string } },
+        options: { vapidDetails: { publicKey: string }; timeout: number },
       ): Promise<unknown> => {
         sent.push({ subscription, payload, options });
         return { statusCode: 201 };
@@ -60,7 +63,7 @@ describe("web push", () => {
     const call = sent[0] as {
       subscription: unknown;
       payload: string;
-      options: { vapidDetails: { publicKey: string } };
+      options: { vapidDetails: { publicKey: string }; timeout: number };
     };
     expect(call.subscription).toEqual({ endpoint, keys: { p256dh: "p256dh-key", auth: "auth-key" } });
     expect(JSON.parse(call.payload)).toEqual({
@@ -69,6 +72,7 @@ describe("web push", () => {
       url: "https://notes.example/s/linear-algebra",
     });
     expect(call.options.vapidDetails.publicKey).toBe(getOrCreateVapidKeys(db, secretsKey).publicKey);
+    expect(call.options.timeout).toBe(10_000);
     expect(send).toHaveBeenCalledTimes(1);
 
     const gone = vi.fn(async (_subscription: unknown, _payload: string, _options: unknown) => {

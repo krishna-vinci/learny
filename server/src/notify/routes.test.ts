@@ -48,12 +48,12 @@ describe("notification routes", () => {
   it("stores the ntfy token encrypted and returns hasToken only", async () => {
     const app = makeApp(new Notifier({ db, secretsKey }));
     const saved = await jsonRequest(app, "/api/me/notifications/ntfy", "PUT", {
-      url: "https://ntfy.sh/studium-learner",
+      url: "https://93.184.216.34/studium-learner",
       token: "tk_live_secret",
     });
     expect(saved.status).toBe(200);
     await expect(saved.json()).resolves.toEqual({
-      ntfy: { url: "https://ntfy.sh/studium-learner", hasToken: true },
+      ntfy: { url: "https://93.184.216.34/studium-learner", hasToken: true },
     });
 
     const stored = (
@@ -67,14 +67,14 @@ describe("notification routes", () => {
     const view = (await (await app.request("/api/me/notifications")).json()) as {
       ntfy: { url: string; hasToken: boolean };
     };
-    expect(view.ntfy).toEqual({ url: "https://ntfy.sh/studium-learner", hasToken: true });
+    expect(view.ntfy).toEqual({ url: "https://93.184.216.34/studium-learner", hasToken: true });
     expect(JSON.stringify(view)).not.toContain("tk_live_secret");
   });
 
   it("registers and removes a push subscription", async () => {
     const app = makeApp(new Notifier({ db, secretsKey }));
     const created = await jsonRequest(app, "/api/me/notifications/push", "POST", {
-      endpoint: "https://push.example/abc",
+      endpoint: "https://93.184.216.34/abc",
       keys: { p256dh: "p256dh", auth: "auth" },
     });
     expect(created.status).toBe(201);
@@ -91,6 +91,57 @@ describe("notification routes", () => {
     expect(removed.status).toBe(204);
     const after = (await (await app.request("/api/me/notifications")).json()) as { subscriptions: unknown[] };
     expect(after.subscriptions).toEqual([]);
+  });
+
+  it("rejects private notification targets for users but allows an admin ntfy topic", async () => {
+    const app = makeApp(new Notifier({ db, secretsKey }));
+    const privateNtfy = await jsonRequest(app, "/api/me/notifications/ntfy", "PUT", {
+      url: "http://169.254.169.254/latest/meta-data/",
+    });
+    expect(privateNtfy.status).toBe(400);
+
+    const privatePush = await jsonRequest(app, "/api/me/notifications/push", "POST", {
+      endpoint: "https://127.0.0.1/push",
+      keys: { p256dh: "p", auth: "a" },
+    });
+    expect(privatePush.status).toBe(400);
+
+    user = await createUser(db, { username: "admin", role: "ADMIN" });
+    const adminApp = makeApp(new Notifier({ db, secretsKey }));
+    const adminNtfy = await jsonRequest(adminApp, "/api/me/notifications/ntfy", "PUT", {
+      url: "http://192.168.0.55/topic",
+    });
+    expect(adminNtfy.status).toBe(200);
+  });
+
+  it("limits subscriptions and never reassigns another user's endpoint", async () => {
+    const app = makeApp(new Notifier({ db, secretsKey }));
+    for (let index = 0; index < 10; index += 1) {
+      const created = await jsonRequest(app, "/api/me/notifications/push", "POST", {
+        endpoint: `https://93.184.216.34/push-${index}`,
+        keys: { p256dh: `p-${index}`, auth: `a-${index}` },
+      });
+      expect(created.status).toBe(201);
+    }
+    const eleventh = await jsonRequest(app, "/api/me/notifications/push", "POST", {
+      endpoint: "https://93.184.216.34/push-10",
+      keys: { p256dh: "p-10", auth: "a-10" },
+    });
+    expect(eleventh.status).toBe(409);
+
+    const other = await createUser(db, { username: "other", role: "USER" });
+    db.prepare(
+      `INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh, auth, user_agent, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    ).run("other-id", other.id, "https://93.184.216.34/other", "other-p", "other-a", "", new Date().toISOString());
+    const stolen = await jsonRequest(app, "/api/me/notifications/push", "POST", {
+      endpoint: "https://93.184.216.34/other",
+      keys: { p256dh: "new-p", auth: "new-a" },
+    });
+    expect(stolen.status).toBe(409);
+    expect(
+      (db.prepare("SELECT user_id FROM push_subscriptions WHERE id = 'other-id'").get() as { user_id: number }).user_id,
+    ).toBe(other.id);
   });
 
   it("toggles events and sends a test notification to all channels", async () => {

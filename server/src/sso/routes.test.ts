@@ -171,6 +171,20 @@ describe("SSO routes", () => {
     ).toBe(204);
   });
 
+  it("rejects long or nested-quantifier identifier filters", async () => {
+    const admin = await createUser(db, { username: "admin-user", role: "ADMIN" });
+    const session = createSession(db, admin.id, { userAgent: "", ip: "" });
+    const create = (identifierFilter: string) =>
+      app.request("/api/admin/identity-providers", {
+        method: "POST",
+        headers: { ...cookie(session.token), "content-type": "application/json" },
+        body: JSON.stringify(providerBody({ identifierFilter })),
+      });
+    expect((await create("(a+)+")).status).toBe(400);
+    expect((await create("(a|a)+")).status).toBe(400);
+    expect((await create("a".repeat(201))).status).toBe(400);
+  });
+
   it("signs in a linked user or unique email match, never creates an account, and forwards PKCE", async () => {
     const provider = insertProvider("^allowed-", true);
     const linked = await createUser(db, { username: "linked-user", role: "USER" });
@@ -228,6 +242,27 @@ describe("SSO routes", () => {
     expect(fake.fetchMock).not.toHaveBeenCalled();
     expect((await sso(provider.id, "blocked")).status).toBe(403);
     expect((await sso(provider.id, "archived")).status).toBe(403);
+  });
+
+  it("rejects identifiers longer than 256 characters before applying a filter", async () => {
+    const provider = insertProvider("");
+    stubIdentityProvider({ long: { sub: "a".repeat(300) } });
+    const response = await sso(provider.id, "long");
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({ error: "identity is not allowed by this provider" });
+  });
+
+  it("refuses email auto-linking when more than one account matches case-insensitively", async () => {
+    const provider = insertProvider("^allowed-", true);
+    await createUser(db, { username: "duplicate-one", email: "same@example.com", role: "USER" });
+    await createUser(db, { username: "duplicate-two", email: "SAME@example.com", role: "USER" });
+    stubIdentityProvider({ duplicate: { sub: "allowed-duplicate", email: "Same@example.com" } });
+    const response = await sso(provider.id, "duplicate");
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      error: "no Studium account is linked to this identity; ask the admin",
+    });
+    expect(getIdentityUserId(db, provider.id, "allowed-duplicate")).toBeNull();
   });
 
   it("links and unlinks an identity for the current user and rejects another user's identity", async () => {

@@ -120,6 +120,22 @@ export function getUserByEmail(db: DatabaseSync, email: string): User | null {
   return row === undefined ? null : toUser(row);
 }
 
+export function listUsersByEmail(db: DatabaseSync, email: string): User[] {
+  if (email.trim() === "") return [];
+  const rows = db
+    .prepare(`SELECT ${USER_COLUMNS} FROM users WHERE email <> '' AND email = ? COLLATE NOCASE ORDER BY id`)
+    .all(email) as unknown as UserRow[];
+  return rows.map(toUser);
+}
+
+export function emailBelongsToAnotherUser(db: DatabaseSync, email: string, userId?: number): boolean {
+  if (email.trim() === "") return false;
+  const row = db
+    .prepare(`SELECT id FROM users WHERE email <> '' AND email = ? COLLATE NOCASE AND (? IS NULL OR id <> ?) LIMIT 1`)
+    .get(email, userId ?? null, userId ?? null);
+  return row !== undefined;
+}
+
 export function listUsers(db: DatabaseSync): User[] {
   const rows = db.prepare(`SELECT ${USER_COLUMNS} FROM users ORDER BY id`).all() as unknown as UserRow[];
   return rows.map(toUser);

@@ -14,7 +14,7 @@ import {
   updateIdentityProvider,
 } from "../accounts/identities.js";
 import { getInstanceSettings } from "../accounts/settings.js";
-import { getUserByEmail, getUserById } from "../accounts/users.js";
+import { getUserById, listUsersByEmail } from "../accounts/users.js";
 import { type AuthRouteOptions, createSessionForRequest, requestOrigin } from "../auth/routes.js";
 import { decryptSecret, encryptSecret } from "../db/crypto.js";
 import { exchangeOAuth2Identity, type OAuth2Identity } from "./oauth2.js";
@@ -44,6 +44,46 @@ interface ProviderInput {
   scopes: string[];
   fieldMapping: IdentityFieldMapping;
   autoLinkByEmail: boolean;
+}
+
+const MAX_IDENTIFIER_FILTER_LENGTH = 200;
+const MAX_IDENTIFIER_LENGTH = 256;
+
+function hasNestedQuantifier(filter: string): boolean {
+  const groups: Array<{ risky: boolean }> = [];
+  let escaped = false;
+  let inClass = false;
+  for (let index = 0; index < filter.length; index += 1) {
+    const char = filter[index];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (char === "\\") {
+      escaped = true;
+      continue;
+    }
+    if (char === "[") inClass = true;
+    if (char === "]") inClass = false;
+    if (inClass) continue;
+    if (char === "(") groups.push({ risky: false });
+    if ((char === "+" || char === "*" || char === "|") && groups.length > 0) {
+      const group = groups.at(-1);
+      if (group !== undefined) group.risky = true;
+    }
+    if (char === ")") {
+      const group = groups.pop();
+      const next = filter[index + 1];
+      // Conservatively reject repeated groups containing repetition or alternation.
+      // This catches common catastrophic-backtracking shapes such as (a+)+ and (a|a)+.
+      if (group?.risky === true && (next === "+" || next === "*" || next === "{")) return true;
+      if (group?.risky === true && groups.length > 0) {
+        const parent = groups.at(-1);
+        if (parent !== undefined) parent.risky = true;
+      }
+    }
+  }
+  return false;
 }
 
 async function jsonBody(c: Context): Promise<Record<string, unknown> | null> {
@@ -110,7 +150,10 @@ async function resolveIdentity(
   } catch {
     return c.json({ error: "identity provider authentication failed" }, 502);
   }
-  if (provider.identifierFilter !== "" && !new RegExp(provider.identifierFilter).test(identity.identifier)) {
+  if (
+    identity.identifier.length > MAX_IDENTIFIER_LENGTH ||
+    (provider.identifierFilter !== "" && !new RegExp(provider.identifierFilter).test(identity.identifier))
+  ) {
     return c.json({ error: "identity is not allowed by this provider" }, 403);
   }
   return { provider, identity };
@@ -195,6 +238,12 @@ function parseProviderInput(
   if (title === null || title.trim() === "") return { error: "title is required" };
   if (type !== "OAUTH2") return { error: "type must be OAUTH2" };
   if (identifierFilter === null) return { error: "identifierFilter must be a string" };
+  if (identifierFilter.length > MAX_IDENTIFIER_FILTER_LENGTH) {
+    return { error: `identifierFilter must be at most ${MAX_IDENTIFIER_FILTER_LENGTH} characters` };
+  }
+  if (hasNestedQuantifier(identifierFilter)) {
+    return { error: "identifierFilter must not contain nested quantifiers" };
+  }
   try {
     if (identifierFilter !== "") new RegExp(identifierFilter);
   } catch {
@@ -249,8 +298,8 @@ export function ssoAuthRoutes(options: SsoOptions): Hono {
     // Email matching can take over an account if the provider lets users set unverified
     // emails, so it is opt-in per provider and never links to an admin.
     if (user === null && identity.email !== "" && provider.config.autoLinkByEmail === true) {
-      const byEmail = getUserByEmail(options.db, identity.email);
-      user = byEmail?.role === "ADMIN" ? null : byEmail;
+      const byEmail = listUsersByEmail(options.db, identity.email);
+      user = byEmail.length === 1 && byEmail[0]?.role !== "ADMIN" ? (byEmail[0] ?? null) : null;
       if (user !== null) {
         if (user.state === "ARCHIVED") return c.json({ error: "account is archived" }, 403);
         try {
