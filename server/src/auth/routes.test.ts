@@ -1,246 +1,109 @@
+import { promises as fs } from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import type { DatabaseSync } from "node:sqlite";
 import { Hono } from "hono";
-import { beforeAll, describe, expect, it, vi } from "vitest";
-import { hashPassword } from "./password.js";
-import { authRoutes, requireAuth } from "./routes.js";
-import type { AuthConfig } from "./session.js";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { updateInstanceSettings } from "../accounts/settings.js";
+import { createUser } from "../accounts/users.js";
+import { migrate, openDb } from "../db/db.js";
+import { authRoutes } from "./routes.js";
 
-const sessionSecret = "a-secure-session-secret-at-least-32-chars";
-let protectedConfig: AuthConfig;
+let db: DatabaseSync;
+let tempDir: string;
 
-beforeAll(async () => {
-  protectedConfig = {
-    username: "learner",
-    passwordHash: await hashPassword("study-password"),
-    sessionSecret,
-    apiToken: "api-token",
-    trustProxy: false,
-    baseUrl: null,
-  };
+beforeEach(async () => {
+  tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "studium-auth-routes-"));
+  db = openDb(path.join(tempDir, "studium.db"));
+  migrate(db);
 });
 
-function makeAuthApp(cfg: AuthConfig): Hono {
+afterEach(async () => {
+  db.close();
+  await fs.rm(tempDir, { recursive: true, force: true });
+});
+
+function makeApp(setupCode: string | null = null, trustProxy = false): Hono {
   const app = new Hono();
-  app.route("/api/auth", authRoutes(cfg));
+  app.route("/api/auth", authRoutes({ db, trustProxy, baseUrl: null, setupCode }));
   return app;
 }
 
-function login(
-  app: Hono,
-  username: string,
-  password: string,
-  forwardedFor = "192.0.2.1",
-  url = "/api/auth/login",
-  remoteAddress = "198.51.100.1",
-) {
+function post(app: Hono, path: string, body: unknown, ip = "192.0.2.1") {
   return app.request(
-    url,
+    path,
     {
       method: "POST",
-      headers: { "content-type": "application/json", "x-forwarded-for": forwardedFor },
-      body: JSON.stringify({ username, password }),
+      headers: { "content-type": "application/json", "x-forwarded-for": ip },
+      body: JSON.stringify(body),
     },
-    { incoming: { socket: { remoteAddress } } },
+    { incoming: { socket: { remoteAddress: ip } } },
   );
 }
 
 describe("auth routes", () => {
-  it("logs in, sets the required cookie, and authenticates /me", async () => {
-    const app = makeAuthApp(protectedConfig);
-    const response = await login(app, "learner", "study-password");
+  it("enforces the setup code and allows setup only once", async () => {
+    const app = makeApp("a1b2c3d4e5f6");
+    expect((await post(app, "/api/auth/setup", { username: "admin", password: "password1" })).status).toBe(403);
+    const setup = await post(app, "/api/auth/setup", {
+      username: "admin",
+      password: "password1",
+      setupCode: "a1b2c3d4e5f6",
+    });
+    expect(setup.status).toBe(201);
+    expect(setup.headers.get("set-cookie")).toContain("studium_session=");
+    expect(
+      (
+        await post(app, "/api/auth/setup", {
+          username: "second",
+          password: "password2",
+          setupCode: "a1b2c3d4e5f6",
+        })
+      ).status,
+    ).toBe(409);
+  });
 
-    expect(response.status).toBe(204);
-    const setCookie = response.headers.get("set-cookie") ?? "";
-    expect(setCookie).toContain("studium_session=");
-    expect(setCookie).toContain("HttpOnly");
-    expect(setCookie).toContain("Max-Age=2592000");
-    expect(setCookie).toContain("Path=/");
-    expect(setCookie).toContain("SameSite=Strict");
-    expect(setCookie).not.toContain("Secure");
-
-    const cookie = setCookie.split(";", 1)[0];
+  it("signs in through the new and compatibility routes and returns the compatible me shape", async () => {
+    await createUser(db, { username: "learner", password: "study-password", role: "USER" });
+    const app = makeApp();
+    const signin = await post(app, "/api/auth/signin", { username: "learner", password: "study-password" });
+    expect(signin.status).toBe(200);
+    const cookie = (signin.headers.get("set-cookie") ?? "").split(";", 1)[0] ?? "";
     const me = await app.request("/api/auth/me", { headers: { cookie } });
     expect(me.status).toBe(200);
-    await expect(me.json()).resolves.toEqual({ username: "learner" });
+    expect(await me.json()).toMatchObject({ username: "learner", user: { username: "learner", hasPassword: true } });
+    expect(
+      (await post(app, "/api/auth/login", { username: "learner", password: "study-password" }, "192.0.2.2")).status,
+    ).toBe(200);
   });
 
-  it("marks cookies Secure for HTTPS requests", async () => {
-    const app = makeAuthApp(protectedConfig);
-    const response = await login(app, "learner", "study-password", "192.0.2.2", "https://example.test/api/auth/login");
-
-    expect(response.headers.get("set-cookie")).toContain("Secure");
-  });
-
-  it("only trusts forwarded HTTPS with proxy trust, while an HTTPS base URL always marks cookies Secure", async () => {
-    const forwardedOnly = await makeAuthApp(protectedConfig).request(
-      "/api/auth/login",
-      {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-forwarded-for": "192.0.2.20",
-          "x-forwarded-proto": "https",
-        },
-        body: JSON.stringify({ username: "learner", password: "study-password" }),
-      },
-      { incoming: { socket: { remoteAddress: "198.51.100.20" } } },
-    );
-    expect(forwardedOnly.headers.get("set-cookie")).not.toContain("Secure");
-
-    const proxyApp = makeAuthApp({ ...protectedConfig, trustProxy: true });
-    const proxyResponse = await proxyApp.request(
-      "/api/auth/login",
-      {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-forwarded-for": "192.0.2.21",
-          "x-forwarded-proto": "https",
-        },
-        body: JSON.stringify({ username: "learner", password: "study-password" }),
-      },
-      { incoming: { socket: { remoteAddress: "198.51.100.21" } } },
-    );
-    expect(proxyResponse.headers.get("set-cookie")).toContain("Secure");
-
-    const baseUrlResponse = await login(
-      makeAuthApp({ ...protectedConfig, baseUrl: "https://studium.example" }),
-      "learner",
-      "study-password",
-      "192.0.2.22",
-    );
-    expect(baseUrlResponse.headers.get("set-cookie")).toContain("Secure");
-  });
-
-  it("returns the same error for a wrong username or password", async () => {
-    const app = makeAuthApp(protectedConfig);
-    const wrongUsername = await login(app, "someone-else", "study-password", "192.0.2.3");
-    const wrongPassword = await login(app, "learner", "wrong-password", "192.0.2.4");
-
-    expect(wrongUsername.status).toBe(401);
-    expect(wrongPassword.status).toBe(401);
-    await expect(wrongUsername.json()).resolves.toEqual({ error: "invalid credentials" });
-    await expect(wrongPassword.json()).resolves.toEqual({ error: "invalid credentials" });
-  });
-
-  it("rate limits the sixth failed login from an IP", async () => {
-    const app = makeAuthApp(protectedConfig);
+  it("rate limits the sixth failed sign-in from one IP", async () => {
+    await createUser(db, { username: "learner", password: "study-password", role: "USER" });
+    const app = makeApp();
     const statuses: number[] = [];
-
-    for (let count = 0; count < 6; count += 1) {
-      statuses.push((await login(app, "learner", "wrong-password", "192.0.2.5")).status);
+    for (let index = 0; index < 6; index += 1) {
+      statuses.push((await post(app, "/api/auth/signin", { username: "learner", password: "wrong" })).status);
     }
-
     expect(statuses).toEqual([401, 401, 401, 401, 401, 429]);
   });
 
-  it("ignores spoofed forwarded IPs by default and uses the last entry when proxy trust is enabled", async () => {
-    const directApp = makeAuthApp(protectedConfig);
-    const directStatuses: number[] = [];
-    for (let count = 0; count < 6; count += 1) {
-      directStatuses.push(
-        (await login(directApp, "learner", "wrong-password", `192.0.2.${count}`, "/api/auth/login", "203.0.113.5"))
-          .status,
-      );
-    }
-    expect(directStatuses).toEqual([401, 401, 401, 401, 401, 429]);
-
-    const proxyApp = makeAuthApp({ ...protectedConfig, trustProxy: true });
-    const proxyStatuses: number[] = [];
-    for (let count = 0; count < 6; count += 1) {
-      proxyStatuses.push(
-        (
-          await login(
-            proxyApp,
-            "learner",
-            "wrong-password",
-            `192.0.2.${count}, 203.0.113.6`,
-            "/api/auth/login",
-            `198.51.100.${count}`,
-          )
-        ).status,
-      );
-    }
-    expect(proxyStatuses).toEqual([401, 401, 401, 401, 401, 429]);
+  it("blocks password sign-in for users but retains admin break-glass access", async () => {
+    await createUser(db, { username: "admin", password: "admin-pass", role: "ADMIN" });
+    await createUser(db, { username: "learner", password: "study-pass", role: "USER" });
+    updateInstanceSettings(db, { disallowPasswordAuth: true });
+    const app = makeApp();
+    const user = await post(app, "/api/auth/signin", { username: "learner", password: "study-pass" }, "192.0.2.3");
+    const admin = await post(app, "/api/auth/signin", { username: "admin", password: "admin-pass" }, "192.0.2.4");
+    expect(user.status).toBe(403);
+    await expect(user.json()).resolves.toEqual({ error: "password sign-in is disabled" });
+    expect(admin.status).toBe(200);
   });
 
-  it("prunes expired buckets on an attempt from another IP", async () => {
-    vi.useFakeTimers();
-    try {
-      const start = new Date("2026-01-01T00:00:00Z");
-      vi.setSystemTime(start);
-      const app = makeAuthApp({ ...protectedConfig, passwordHash: "invalid" });
-      for (let count = 0; count < 5; count += 1) {
-        expect((await login(app, "learner", "wrong-password", "", "/api/auth/login", "203.0.113.7")).status).toBe(401);
-      }
-
-      vi.setSystemTime(new Date(start.getTime() + 15 * 60 * 1_000));
-      expect((await login(app, "learner", "wrong-password", "", "/api/auth/login", "203.0.113.8")).status).toBe(401);
-
-      vi.setSystemTime(new Date(start.getTime() + 1));
-      expect((await login(app, "learner", "wrong-password", "", "/api/auth/login", "203.0.113.7")).status).toBe(401);
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it("resets failed attempts after a successful login", async () => {
-    const app = makeAuthApp(protectedConfig);
-    for (let count = 0; count < 4; count += 1) {
-      await login(app, "learner", "wrong-password", "192.0.2.6");
-    }
-
-    expect((await login(app, "learner", "study-password", "192.0.2.6")).status).toBe(204);
-    expect((await login(app, "learner", "wrong-password", "192.0.2.6")).status).toBe(401);
-  });
-
-  it("rejects /me without credentials and accepts a bearer token", async () => {
-    const app = makeAuthApp(protectedConfig);
-    const unauthorized = await app.request("/api/auth/me");
-    const authorized = await app.request("/api/auth/me", {
-      headers: { authorization: "Bearer api-token" },
-    });
-
-    expect(unauthorized.status).toBe(401);
-    await expect(unauthorized.json()).resolves.toEqual({ error: "unauthorized" });
-    expect(authorized.status).toBe(200);
-    await expect(authorized.json()).resolves.toEqual({ username: "learner" });
-  });
-
-  it("clears the cookie on logout", async () => {
-    const app = makeAuthApp(protectedConfig);
-    const loginResponse = await login(app, "learner", "study-password", "192.0.2.7");
-    const cookie = (loginResponse.headers.get("set-cookie") ?? "").split(";", 1)[0];
-    const response = await app.request("/api/auth/logout", { method: "POST", headers: { cookie } });
-
-    expect(response.status).toBe(204);
-    expect(response.headers.get("set-cookie")).toContain("studium_session=; Max-Age=0");
-  });
-
-  it("rejects a session after the password hash changes", async () => {
-    const originalApp = makeAuthApp(protectedConfig);
-    const loginResponse = await login(originalApp, "learner", "study-password", "192.0.2.8");
-    const cookie = (loginResponse.headers.get("set-cookie") ?? "").split(";", 1)[0];
-
-    const changedApp = makeAuthApp({ ...protectedConfig, passwordHash: await hashPassword("new-password") });
-    expect((await changedApp.request("/api/auth/me", { headers: { cookie } })).status).toBe(401);
-  });
-
-  it("allows auth routes and middleware as local when no password is configured", async () => {
-    const passwordless: AuthConfig = {
-      username: null,
-      passwordHash: null,
-      sessionSecret: null,
-      apiToken: null,
-      trustProxy: false,
-      baseUrl: null,
-    };
-    const app = makeAuthApp(passwordless);
-    app.get("/api/protected", requireAuth(passwordless), (c) => c.json({ username: c.get("username") }));
-
-    expect((await app.request("/api/auth/login", { method: "POST" })).status).toBe(204);
-    const me = await app.request("/api/auth/me");
-    expect(me.status).toBe(200);
-    await expect(me.json()).resolves.toEqual({ username: "local" });
-    await expect((await app.request("/api/protected")).json()).resolves.toEqual({ username: "local" });
+  it("sets Secure based on the base URL", async () => {
+    await createUser(db, { username: "admin", password: "admin-pass", role: "ADMIN" });
+    const app = new Hono();
+    app.route("/api/auth", authRoutes({ db, trustProxy: false, baseUrl: "https://studium.example", setupCode: null }));
+    const response = await post(app, "/api/auth/signin", { username: "admin", password: "admin-pass" });
+    expect(response.headers.get("set-cookie")).toContain("Secure");
   });
 });

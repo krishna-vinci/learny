@@ -6,22 +6,11 @@ import type { CommitInfo, StudiumEvent } from "@studium/shared";
 import type { Hono } from "hono";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "./app.js";
-import { hashPassword } from "./auth/password.js";
-import type { AuthConfig } from "./auth/session.js";
 import { EventHub } from "./events.js";
 import { commitAll, ensureRepo } from "./tree/git.js";
 import { FileLocks } from "./tree/lock.js";
 
 const SAMPLE_SET = fileURLToPath(new URL("../../examples/sample-set", import.meta.url));
-const PASSWORDLESS: AuthConfig = {
-  username: null,
-  passwordHash: null,
-  sessionSecret: null,
-  apiToken: null,
-  trustProxy: false,
-  baseUrl: null,
-};
-
 let root: string;
 let tempDirs: string[];
 
@@ -38,12 +27,11 @@ afterEach(async () => {
   }
 });
 
-function makeApp(options: { auth?: AuthConfig; hub?: EventHub } = {}): Hono {
+function makeApp(options: { hub?: EventHub } = {}): Hono {
   return createApp({
     root,
     hub: options.hub ?? new EventHub(),
     locks: new FileLocks(),
-    auth: options.auth ?? PASSWORDLESS,
   });
 }
 
@@ -126,31 +114,6 @@ describe("createApp sets routes", () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({ error: "no cards to export" });
   });
-
-  it("requires a session for API routes once a password is configured", async () => {
-    const auth: AuthConfig = {
-      username: "learner",
-      passwordHash: await hashPassword("study-password"),
-      sessionSecret: "a-secure-session-secret-at-least-32-chars",
-      apiToken: null,
-      trustProxy: false,
-      baseUrl: null,
-    };
-    const app = makeApp({ auth });
-
-    expect((await app.request("/api/sets")).status).toBe(401);
-    expect((await app.request("/api/events")).status).toBe(401);
-
-    const login = await app.request("/api/auth/login", {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-forwarded-for": "192.0.2.10" },
-      body: JSON.stringify({ username: "learner", password: "study-password" }),
-    });
-    expect(login.status).toBe(204);
-
-    const cookie = (login.headers.get("set-cookie") ?? "").split(";", 1)[0] ?? "";
-    expect((await app.request("/api/sets", { headers: { cookie } })).status).toBe(200);
-  });
 });
 
 describe("createApp history, diff, and revert", () => {
@@ -216,36 +179,5 @@ describe("createApp events route", () => {
     expect(text).toContain("event: studium");
     expect(text).toContain(JSON.stringify(event));
     await reader.cancel();
-  });
-});
-
-describe("createApp static web", () => {
-  it("serves the SPA shell and falls back to index.html, but never for /api", async () => {
-    const webDist = await fs.mkdtemp(path.join(os.tmpdir(), "studium-dist-"));
-    tempDirs.push(webDist);
-    await fs.writeFile(path.join(webDist, "index.html"), "<!doctype html><title>Studium</title>");
-    await fs.writeFile(path.join(webDist, "asset.txt"), "static asset");
-
-    const app = createApp({ root, hub: new EventHub(), locks: new FileLocks(), auth: PASSWORDLESS, webDist });
-
-    const index = await app.request("/");
-    expect(index.status).toBe(200);
-    await expect(index.text()).resolves.toContain("Studium");
-
-    const asset = await app.request("/asset.txt");
-    expect(asset.status).toBe(200);
-    await expect(asset.text()).resolves.toBe("static asset");
-
-    const spaRoute = await app.request("/s/linear-algebra");
-    expect(spaRoute.status).toBe(200);
-    await expect(spaRoute.text()).resolves.toContain("Studium");
-
-    const api = await localRequest(app, "/api/sets");
-    expect(api.status).toBe(200);
-    await expect(api.json()).resolves.toBeInstanceOf(Array);
-
-    const missingApi = await localRequest(app, "/api/nope");
-    expect(missingApi.status).toBe(404);
-    await expect(missingApi.text()).resolves.not.toContain("Studium");
   });
 });

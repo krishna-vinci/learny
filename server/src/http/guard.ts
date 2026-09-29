@@ -1,7 +1,5 @@
 import type { MiddlewareHandler } from "hono";
-import type { AuthConfig } from "../auth/session.js";
 
-const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "[::1]"]);
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 const SAME_SITE_VALUES = new Set(["same-origin", "none"]);
 
@@ -51,13 +49,9 @@ function parseOriginHost(value: string): string | null {
   }
 }
 
-export function requestGuard(cfg: AuthConfig): MiddlewareHandler {
+export function requestGuard(): MiddlewareHandler {
   return async (c, next) => {
     const requestHost = parseHost(c.req.header("host"));
-    if (cfg.passwordHash === null && (requestHost === null || !LOCAL_HOSTNAMES.has(requestHost.hostname))) {
-      return c.json({ error: "forbidden host" }, 403);
-    }
-
     if (!SAFE_METHODS.has(c.req.method)) {
       const fetchSite = c.req.header("sec-fetch-site")?.trim().toLowerCase();
       if (fetchSite !== undefined && !SAME_SITE_VALUES.has(fetchSite)) {

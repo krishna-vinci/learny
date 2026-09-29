@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -6,10 +7,12 @@ import { fauxAssistantMessage, fauxProvider, fauxText, fauxToolCall } from "@ear
 import { serve } from "@hono/node-server";
 import { ConfigYaml } from "@studium/shared";
 import { parse as parseYaml } from "yaml";
+import { bootstrapAccounts } from "./accounts/bootstrap.js";
 import { ChatService } from "./agent/chat-service.js";
 import { createModelRuntime } from "./agent/models.js";
 import { createApp } from "./app.js";
-import { assertBindAllowed, authConfigFromEnv } from "./auth/session.js";
+import { migrate, openDb } from "./db/db.js";
+import { loadInstanceSecret } from "./db/secret.js";
 import { EventHub } from "./events.js";
 import { startInboxWatcher } from "./ingest/inbox-watcher.js";
 import { createCardsJob } from "./jobs/cards-job.js";
@@ -19,6 +22,7 @@ import { loadJobHistory } from "./jobs/log.js";
 import { JobRunner } from "./jobs/runner.js";
 import { McpManager } from "./mcp/bridge.js";
 import { loadMcpConfig } from "./mcp/config.js";
+import { createServer } from "./server.js";
 import { readText } from "./tree/edit.js";
 import { ensureRepo } from "./tree/git.js";
 import { initStudyTree } from "./tree/init.js";
@@ -33,15 +37,18 @@ if (existsSync(envFile)) process.loadEnvFile(envFile); // never overrides variab
 const host = process.env.HOST ?? "127.0.0.1";
 const port = Number(process.env.PORT ?? 3000);
 const root = path.resolve(repoRoot, process.env.STUDIUM_STUDY_ROOT ?? "./data/study");
+const dataDir = path.resolve(repoRoot, process.env.STUDIUM_DATA_DIR ?? "./data");
 const maxParallelJobs = Number.parseInt(process.env.STUDIUM_MAX_PARALLEL_JOBS ?? "", 10);
-const auth = authConfigFromEnv(process.env);
+const trustProxy = process.env.STUDIUM_TRUST_PROXY === "1" || process.env.STUDIUM_TRUST_PROXY === "true";
+const baseUrl = process.env.STUDIUM_BASE_URL || null;
 
-try {
-  assertBindAllowed(auth, host);
-} catch (error) {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exit(1);
-}
+const db = openDb(path.join(dataDir, "studium.db"));
+migrate(db);
+loadInstanceSecret(dataDir, process.env);
+const { setupRequired } = await bootstrapAccounts(db, process.env);
+const localHosts = new Set(["127.0.0.1", "::1", "localhost"]);
+const setupCode = setupRequired && !localHosts.has(host) ? randomBytes(6).toString("hex") : null;
+if (setupCode !== null) console.log(`first-run setup code: ${setupCode} (open the app and enter it)`);
 
 const webDist = fileURLToPath(new URL("../../web/dist", import.meta.url));
 
@@ -105,14 +112,18 @@ if (process.env.STUDIUM_FAUX === "1") {
 }
 
 const chats = new ChatService({ root, hub, locks, mcp, runtime, jobs });
-const app = createApp({
+const workspaceApp = createApp({
   root,
   hub,
   locks,
-  auth,
   chats,
   jobs,
   settings: { runtime, mcp, env: process.env },
+});
+const app = createServer({
+  db,
+  workspaces: { for: () => ({ app: workspaceApp }) },
+  authOpts: { trustProxy, baseUrl, setupCode },
   ...(existsSync(webDist) ? { webDist } : {}),
 });
 
@@ -132,7 +143,10 @@ async function shutdown(signal: string): Promise<void> {
   await stopWatcher().catch(() => undefined);
   await stopInboxWatcher().catch(() => undefined);
   await mcp.stop().catch(() => undefined);
-  server.close(() => process.exit(0));
+  server.close(() => {
+    db.close();
+    process.exit(0);
+  });
 }
 
 process.on("SIGINT", () => void shutdown("SIGINT"));
