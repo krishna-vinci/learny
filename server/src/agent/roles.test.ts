@@ -170,3 +170,19 @@ describe("role system", () => {
     await expect(fs.access(path.join(root, "linear-algebra/notes/checker-note.md"))).rejects.toThrow();
   });
 });
+
+describe("strict-mode tool arguments", () => {
+  it("drops top-level null arguments before validation", async () => {
+    const { roleToolset } = await import("./run-role.js");
+    const { FileLocks } = await import("../tree/lock.js");
+    const { tools } = roleToolset("tutor", {
+      root: "/nonexistent",
+      set: "linear-algebra",
+      locks: new FileLocks(),
+      mcp: { tools: () => [] } as never,
+      holder: "t",
+    } as never);
+    const read = tools.find((tool) => tool.name === "study_read");
+    expect(read?.prepareArguments?.({ path: "notes/a.md", offset: null, limit: null })).toEqual({ path: "notes/a.md" });
+  });
+});

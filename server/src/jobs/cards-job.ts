@@ -276,6 +276,8 @@ export function createCardsJob(deps: CardsJobDeps): JobHandler {
         addedIds,
       );
       ctx.signal.throwIfAborted();
+      if (addedIds.length === 0)
+        throw new Error("Cardsmith added no cards (every add_card call failed or none was made)");
       const subject = `cardsmith: ${noteTitle}`;
       const sha = await commitPaths(deps.root, [cardRootPath], subject, "cardsmith");
       publishCommit(sha, subject, "cardsmith");

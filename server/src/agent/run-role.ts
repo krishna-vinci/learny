@@ -151,8 +151,25 @@ export function roleToolset(role: RoleName, opts: RoleToolsetOptions): { tools: 
   const allowed = new Set(spec.tools);
   const selected = builtins.filter((tool) => allowed.has(tool.name));
   const tools = [...selected, ...opts.mcp.tools([...spec.mcpServers]), ...(opts.extraTools ?? [])];
-  const unique = new Map(tools.map((tool) => [tool.name, tool]));
+  const unique = new Map(tools.map((tool) => [tool.name, withNullArgsDropped(tool)]));
   return { tools: [...unique.values()], names: [...unique.keys()] };
+}
+
+/**
+ * Strict tool-calling models (OpenAI-style) send every declared property and fill unused optional
+ * ones with null, which fails schema validation for `Type.Optional(...)`. Drop top-level nulls
+ * before validation so the tool sees them as absent. Empty strings are kept (they can be meaningful).
+ */
+function withNullArgsDropped(tool: ToolDefinition): ToolDefinition {
+  const previous = tool.prepareArguments;
+  return {
+    ...tool,
+    prepareArguments: (args: unknown) => {
+      const prepared = previous === undefined ? args : previous(args);
+      if (typeof prepared !== "object" || prepared === null || Array.isArray(prepared)) return prepared as never;
+      return Object.fromEntries(Object.entries(prepared).filter(([, value]) => value !== null)) as never;
+    },
+  };
 }
 
 function assistantText(message: AssistantMessage | undefined): string {

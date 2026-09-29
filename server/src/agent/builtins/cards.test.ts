@@ -53,6 +53,37 @@ describe("card agent tools", () => {
     expect(denied.details).toMatchObject({ isError: true, summary: "this run may add at most 1 cards" });
   });
 
+  it("accepts strict-mode calls that fill unused fields with empty strings or null", async () => {
+    const ids: string[] = [];
+    const tool = addCardTool({
+      root,
+      locks: new FileLocks(),
+      holder: "cardsmith:test",
+      cardRootPath,
+      maxAdds: 2,
+      onAdd: (id) => ids.push(id),
+    });
+
+    const basic = await execute(tool, {
+      type: "basic",
+      q: "What is rank?",
+      a: "Dim of column space.",
+      text: "",
+      extra: null,
+      src: null,
+    });
+    expect(basic.details).toMatchObject({ isError: false });
+    const cloze = await execute(tool, {
+      type: "cloze",
+      q: null,
+      a: "",
+      text: "Rank is the dimension of the {{c1::column space}}.",
+      extra: "",
+    });
+    expect(cloze.details).toMatchObject({ isError: false });
+    expect(ids).toHaveLength(2);
+  });
+
   it("reviews only assigned cards and restores a fixed rejection to draft", async () => {
     await fs.appendFile(
       path.join(root, cardRootPath),

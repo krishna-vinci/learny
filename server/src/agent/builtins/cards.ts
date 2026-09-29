@@ -57,6 +57,10 @@ function requireCardText(name: string, value: string | undefined): string {
   return text;
 }
 
+function isBlank(value: string | null | undefined): boolean {
+  return value === undefined || value === null || value.trim() === "";
+}
+
 function optionalCardText(name: string, value: string | undefined): string | undefined {
   if (value === undefined || value.trim() === "") return undefined;
   return requireCardText(name, value);
@@ -87,31 +91,32 @@ export function addCardTool(opts: AddCardToolOptions): ToolDefinition {
     description: "Append one draft card to this job's pinned card file and generate its permanent id.",
     parameters: Type.Object({
       type: Type.Union([Type.Literal("basic"), Type.Literal("cloze")]),
-      q: Type.Optional(Type.String()),
-      a: Type.Optional(Type.String()),
-      text: Type.Optional(Type.String()),
-      extra: Type.Optional(Type.String()),
-      src: Type.Optional(Type.String()),
+      // Strict tool-calling models (OpenAI-style) send every property, filling unused ones with "" or null.
+      q: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+      a: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+      text: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+      extra: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+      src: Type.Optional(Type.Union([Type.String(), Type.Null()])),
     }),
     executionMode: "sequential" as const,
     async execute(_toolCallId, params) {
       try {
         if (added >= opts.maxAdds) throw new Error(`this run may add at most ${opts.maxAdds} cards`);
-        const src = params.src === undefined ? undefined : commentValue("src", params.src);
+        const src = isBlank(params.src) ? undefined : commentValue("src", params.src as string);
         let body: string;
         if (params.type === "basic") {
-          const q = requireCardText("q", params.q);
-          const a = requireCardText("a", params.a);
-          if (params.text !== undefined) throw new Error("basic cards do not accept text");
-          const extra = optionalCardText("extra", params.extra);
+          const q = requireCardText("q", params.q ?? undefined);
+          const a = requireCardText("a", params.a ?? undefined);
+          if (!isBlank(params.text)) throw new Error("basic cards do not accept text");
+          const extra = optionalCardText("extra", params.extra ?? undefined);
           body = `**Q:** ${q}\n**A:** ${a}\n${extra === undefined ? "" : `**Extra:** ${extra}\n`}`;
         } else {
-          const text = requireCardText("text", params.text);
+          const text = requireCardText("text", params.text ?? undefined);
           if (!/\{\{c[1-9]\d*::[\s\S]+?\}\}/.test(text)) {
             throw new Error("cloze text requires at least one {{cN::...}} deletion");
           }
-          if (params.q !== undefined || params.a !== undefined) throw new Error("cloze cards do not accept q or a");
-          const extra = optionalCardText("extra", params.extra);
+          if (!isBlank(params.q) || !isBlank(params.a)) throw new Error("cloze cards do not accept q or a");
+          const extra = optionalCardText("extra", params.extra ?? undefined);
           body = `**Text:** ${text}\n${extra === undefined ? "" : `**Extra:** ${extra}\n`}`;
         }
 
@@ -146,17 +151,17 @@ export function reviewCardTool(opts: ReviewCardToolOptions): ToolDefinition {
     parameters: Type.Object({
       id: Type.String({ pattern: "^c-[0-9a-f]{8}$" }),
       verdict: Type.Union([Type.Literal("ok"), Type.Literal("reject")]),
-      rule: Type.Optional(Type.Integer({ minimum: 1, maximum: 20 })),
-      reason: Type.Optional(Type.String()),
+      rule: Type.Optional(Type.Union([Type.Integer({ minimum: 1, maximum: 20 }), Type.Null()])),
+      reason: Type.Optional(Type.Union([Type.String(), Type.Null()])),
     }),
     executionMode: "sequential" as const,
     async execute(_toolCallId, params) {
       try {
         if (!allowed.has(params.id)) throw new Error(`card is not assigned to this review: ${params.id}`);
-        if (params.verdict === "ok" && (params.rule !== undefined || params.reason !== undefined)) {
+        if (params.verdict === "ok" && (params.rule != null || !isBlank(params.reason))) {
           throw new Error("an ok verdict must not include a rule or reason");
         }
-        const reason = params.reason === undefined ? undefined : commentValue("reason", params.reason);
+        const reason = isBlank(params.reason) ? undefined : commentValue("reason", params.reason as string);
         const text = await fs.readFile(resolveInRoot(opts.root, opts.cardRootPath), "utf8");
         const parsed = parseCardFile(text);
         const card = parsed.cards.find((candidate) => candidate.id === params.id);
@@ -166,7 +171,7 @@ export function reviewCardTool(opts: ReviewCardToolOptions): ToolDefinition {
             ? ({ verdict: "ok" } as const)
             : ({
                 verdict: "reject",
-                ...(params.rule === undefined ? {} : { rule: params.rule }),
+                ...(params.rule == null ? {} : { rule: params.rule }),
                 ...(reason === undefined ? {} : { reason }),
               } as const);
         let next = setCardCommentField(card, "critic", renderCritic(critic));
