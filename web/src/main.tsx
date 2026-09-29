@@ -10,10 +10,15 @@ import { router } from "@/router";
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
     onError: (error) => {
-      if (error instanceof UnauthorizedError) {
-        const redirect = `${window.location.pathname}${window.location.search}`;
-        router.navigate(`/login?redirect=${encodeURIComponent(redirect)}`);
-      }
+      if (!(error instanceof UnauthorizedError)) return;
+      const { pathname, search } = window.location;
+      // Signing out (or a session expiring) can fail several still-in-flight queries at
+      // once, each raising this. Once we're already on/heading to an auth page, further
+      // 401s must be a no-op — otherwise each one re-reads `window.location` (which
+      // already carries the previous redirect target) and wraps it in another
+      // `redirect=`, compounding into an ever-growing, never-terminating URL.
+      if (pathname === "/setup" || pathname === "/auth" || pathname.startsWith("/auth/")) return;
+      router.navigate(`/auth?redirect=${encodeURIComponent(`${pathname}${search}`)}`);
     },
   }),
   defaultOptions: {

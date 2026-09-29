@@ -5,9 +5,10 @@ import { useNavigate } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 
 /**
- * Signs out via `POST /api/auth/logout`, clears the whole React Query cache (so a
+ * Signs out via `POST /api/auth/signout`, clears the whole React Query cache (so a
  * different user — or the same one signing back in — never sees stale data), and sends
- * the browser to `/login`. Shared by the sidebar's "Sign out" row and SettingsPage.
+ * the browser to `/auth`. Shared by the sidebar's "Sign out" row and the Settings general
+ * section.
  */
 export function useSignOut() {
   const queryClient = useQueryClient();
@@ -17,9 +18,9 @@ export function useSignOut() {
   async function signOut() {
     setSigningOut(true);
     try {
-      await api.auth.logout();
+      await api.auth.signout();
     } catch (err) {
-      // A 401 here just means the session was already gone — still proceed to /login.
+      // A 401 here just means the session was already gone — still proceed to /auth.
       if (!(err instanceof ApiError && err.status === 401)) {
         toast.error(err instanceof ApiError ? err.message : "Failed to sign out.");
         setSigningOut(false);
@@ -27,7 +28,7 @@ export function useSignOut() {
       }
     }
     queryClient.clear();
-    navigate("/login", { replace: true });
+    navigate("/auth", { replace: true });
   }
 
   return { signOut, signingOut };

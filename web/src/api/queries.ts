@@ -11,10 +11,17 @@ import type {
   SourceSummary,
 } from "@studium/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { AccessTokenSummary, AuthStatus, Session, User } from "./client";
 import { api, type LibrarySourceView } from "./client";
 import { useStudiumEvents } from "./events";
 
 export const queryKeys = {
+  authStatus: ["auth", "status"] as const,
+  me: ["me"] as const,
+  meSessions: ["me", "sessions"] as const,
+  meAccessTokens: ["me", "accessTokens"] as const,
+  adminUsers: ["admin", "users"] as const,
+  adminInstance: ["admin", "instance"] as const,
   sets: ["sets"] as const,
   notes: (set: string) => ["sets", set, "notes"] as const,
   file: (set: string, path: string) => ["sets", set, "file", path] as const,
@@ -31,6 +38,115 @@ export const queryKeys = {
   cardFiles: (set: string) => ["sets", set, "cards"] as const,
   cardFile: (set: string, path: string) => ["sets", set, "cards", path] as const,
 };
+
+// Public: powers the setup/sign-in/AuthGate flows before a session exists.
+export function useAuthStatus() {
+  return useQuery<AuthStatus>({ queryKey: queryKeys.authStatus, queryFn: () => api.auth.status(), retry: false });
+}
+
+/** The signed-in user, or `undefined` while loading/unauthenticated. Used by the sidebar
+ * footer and every Settings section that needs the current user. */
+export function useCurrentUser() {
+  const query = useQuery<{ user: User }>({
+    queryKey: queryKeys.me,
+    queryFn: () => api.me.get(),
+    retry: false,
+  });
+  return { ...query, user: query.data?.user };
+}
+
+export function useUpdateMe() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (patch: { displayName?: string; email?: string; avatarUrl?: string }) => api.me.update(patch),
+    onSuccess: (result) => queryClient.setQueryData(queryKeys.me, result),
+  });
+}
+
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: (body: { currentPassword?: string; newPassword: string }) => api.me.changePassword(body),
+  });
+}
+
+export function useSessions() {
+  return useQuery<{ sessions: Session[] }>({ queryKey: queryKeys.meSessions, queryFn: () => api.me.sessions() });
+}
+
+export function useRevokeSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.me.revokeSession(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.meSessions }),
+  });
+}
+
+export function useAccessTokens() {
+  return useQuery<{ accessTokens: AccessTokenSummary[] }>({
+    queryKey: queryKeys.meAccessTokens,
+    queryFn: () => api.me.accessTokens(),
+  });
+}
+
+export function useCreateAccessToken() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { description: string; expiresInDays?: number }) => api.me.createAccessToken(body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.meAccessTokens }),
+  });
+}
+
+export function useDeleteAccessToken() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.me.deleteAccessToken(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.meAccessTokens }),
+  });
+}
+
+export function useAdminUsers() {
+  return useQuery<{ users: User[] }>({ queryKey: queryKeys.adminUsers, queryFn: () => api.admin.users() });
+}
+
+export function useCreateUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Parameters<typeof api.admin.createUser>[0]) => api.admin.createUser(body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.adminUsers }),
+  });
+}
+
+export function useUpdateUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: number; patch: Parameters<typeof api.admin.updateUser>[1] }) =>
+      api.admin.updateUser(id, patch),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.adminUsers }),
+  });
+}
+
+export function useDeleteUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, purge }: { id: number; purge?: boolean }) => api.admin.deleteUser(id, { purge }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.adminUsers }),
+  });
+}
+
+export function useAdminInstance() {
+  return useQuery({ queryKey: queryKeys.adminInstance, queryFn: () => api.admin.instance() });
+}
+
+export function useUpdateAdminInstance() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (patch: { disallowPasswordAuth?: boolean; instanceUrl?: string }) => api.admin.updateInstance(patch),
+    onSuccess: (result) => {
+      queryClient.setQueryData(queryKeys.adminInstance, result);
+      queryClient.invalidateQueries({ queryKey: queryKeys.authStatus });
+    },
+  });
+}
 
 export function useSets() {
   return useQuery<SetSummary[]>({ queryKey: queryKeys.sets, queryFn: () => api.sets.list() });

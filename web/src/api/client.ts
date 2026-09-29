@@ -17,6 +17,47 @@ import type {
   SourceSummary,
 } from "@studium/shared";
 
+export type UserRole = "ADMIN" | "USER";
+export type UserState = "NORMAL" | "ARCHIVED";
+
+export interface User {
+  id: number;
+  username: string;
+  displayName: string;
+  email: string;
+  avatarUrl: string;
+  role: UserRole;
+  state: UserState;
+  aiEnabled: boolean;
+  hasPassword: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AuthStatus {
+  setupRequired: boolean;
+  disallowPasswordAuth: boolean;
+  instanceUrl: string;
+}
+
+export interface Session {
+  id: string;
+  userAgent: string;
+  ip: string;
+  createdAt: string;
+  lastUsedAt: string;
+  expiresAt: string;
+  current: boolean;
+}
+
+export interface AccessTokenSummary {
+  id: string;
+  description: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+  expiresAt: string | null;
+}
+
 export class UnauthorizedError extends Error {
   constructor() {
     super("unauthorized");
@@ -88,6 +129,19 @@ function qs(params: Record<string, string | number | undefined>): string {
 
 export const api = {
   auth: {
+    status(): Promise<AuthStatus> {
+      return request("/api/auth/status");
+    },
+    setup(body: { username: string; password: string; setupCode?: string }): Promise<{ user: User }> {
+      return request("/api/auth/setup", { method: "POST", body: JSON.stringify(body) });
+    },
+    signin(username: string, password: string): Promise<{ user: User }> {
+      return request("/api/auth/signin", { method: "POST", body: JSON.stringify({ username, password }) });
+    },
+    signout(): Promise<void> {
+      return request("/api/auth/signout", { method: "POST" });
+    },
+    // Compatibility aliases kept on the server; prefer signin/signout above.
     login(username: string, password: string): Promise<void> {
       return request("/api/auth/login", { method: "POST", body: JSON.stringify({ username, password }) });
     },
@@ -96,6 +150,74 @@ export const api = {
     },
     me(): Promise<{ username: string }> {
       return request("/api/auth/me");
+    },
+  },
+
+  me: {
+    get(): Promise<{ user: User }> {
+      return request("/api/me");
+    },
+    update(patch: { displayName?: string; email?: string; avatarUrl?: string }): Promise<{ user: User }> {
+      return request("/api/me", { method: "PATCH", body: JSON.stringify(patch) });
+    },
+    changePassword(body: { currentPassword?: string; newPassword: string }): Promise<void> {
+      return request("/api/me/password", { method: "POST", body: JSON.stringify(body) });
+    },
+    sessions(): Promise<{ sessions: Session[] }> {
+      return request("/api/me/sessions");
+    },
+    revokeSession(id: string): Promise<void> {
+      return request(`/api/me/sessions/${encodeURIComponent(id)}`, { method: "DELETE" });
+    },
+    accessTokens(): Promise<{ accessTokens: AccessTokenSummary[] }> {
+      return request("/api/me/access-tokens");
+    },
+    createAccessToken(body: { description: string; expiresInDays?: number }): Promise<{ id: string; token: string }> {
+      return request("/api/me/access-tokens", { method: "POST", body: JSON.stringify(body) });
+    },
+    deleteAccessToken(id: string): Promise<void> {
+      return request(`/api/me/access-tokens/${encodeURIComponent(id)}`, { method: "DELETE" });
+    },
+  },
+
+  admin: {
+    users(): Promise<{ users: User[] }> {
+      return request("/api/admin/users");
+    },
+    createUser(body: {
+      username: string;
+      password?: string;
+      role: UserRole;
+      displayName?: string;
+      email?: string;
+      aiEnabled?: boolean;
+    }): Promise<{ user: User }> {
+      return request("/api/admin/users", { method: "POST", body: JSON.stringify(body) });
+    },
+    updateUser(
+      id: number,
+      patch: {
+        role?: UserRole;
+        state?: UserState;
+        aiEnabled?: boolean;
+        displayName?: string;
+        email?: string;
+        password?: string;
+      },
+    ): Promise<{ user: User }> {
+      return request(`/api/admin/users/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+    },
+    deleteUser(id: number, opts?: { purge?: boolean }): Promise<void> {
+      return request(`/api/admin/users/${id}${opts?.purge ? "?purge=1" : ""}`, { method: "DELETE" });
+    },
+    instance(): Promise<{ disallowPasswordAuth: boolean; instanceUrl: string }> {
+      return request("/api/admin/instance");
+    },
+    updateInstance(patch: {
+      disallowPasswordAuth?: boolean;
+      instanceUrl?: string;
+    }): Promise<{ disallowPasswordAuth: boolean; instanceUrl: string }> {
+      return request("/api/admin/instance", { method: "PATCH", body: JSON.stringify(patch) });
     },
   },
 

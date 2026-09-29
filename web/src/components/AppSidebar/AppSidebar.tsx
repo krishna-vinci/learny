@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { useCardFiles, useInbox, useJobs, useNotes } from "@/api/queries";
+import { useCardFiles, useCurrentUser, useInbox, useJobs, useNotes } from "@/api/queries";
 import { AddSourceSheet } from "@/components/Library/AddSourceSheet";
 import { NewChapterSheet } from "@/components/NewChapterSheet";
 import { NewNoteDialog } from "@/components/NewNoteDialog";
@@ -119,7 +119,6 @@ const MoreSection = ({ set }: { set?: string }) => {
   const draftCardCount = cardFiles.reduce((total, file) => total + (file.counts.draft ?? 0), 0);
   const cardsActive =
     !!set && (location.pathname === `/s/${set}/cards` || location.pathname.startsWith(`/s/${set}/cards/`));
-  const { signOut, signingOut } = useSignOut();
   const goTo = (path: string) => {
     navigate(path);
     setMobileOpen(false);
@@ -183,16 +182,59 @@ const MoreSection = ({ set }: { set?: string }) => {
         <SidebarRow
           icon={SettingsIcon}
           label="Settings"
-          state={location.pathname === "/settings" ? "current" : "idle"}
+          state={location.pathname === "/settings" || location.pathname.startsWith("/settings/") ? "current" : "idle"}
           onClick={() => {
             navigate("/settings");
             setMobileOpen(false);
           }}
         />
-        <SidebarRow icon={LogOutIcon} label={signingOut ? "Signing out…" : "Sign out"} onClick={signOut} />
       </SidebarSection>
       <AddSourceSheet open={addSourceOpen} onOpenChange={setAddSourceOpen} defaultSet={set ?? null} />
     </>
+  );
+};
+
+// Signed-in user's name/avatar, pinned to the bottom of the sidebar next to Sign out —
+// outside the scrollable section list so it's always visible.
+const UserFooter = () => {
+  const { user } = useCurrentUser();
+  const navigate = useNavigate();
+  const { setMobileOpen } = useMobileSidebar();
+  const { signOut, signingOut } = useSignOut();
+
+  return (
+    <div className={cn("flex h-13 shrink-0 items-center gap-2 border-t border-border/70", SIDEBAR_RAIL_CLASSES)}>
+      <button
+        type="button"
+        className="flex min-w-0 flex-1 items-center gap-2 rounded-md py-1.5 text-start hover:bg-accent/60"
+        onClick={() => {
+          navigate("/settings/my-account");
+          setMobileOpen(false);
+        }}
+      >
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
+          {(user?.displayName || user?.username || "?").slice(0, 1).toUpperCase()}
+        </span>
+        <span className="min-w-0 truncate text-sm text-foreground">{user?.displayName || user?.username || "…"}</span>
+      </button>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              variant="quiet"
+              size="icon-compact"
+              onClick={signOut}
+              disabled={signingOut}
+              aria-label="Sign out"
+              className="shrink-0"
+            />
+          }
+        >
+          <LogOutIcon className="size-4" />
+        </TooltipTrigger>
+        <TooltipContent side="right">{signingOut ? "Signing out…" : "Sign out"}</TooltipContent>
+      </Tooltip>
+    </div>
   );
 };
 
@@ -247,6 +289,7 @@ const AppSidebar = ({ className, onCollapse }: { className?: string; onCollapse?
           <MoreSection set={set} />
         </div>
       </div>
+      <UserFooter />
     </aside>
   );
 };

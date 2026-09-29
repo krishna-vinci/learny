@@ -1,11 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
 import { type ReactNode, useState } from "react";
-import { createBrowserRouter, Navigate, useLocation } from "react-router-dom";
-import { api } from "@/api/client";
-import { useSets } from "@/api/queries";
+import { createBrowserRouter, Navigate, useLocation, useSearchParams } from "react-router-dom";
+import { useAuthStatus, useCurrentUser, useSets } from "@/api/queries";
 import { NewSetDialog } from "@/components/NewSetDialog";
 import { Button } from "@/components/ui/button";
 import RootLayout from "@/layouts/RootLayout";
+import AdminSignIn from "@/pages/AdminSignIn";
 import CardFilePage from "@/pages/CardFilePage";
 import CardsPage from "@/pages/CardsPage";
 import InboxPage from "@/pages/InboxPage";
@@ -16,21 +15,26 @@ import NotePage from "@/pages/NotePage";
 import SetHomePage from "@/pages/SetHomePage";
 import SetsPage from "@/pages/SetsPage";
 import SettingsPage from "@/pages/SettingsPage";
+import Setup from "@/pages/Setup";
 import SignIn from "@/pages/SignIn";
 import { useLastVisitedSet } from "@/pages/useLastVisitedSet";
 
+/** Redirects `/login[?redirect=]` (the pre-M3a route) to `/auth`, preserving the query. */
+function LegacyLoginRedirect() {
+  const [searchParams] = useSearchParams();
+  return <Navigate to={`/auth?${searchParams.toString()}`} replace />;
+}
+
 function AuthGate({ children }: { children: ReactNode }) {
   const location = useLocation();
-  const { isLoading, isError } = useQuery({
-    queryKey: ["auth", "me"],
-    queryFn: () => api.auth.me(),
-    retry: false,
-  });
+  const { data: status, isLoading: statusLoading } = useAuthStatus();
+  const { user, isLoading: meLoading, isError } = useCurrentUser();
 
-  if (isLoading) return null;
-  if (isError) {
+  if (statusLoading || meLoading) return null;
+  if (status?.setupRequired) return <Navigate to="/setup" replace />;
+  if (isError || !user) {
     const redirect = `${location.pathname}${location.search}`;
-    return <Navigate to={`/login?redirect=${encodeURIComponent(redirect)}`} replace />;
+    return <Navigate to={`/auth?redirect=${encodeURIComponent(redirect)}`} replace />;
   }
   return <>{children}</>;
 }
@@ -64,7 +68,10 @@ function HomeRedirect() {
 }
 
 export const router = createBrowserRouter([
-  { path: "/login", element: <SignIn /> },
+  { path: "/login", element: <LegacyLoginRedirect /> },
+  { path: "/setup", element: <Setup /> },
+  { path: "/auth", element: <SignIn /> },
+  { path: "/auth/admin", element: <AdminSignIn /> },
   {
     path: "/",
     element: (
@@ -76,6 +83,7 @@ export const router = createBrowserRouter([
       { index: true, element: <HomeRedirect /> },
       { path: "sets", element: <SetsPage /> },
       { path: "settings", element: <SettingsPage /> },
+      { path: "settings/:section", element: <SettingsPage /> },
       { path: "jobs", element: <JobsPage /> },
       { path: "s/:set", element: <SetHomePage /> },
       { path: "s/:set/inbox", element: <InboxPage /> },

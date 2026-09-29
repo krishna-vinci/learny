@@ -1,11 +1,14 @@
 // Adapted from Memos (MIT) — https://github.com/usememos/memos
 // Connect-RPC sign-in call replaced with api.auth.login; identity providers, the
 // sign-up link, and ChallengeWidget are removed (not part of Studium's auth).
+
+import { useQueryClient } from "@tanstack/react-query";
 import { LoaderIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
+import { queryKeys } from "@/api/queries";
 import CredentialFields from "@/components/CredentialFields";
 import { Button } from "@/components/ui/button";
 
@@ -15,6 +18,7 @@ interface PasswordSignInFormProps {
 
 function PasswordSignInForm({ redirectPath }: PasswordSignInFormProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -27,7 +31,8 @@ function PasswordSignInForm({ redirectPath }: PasswordSignInFormProps) {
 
     setIsLoading(true);
     try {
-      await api.auth.login(username, password);
+      const { user } = await api.auth.signin(username, password);
+      queryClient.setQueryData(queryKeys.me, { user });
       navigate(redirectPath || "/", { replace: true });
     } catch (error) {
       const message = error instanceof ApiError ? error.message : "Failed to sign in.";
