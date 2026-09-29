@@ -19,7 +19,9 @@ import {
 import { requireAdmin, sessionAuth } from "./auth/middleware.js";
 import { hashPassword } from "./auth/password.js";
 import { type AuthRouteOptions, authRoutes } from "./auth/routes.js";
+import { deriveKey } from "./db/secret.js";
 import { requestGuard } from "./http/guard.js";
+import { identityProviderAdminRoutes, identityRoutes, ssoAuthRoutes } from "./sso/routes.js";
 
 export interface WorkspaceProvider {
   for(user: User): { app: Hono };
@@ -27,6 +29,7 @@ export interface WorkspaceProvider {
 
 export interface ServerDeps {
   db: DatabaseSync;
+  instanceSecret: Buffer;
   workspaces: WorkspaceProvider;
   webDist?: string;
   authOpts: Omit<AuthRouteOptions, "db">;
@@ -243,11 +246,19 @@ function adminRoutes(db: DatabaseSync, _workspaces: WorkspaceProvider): Hono {
 
 export function createServer(deps: ServerDeps): Hono {
   const app = new Hono();
+  const ssoOptions = {
+    db: deps.db,
+    secretsKey: deriveKey(deps.instanceSecret, "studium-secrets-v1"),
+    auth: { db: deps.db, ...deps.authOpts },
+  };
   app.use("/api/*", requestGuard());
   app.route("/api/auth", authRoutes({ db: deps.db, ...deps.authOpts }));
+  app.route("/api/auth", ssoAuthRoutes(ssoOptions));
   app.use("/api/*", sessionAuth(deps.db));
+  app.route("/api/me/identities", identityRoutes(ssoOptions));
   app.route("/api/me", meRoutes(deps.db));
   app.use("/api/admin/*", requireAdmin);
+  app.route("/api/admin/identity-providers", identityProviderAdminRoutes(ssoOptions));
   app.route("/api/admin", adminRoutes(deps.db, deps.workspaces));
   app.all("/api/*", (c) => deps.workspaces.for(c.get("user")).app.fetch(c.req.raw, c.env));
 

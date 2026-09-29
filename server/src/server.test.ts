@@ -31,6 +31,7 @@ afterEach(async () => {
 function server(webDist?: string): Hono {
   return createServer({
     db,
+    instanceSecret: Buffer.alloc(32, 1),
     workspaces: { for: () => ({ app: workspace }) },
     authOpts: { trustProxy: false, baseUrl: null, setupCode: null },
     ...(webDist === undefined ? {} : { webDist }),

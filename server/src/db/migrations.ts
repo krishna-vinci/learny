@@ -37,4 +37,20 @@ export const migrations: string[] = [
       value TEXT NOT NULL
     );
   `,
+  `
+    CREATE TABLE identity_providers (
+      id INTEGER PRIMARY KEY,
+      title TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT 'OAUTH2',
+      identifier_filter TEXT NOT NULL DEFAULT '',
+      config TEXT NOT NULL
+    );
+    CREATE TABLE user_identities (
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      provider_id INTEGER NOT NULL REFERENCES identity_providers(id) ON DELETE CASCADE,
+      subject TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      PRIMARY KEY (provider_id, subject)
+    );
+  `,
 ];

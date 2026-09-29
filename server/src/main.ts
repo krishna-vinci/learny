@@ -44,7 +44,7 @@ const baseUrl = process.env.STUDIUM_BASE_URL || null;
 
 const db = openDb(path.join(dataDir, "studium.db"));
 migrate(db);
-loadInstanceSecret(dataDir, process.env);
+const instanceSecret = loadInstanceSecret(dataDir, process.env);
 const { setupRequired } = await bootstrapAccounts(db, process.env);
 const localHosts = new Set(["127.0.0.1", "::1", "localhost"]);
 const setupCode = setupRequired && !localHosts.has(host) ? randomBytes(6).toString("hex") : null;
@@ -122,6 +122,7 @@ const workspaceApp = createApp({
 });
 const app = createServer({
   db,
+  instanceSecret,
   workspaces: { for: () => ({ app: workspaceApp }) },
   authOpts: { trustProxy, baseUrl, setupCode },
   ...(existsSync(webDist) ? { webDist } : {}),

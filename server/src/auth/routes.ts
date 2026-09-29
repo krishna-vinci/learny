@@ -2,6 +2,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
 import { type Context, Hono } from "hono";
 import { deleteCookie, setCookie } from "hono/cookie";
+import { listIdentityProviders } from "../accounts/identities.js";
 import { createSession, revokeSession } from "../accounts/sessions.js";
 import { getInstanceSettings } from "../accounts/settings.js";
 import { createUser, getUserByUsername, listUsers, verifyUserPassword } from "../accounts/users.js";
@@ -61,6 +62,26 @@ function setSessionCookie(c: Context, options: AuthRouteOptions, token: string):
   setCookie(c, SESSION_COOKIE, token, { ...cookieOptions(c, options), maxAge: SESSION_MAX_AGE_SECONDS });
 }
 
+export function createSessionForRequest(c: Context, options: AuthRouteOptions, userId: number) {
+  const session = createSession(options.db, userId, {
+    userAgent: c.req.header("user-agent") ?? "",
+    ip: clientIp(c, options.trustProxy),
+  });
+  setSessionCookie(c, options, session.token);
+  return session;
+}
+
+export function requestOrigin(c: Context, options: AuthRouteOptions): string {
+  const url = new URL(c.req.url);
+  if (options.trustProxy) {
+    const protocol = c.req.header("x-forwarded-proto")?.split(",", 1)[0]?.trim().toLowerCase();
+    if (protocol === "http" || protocol === "https") url.protocol = `${protocol}:`;
+    const host = c.req.header("x-forwarded-host")?.split(",", 1)[0]?.trim();
+    if (host) url.host = host;
+  }
+  return url.origin;
+}
+
 function pruneExpiredAttempts(attempts: Map<string, LoginAttempt>, now: number): void {
   for (const [ip, attempt] of attempts) {
     if (now - attempt.startedAt >= RATE_LIMIT_WINDOW_MS) attempts.delete(ip);
@@ -97,7 +118,14 @@ export function authRoutes(options: AuthRouteOptions): Hono {
 
   app.get("/status", (c) => {
     const settings = getInstanceSettings(db);
-    return c.json({ setupRequired: listUsers(db).length === 0, ...settings });
+    const identityProviders = listIdentityProviders(db).map((provider) => ({
+      id: provider.id,
+      title: provider.title,
+      authUrl: provider.config.authUrl,
+      clientId: provider.config.clientId,
+      scopes: provider.config.scopes,
+    }));
+    return c.json({ setupRequired: listUsers(db).length === 0, ...settings, identityProviders });
   });
 
   app.post("/setup", async (c) => {
@@ -113,11 +141,7 @@ export function authRoutes(options: AuthRouteOptions): Hono {
       }
       if (password.length < 8) return c.json({ error: "password must be at least 8 characters" }, 400);
       const user = await createUser(db, { username, password, role: "ADMIN" });
-      const session = createSession(db, user.id, {
-        userAgent: c.req.header("user-agent") ?? "",
-        ip: clientIp(c, options.trustProxy),
-      });
-      setSessionCookie(c, options, session.token);
+      createSessionForRequest(c, options, user.id);
       return c.json({ user }, 201);
     } catch (error) {
       return c.json({ error: error instanceof Error ? error.message : "invalid account" }, 400);
@@ -158,8 +182,7 @@ export function authRoutes(options: AuthRouteOptions): Hono {
     }
 
     attempts.delete(ip);
-    const session = createSession(db, user.id, { userAgent: c.req.header("user-agent") ?? "", ip });
-    setSessionCookie(c, options, session.token);
+    createSessionForRequest(c, options, user.id);
     return c.json({ user });
   };
 
