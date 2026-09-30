@@ -55,6 +55,8 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - The study tree git repo auto-commits per role author (tutor/librarian/drafter/checker/cardsmith/critic/user/system).
 
 ## Gotchas learned the hard way
+- **Forgotten password:** `pnpm --filter @studium/server reset-password <username>` (hidden prompt; signs out all sessions).
+- **Hidden practice answers:** `server/src/app.ts` guards the raw file/diff/history APIs so `practice/` quiz and problem files can't leak answers. Keep that guard when adding file-reading routes.
 - **A new JobKind needs web updates too:** `web/src/components/Activity/ActivityPanelContent.tsx` `KIND_ICONS` is `Record<JobKind, …>`, so server tasks that add a kind must also run the web `tsc --noEmit`.
 - **Test fixtures with a legacy tree:** create the admin from env (`STUDIUM_USERNAME` plus `STUDIUM_PASSWORD_HASH` from `printf 'pw\n' | pnpm --filter @studium/server --silent hash-password`) so it exists at FIRST boot. `/setup` creates an empty workspace, and then the legacy tree never migrates.
 - **Claude cloud tasks:** a self-contained plan in `docs/plans/` → the cloud session works on a `claude/<task>` branch → PR → the orchestrator fetches it into a review worktree, merges main in, reruns tests and merges with `gh pr merge`. The cloud can't see local data or services.
@@ -80,7 +82,7 @@ The orchestrator keeps the rest of this file current. When something listed unde
   - M0 skeleton, M1 sources→notes, M2 cards
   - M3a platform: accounts and SSO, per-user trees, backups, notifications, export, service
   - M3b slices A (background jobs UX), B (reading comfort), C (themes)
-- **In progress:** M4 is implemented (M4-0 through M4-7b merged); M4-8 review is left. **M5 practice** goes to Sol 6.1 locally (plan `docs/plans/2026-10-01-m5-practice.md`; local prompts `docs/prompts/m5-*.md`). **M6** will go to the Claude cloud (scope being decided).
+- **In progress:** M4 is implemented; the M4-8 review found 11 issues (`docs/prompts/m4-8-review-report.md`), with the fix prompt `docs/prompts/m4-8-fixes.md` awaiting dispatch. **M5:** M5-A server merged; M5-B web running on Sol 6.1 (same session). **M6** goes to the Claude cloud (`docs/plans/2026-10-01-m6-simple-and-polished.md`).
 
 ## Open gaps
 - **Book PDF layout:** callout boxes can split across pages, leaving an orphaned header (e.g. "Deeper" at the bottom of p5, its body on p6, and a mostly blank page). Keep a callout's header with its first lines (`block(breakable: …)` or `sticky` in `server/templates/book/book.typ` / `callouts.lua`). Mermaid appears as "(diagram in the app)".
@@ -97,6 +99,7 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - **Backups:** not configured yet on the live instance. The owner does this in Settings → Backups.
 
 ## Recently done
+- M5-A practice server (eeed44c) · reset-password CLI (a6a57b5)
 - PR #2 M4-7b screens (3a9626f): plan a set, plan review, book card, docs-site import, chat proposals after reload, set-only revert, toasts
 - M4-2b search indexes plain text
 - M4-7a Today page, ⌘K search, selection actions + highlights (003723f)
@@ -123,3 +126,4 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - 2026-10-01 · M4-7a (Sol 6.1) · `pages/TodayPage.tsx` (landing), `components/Search/*`, `Reader/ReaderPassages.tsx` + `highlight-{dom,text}.ts`, chat quote plumbing · 93 real-click checks at 390/1440 in light and dark · snippets show raw markdown (open gap).
 - 2026-10-01 · M4-2b (DeepSeek) · `search/plaintext.ts` strips frontmatter, code/mermaid, footnotes, directives and markup from indexed bodies · a restart rebuilds the index (`rebuildAll` at workspace start) · image alt text kept.
 - 2026-10-01 · PR #2 M4-7b (cloud Sonnet) · `NewSetDialog`/`PlanSetSheet`/`PlanOptions`/`SourcePicker`, `pages/InboxPlanReview.tsx` + `plan-proposal.ts`, set-home `BookCard` (HEAD `book.pdf`), `Library/DocsSiteTab.tsx`, ChatDock `proposals_loaded` + DELETE, NoteHistory 409 → `scope:"set"` · new sets are created via `POST /api/sets` before `plan-set` so the title is kept · verified live: book card downloads.
+- 2026-10-01 · M5-A (Sol 6.1) · `server/src/practice/*` (store, grading, weak-spots), `routes/practice.ts`, `agent/builtins/practice.ts`, `agent/practice-grader.ts`, `jobs/{practice-job,grade-job}.ts`, skills make-quiz/make-problems/grade-answer · EMA alpha 0.5; `grade-answer` is an internal fallback JobKind; problems and teach-backs are JSON-fenced Markdown · the orchestrator added the TodayPage `practice` icon.
