@@ -2,6 +2,7 @@
 // (docs/UX.md rule 8: "what happened, what to do", never a status code, path or env var).
 // Everything user-facing that shows an error goes through `friendlyError`.
 import { ApiError, UnauthorizedError } from "@/api/client";
+import { OfflineError } from "@/lib/offline";
 
 export interface FriendlyError {
   /** One or two plain sentences. */
@@ -27,6 +28,10 @@ interface Rule {
 
 // Order matters: the first match wins.
 const RULES: Rule[] = [
+  {
+    test: (_text, error) => error instanceof OfflineError,
+    result: { message: "You're offline. Reconnect to save changes.", retryable: true },
+  },
   {
     test: (_text, error) => error instanceof UnauthorizedError || (error instanceof ApiError && error.status === 401),
     result: {

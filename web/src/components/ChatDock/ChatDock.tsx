@@ -3,22 +3,24 @@
 // phones never saw chat at all). `useChatDock` holds the shared state (selected chat,
 // streaming reducer) so switching shells across the lg breakpoint never loses it; only
 // one shell is ever mounted, picked via `useMediaQuery` rather than CSS hide/show.
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { lazy, Suspense } from "react";
 import { useImmersive } from "@/lib/immersive-store";
-import DesktopChatDock from "./DesktopChatDock";
-import MobileChatDock from "./MobileChatDock";
-import { useChatDock } from "./useChatDock";
+import { useChatDockCollapsed } from "./useChatDockCollapsed";
+import useChatDockWidth from "./useChatDockWidth";
 import { useOpenNote } from "./useOpenNote";
 
-const DESKTOP_QUERY = "(min-width: 1024px)";
+// Code-split: the chat UI (markdown, streaming reducer, panels) loads when a set is opened.
+const ChatDockWithSet = lazy(() => import("./ChatDockWithSet"));
 
-function ChatDockWithSet({ set }: { set: string }) {
-  const chat = useChatDock(set);
-  const isDesktop = useMediaQuery(DESKTOP_QUERY);
-
+/** Holds the dock's space while its code loads, so the page doesn't jump when it arrives. */
+function ChatDockPlaceholder() {
+  const { collapsed } = useChatDockCollapsed();
+  const { width } = useChatDockWidth();
   return (
-    <TooltipProvider>{isDesktop ? <DesktopChatDock chat={chat} /> : <MobileChatDock chat={chat} />}</TooltipProvider>
+    <div
+      className="hidden shrink-0 border-s border-border/70 lg:block"
+      style={{ width: collapsed ? "2.25rem" : `${width}px` }}
+    />
   );
 }
 
@@ -32,7 +34,9 @@ function ChatDock() {
   return (
     <div className={immersive ? "hidden" : "contents"}>
       {set ? (
-        <ChatDockWithSet key={set} set={set} />
+        <Suspense fallback={<ChatDockPlaceholder />}>
+          <ChatDockWithSet key={set} set={set} />
+        </Suspense>
       ) : (
         <div className="hidden w-9 shrink-0 border-s border-border/70 lg:block" />
       )}

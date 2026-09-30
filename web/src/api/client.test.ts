@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { OfflineError } from "@/lib/offline";
 import { ApiError, api, outsidePaths, UnauthorizedError } from "./client";
 
 describe("api client", () => {
@@ -134,5 +135,19 @@ describe("api client", () => {
       sha: "abc1234",
       scope: "set",
     });
+  });
+
+  it("refuses writes while offline instead of queueing them, but still tries reads", async () => {
+    const fetchMock = fetch as unknown as ReturnType<typeof vi.fn>;
+    const online = vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+    try {
+      await expect(api.sets.createNote("alpha", "New note")).rejects.toBeInstanceOf(OfflineError);
+      expect(fetchMock).not.toHaveBeenCalled();
+      fetchMock.mockResolvedValue(new Response(JSON.stringify([]), { status: 200 }));
+      await expect(api.sets.notes("alpha")).resolves.toEqual([]);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      online.mockRestore();
+    }
   });
 });

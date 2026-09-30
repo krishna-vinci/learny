@@ -41,6 +41,33 @@ export default defineConfig({
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
+          // Offline reading (docs/UX.md section 6): the last-opened sets' notes, source summaries and
+          // highlights, plus the session/set/Today reads the app shell needs to start. Network first, so
+          // online use is always fresh; the cache only answers when the network fails. Capped at 150
+          // entries / 30 days (and purged under storage pressure). Cleared on sign-in/out (lib/offline.ts).
+          {
+            urlPattern: ({ url, request }) =>
+              request.method === "GET" &&
+              [
+                /^\/api\/me$/,
+                /^\/api\/auth\/status$/,
+                /^\/api\/today$/,
+                /^\/api\/sets$/,
+                /^\/api\/sets\/[^/]+\/notes$/,
+                /^\/api\/sets\/[^/]+\/file$/,
+                /^\/api\/sets\/[^/]+\/highlights$/,
+                /^\/api\/library$/,
+                /^\/api\/library\/[^/]+$/,
+              ].some((pattern) => pattern.test(url.pathname)),
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "studium-offline-api",
+              networkTimeoutSeconds: 4,
+              expiration: { maxEntries: 150, maxAgeSeconds: 60 * 60 * 24 * 30, purgeOnQuotaError: true },
+              cacheableResponse: { statuses: [200] },
+            },
+          },
+          // Everything else under /api stays live (SSE at /api/events in particular must pass through).
           {
             urlPattern: ({ url }) => url.pathname.startsWith("/api/"),
             handler: "NetworkOnly",

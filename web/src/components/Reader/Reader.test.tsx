@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { MarkdownView } from "./MarkdownView";
 
@@ -17,13 +17,20 @@ Hidden depth content.
 `;
 
 describe("MarkdownView", () => {
-  it("renders inline math via KaTeX", () => {
+  it("renders inline math via KaTeX, loaded on demand", async () => {
     render(<MarkdownView content={SAMPLE} />);
-    expect(document.querySelector(".katex")).not.toBeNull();
+    await waitFor(() => expect(document.querySelector(".katex")).not.toBeNull());
   });
 
-  it("renders a `:::deeper` block as a collapsed details element", () => {
+  it("does not load KaTeX for a note without math", async () => {
+    render(<MarkdownView content={"Just **prose** with no formulas."} />);
+    expect(screen.getByText("prose")).toBeTruthy();
+    expect(document.querySelector(".katex")).toBeNull();
+  });
+
+  it("renders a `:::deeper` block as a collapsed details element", async () => {
     render(<MarkdownView content={SAMPLE} />);
+    await screen.findByText("Hidden depth content.");
     const details = document.querySelector("details");
     expect(details).not.toBeNull();
     expect(details?.open).toBe(false);
@@ -31,9 +38,9 @@ describe("MarkdownView", () => {
     expect(screen.getByText("Hidden depth content.")).toBeTruthy();
   });
 
-  it("renders a source citation with tooltip text", () => {
+  it("renders a source citation with tooltip text", async () => {
     render(<MarkdownView content={SAMPLE} />);
-    expect(screen.getByTitle("lib-strang-la, p.364")).toBeTruthy();
+    expect(await screen.findByTitle("lib-strang-la, p.364")).toBeTruthy();
   });
 
   it("shows a directive title in the callout header and as the deeper summary", () => {

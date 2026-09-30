@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ApiError, UnauthorizedError } from "@/api/client";
 import { friendlyError, friendlyMessage } from "./friendly-errors";
+import { OfflineError } from "./offline";
 
 describe("friendlyError", () => {
   it("explains a missing Firecrawl setup without naming env vars", () => {
@@ -41,6 +42,10 @@ describe("friendlyError", () => {
     );
     expect(friendlyMessage(new ApiError(400, "Title is required", undefined))).toBe("Title is required.");
     expect(friendlyMessage(new Error("kaboom"), "Could not save.")).toBe("Could not save.");
+  });
+
+  it("explains a blocked write while offline", () => {
+    expect(friendlyMessage(new OfflineError())).toBe("You're offline. Reconnect to save changes.");
   });
 
   it("maps network and server failures", () => {

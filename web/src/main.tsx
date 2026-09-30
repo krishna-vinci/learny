@@ -5,6 +5,7 @@ import { Toaster } from "react-hot-toast";
 import { RouterProvider } from "react-router-dom";
 import { UnauthorizedError } from "@/api/client";
 import "@/index.css";
+import { clearOfflineCaches } from "@/lib/offline";
 import { router } from "@/router";
 
 const queryClient = new QueryClient({
@@ -18,11 +19,15 @@ const queryClient = new QueryClient({
       // already carries the previous redirect target) and wraps it in another
       // `redirect=`, compounding into an ever-growing, never-terminating URL.
       if (pathname === "/setup" || pathname === "/auth" || pathname.startsWith("/auth/")) return;
+      void clearOfflineCaches();
       router.navigate(`/auth?redirect=${encodeURIComponent(`${pathname}${search}`)}`);
     },
   }),
   defaultOptions: {
-    queries: { retry: false },
+    // `always`: don't pause queries/mutations while the browser says it's offline. Reads then reach the
+    // service worker's offline cache; writes fail at once with "You're offline" instead of queueing.
+    queries: { retry: false, networkMode: "always" },
+    mutations: { networkMode: "always" },
   },
 });
 

@@ -28,6 +28,7 @@ import type {
   SourceSummary,
   TodayView,
 } from "@studium/shared";
+import { clearOfflineCaches, isOffline, OfflineError } from "@/lib/offline";
 
 export type UserRole = "ADMIN" | "USER";
 export type UserState = "NORMAL" | "ARCHIVED";
@@ -239,6 +240,10 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  // Offline: reads are served from the service worker's cache; writes are refused here, with a clear
+  // message, instead of being queued silently (or hanging).
+  const method = (init?.method ?? "GET").toUpperCase();
+  if (method !== "GET" && method !== "HEAD" && isOffline()) throw new OfflineError();
   // FormData sets its own multipart boundary in the Content-Type header; letting fetch
   // compute it (by not setting Content-Type ourselves) is required for multipart bodies.
   const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
@@ -330,16 +335,32 @@ export const api = {
       return request("/api/auth/status");
     },
     setup(body: { username: string; password: string; setupCode?: string }): Promise<{ user: User }> {
-      return request("/api/auth/setup", { method: "POST", body: JSON.stringify(body) });
+      return request<{ user: User }>("/api/auth/setup", { method: "POST", body: JSON.stringify(body) }).then(
+        async (result) => {
+          await clearOfflineCaches();
+          return result;
+        },
+      );
     },
     signin(username: string, password: string): Promise<{ user: User }> {
-      return request("/api/auth/signin", { method: "POST", body: JSON.stringify({ username, password }) });
+      return request<{ user: User }>("/api/auth/signin", {
+        method: "POST",
+        body: JSON.stringify({ username, password }),
+      }).then(async (result) => {
+        await clearOfflineCaches();
+        return result;
+      });
     },
     signout(): Promise<void> {
       return request("/api/auth/signout", { method: "POST" });
     },
     sso(body: SsoRequest): Promise<{ user: User }> {
-      return request("/api/auth/sso", { method: "POST", body: JSON.stringify(body) });
+      return request<{ user: User }>("/api/auth/sso", { method: "POST", body: JSON.stringify(body) }).then(
+        async (result) => {
+          await clearOfflineCaches();
+          return result;
+        },
+      );
     },
     // Compatibility aliases kept on the server; prefer signin/signout above.
     login(username: string, password: string): Promise<void> {

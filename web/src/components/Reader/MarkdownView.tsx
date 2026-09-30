@@ -2,18 +2,17 @@
 // (MathMarkdownRenderer.tsx, MemoMarkdownRenderer.tsx, pipeline.ts, and index.tsx composed into
 // one renderer for a whole note body: Memos' mention/tag/attachment/theme machinery is stripped,
 // and Studium's directive callouts + source citations are added via remarkStudium.ts.)
-import "katex/dist/katex.min.css";
 // Slice C: no longer imports highlight.js/styles/github.css (light-only). The `.hljs-*`
 // token colours are themed via CSS variables in index.css instead (see the "Code
 // highlighting" block there).
-import { memo } from "react";
+import { type ComponentProps, memo } from "react";
 import type { Components } from "react-markdown";
 import ReactMarkdown from "react-markdown";
-import rehypeKatex from "rehype-katex";
 import rehypeSanitize from "rehype-sanitize";
 import remarkDirective from "remark-directive";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
+import { hasMath, useKatex } from "@/lib/katex-loader";
 import { cn } from "@/lib/utils";
 import { Citation } from "./Citation";
 import { CodeBlock } from "./CodeBlock";
@@ -21,6 +20,8 @@ import { SANITIZE_SCHEMA } from "./constants";
 import { Callout, Deeper } from "./Directives";
 import { remarkStudiumCitations, remarkStudiumDirectives } from "./remarkStudium";
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from "./Table";
+
+type MarkdownRehypePlugins = NonNullable<ComponentProps<typeof ReactMarkdown>["rehypePlugins"]>;
 
 export interface MarkdownViewProps {
   content: string;
@@ -75,14 +76,16 @@ const markdownComponents: Components = {
 };
 
 function MarkdownViewComponent({ content, className }: MarkdownViewProps) {
+  // KaTeX loads only for notes that contain math; others never pay for it.
+  const math = hasMath(content);
+  const katex = useKatex(math);
+  const katexPlugins: MarkdownRehypePlugins = katex ? [[katex, { throwOnError: false, strict: false }]] : [];
+  if (math && !katex) return <div className={cn("studium-prose h-24 w-full", className)} aria-busy="true" />;
   return (
     <div className={cn("studium-prose w-full break-words text-foreground", className)}>
       <ReactMarkdown
         remarkPlugins={[remarkMath, remarkGfm, remarkDirective, remarkStudiumDirectives, remarkStudiumCitations]}
-        rehypePlugins={[
-          [rehypeSanitize, SANITIZE_SCHEMA],
-          [rehypeKatex, { throwOnError: false, strict: false }],
-        ]}
+        rehypePlugins={[[rehypeSanitize, SANITIZE_SCHEMA], ...katexPlugins]}
         components={markdownComponents}
       >
         {content}

@@ -1,28 +1,14 @@
 import { LibraryBigIcon } from "lucide-react";
-import { type ReactNode, useState } from "react";
-import { createBrowserRouter, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { type ComponentType, lazy, type ReactNode, Suspense, useState } from "react";
+import { createBrowserRouter, Navigate, Outlet, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuthStatus, useCurrentUser, useSets } from "@/api/queries";
+import { PageSkeleton } from "@/components/ListSkeleton";
 import { NewSetDialog } from "@/components/NewSetDialog";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import RootLayout from "@/layouts/RootLayout";
 import { setSkipped, wasSkipped } from "@/lib/onboarding";
-import AdminSignIn from "@/pages/AdminSignIn";
-import AuthCallback from "@/pages/AuthCallback";
-import CardFilePage from "@/pages/CardFilePage";
-import CardsPage from "@/pages/CardsPage";
-import InboxPage from "@/pages/InboxPage";
-import JobsPage from "@/pages/JobsPage";
-import LibraryPage from "@/pages/LibraryPage";
-import LibrarySourcePage from "@/pages/LibrarySourcePage";
-import NotePage from "@/pages/NotePage";
-import SetHomePage from "@/pages/SetHomePage";
-import SetsPage from "@/pages/SetsPage";
-import SettingsPage from "@/pages/SettingsPage";
-import Setup from "@/pages/Setup";
-import SignIn from "@/pages/SignIn";
 import TodayPage from "@/pages/TodayPage";
-import WelcomePage from "@/pages/WelcomePage";
 
 /** Redirects `/login[?redirect=]` (the pre-M3a route) to `/auth`, preserving the query. */
 function LegacyLoginRedirect() {
@@ -87,19 +73,32 @@ function HomeRedirect() {
   return <Navigate to="/today" replace />;
 }
 
+/** Route code is fetched when the route is first visited; only the shell and Today ship up front. */
+const page = (load: () => Promise<{ default: ComponentType }>) => {
+  const Page = lazy(load);
+  return {
+    element: (
+      <Suspense fallback={<PageSkeleton />}>
+        <Page />
+      </Suspense>
+    ),
+  };
+};
+
 export const router = createBrowserRouter([
   { path: "/login", element: <LegacyLoginRedirect /> },
-  { path: "/setup", element: <Setup /> },
-  { path: "/auth", element: <SignIn /> },
-  { path: "/auth/admin", element: <AdminSignIn /> },
-  { path: "/auth/callback", element: <AuthCallback /> },
+  { path: "/setup", ...page(() => import("@/pages/Setup")) },
+  { path: "/auth", ...page(() => import("@/pages/SignIn")) },
+  { path: "/auth/admin", ...page(() => import("@/pages/AdminSignIn")) },
+  { path: "/auth/callback", ...page(() => import("@/pages/AuthCallback")) },
   {
     path: "/welcome",
     element: (
       <AuthGate>
-        <WelcomePage />
+        <Outlet />
       </AuthGate>
     ),
+    children: [{ index: true, ...page(() => import("@/pages/WelcomePage")) }],
   },
   {
     path: "/",
@@ -111,17 +110,17 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <HomeRedirect /> },
       { path: "today", element: <TodayPage /> },
-      { path: "sets", element: <SetsPage /> },
-      { path: "settings", element: <SettingsPage /> },
-      { path: "settings/:section", element: <SettingsPage /> },
-      { path: "jobs", element: <JobsPage /> },
-      { path: "s/:set", element: <SetHomePage /> },
-      { path: "s/:set/inbox", element: <InboxPage /> },
-      { path: "s/:set/cards", element: <CardsPage /> },
-      { path: "s/:set/cards/*", element: <CardFilePage /> },
-      { path: "s/:set/n/*", element: <NotePage /> },
-      { path: "library", element: <LibraryPage /> },
-      { path: "library/:id", element: <LibrarySourcePage /> },
+      { path: "sets", ...page(() => import("@/pages/SetsPage")) },
+      { path: "settings", ...page(() => import("@/pages/SettingsPage")) },
+      { path: "settings/:section", ...page(() => import("@/pages/SettingsPage")) },
+      { path: "jobs", ...page(() => import("@/pages/JobsPage")) },
+      { path: "s/:set", ...page(() => import("@/pages/SetHomePage")) },
+      { path: "s/:set/inbox", ...page(() => import("@/pages/InboxPage")) },
+      { path: "s/:set/cards", ...page(() => import("@/pages/CardsPage")) },
+      { path: "s/:set/cards/*", ...page(() => import("@/pages/CardFilePage")) },
+      { path: "s/:set/n/*", ...page(() => import("@/pages/NotePage")) },
+      { path: "library", ...page(() => import("@/pages/LibraryPage")) },
+      { path: "library/:id", ...page(() => import("@/pages/LibrarySourcePage")) },
     ],
   },
 ]);

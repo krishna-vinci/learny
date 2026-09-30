@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import { toast } from "@/lib/notify";
+import { clearOfflineCaches } from "@/lib/offline";
 
 /**
  * Signs out via `POST /api/auth/signout`, clears the whole React Query cache (so a
@@ -17,6 +18,8 @@ export function useSignOut() {
 
   async function signOut() {
     setSigningOut(true);
+    // Local cleanup first: even if the network call below fails, nothing of this account stays cached.
+    await clearOfflineCaches();
     try {
       await api.auth.signout();
     } catch (err) {

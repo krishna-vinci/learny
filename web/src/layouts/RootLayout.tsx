@@ -4,7 +4,7 @@
 // resizable/mobile sidebar shell plus the reader/chat-dock outlet.
 import { PanelLeftOpenIcon } from "lucide-react";
 import type { CSSProperties } from "react";
-import { useEffect, useRef } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import { Outlet } from "react-router-dom";
 import { useLiveStudiumUpdates } from "@/api/queries";
 import { DesktopActivityIndicator } from "@/components/Activity/ActivityIndicator";
@@ -21,7 +21,9 @@ import AppSidebar, {
   useSidebarWidth,
 } from "@/components/AppSidebar";
 import ChatDock from "@/components/ChatDock";
+import { PageSkeleton } from "@/components/ListSkeleton";
 import { BottomTabBar } from "@/components/Navigation/BottomTabBar";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import { SearchPalette } from "@/components/Search/SearchPalette";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -96,12 +98,15 @@ const RootLayoutContent = () => {
       {!immersive && <BottomTabBar />}
       <div className={cn("flex min-h-full w-full flex-col", !immersive && "md:ps-(--app-sidebar-width)")}>
         {!immersive && <MobileAppHeader />}
+        {!immersive && <OfflineBanner />}
         <div className="flex min-h-0 flex-1">
           {/* Phones: room for the fixed tab bar (3.5 rem + safe area). */}
           <main
             className={cn("min-w-0 flex-1", !immersive && "pb-[calc(3.6rem+env(safe-area-inset-bottom,0px))] md:pb-0")}
           >
-            <Outlet />
+            <Suspense fallback={<PageSkeleton />}>
+              <Outlet />
+            </Suspense>
           </main>
           <ChatDock />
         </div>
