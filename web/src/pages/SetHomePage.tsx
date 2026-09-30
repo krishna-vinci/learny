@@ -2,14 +2,25 @@
 // phones on a blank screen since the note list lives behind the ☰ drawer there). Shows
 // the set's goal/next action, the primary authoring actions, the notes list, a "waiting
 // on you" summary, and — for a set with no notes yet — a "how it works" empty state.
-import { ArchiveIcon, ListChecksIcon, MessageSquareIcon, NotebookTextIcon, PlusIcon, WrenchIcon } from "lucide-react";
+import type { JobView } from "@studium/shared";
+import {
+  ArchiveIcon,
+  ListChecksIcon,
+  Loader2Icon,
+  MessageSquareIcon,
+  NotebookTextIcon,
+  PlusIcon,
+  WrenchIcon,
+} from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useCardFiles, useInbox, useJobs, useNoteFile, useNotes, useSets } from "@/api/queries";
+import { openActivityPanel } from "@/components/Activity/activity-store";
 import { openChatDock } from "@/components/ChatDock/openChatDock";
 import { AddSourceSheet } from "@/components/Library/AddSourceSheet";
 import { NewChapterSheet } from "@/components/NewChapterSheet";
 import { NewNoteDialog } from "@/components/NewNoteDialog";
+import { isActiveJob } from "@/lib/job-transitions";
 import { cn } from "@/lib/utils";
 
 function ActionButton({
@@ -49,6 +60,26 @@ function NoteRow({ set, path, title, order }: { set: string; path: string; title
         {order != null && <span className="w-6 shrink-0 text-end text-sm text-muted-foreground">{order}</span>}
         <span className="min-w-0 flex-1 truncate text-foreground">{title}</span>
       </Link>
+    </li>
+  );
+}
+
+/** A3: a greyed drafting placeholder shown below the set's existing notes. */
+function DraftingRow({ job }: { job: JobView }) {
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => openActivityPanel(job.id)}
+        aria-label={`Drafting ${job.title}: ${job.progress || "starting"}`}
+        className="flex min-h-11 w-full items-center gap-2 border-b border-border/70 py-2.5 text-start last:border-b-0 hover:bg-accent/40"
+      >
+        <Loader2Icon className="size-4 shrink-0 animate-spin text-muted-foreground/70" aria-hidden="true" />
+        <span className="min-w-0 flex-1 truncate text-muted-foreground">{job.title}</span>
+        <span className="max-w-[10rem] shrink-0 truncate text-xs text-muted-foreground/80">
+          {job.progress || "Drafting…"}
+        </span>
+      </button>
     </li>
   );
 }
@@ -149,6 +180,7 @@ export default function SetHomePage() {
   const summary = sets?.find((s) => s.slug === set);
   const draftCardCount = cardFiles.reduce((total, file) => total + (file.counts.draft ?? 0), 0);
   const runningJobCount = jobs.filter((job) => job.status === "queued" || job.status === "running").length;
+  const draftingJobs = jobs.filter((job) => job.kind === "draft-chapter" && job.set === set && isActiveJob(job));
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-6 md:px-6">
@@ -209,17 +241,20 @@ export default function SetHomePage() {
       <section className="mt-6">
         <h2 className="text-sm font-semibold text-foreground">Notes</h2>
         {notesLoading && <p className="mt-2 text-sm text-muted-foreground">Loading…</p>}
-        {!notesLoading && notes.length === 0 && (
+        {!notesLoading && notes.length === 0 && draftingJobs.length === 0 && (
           <HowItWorks
             onNewChapter={() => setNewChapterOpen(true)}
             onWriteNote={() => setNewNoteOpen(true)}
             onAddSource={() => setAddSourceOpen(true)}
           />
         )}
-        {!notesLoading && notes.length > 0 && (
+        {!notesLoading && (notes.length > 0 || draftingJobs.length > 0) && (
           <ul className="mt-2 rounded-md border border-border/70 px-3">
             {notes.map((note) => (
               <NoteRow key={note.path} set={set} path={note.path} title={note.title} order={note.order} />
+            ))}
+            {draftingJobs.map((job) => (
+              <DraftingRow key={job.id} job={job} />
             ))}
           </ul>
         )}

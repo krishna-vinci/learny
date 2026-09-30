@@ -12,6 +12,7 @@ import { Link } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import { useStudiumEvents } from "@/api/events";
 import { queryKeys } from "@/api/queries";
+import { showJobStartedToast } from "@/components/Activity/job-start-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -93,11 +94,12 @@ export function AddSourceSheet({ open, onOpenChange, defaultSet }: AddSourceShee
       const set = addToSet && defaultSet ? defaultSet : undefined;
       const response =
         tab === "link" ? await api.library.addUrl(url.trim(), set) : await api.library.upload(file as File, set);
-      setResult(
-        "deduped" in response
-          ? { kind: "deduped", sourceId: response.sourceId }
-          : { kind: "job", jobId: response.jobId },
-      );
+      if ("deduped" in response) {
+        setResult({ kind: "deduped", sourceId: response.sourceId });
+      } else {
+        setResult({ kind: "job", jobId: response.jobId });
+        showJobStartedToast(tab === "link" ? url.trim() : (file?.name ?? "source"));
+      }
     } catch (error) {
       toast.error(errorMessage(error));
     } finally {

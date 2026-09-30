@@ -7,6 +7,7 @@ import { type KeyboardEvent, useEffect, useMemo, useReducer, useState } from "re
 import { toast } from "react-hot-toast";
 import { ApiError, api } from "@/api/client";
 import { useStudiumEvents } from "@/api/events";
+import { showJobStartedToast } from "@/components/Activity/job-start-toast";
 import { type ChatDockState, chatDockReducer, initialChatDockState } from "./reducer";
 import { useOpenNote } from "./useOpenNote";
 
@@ -92,6 +93,7 @@ export function useChatDock(set: string) {
     mutationFn: (proposalId: string) => api.jobs.create({ proposalId }),
     onSuccess: ({ jobId }, proposalId) => {
       dispatch({ type: "proposal_started", proposalId, jobId });
+      showJobStartedToast(state.proposals.find((proposal) => proposal.proposalId === proposalId)?.title ?? "job");
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
     },
     onError: (error) => {

@@ -3,11 +3,14 @@
 // and pulls from several contexts (auth, memo editor, instance). Studium's M0 sidebar
 // is much smaller: a set switcher, a note list, and disabled placeholders for
 // not-yet-built sections.
+
+import type { JobView } from "@studium/shared";
 import {
   ArchiveIcon,
   BookOpenIcon,
   LibraryBigIcon,
   ListChecksIcon,
+  Loader2Icon,
   LogOutIcon,
   MenuIcon,
   NotebookTextIcon,
@@ -19,6 +22,8 @@ import {
 import { useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useCardFiles, useCurrentUser, useInbox, useJobs, useNotes } from "@/api/queries";
+import { DesktopActivityIndicator, MobileActivityIndicator } from "@/components/Activity/ActivityIndicator";
+import { openActivityPanel } from "@/components/Activity/activity-store";
 import { AddSourceSheet } from "@/components/Library/AddSourceSheet";
 import { NewChapterSheet } from "@/components/NewChapterSheet";
 import { NewNoteDialog } from "@/components/NewNoteDialog";
@@ -30,17 +35,40 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { isActiveJob } from "@/lib/job-transitions";
 import { cn } from "@/lib/utils";
 import { useLastVisitedSet } from "@/pages/useLastVisitedSet";
 import { useSignOut } from "@/pages/useSignOut";
 import { useMobileSidebar } from "./MobileSidebarContext";
 import SetSwitcher from "./SetSwitcher";
-import SidebarRow from "./SidebarRow";
+import SidebarRow, { SIDEBAR_ROW_CLASSES } from "./SidebarRow";
 import SidebarSection, { SIDEBAR_SECTION_STACK_CLASSES } from "./SidebarSection";
-import { SIDEBAR_RAIL_CLASSES } from "./sidebar-layout";
+import { SIDEBAR_LEADING_SLOT_CLASSES, SIDEBAR_RAIL_CLASSES } from "./sidebar-layout";
+
+/** A3: one greyed "Drafting…" row per queued/running draft-chapter job in this set. */
+function DraftingSidebarRow({ job }: { job: JobView }) {
+  return (
+    <button
+      type="button"
+      onClick={() => openActivityPanel(job.id)}
+      aria-label={`Drafting ${job.title}: ${job.progress || "starting"}`}
+      className={cn(SIDEBAR_ROW_CLASSES, "text-muted-foreground/80 hover:bg-sidebar-accent/65 hover:text-foreground")}
+    >
+      <span className={SIDEBAR_LEADING_SLOT_CLASSES} aria-hidden="true">
+        <Loader2Icon className="size-4 animate-spin opacity-70" strokeWidth={1.8} />
+      </span>
+      <span className="min-w-0 flex-1 truncate text-start">{job.title}</span>
+      <span className="max-w-[9rem] shrink-0 truncate text-2xs text-muted-foreground/70">
+        {job.progress || "Drafting…"}
+      </span>
+    </button>
+  );
+}
 
 const NotesSection = ({ set, activeNotePath }: { set: string; activeNotePath?: string }) => {
   const { data: notes = [], isLoading } = useNotes(set);
+  const { data: jobs = [] } = useJobs(set);
+  const draftingJobs = jobs.filter((job) => job.kind === "draft-chapter" && job.set === set && isActiveJob(job));
   const { setMobileOpen } = useMobileSidebar();
   const navigate = useNavigate();
   const [newChapterOpen, setNewChapterOpen] = useState(false);
@@ -81,6 +109,9 @@ const NotesSection = ({ set, activeNotePath }: { set: string; activeNotePath?: s
               setMobileOpen(false);
             }}
           />
+        ))}
+        {draftingJobs.map((job) => (
+          <DraftingSidebarRow key={job.id} job={job} />
         ))}
       </SidebarSection>
       {newChapterOpen && (
@@ -254,24 +285,27 @@ const AppSidebar = ({ className, onCollapse }: { className?: string; onCollapse?
         className={cn("flex h-13 shrink-0 items-center justify-between gap-2", SIDEBAR_RAIL_CLASSES)}
       >
         <SetSwitcher currentSet={set} className="min-w-0 flex-1" />
-        {onCollapse && (
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  variant="quiet"
-                  size="icon-compact"
-                  onClick={onCollapse}
-                  aria-label="Collapse sidebar"
-                  className="shrink-0"
-                />
-              }
-            >
-              <PanelLeftCloseIcon className="size-4" />
-            </TooltipTrigger>
-            <TooltipContent side="right">Collapse sidebar</TooltipContent>
-          </Tooltip>
-        )}
+        <span className="flex shrink-0 items-center gap-1">
+          <DesktopActivityIndicator />
+          {onCollapse && (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="quiet"
+                    size="icon-compact"
+                    onClick={onCollapse}
+                    aria-label="Collapse sidebar"
+                    className="shrink-0"
+                  />
+                }
+              >
+                <PanelLeftCloseIcon className="size-4" />
+              </TooltipTrigger>
+              <TooltipContent side="right">Collapse sidebar</TooltipContent>
+            </Tooltip>
+          )}
+        </span>
       </div>
       <div className="mx-3 mt-2 border-t border-border/70" />
       <div
@@ -313,6 +347,7 @@ export const MobileAppHeader = () => {
         <MenuIcon className="size-[18px]" />
       </Button>
       <SetSwitcher currentSet={params.set ?? lastVisitedSet ?? undefined} className="max-w-[12rem]" />
+      <MobileActivityIndicator className="ms-auto" />
     </header>
   );
 };
