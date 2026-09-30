@@ -5,21 +5,28 @@
 import type { JobView } from "@studium/shared";
 import {
   ArchiveIcon,
+  BookOpenIcon,
+  DownloadIcon,
   ListChecksIcon,
   Loader2Icon,
   MessageSquareIcon,
   NotebookTextIcon,
   PlusIcon,
+  SparklesIcon,
   WrenchIcon,
 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "react-hot-toast";
 import { Link, useParams } from "react-router-dom";
-import { useCardFiles, useInbox, useJobs, useNoteFile, useNotes, useSets } from "@/api/queries";
+import { ApiError, api, bookUrl } from "@/api/client";
+import { useBook, useCardFiles, useInbox, useJobs, useNoteFile, useNotes, useSets } from "@/api/queries";
 import { openActivityPanel } from "@/components/Activity/activity-store";
 import { openChatDock } from "@/components/ChatDock/openChatDock";
 import { AddSourceSheet } from "@/components/Library/AddSourceSheet";
 import { NewChapterSheet } from "@/components/NewChapterSheet";
 import { NewNoteDialog } from "@/components/NewNoteDialog";
+import { PlanSetSheet } from "@/components/PlanSetSheet";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { isActiveJob } from "@/lib/job-transitions";
 import { cn } from "@/lib/utils";
 
@@ -163,6 +170,89 @@ function goalText(body: string): string {
   return goal.replace(/\s+/g, " ").trim();
 }
 
+function formatBuilt(lastModified: string | null): string | null {
+  if (!lastModified) return null;
+  const date = new Date(lastModified);
+  return Number.isNaN(date.getTime()) ? null : date.toLocaleString();
+}
+
+/** Build/rebuild the set's PDF book (`compile-book` job) and download the last build. */
+function BookCard({ set, jobs }: { set: string; jobs: JobView[] }) {
+  const { data: book, isLoading } = useBook(set);
+  const [starting, setStarting] = useState(false);
+  const bookJobs = jobs.filter((job) => job.kind === "compile-book" && job.set === set);
+  const running = bookJobs.find(isActiveJob);
+  // The newest job decides whether a failure is still the current story.
+  const latest = bookJobs.at(0);
+  const failed = latest?.status === "failed" ? latest : undefined;
+  const built = formatBuilt(book?.lastModified ?? null);
+
+  async function build() {
+    setStarting(true);
+    try {
+      await api.jobs.create({ kind: "compile-book", set });
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Failed to start the book build.");
+    } finally {
+      setStarting(false);
+    }
+  }
+
+  return (
+    <section className="mt-6" aria-label="Book">
+      <h2 className="text-sm font-semibold text-foreground">Book</h2>
+      <div className="mt-2 flex flex-col gap-3 rounded-md border border-border/70 p-3 sm:flex-row sm:items-center">
+        <BookOpenIcon className="hidden size-5 shrink-0 text-muted-foreground/70 sm:block" aria-hidden="true" />
+        <div className="min-w-0 flex-1 text-sm">
+          {running ? (
+            <p className="flex items-center gap-2 text-foreground">
+              <Loader2Icon className="size-4 shrink-0 animate-spin text-muted-foreground" aria-hidden="true" />
+              <span className="min-w-0 truncate">{running.progress || "Building book…"}</span>
+            </p>
+          ) : isLoading ? (
+            <p className="text-muted-foreground">Checking…</p>
+          ) : book ? (
+            <>
+              <p className="font-medium text-foreground">Your notes as a PDF book</p>
+              {built && <p className="text-xs text-muted-foreground">Last built {built}</p>}
+            </>
+          ) : (
+            <>
+              <p className="font-medium text-foreground">Not built yet</p>
+              <p className="text-xs text-muted-foreground">Compile this set's notes into a printable PDF.</p>
+            </>
+          )}
+          {!running && failed && (
+            <p className="mt-1 text-xs text-destructive">Last build failed: {failed.error ?? "unknown error"}</p>
+          )}
+        </div>
+        <div className="flex gap-2">
+          {book && !running && (
+            <a
+              href={bookUrl(set)}
+              download
+              className={cn(
+                buttonVariants({ variant: "outline" }),
+                "h-11 flex-1 items-center justify-center gap-1.5 sm:h-8 sm:flex-none",
+              )}
+            >
+              <DownloadIcon className="size-4" aria-hidden="true" />
+              Download
+            </a>
+          )}
+          <Button
+            className="h-11 flex-1 sm:h-8 sm:flex-none"
+            disabled={!!running || starting}
+            onClick={() => void build()}
+          >
+            {running || starting ? "Building…" : book ? "Rebuild" : "Build book (PDF)"}
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function SetHomePage() {
   const params = useParams<{ set: string }>();
   const set = params.set as string;
@@ -176,8 +266,11 @@ export default function SetHomePage() {
   const [newChapterOpen, setNewChapterOpen] = useState(false);
   const [newNoteOpen, setNewNoteOpen] = useState(false);
   const [addSourceOpen, setAddSourceOpen] = useState(false);
+  const [planOpen, setPlanOpen] = useState(false);
 
   const summary = sets?.find((s) => s.slug === set);
+  const planCount = inboxItems.filter((item) => item.kind === "plan").length;
+  const chapterCount = inboxItems.length - planCount;
   const draftCardCount = cardFiles.reduce((total, file) => total + (file.counts.draft ?? 0), 0);
   const runningJobCount = jobs.filter((job) => job.status === "queued" || job.status === "running").length;
   const draftingJobs = jobs.filter((job) => job.kind === "draft-chapter" && job.set === set && isActiveJob(job));
@@ -190,7 +283,7 @@ export default function SetHomePage() {
         {plan?.body && <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{goalText(plan.body)}</p>}
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
         <ActionButton
           icon={NotebookTextIcon}
           label="New chapter"
@@ -210,6 +303,12 @@ export default function SetHomePage() {
           onClick={() => setAddSourceOpen(true)}
         />
         <ActionButton
+          icon={SparklesIcon}
+          label="Plan with agent"
+          description="Propose a plan and outline"
+          onClick={() => setPlanOpen(true)}
+        />
+        <ActionButton
           icon={MessageSquareIcon}
           label="Ask tutor"
           description="Chat about this set"
@@ -221,12 +320,8 @@ export default function SetHomePage() {
         <section className="mt-6">
           <h2 className="text-sm font-semibold text-foreground">Waiting on you</h2>
           <ul className={cn("mt-2 rounded-md border border-border/70 px-3")}>
-            <WaitingRow
-              icon={ArchiveIcon}
-              label="Chapters to review"
-              count={inboxItems.length}
-              to={`/s/${set}/inbox`}
-            />
+            <WaitingRow icon={ArchiveIcon} label="Chapters to review" count={chapterCount} to={`/s/${set}/inbox`} />
+            <WaitingRow icon={ListChecksIcon} label="Plans to review" count={planCount} to={`/s/${set}/inbox`} />
             <WaitingRow
               icon={NotebookTextIcon}
               label="Draft cards to review"
@@ -237,6 +332,8 @@ export default function SetHomePage() {
           </ul>
         </section>
       )}
+
+      <BookCard set={set} jobs={jobs} />
 
       <section className="mt-6">
         <h2 className="text-sm font-semibold text-foreground">Notes</h2>
@@ -260,6 +357,14 @@ export default function SetHomePage() {
         )}
       </section>
 
+      {planOpen && (
+        <PlanSetSheet
+          set={set}
+          title={summary?.title ?? set}
+          initialGoal={plan?.body ? goalText(plan.body) : ""}
+          onClose={() => setPlanOpen(false)}
+        />
+      )}
       {newChapterOpen && <NewChapterSheet set={set} onClose={() => setNewChapterOpen(false)} />}
       <NewNoteDialog set={set} open={newNoteOpen} onOpenChange={setNewNoteOpen} />
       <AddSourceSheet open={addSourceOpen} onOpenChange={setAddSourceOpen} defaultSet={set} />

@@ -16,6 +16,7 @@ import type {
   JobView,
   NoteSummary,
   ParsedFileView,
+  PlanProposal,
   SearchKind,
   SearchResponse,
   SetSummary,
@@ -631,8 +632,17 @@ export const api = {
       body:
         | { kind: Extract<JobKind, "draft-chapter">; set: string; title: string; brief?: string; sources?: string[] }
         | { kind: Extract<JobKind, "make-cards">; set: string; note: string; count?: number }
+        | {
+            kind: Extract<JobKind, "plan-set">;
+            set: string;
+            goal: string;
+            level?: number;
+            deadline?: string;
+            sources?: string[];
+          }
+        | { kind: Extract<JobKind, "compile-book">; set: string }
         | { proposalId: string },
-    ): Promise<{ jobId: string }> {
+    ): Promise<{ jobId: string; set?: string }> {
       return request("/api/jobs", { method: "POST", body: JSON.stringify(body) });
     },
     cancel(id: string): Promise<void> {
@@ -645,11 +655,37 @@ export const api = {
     list(set: string): Promise<InboxItem[]> {
       return request(`/api/sets/${encodeURIComponent(set)}/inbox`);
     },
+    /** `file` is the name under `<set>/plan-proposals/` (an inbox item's `path` without the folder). */
+    planProposal(set: string, file: string): Promise<PlanProposal> {
+      return request(`/api/sets/${encodeURIComponent(set)}/plan-proposals/${encodeURIComponent(file)}`);
+    },
+    approvePlan(set: string, file: string, draftFirst: number): Promise<{ sha: string; jobIds: string[] }> {
+      return request(`/api/sets/${encodeURIComponent(set)}/plan-proposals/${encodeURIComponent(file)}/approve`, {
+        method: "POST",
+        body: JSON.stringify({ draftFirst }),
+      });
+    },
+    discardPlan(set: string, file: string): Promise<{ sha: string | null }> {
+      return request(`/api/sets/${encodeURIComponent(set)}/plan-proposals/${encodeURIComponent(file)}/discard`, {
+        method: "POST",
+      });
+    },
     accept(set: string, path: string): Promise<{ sha: string }> {
       return request(`/api/sets/${encodeURIComponent(set)}/notes/accept`, {
         method: "POST",
         body: JSON.stringify({ path }),
       });
+    },
+  },
+
+  book: {
+    /** Metadata of the set's built book PDF, or null (404) when none exists yet. */
+    async status(set: string): Promise<{ lastModified: string | null } | null> {
+      const response = await fetch(bookUrl(set), { method: "HEAD", credentials: "same-origin" });
+      if (response.status === 401) throw new UnauthorizedError();
+      if (response.status === 404) return null;
+      if (!response.ok) throw new ApiError(response.status, response.statusText, undefined);
+      return { lastModified: response.headers.get("last-modified") };
     },
   },
 
@@ -695,6 +731,11 @@ export const api = {
     },
   },
 };
+
+/** `GET /api/sets/:set/book.pdf` as a download link; `HEAD` answers 200 with `last-modified` once a book is built. */
+export function bookUrl(set: string): string {
+  return `/api/sets/${encodeURIComponent(set)}/book.pdf`;
+}
 
 /**
  * `GET /api/sets/:set/export.apkg` as a plain download link (not run through `request`,

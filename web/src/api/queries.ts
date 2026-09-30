@@ -45,6 +45,7 @@ export const queryKeys = {
   sets: ["sets"] as const,
   notes: (set: string) => ["sets", set, "notes"] as const,
   file: (set: string, path: string) => ["sets", set, "file", path] as const,
+  book: (set: string) => ["sets", set, "book"] as const,
   history: (set: string, path?: string) => ["sets", set, "history", path ?? null] as const,
   library: ["library"] as const,
   librarySource: (id: string) => ["library", id] as const,
@@ -413,6 +414,15 @@ export function useInbox(set: string | undefined) {
   });
 }
 
+/** The set's built book PDF (`null` until one exists); refreshed when a compile-book job finishes. */
+export function useBook(set: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.book(set ?? ""),
+    queryFn: () => api.book.status(set as string),
+    enabled: !!set,
+  });
+}
+
 export function useNoteFile(set: string | undefined, path: string | undefined) {
   return useQuery<FileView>({
     queryKey: queryKeys.file(set ?? "", path ?? ""),
@@ -503,6 +513,13 @@ export function useLiveStudiumUpdates() {
       if (job.kind === "draft-chapter" && job.set && finished) {
         queryClient.invalidateQueries({ queryKey: queryKeys.inbox(job.set) });
         queryClient.invalidateQueries({ queryKey: queryKeys.notes(job.set) });
+      }
+      if (job.kind === "compile-book" && job.set && finished) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.book(job.set) });
+      }
+      // A finished plan-set job adds a plan proposal to that set's Inbox.
+      if (job.kind === "plan-set" && job.set && finished) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.inbox(job.set) });
       }
       // A finished make-cards job (fresh drafts, or a count:0 re-check) changes the
       // target card file and its counts/stale flag in the cards list.
