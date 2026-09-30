@@ -85,6 +85,23 @@ export function chatRoutes(chats: ChatService): Hono {
     }
   });
 
+  app.get("/:id/proposals", async (c) => {
+    try {
+      return c.json({ proposals: await chats.proposals(param(c, "set"), param(c, "id")) });
+    } catch (error) {
+      return handleError(c, error);
+    }
+  });
+
+  app.delete("/:id/proposals/:proposalId", async (c) => {
+    try {
+      await chats.dismissProposal(param(c, "set"), param(c, "id"), param(c, "proposalId"));
+      return c.body(null, 204);
+    } catch (error) {
+      return handleError(c, error);
+    }
+  });
+
   app.post("/:id/abort", async (c) => {
     try {
       await chats.abort(param(c, "set"), param(c, "id"));

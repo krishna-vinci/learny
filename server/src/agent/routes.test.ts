@@ -8,16 +8,19 @@ const CHAT = "chat-1";
 
 function build() {
   const send = vi.fn(async () => undefined);
+  const dismissProposal = vi.fn(async () => undefined);
   const chats = {
     send,
     list: vi.fn(async () => []),
     create: vi.fn(async () => CHAT),
     get: vi.fn(async () => ({ id: CHAT, messages: [], running: false })),
     abort: vi.fn(async () => undefined),
+    proposals: vi.fn(async () => [{ kind: "job_proposal", proposalId: "p1" }]),
+    dismissProposal,
   } as unknown as ChatService;
   const app = new Hono();
   app.route("/api/sets/:set/chats", chatRoutes(chats));
-  return { app, send };
+  return { app, send, dismissProposal };
 }
 
 async function sendMessage(app: Hono, body: unknown): Promise<Response> {
@@ -56,5 +59,17 @@ describe("chat routes", () => {
     expect(tooLong.status).toBe(400);
 
     expect(send).not.toHaveBeenCalled();
+  });
+
+  it("lists and dismisses pending job proposals", async () => {
+    const { app, dismissProposal } = build();
+
+    const listed = await app.request(`/api/sets/${SET}/chats/${CHAT}/proposals`);
+    expect(listed.status).toBe(200);
+    await expect(listed.json()).resolves.toEqual({ proposals: [{ kind: "job_proposal", proposalId: "p1" }] });
+
+    const dismissed = await app.request(`/api/sets/${SET}/chats/${CHAT}/proposals/p1`, { method: "DELETE" });
+    expect(dismissed.status).toBe(204);
+    expect(dismissProposal).toHaveBeenCalledWith(SET, CHAT, "p1");
   });
 });

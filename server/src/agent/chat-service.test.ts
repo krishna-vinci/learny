@@ -9,6 +9,7 @@ import { fauxAssistantMessage, fauxProvider, fauxText, fauxToolCall } from "@ear
 import type { ChatStreamEvent, StudiumEvent } from "@studium/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EventHub } from "../events.js";
+import { ProposalStore } from "../jobs/proposals.js";
 import { JobRunner } from "../jobs/runner.js";
 import { McpManager } from "../mcp/bridge.js";
 import { ensureRepo, log } from "../tree/git.js";
@@ -44,7 +45,7 @@ afterEach(async () => {
   await Promise.all([fs.rm(root, { recursive: true, force: true }), fs.rm(agentDir, { recursive: true, force: true })]);
 });
 
-async function setup(options: { tokensPerSecond?: number } = {}) {
+async function setup(options: { tokensPerSecond?: number; proposals?: ProposalStore } = {}) {
   const runtime = await createModelRuntime();
   const faux = fauxProvider({
     provider: "faux",
@@ -64,6 +65,7 @@ async function setup(options: { tokensPerSecond?: number } = {}) {
     runtime,
     jobs,
     modelOverride: faux.getModel(),
+    ...(options.proposals === undefined ? {} : { proposals: options.proposals }),
   });
   return { chats, faux, hub, jobs };
 }
@@ -290,6 +292,67 @@ describe("ChatService", () => {
     ).toMatchObject({
       type: "chat",
       event: { kind: "job_proposal", jobKind: "make-cards", title: "Cards for notes/03-svd.md" },
+    });
+  });
+
+  describe("persisted job proposals", () => {
+    async function proposeDraft(proposals: ProposalStore) {
+      const { chats, faux, hub } = await setup({ proposals });
+      const id = await chats.create("linear-algebra");
+      faux.setResponses([
+        fauxAssistantMessage(
+          fauxToolCall("start_job", { kind: "draft-chapter", title: "Eigenvalues" }, { id: "proposal-1" }),
+          { stopReason: "toolUse" },
+        ),
+        fauxAssistantMessage(fauxText("Please confirm the proposed chapter.")),
+      ]);
+      const settled = waitForSettled(hub, id);
+      await chats.send("linear-algebra", id, "Draft an eigenvalues chapter");
+      await settled;
+      return id;
+    }
+
+    it("survives a ChatService restart and is dropped once started", async () => {
+      const proposals = new ProposalStore();
+      const id = await proposeDraft(proposals);
+
+      const { chats: restarted } = await setup({ proposals });
+      const listed = await restarted.proposals("linear-algebra", id);
+      expect(listed).toHaveLength(1);
+      expect(listed[0]).toMatchObject({ kind: "job_proposal", jobKind: "draft-chapter", title: "Eigenvalues" });
+
+      // POST /api/jobs {proposalId} consumes the proposal from the store.
+      expect(proposals.take(listed[0]?.proposalId ?? "")).not.toBeNull();
+      await expect(restarted.proposals("linear-algebra", id)).resolves.toEqual([]);
+      const files = await fs.readdir(path.join(root, "linear-algebra/chats"));
+      expect(files.filter((file) => file.endsWith(".proposals.json"))).toEqual([]);
+    });
+
+    it("dismissing removes it and makes it unstartable", async () => {
+      const proposals = new ProposalStore();
+      const id = await proposeDraft(proposals);
+      const { chats } = await setup({ proposals });
+      const [proposal] = await chats.proposals("linear-algebra", id);
+
+      await chats.dismissProposal("linear-algebra", id, proposal?.proposalId ?? "");
+      await expect(chats.proposals("linear-algebra", id)).resolves.toEqual([]);
+      expect(proposals.take(proposal?.proposalId ?? "")).toBeNull();
+    });
+
+    it("drops an expired proposal", async () => {
+      let now = 1_000_000;
+      const proposals = new ProposalStore(() => now);
+      const id = await proposeDraft(proposals);
+      const { chats } = await setup({ proposals });
+      await expect(chats.proposals("linear-algebra", id)).resolves.toHaveLength(1);
+
+      now += 31 * 60 * 1000;
+      await expect(chats.proposals("linear-algebra", id)).resolves.toEqual([]);
+    });
+
+    it("rejects an unknown chat", async () => {
+      const { chats } = await setup();
+      await expect(chats.proposals("linear-algebra", "nope")).rejects.toThrow("chat not found");
     });
   });
 
