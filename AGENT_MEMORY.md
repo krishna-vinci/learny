@@ -81,6 +81,7 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - **In progress:** M4 study loop (`docs/plans/2026-09-30-m4-study-loop.md`). Merged: M4-0 skills + skill sync, M4-1 Today API, M4-2 search, M4-3 quotes + highlights. Next: M4-4 Outliner, M4-5 book PDF, M4-6 site import, M4-7 UI (Sonnet). The shadcn migration is deferred to M6.
 
 ## Open gaps
+- **Book PDF layout:** callout boxes can split across pages, leaving an orphaned header (e.g. "Deeper" at the bottom of p5, its body on p6, and a mostly blank page). Keep a callout's header with its first lines (`block(breakable: …)` or `sticky` in `server/templates/book/book.typ` / `callouts.lua`). Mermaid appears as "(diagram in the app)".
 - **Today's "next chapter"** comes from unticked `curriculum.md` checkboxes, but existing chapters aren't ticked (e.g. it suggests "Draft 02 — Matrices" though the note exists). Fix it in M4-4: also skip curriculum items whose note already exists, and have the Outliner/drafter tick items.
 - **shadcn migration (deferred to M6):** batches D1–D5 in `docs/prompts/m3b-slice-d.md`, with the map in `docs/prompts/m3b-d-uimap.md` (the map will go stale; refresh it before running). New UI should still prefer the existing `components/ui` kit.
 - **Skills update** (awaiting the owner's go):
@@ -96,6 +97,7 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - **Backups:** not configured yet on the live instance. The owner does this in Settings → Backups.
 
 ## Recently done
+- M4-5 book PDF (10b5d71): 18-page A5 book of linear-algebra verified
 - PR #1 M0–M2 follow-ups (51f8bfe): revert scope, persisted chat proposals (server), resumed-ingest title, directive titles · M4-6 site import (40c34cd)
 - M4-2 search (11cbdeb) · M4-3 quotes + highlights (62b6e78), M4-1 Today API (e173784), M4-0 research skills + skill sync (718fbba)
 - M3b slice C themes (merge of codex/m3b, 2026-09-30)
@@ -112,3 +114,4 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - 2026-09-30 · M4-2 (Sol 6.1) · `server/src/search/index.ts` (FTS5 per workspace at `.cache/search.db`), `routes/search.ts`, workspace lifecycle hooks · chats matched at query time; last term is a prefix; result paths are root-relative, cards use `#card-id` · none open.
 - 2026-09-30 · M4-6 (Sol 6.1) · `ingest/firecrawl.ts` firecrawlMap; `routes/library.ts` site-map/site-import (host or subdomain only, 100 cap, 3 concurrent, dedupe); AI-gated · the pending queue is in memory (lost on restart) · UI later.
 - 2026-09-30 · PR #1 (Claude cloud, Sonnet) · revert scope (`git.ts` changedPaths/revertPaths, 409 or `scope:"set"`); chat proposals sidecar `<set>/chats/<id>.proposals.json` + GET/DELETE routes; resumed-ingest title; directive `{title=}` · the web proposals UI is still open.
+- 2026-09-30 · M4-5 (Sol 6.1) · `jobs/book-{assemble,paths,job}.ts`, `routes/book.ts`, `templates/book/{book.typ,callouts.lua}`, Dockerfile pinned pandoc/typst · AI gate exempts only direct compile-book jobs · callouts can split badly across pages.
