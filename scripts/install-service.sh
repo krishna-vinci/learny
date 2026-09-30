@@ -17,7 +17,7 @@ mkdir -p "$unit_dir"
 # systemd user services don't inherit your shell PATH (nvm, corepack), so pin the node
 # directory found now, and point WorkingDirectory/EnvironmentFile at this checkout.
 sed -e "s|%h/learny|$repo_root|g" \
-  -e "s|^ExecStart=.*|Environment=PATH=$node_bin:/usr/local/bin:/usr/bin:/bin\nExecStart=$node_bin/pnpm --filter @studium/server start|" \
+  -e "s|^ExecStart=.*|Environment=PATH=$node_bin:$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin\nExecStart=$node_bin/pnpm --filter @studium/server start|" \
   "$unit_source" >"$unit_dir/studium.service"
 
 systemctl --user daemon-reload
