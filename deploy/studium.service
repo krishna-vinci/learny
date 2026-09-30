@@ -7,7 +7,8 @@ Wants=network-online.target
 Type=simple
 WorkingDirectory=%h/learny
 ExecStart=/usr/bin/env pnpm --filter @studium/server start
-Restart=on-failure
+Restart=always
+RestartSec=3
 Environment=NODE_ENV=production
 # The app loads .env itself (no $ expansion), so it is not an EnvironmentFile here.
 

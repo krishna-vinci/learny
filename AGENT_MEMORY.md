@@ -55,6 +55,7 @@ Keep the rest of this file current. When you fix something listed under "Open ga
 - The study tree git repo auto-commits per role author (tutor/librarian/drafter/checker/cardsmith/critic/user/system).
 
 ## Gotchas learned the hard way
+- **Never stop processes broadly** (`pkill node`, `pkill tsx`, `killall`). Stop only the PID of the test server you started (save `$!`). The live app is the `studium.service` user unit on port 3000; a broad kill took the site down on 2026-09-30. The unit now uses `Restart=always`, but still don't do it.
 - **Legacy tree on a fresh test server:** `STUDIUM_STUDY_ROOT` is migrated into the admin's tree only at boot, once an admin exists. After creating the admin via `/setup`, restart the test server once.
 - **Puppeteer and the PWA:** the service worker's `controllerchange` reload breaks `evaluate()`-based clicks. Use `elementHandle.click()` with `Promise.all([waitForNavigation, …])` (see the `stableGoto` helper in the shot scripts).
 - **Biome:** run it as `rtk proxy pnpm exec biome check <files>`. Plain biome output gets rewritten into a fake "out of memory" error.
