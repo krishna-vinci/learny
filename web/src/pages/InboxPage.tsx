@@ -129,7 +129,7 @@ function ReviewView({ set, item, onBack }: { set: string; item: InboxItem; onBac
       </div>
 
       {!canAccept && (
-        <p className="mt-3 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning-foreground">
+        <p className="mt-3 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning-ink">
           {hasBlockers
             ? "This chapter still has blocker issues from the checker."
             : "This chapter hasn't been checked yet."}

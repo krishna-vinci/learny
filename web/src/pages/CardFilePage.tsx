@@ -428,7 +428,7 @@ function CardFilePage() {
       </FirstUseHint>
 
       {detail.stale && (
-        <p className="mt-3 flex items-center gap-1.5 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning-foreground">
+        <p className="mt-3 flex items-center gap-1.5 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning-ink">
           <AlertTriangleIcon className="size-4 shrink-0" />
           Stale — the note changed since these cards were last reviewed.
         </p>
@@ -521,7 +521,7 @@ function CardFilePage() {
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
             {current.src && <span>src: {current.src}</span>}
             {criticLabel(current.critic) && (
-              <span className={current.critic?.verdict === "reject" ? "text-warning-foreground" : undefined}>
+              <span className={current.critic?.verdict === "reject" ? "text-warning-ink" : undefined}>
                 critic: {criticLabel(current.critic)}
               </span>
             )}

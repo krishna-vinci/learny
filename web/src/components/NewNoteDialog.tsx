@@ -1,10 +1,10 @@
 // "Write a note" flow: a title, `POST /api/sets/:set/notes`, then straight into the new
 // note with the editor already open (`?edit=1`) so the user can start typing right away.
 import { useState } from "react";
-import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useCreateNote } from "@/api/queries";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { friendlyMessage } from "@/lib/friendly-errors";
@@ -20,8 +20,6 @@ export function NewNoteDialog({ set, open, onOpenChange }: NewNoteDialogProps) {
   const [title, setTitle] = useState("");
   const navigate = useNavigate();
   const createNote = useCreateNote(set);
-
-  if (!open) return null;
 
   function close() {
     if (createNote.isPending) return;
@@ -42,52 +40,43 @@ export function NewNoteDialog({ set, open, onOpenChange }: NewNoteDialogProps) {
     }
   }
 
-  // Portal to <body>: opened from the phone drawer, the drawer's stacking context would
-  // otherwise put this sheet under the chat button.
-  return createPortal(
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-overlay/50 md:items-center"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Write a note"
-    >
-      <button type="button" aria-label="Close" className="absolute inset-0" onClick={close} />
-      <div className="relative flex max-h-[90vh] w-full flex-col overflow-y-auto rounded-t-xl border border-border/70 bg-background p-4 shadow-2xl md:max-w-md md:rounded-xl">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-foreground">Write a note</h2>
-          <Button variant="quiet" size="sm" onClick={close}>
-            Close
-          </Button>
-        </div>
-
-        <div className="mt-4">
-          <Label htmlFor="new-note-title">Title</Label>
-          <Input
-            id="new-note-title"
-            autoFocus
-            className="mt-1 h-11 md:h-8"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Eigenvalues and eigenvectors"
-            required
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && title.trim()) void submit();
-            }}
-          />
-        </div>
-
-        <div className="mt-4 flex justify-end">
+  return (
+    <Dialog open={open} onOpenChange={(next) => (next ? onOpenChange(true) : close())}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Write a note</DialogTitle>
+          <DialogDescription>Give it a title. You'll start typing straight away.</DialogDescription>
+        </DialogHeader>
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void submit();
+          }}
+        >
+          <div>
+            <Label htmlFor="new-note-title">Title</Label>
+            <Input
+              id="new-note-title"
+              autoFocus
+              className="mt-1 h-11 md:h-8"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Eigenvalues and eigenvectors"
+              required
+            />
+          </div>
           <Button
-            className="h-11 w-full md:h-9 md:w-auto"
-            onClick={() => void submit()}
+            type="submit"
+            className="h-11 w-full md:h-9 md:w-auto md:self-end"
             disabled={!title.trim() || createNote.isPending}
           >
             {createNote.isPending ? "Creating…" : "Create note"}
           </Button>
-        </div>
-      </div>
-    </div>,
-    document.body,
+          {!title.trim() && <p className="-mt-2 text-xs text-muted-foreground">Enter a title to continue.</p>}
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 

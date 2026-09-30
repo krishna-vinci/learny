@@ -134,7 +134,7 @@ function NoteEditor({ set, path, file, onDone }: { set: string; path: string; fi
       </div>
 
       {conflict !== null && (
-        <div className="flex shrink-0 flex-col gap-2 border-b border-warning/40 bg-warning/10 px-4 py-2.5 text-sm text-warning-foreground sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex shrink-0 flex-col gap-2 border-b border-warning/40 bg-warning/10 px-4 py-2.5 text-sm text-warning-ink sm:flex-row sm:items-center sm:justify-between">
           <span>This note changed while you were editing.</span>
           <div className="flex shrink-0 gap-2">
             <Button variant="outline" size="sm" className="h-9" onClick={reload}>

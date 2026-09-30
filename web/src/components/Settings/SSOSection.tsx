@@ -341,7 +341,7 @@ function ProviderFormDialog({
           <div className="flex items-start justify-between gap-3 rounded-md border border-warning/40 bg-warning/10 p-3">
             <div className="min-w-0 flex-1">
               <Label htmlFor="idp-auto-link">Auto-link by email</Label>
-              <p className="mt-1 text-xs text-warning-foreground">
+              <p className="mt-1 text-xs text-warning-ink">
                 Only enable if this provider verifies email addresses; never links admins.
               </p>
             </div>

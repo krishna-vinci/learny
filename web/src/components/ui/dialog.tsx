@@ -47,7 +47,7 @@ function DialogContent({
         {showClose && (
           <DialogPrimitive.Close
             aria-label="Close"
-            className="absolute end-3 top-3 rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            className="absolute end-1 top-1 flex size-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground sm:end-3 sm:top-3 sm:size-7"
           >
             <XIcon className="size-4" />
           </DialogPrimitive.Close>

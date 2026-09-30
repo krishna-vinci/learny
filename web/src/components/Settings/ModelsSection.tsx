@@ -141,7 +141,7 @@ const ModelsSection = () => {
       }
     >
       {data.warnings.length > 0 && (
-        <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2.5 text-sm text-warning-foreground">
+        <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2.5 text-sm text-warning-ink">
           <ul className="min-w-0 flex-1 space-y-1">
             {data.warnings.map((warning) => (
               <li key={warning}>{warning}</li>

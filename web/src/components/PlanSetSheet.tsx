@@ -1,11 +1,11 @@
 // "Plan with agent" for an existing set: starts a `plan-set` job whose proposal lands in the
 // set's Inbox. The goal is prefilled from the set's current PLAN.md.
 import { useState } from "react";
-import { createPortal } from "react-dom";
 import { api } from "@/api/client";
 import { showJobStartedToast } from "@/components/Activity/job-start-toast";
 import { EMPTY_PLAN_OPTIONS, PlanOptions, planOptionsBody } from "@/components/PlanOptions";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { friendlyMessage } from "@/lib/friendly-errors";
 import { toast } from "@/lib/notify";
@@ -36,27 +36,22 @@ export function PlanSetSheet({ set, title, initialGoal, onClose }: PlanSetSheetP
     }
   }
 
-  // Portal to <body>: opened from the phone drawer, the drawer's stacking context would
-  // otherwise put this sheet under the chat button.
-  return createPortal(
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-overlay/50 md:items-center"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Plan with agent"
-    >
-      <div className="flex max-h-[90vh] w-full flex-col overflow-y-auto rounded-t-xl border border-border/70 bg-background p-4 shadow-2xl md:max-w-lg md:rounded-xl">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-foreground">Plan with agent</h2>
-          <Button variant="quiet" size="sm" onClick={onClose}>
-            Close
-          </Button>
-        </div>
-        <p className="mt-1 text-sm text-muted-foreground">
-          The agent proposes a new plan and chapter outline. Nothing changes until you approve it under To review.
-        </p>
-
-        <div className="mt-4 flex flex-col gap-4">
+  return (
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Make a plan</DialogTitle>
+          <DialogDescription>
+            The assistant proposes a new plan and chapter list. Nothing changes until you approve it under To review.
+          </DialogDescription>
+        </DialogHeader>
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void submit();
+          }}
+        >
           <div>
             <Label htmlFor="plan-set-goal">Goal</Label>
             <textarea
@@ -69,19 +64,16 @@ export function PlanSetSheet({ set, title, initialGoal, onClose }: PlanSetSheetP
             />
           </div>
           <PlanOptions idPrefix="plan-set" value={options} onChange={setOptions} />
-        </div>
-
-        <div className="mt-4 flex justify-end">
           <Button
-            className="h-11 w-full md:h-9 md:w-auto"
-            onClick={() => void submit()}
+            type="submit"
+            className="h-11 w-full md:h-9 md:w-auto md:self-end"
             disabled={!goal.trim() || submitting}
           >
             {submitting ? "Starting…" : "Start planning"}
           </Button>
-        </div>
-      </div>
-    </div>,
-    document.body,
+          {!goal.trim() && <p className="-mt-2 text-xs text-muted-foreground">Describe your goal to continue.</p>}
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

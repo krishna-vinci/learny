@@ -5,7 +5,7 @@
 // `{type:"job"}` events) or, on a dedupe hit, a link straight to the existing source.
 import type { JobView } from "@studium/shared";
 import { useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2Icon, FileIcon, GlobeIcon, LinkIcon, Loader2Icon, TriangleAlertIcon, XIcon } from "lucide-react";
+import { CheckCircle2Icon, FileIcon, GlobeIcon, LinkIcon, Loader2Icon, TriangleAlertIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "@/api/client";
@@ -13,6 +13,7 @@ import { useStudiumEvents } from "@/api/events";
 import { queryKeys } from "@/api/queries";
 import { showJobStartedToast } from "@/components/Activity/job-start-toast";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { friendlyMessage } from "@/lib/friendly-errors";
 import { toast } from "@/lib/notify";
@@ -77,8 +78,6 @@ export function AddSourceSheet({ open, onOpenChange, defaultSet }: AddSourceShee
     }
   });
 
-  if (!open) return null;
-
   const handleFile = (selected: File | null) => {
     setFile(selected);
     setFileError(
@@ -111,30 +110,18 @@ export function AddSourceSheet({ open, onOpenChange, defaultSet }: AddSourceShee
     !submitting && result === null && (tab === "link" ? url.trim() !== "" : file !== null && fileError === null);
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-overlay/50 sm:items-center"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Add source"
-    >
-      <button
-        type="button"
-        aria-label="Close"
-        className="absolute inset-0"
-        onClick={() => !submitting && onOpenChange(false)}
-      />
-      <div
+    <Dialog open={open} onOpenChange={(next) => !next && !submitting && onOpenChange(false)}>
+      <DialogContent
         className={cn(
-          "relative flex h-[100dvh] w-full flex-col bg-background sm:h-auto sm:max-h-[85vh] sm:rounded-lg sm:border sm:border-border sm:shadow-xl",
-          tab === "site" ? "sm:w-[36rem]" : "sm:w-[26rem]",
+          // Full screen on phones, a centred panel from `sm:`.
+          "inset-0 h-[100dvh] max-h-none w-auto gap-0 rounded-none p-0 sm:inset-auto sm:start-1/2 sm:top-1/2 sm:h-auto sm:max-h-[85vh] sm:rounded-lg",
+          tab === "site" ? "sm:w-[36rem] sm:max-w-none" : "sm:w-[26rem] sm:max-w-none",
         )}
       >
-        <div className="flex h-12 shrink-0 items-center justify-between border-b border-border/70 px-4">
-          <h2 className="text-sm font-semibold">Add source</h2>
-          <Button variant="quiet" size="icon-compact" onClick={() => onOpenChange(false)} aria-label="Close">
-            <XIcon />
-          </Button>
-        </div>
+        <DialogHeader className="flex h-12 shrink-0 justify-center border-b border-border/70 px-4">
+          <DialogTitle className="text-sm">Add source</DialogTitle>
+          <DialogDescription className="sr-only">Add a link, a file or a whole documentation site.</DialogDescription>
+        </DialogHeader>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-4">
           {result ? (
@@ -225,8 +212,8 @@ export function AddSourceSheet({ open, onOpenChange, defaultSet }: AddSourceShee
             </>
           )}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -283,7 +270,7 @@ function SubmitOutcome({ result, job, onClose }: { result: SubmitResult; job: Jo
           </Link>
         )}
         {warning && (
-          <p className="flex items-start gap-1.5 text-left text-xs text-warning-foreground" title={warning}>
+          <p className="flex items-start gap-1.5 text-left text-xs text-warning-ink" title={warning}>
             <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden="true" />
             <span className="min-w-0">Added — summary pending: {warning}</span>
           </p>

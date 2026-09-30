@@ -87,7 +87,7 @@ function RecentJobRow({ job }: { job: JobView }) {
       </div>
       {job.status === "failed" && job.error && <p className="text-sm text-destructive">{job.error}</p>}
       {job.status === "done" && job.result?.warning && (
-        <p className="flex items-start gap-1.5 text-sm text-warning-foreground" title={job.result.warning}>
+        <p className="flex items-start gap-1.5 text-sm text-warning-ink" title={job.result.warning}>
           <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden="true" />
           <span className="line-clamp-2 min-w-0">{job.result.warning}</span>
         </p>

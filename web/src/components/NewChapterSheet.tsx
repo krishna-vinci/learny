@@ -2,11 +2,11 @@
 // job (see `Reader`'s "Make cards" for the sibling flow on an existing note). Extracted
 // from InboxPage so SetHomePage and the sidebar's "+" menu can open the same sheet.
 import { useState } from "react";
-import { createPortal } from "react-dom";
 import { api } from "@/api/client";
 import { showJobStartedToast } from "@/components/Activity/job-start-toast";
 import { SourcePicker } from "@/components/SourcePicker";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { friendlyMessage } from "@/lib/friendly-errors";
@@ -45,23 +45,25 @@ export function NewChapterSheet({ set, initialTitle, onClose }: NewChapterSheetP
     }
   }
 
-  // Portal to <body>: opened from the phone drawer, the drawer's stacking context would
-  // otherwise put this sheet under the chat button.
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-overlay/50 md:items-center">
-      <div className="flex max-h-[90vh] w-full flex-col overflow-y-auto rounded-t-xl border border-border/70 bg-background p-4 shadow-2xl md:max-w-lg md:rounded-xl">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-foreground">New chapter</h2>
-          <Button variant="quiet" size="sm" onClick={onClose}>
-            Close
-          </Button>
-        </div>
-
-        <div className="mt-4 flex flex-col gap-4">
+  return (
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>New chapter</DialogTitle>
+          <DialogDescription>The assistant writes it from your sources and checks it.</DialogDescription>
+        </DialogHeader>
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void submit();
+          }}
+        >
           <div>
             <Label htmlFor="new-chapter-title">Title</Label>
             <Input
               id="new-chapter-title"
+              autoFocus
               className="mt-1 h-11 md:h-8"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -81,20 +83,17 @@ export function NewChapterSheet({ set, initialTitle, onClose }: NewChapterSheetP
             />
           </div>
           <SourcePicker selected={selectedSources} onChange={setSelectedSources} />
-        </div>
-
-        <div className="mt-4 flex justify-end">
           <Button
-            className="h-11 w-full md:h-9 md:w-auto"
-            onClick={() => void submit()}
+            type="submit"
+            className="h-11 w-full md:h-9 md:w-auto md:self-end"
             disabled={!title.trim() || submitting}
           >
-            {submitting ? "Starting…" : "Start draft job"}
+            {submitting ? "Starting…" : "Write chapter"}
           </Button>
-        </div>
-      </div>
-    </div>,
-    document.body,
+          {!title.trim() && <p className="-mt-2 text-xs text-muted-foreground">Enter a title to continue.</p>}
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 

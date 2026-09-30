@@ -4,13 +4,13 @@
 // "Let the agent plan it" creates the set, then starts a `plan-set` job for it; the proposal
 // lands in the set's Inbox for review.
 import { useState } from "react";
-import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/api/client";
 import { useCreateSet } from "@/api/queries";
 import { showJobStartedToast } from "@/components/Activity/job-start-toast";
 import { EMPTY_PLAN_OPTIONS, PlanOptions, planOptionsBody } from "@/components/PlanOptions";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { friendlyMessage } from "@/lib/friendly-errors";
@@ -29,8 +29,6 @@ export function NewSetDialog({ open, onOpenChange }: NewSetDialogProps) {
   const [planning, setPlanning] = useState(false);
   const navigate = useNavigate();
   const createSet = useCreateSet();
-
-  if (!open) return null;
 
   const busy = createSet.isPending || planning;
   const canSubmit = title.trim() !== "" && (!agentPlan || goal.trim() !== "") && !busy;
@@ -78,25 +76,30 @@ export function NewSetDialog({ open, onOpenChange }: NewSetDialogProps) {
     navigate(`/s/${slug}`);
   }
 
-  // Portal to <body>: opened from the phone drawer, the drawer's stacking context would
-  // otherwise put this sheet under the chat button.
-  return createPortal(
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-overlay/50 md:items-center"
-      role="dialog"
-      aria-modal="true"
-      aria-label="New study set"
-    >
-      <button type="button" aria-label="Close" className="absolute inset-0" onClick={close} />
-      <div className="relative flex max-h-[90vh] w-full flex-col overflow-y-auto rounded-t-xl border border-border/70 bg-background p-4 shadow-2xl md:max-w-md md:rounded-xl">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-foreground">New study set</h2>
-          <Button variant="quiet" size="sm" onClick={close}>
-            Close
-          </Button>
-        </div>
+  const reason = busy
+    ? null
+    : title.trim() === ""
+      ? "Enter a title to continue."
+      : agentPlan && goal.trim() === ""
+        ? "Describe your goal so the assistant can plan."
+        : null;
 
-        <div className="mt-4 flex flex-col gap-4">
+  return (
+    <Dialog open={open} onOpenChange={(next) => (next ? onOpenChange(true) : close())}>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>New study set</DialogTitle>
+          <DialogDescription>
+            One set holds the notes, sources and cards for one thing you're learning.
+          </DialogDescription>
+        </DialogHeader>
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void submit();
+          }}
+        >
           <div>
             <Label htmlFor="new-set-title">Title</Label>
             <Input
@@ -107,9 +110,6 @@ export function NewSetDialog({ open, onOpenChange }: NewSetDialogProps) {
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Linear algebra for ML"
               required
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && canSubmit && !agentPlan) void submit();
-              }}
             />
           </div>
           <div>
@@ -138,16 +138,13 @@ export function NewSetDialog({ open, onOpenChange }: NewSetDialogProps) {
             </span>
           </label>
           {agentPlan && <PlanOptions idPrefix="new-set" value={planOptions} onChange={setPlanOptions} />}
-        </div>
-
-        <div className="mt-4 flex justify-end">
-          <Button className="h-11 w-full md:h-9 md:w-auto" onClick={() => void submit()} disabled={!canSubmit}>
+          <Button type="submit" className="h-11 w-full md:h-9 md:w-auto md:self-end" disabled={!canSubmit}>
             {busy ? (agentPlan ? "Starting…" : "Creating…") : agentPlan ? "Create and plan" : "Create set"}
           </Button>
-        </div>
-      </div>
-    </div>,
-    document.body,
+          {reason && <p className="-mt-2 text-xs text-muted-foreground">{reason}</p>}
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 

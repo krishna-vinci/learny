@@ -17,7 +17,7 @@ const badgeVariants = cva(
         tint: "bg-primary/15 text-primary",
         accent: "bg-accent text-accent-foreground",
         success: "bg-success/15 text-success",
-        warning: "bg-warning/15 text-warning-foreground",
+        warning: "bg-warning/15 text-warning-ink",
         destructive: "bg-destructive/15 text-destructive",
       },
       caps: {
