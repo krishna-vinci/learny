@@ -8,6 +8,7 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { friendlyMessage } from "@/lib/friendly-errors";
 import { toast } from "@/lib/notify";
 import { cn } from "@/lib/utils";
 import { DiffView } from "./DiffView";
@@ -57,27 +58,41 @@ export function NoteHistory({ set, path, className, onClose, initialSha }: NoteH
     enabled: !!selectedSha,
   });
 
-  const finishRevert = async () => {
+  // Revert right away and offer Undo: a revert is itself a commit, so undoing it is reverting that commit.
+  const finishRevert = async (revertSha: string) => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.file(set, path) }),
       queryClient.invalidateQueries({ queryKey: queryKeys.history(set, path) }),
       queryClient.invalidateQueries({ queryKey: queryKeys.notes(set) }),
     ]);
-    toast.success("Reverted");
+    toast.success("Note restored to that version", {
+      action: {
+        label: "Undo",
+        onClick: () => {
+          api.sets
+            .revert(set, revertSha)
+            .then(() => {
+              void queryClient.invalidateQueries({ queryKey: queryKeys.file(set, path) });
+              void queryClient.invalidateQueries({ queryKey: queryKeys.history(set, path) });
+              void queryClient.invalidateQueries({ queryKey: queryKeys.notes(set) });
+            })
+            .catch((err: unknown) => toast.error(friendlyMessage(err, "Couldn't undo that.")));
+        },
+      },
+    });
     setSelectedSha(undefined);
   };
 
   const handleRevert = async () => {
     if (!selectedSha) return;
-    if (!window.confirm("Revert this note to this version? This cannot be undone.")) return;
     setReverting(true);
     try {
-      await api.sets.revert(set, selectedSha);
-      await finishRevert();
+      const { sha } = await api.sets.revert(set, selectedSha);
+      await finishRevert(sha);
     } catch (err) {
       const paths = outsidePaths(err);
       if (paths) setOutside(paths);
-      else toast.error(err instanceof Error ? err.message : "Revert failed");
+      else toast.error(friendlyMessage(err, "Couldn't restore that version."));
     } finally {
       setReverting(false);
     }
@@ -86,10 +101,10 @@ export function NoteHistory({ set, path, className, onClose, initialSha }: NoteH
   const handleRevertSetOnly = async () => {
     if (!selectedSha) return;
     try {
-      await api.sets.revert(set, selectedSha, "set");
-      await finishRevert();
+      const { sha } = await api.sets.revert(set, selectedSha, "set");
+      await finishRevert(sha);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Revert failed");
+      toast.error(friendlyMessage(err, "Couldn't restore that version."));
     }
   };
 

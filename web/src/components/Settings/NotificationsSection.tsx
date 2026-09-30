@@ -12,6 +12,7 @@ import {
   useTestNotification,
   useUpdateNtfy,
 } from "@/api/queries";
+import { RowsSkeleton } from "@/components/ListSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -77,7 +78,7 @@ const NotificationsSection = () => {
   if (isLoading || !data) {
     return (
       <SettingSection title="Notifications">
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <RowsSkeleton rows={2} />
       </SettingSection>
     );
   }

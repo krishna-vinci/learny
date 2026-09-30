@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "@/api/client";
 import { queryKeys, useInbox, useNoteFile } from "@/api/queries";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { PageSkeleton, RowsSkeleton } from "@/components/ListSkeleton";
 import { NewChapterSheet } from "@/components/NewChapterSheet";
 import { MarkdownView } from "@/components/Reader";
@@ -110,15 +111,11 @@ function ReviewView({ set, item, onBack }: { set: string; item: InboxItem; onBac
     }
   }
 
+  const [acceptAnywayOpen, setAcceptAnywayOpen] = useState(false);
+
   function handleAcceptClick() {
-    if (canAccept) {
-      void accept();
-      return;
-    }
-    const reason = hasBlockers
-      ? "This chapter still has blocker issues from the checker."
-      : "This chapter hasn't been checked yet.";
-    if (confirm(`${reason} Accept anyway?`)) void accept();
+    if (canAccept) void accept();
+    else setAcceptAnywayOpen(true);
   }
 
   return (
@@ -174,6 +171,18 @@ function ReviewView({ set, item, onBack }: { set: string; item: InboxItem; onBac
         </div>
       </section>
 
+      <ConfirmDialog
+        open={acceptAnywayOpen}
+        onOpenChange={setAcceptAnywayOpen}
+        title="Accept this chapter anyway?"
+        description={
+          hasBlockers
+            ? "The checker found problems that still need fixing. Accepting adds the chapter to your notes as it is."
+            : "It hasn't been fact-checked yet. Accepting adds the chapter to your notes as it is."
+        }
+        confirmLabel="Accept anyway"
+        onConfirm={accept}
+      />
       <ActionBar className="mt-4 flex justify-end">
         <Button className="h-11 w-full md:h-9 md:w-auto" onClick={handleAcceptClick} disabled={accepting}>
           {accepting ? "Accepting…" : canAccept ? "Accept" : "Accept anyway"}

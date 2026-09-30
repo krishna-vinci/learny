@@ -171,6 +171,18 @@ export function useUpdateAdminInstance() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (patch: { disallowPasswordAuth?: boolean; instanceUrl?: string }) => api.admin.updateInstance(patch),
+    // Optimistic for the password-sign-in switch; the URL field keeps its own draft.
+    onMutate: async (patch) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.adminInstance });
+      const previous = queryClient.getQueryData<{ disallowPasswordAuth: boolean; instanceUrl: string }>(
+        queryKeys.adminInstance,
+      );
+      if (previous) queryClient.setQueryData(queryKeys.adminInstance, { ...previous, ...patch });
+      return { previous };
+    },
+    onError: (_error, _patch, context) => {
+      if (context?.previous) queryClient.setQueryData(queryKeys.adminInstance, context.previous);
+    },
     onSuccess: (result) => {
       queryClient.setQueryData(queryKeys.adminInstance, result);
       queryClient.invalidateQueries({ queryKey: queryKeys.authStatus });
@@ -333,11 +345,26 @@ export function useDeletePush() {
   });
 }
 
+/** Optimistic: the switch flips at once and snaps back if the server refuses. */
 export function usePatchNotificationEvents() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (body: { jobDone?: boolean; jobFailed?: boolean }) => api.me.notifications.patchEvents(body),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.meNotifications }),
+    onMutate: async (body) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.meNotifications });
+      const previous = queryClient.getQueryData<NotificationsView>(queryKeys.meNotifications);
+      if (previous) {
+        queryClient.setQueryData<NotificationsView>(queryKeys.meNotifications, {
+          ...previous,
+          events: { ...previous.events, ...body },
+        });
+      }
+      return { previous };
+    },
+    onError: (_error, _body, context) => {
+      if (context?.previous) queryClient.setQueryData(queryKeys.meNotifications, context.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.meNotifications }),
   });
 }
 

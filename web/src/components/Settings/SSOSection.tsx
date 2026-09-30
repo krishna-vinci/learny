@@ -12,6 +12,7 @@ import {
   useUpdateIdentityProvider,
 } from "@/api/queries";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { RowsSkeleton } from "@/components/ListSkeleton";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -410,7 +411,7 @@ const SSOSection = () => {
       </SettingGroup>
 
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <RowsSkeleton rows={2} />
       ) : providers.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border px-6 py-10 text-center">
           <span className="mx-auto flex size-10 items-center justify-center rounded-lg bg-accent text-accent-foreground">

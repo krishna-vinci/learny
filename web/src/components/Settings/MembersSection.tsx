@@ -8,6 +8,7 @@ import { useState } from "react";
 import { ApiError, type User, type UserRole } from "@/api/client";
 import { useAdminUsers, useCreateUser, useCurrentUser, useDeleteUser, useUpdateUser } from "@/api/queries";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { RowsSkeleton } from "@/components/ListSkeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -219,7 +220,7 @@ const MembersSection = () => {
       }
     >
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <RowsSkeleton rows={2} />
       ) : users.length === 0 ? (
         <p className="text-sm text-muted-foreground">No members yet.</p>
       ) : (

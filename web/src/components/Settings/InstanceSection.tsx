@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { ApiError } from "@/api/client";
 import { useAdminInstance, useUpdateAdminInstance } from "@/api/queries";
+import { RowsSkeleton } from "@/components/ListSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -44,7 +45,7 @@ const InstanceSection = () => {
   if (isLoading || !data) {
     return (
       <SettingSection title="Instance">
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <RowsSkeleton rows={2} />
       </SettingSection>
     );
   }

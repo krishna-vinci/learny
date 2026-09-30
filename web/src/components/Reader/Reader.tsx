@@ -13,6 +13,7 @@ import { useSearchParams } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import { useHighlights, useSaveFile } from "@/api/queries";
 import { showJobStartedToast } from "@/components/Activity/job-start-toast";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { FirstUseHint } from "@/components/FirstUseHint";
 import { NoteHistory } from "@/components/NoteHistory";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -64,9 +65,11 @@ function NoteEditor({ set, path, file, onDone }: { set: string; path: string; fi
   const saveFile = useSaveFile(set);
   const dirty = draft !== previous;
 
+  const [discardOpen, setDiscardOpen] = useState(false);
+
   function cancel() {
-    if (dirty && !confirm("Discard your changes?")) return;
-    onDone();
+    if (dirty) setDiscardOpen(true);
+    else onDone();
   }
 
   async function save(withPrevious: string) {
@@ -105,6 +108,16 @@ function NoteEditor({ set, path, file, onDone }: { set: string; path: string; fi
   // while editing instead of needing separate padding to dodge it.
   return (
     <div data-note-editor className="fixed inset-0 z-50 flex h-[100dvh] w-full flex-col bg-background">
+      <ConfirmDialog
+        open={discardOpen}
+        onOpenChange={setDiscardOpen}
+        title="Discard your changes?"
+        description="What you typed since the last save will be lost."
+        confirmLabel="Discard"
+        cancelLabel="Keep editing"
+        confirmVariant="destructive"
+        onConfirm={onDone}
+      />
       <div
         className="flex shrink-0 items-center justify-between gap-2 border-b border-border/70 px-4 py-2"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.5rem)" }}

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { ApiError } from "@/api/client";
 import { useRevokeSession, useSessions } from "@/api/queries";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { RowsSkeleton } from "@/components/ListSkeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/lib/notify";
@@ -30,7 +31,7 @@ const SessionsSection = () => {
   return (
     <SettingSection title="Sessions" description="Devices and browsers currently signed in to your account.">
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <RowsSkeleton rows={2} />
       ) : sessions.length === 0 ? (
         <p className="text-sm text-muted-foreground">No active sessions.</p>
       ) : (

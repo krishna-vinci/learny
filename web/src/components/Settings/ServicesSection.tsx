@@ -3,6 +3,7 @@
 import type { ServiceHealth } from "@studium/shared";
 import { RefreshCwIcon } from "lucide-react";
 import { useSettings } from "@/api/queries";
+import { RowsSkeleton } from "@/components/ListSkeleton";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import SettingSection from "./SettingSection";
@@ -42,7 +43,7 @@ const ServicesSection = () => {
       }
     >
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <RowsSkeleton rows={2} />
       ) : isError || !data ? (
         <p className="text-sm text-destructive">Failed to load settings.</p>
       ) : (

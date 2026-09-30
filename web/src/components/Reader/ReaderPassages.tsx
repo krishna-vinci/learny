@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { friendlyMessage } from "@/lib/friendly-errors";
 import { toast } from "@/lib/notify";
 import { cn } from "@/lib/utils";
 import { articleText, capturePassage, clearHighlights, type PassageSelection, placeHighlights } from "./highlight-dom";
@@ -82,7 +83,7 @@ export function ReaderPassages({
       action:
         | { kind: "create"; color: HighlightColor; passage: PassageSelection }
         | { kind: "update"; id: string; color?: HighlightColor; comment?: string }
-        | { kind: "delete"; id: string },
+        | { kind: "delete"; id: string; highlight: Highlight },
     ) => {
       if (action.kind === "create")
         return api.highlights.create(set, {
@@ -96,17 +97,80 @@ export function ReaderPassages({
         return api.highlights.update(set, action.id, { note: path, color: action.color, comment: action.comment });
       return api.highlights.delete(set, action.id, path);
     },
-    onSuccess: (_, action) => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.highlights(set, path) });
+    // Optimistic: the highlight appears, changes or disappears immediately; a failure rolls it back.
+    onMutate: async (action) => {
+      const key = queryKeys.highlights(set, path);
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData<{ highlights: Highlight[] }>(key);
+      if (previous) {
+        const list = previous.highlights;
+        const next =
+          action.kind === "create"
+            ? [
+                ...list,
+                {
+                  id: `pending-${Date.now()}`,
+                  quote: action.passage.quote,
+                  prefix: action.passage.prefix,
+                  suffix: action.passage.suffix,
+                  color: action.color,
+                  createdAt: new Date().toISOString(),
+                },
+              ]
+            : action.kind === "delete"
+              ? list.filter((item) => item.id !== action.id)
+              : list.map((item) =>
+                  item.id === action.id
+                    ? {
+                        ...item,
+                        ...(action.color ? { color: action.color } : {}),
+                        ...(action.comment !== undefined ? { note: action.comment } : {}),
+                      }
+                    : item,
+                );
+        queryClient.setQueryData(key, { highlights: next });
+      }
       if (action.kind === "create") {
         setSelection(null);
         window.getSelection()?.removeAllRanges();
       }
       if (action.kind === "delete" || (action.kind === "update" && action.comment !== undefined)) setEditing(null);
+      return { previous };
+    },
+    onSuccess: (_, action) => {
       if (action.kind === "update" && action.color)
         setEditing((current) => (current ? { ...current, color: action.color ?? current.color } : null));
+      if (action.kind === "delete") {
+        const { highlight } = action;
+        toast.success("Highlight deleted", {
+          action: {
+            label: "Undo",
+            onClick: () => {
+              api.highlights
+                .create(set, {
+                  note: path,
+                  quote: highlight.quote,
+                  prefix: highlight.prefix,
+                  suffix: highlight.suffix,
+                  color: highlight.color,
+                })
+                .then(({ highlight: restored }) =>
+                  highlight.note
+                    ? api.highlights.update(set, restored.id, { note: path, comment: highlight.note })
+                    : undefined,
+                )
+                .then(() => queryClient.invalidateQueries({ queryKey: queryKeys.highlights(set, path) }))
+                .catch((err: unknown) => toast.error(friendlyMessage(err, "Couldn't undo that.")));
+            },
+          },
+        });
+      }
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "Could not save highlight."),
+    onError: (error, _action, context) => {
+      if (context?.previous) queryClient.setQueryData(queryKeys.highlights(set, path), context.previous);
+      toast.error(friendlyMessage(error, "Couldn't save that highlight. Try again."));
+    },
+    onSettled: () => void queryClient.invalidateQueries({ queryKey: queryKeys.highlights(set, path) }),
   });
   useEffect(() => {
     const element = root.current;
@@ -454,7 +518,7 @@ export function ReaderPassages({
               className="min-h-11 text-destructive"
               disabled={mutation.isPending}
               onClick={() => {
-                if (editing) mutation.mutate({ kind: "delete", id: editing.id });
+                if (editing) mutation.mutate({ kind: "delete", id: editing.id, highlight: editing });
               }}
             >
               Delete highlight

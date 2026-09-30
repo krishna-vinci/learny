@@ -18,6 +18,7 @@ import {
   useTestBackupDestination,
   useUpdateBackupSettings,
 } from "@/api/queries";
+import { RowsSkeleton } from "@/components/ListSkeleton";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -580,7 +581,7 @@ function StatusPanel({ onChangeDestination }: { onChangeDestination: () => void 
     }
   }, [data, dirty]);
 
-  if (isLoading || !data) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (isLoading || !data) return <RowsSkeleton rows={2} />;
 
   async function saveSchedule() {
     try {
@@ -708,7 +709,7 @@ function StatusPanel({ onChangeDestination }: { onChangeDestination: () => void 
             Show snapshots
           </Button>
         ) : snapshotsLoading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <RowsSkeleton rows={2} />
         ) : (
           <ul className="m-0 flex list-none flex-col divide-y divide-border rounded-xl border border-border p-0">
             {(snapshotsData?.snapshots ?? []).map((snapshot) => (
@@ -758,7 +759,7 @@ const BackupsSection = () => {
   if (isLoading || !data || mode === null) {
     return (
       <SettingSection title="Backups">
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <RowsSkeleton rows={2} />
       </SettingSection>
     );
   }

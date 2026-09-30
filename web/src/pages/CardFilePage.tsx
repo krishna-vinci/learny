@@ -2,7 +2,7 @@
 // sync to Anki) plus the review mode, the main UX: one card at a time, keyboard shortcuts
 // on desktop, a big bottom action bar on the phone. See docs/plans/2026-09-29-m2-cards-and-
 // review.md "Decisions (fixed)" 1, 6, 8, 9 and the "T6 (Sonnet)" task note.
-import { AnkiConnectClient, type CardView, syncCards } from "@studium/shared";
+import { AnkiConnectClient, type CardFileDetail, type CardView, syncCards } from "@studium/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangleIcon, CheckIcon, DownloadIcon, PencilIcon, RefreshCwIcon, XIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -236,13 +236,23 @@ function CardFilePage() {
     queryClient.invalidateQueries({ queryKey: queryKeys.cardFiles(set) });
   };
 
+  // Optimistic: the card changes on screen right away; if the server refuses, it rolls back.
   async function patch(id: string, body: Parameters<typeof api.cards.patch>[2]) {
     setBusy(true);
+    const key = path ? queryKeys.cardFile(set, path) : null;
+    const previous = key ? queryClient.getQueryData<CardFileDetail>(key) : undefined;
+    if (key && previous) {
+      queryClient.setQueryData<CardFileDetail>(key, {
+        ...previous,
+        cards: previous.cards.map((card) => (card.id === id ? { ...card, ...body } : card)),
+      });
+    }
     try {
       await api.cards.patch(set, id, body);
       invalidate();
     } catch (err) {
-      toast.error(friendlyMessage(err, "Failed to update the card."));
+      if (key && previous) queryClient.setQueryData(key, previous);
+      toast.error(friendlyMessage(err, "Couldn't update that card. Try again."));
     } finally {
       setBusy(false);
     }

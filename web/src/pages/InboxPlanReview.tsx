@@ -9,7 +9,6 @@ import { useNavigate } from "react-router-dom";
 import { api } from "@/api/client";
 import { queryKeys, usePlanProposal } from "@/api/queries";
 import { showJobStartedToast } from "@/components/Activity/job-start-toast";
-import ConfirmDialog from "@/components/ConfirmDialog";
 import { MarkdownView } from "@/components/Reader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -89,7 +88,6 @@ export function PlanReview({ set, item, onBack }: { set: string; item: InboxItem
   const navigate = useNavigate();
   const [draftFirst, setDraftFirst] = useState(3);
   const [approving, setApproving] = useState(false);
-  const [discardOpen, setDiscardOpen] = useState(false);
 
   const summary = data ? parsePlanSummary(data.plan) : null;
   const chapters = data ? parseProposedChapters(data.curriculum) : [];
@@ -121,11 +119,24 @@ export function PlanReview({ set, item, onBack }: { set: string; item: InboxItem
     }
   }
 
+  // Discarding deletes the proposal in its own commit, so Undo is reverting that commit.
   async function discard() {
     try {
-      await api.inbox.discardPlan(set, file);
+      const { sha } = await api.inbox.discardPlan(set, file);
       refresh();
-      toast.success("Plan discarded");
+      toast.success("Plan discarded", {
+        action: sha
+          ? {
+              label: "Undo",
+              onClick: () => {
+                api.sets
+                  .revert(set, sha)
+                  .then(() => refresh())
+                  .catch((err: unknown) => toast.error(friendlyMessage(err, "Couldn't undo that.")));
+              },
+            }
+          : undefined,
+      });
       onBack();
     } catch (err) {
       toast.error(friendlyMessage(err, "Failed to discard the plan."));
@@ -255,7 +266,7 @@ export function PlanReview({ set, item, onBack }: { set: string; item: InboxItem
             variant="outline"
             className="h-11 flex-1 md:h-9 md:flex-none"
             disabled={approving}
-            onClick={() => setDiscardOpen(true)}
+            onClick={() => void discard()}
           >
             Discard
           </Button>
@@ -267,16 +278,6 @@ export function PlanReview({ set, item, onBack }: { set: string; item: InboxItem
           )}
         </div>
       </ActionBar>
-
-      <ConfirmDialog
-        open={discardOpen}
-        onOpenChange={setDiscardOpen}
-        title="Discard this plan?"
-        description="The proposal is deleted. Your current plan and notes stay as they are."
-        confirmLabel="Discard"
-        confirmVariant="destructive"
-        onConfirm={discard}
-      />
     </div>
   );
 }
