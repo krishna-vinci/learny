@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsx watch src/main.ts",
     "start": "tsx src/main.ts",
-    "hash-password": "tsx src/auth/hash-cli.ts"
+    "hash-password": "tsx src/auth/hash-cli.ts",
+    "reset-password": "tsx src/auth/reset-password-cli.ts"
   },
   "dependencies": {
     "@earendil-works/pi-ai": "0.87.1",
