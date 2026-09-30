@@ -4,7 +4,7 @@
 // desktop popover or a phone bottom sheet.
 import type { JobKind, JobStatus, JobView } from "@studium/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { LayersIcon, LinkIcon, Loader2Icon, NotebookTextIcon } from "lucide-react";
+import { BookOpenIcon, LayersIcon, LinkIcon, ListTreeIcon, Loader2Icon, NotebookTextIcon } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { Link } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
@@ -27,6 +27,8 @@ const KIND_ICONS: Record<JobKind, typeof LinkIcon> = {
   ingest: LinkIcon,
   "draft-chapter": NotebookTextIcon,
   "make-cards": LayersIcon,
+  "compile-book": BookOpenIcon,
+  "plan-set": ListTreeIcon,
 };
 
 function StatusChip({ status }: { status: JobStatus }) {
