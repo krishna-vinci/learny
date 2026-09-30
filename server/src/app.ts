@@ -8,6 +8,7 @@ import { ankiRoutes } from "./routes/anki.js";
 import { cardsRoutes } from "./routes/cards.js";
 import { eventsRoutes } from "./routes/events.js";
 import { exportRoutes } from "./routes/export.js";
+import { highlightsRoutes } from "./routes/highlights.js";
 import { inboxRoutes } from "./routes/inbox.js";
 import { libraryRoutes } from "./routes/library.js";
 import { setsRoutes } from "./routes/sets.js";
@@ -35,6 +36,7 @@ export function createApp(deps: AppDeps | LegacyAppDeps): Hono {
   app.route("/api/sets/:set", inboxRoutes({ root: deps.root, locks: deps.locks, hub: deps.hub }));
   app.route("/api/sets/:set/cards", cardsRoutes({ root: deps.root, locks: deps.locks, hub: deps.hub }));
   app.route("/api/sets/:set/anki", ankiRoutes({ root: deps.root, locks: deps.locks, hub: deps.hub }));
+  app.route("/api/sets/:set/highlights", highlightsRoutes({ root: deps.root, locks: deps.locks, hub: deps.hub }));
   app.route("/api/sets/:set", exportRoutes({ root: deps.root, locks: deps.locks, hub: deps.hub }));
   app.route("/api/events", eventsRoutes(deps.hub));
   app.route("/api/today", todayRoutes({ root: deps.root, jobs: deps.jobs }));

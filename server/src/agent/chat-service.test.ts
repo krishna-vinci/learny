@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
+import type { TranscriptContext } from "@earendil-works/pi-ai";
 import { fauxAssistantMessage, fauxProvider, fauxText, fauxToolCall } from "@earendil-works/pi-ai/providers/faux";
 import type { ChatStreamEvent, StudiumEvent } from "@studium/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -82,6 +83,24 @@ function waitForSettled(hub: EventHub, id: string): Promise<ChatStreamEvent & { 
   });
 }
 
+/** Everything the model was shown this turn, system prompt included. */
+function contextText(context: TranscriptContext | undefined): string {
+  return (context?.messages ?? [])
+    .map((message) => {
+      const content: unknown = message.content;
+      if (typeof content === "string") return content;
+      if (!Array.isArray(content)) return "";
+      return content
+        .map((block: unknown) => {
+          if (typeof block !== "object" || block === null) return "";
+          const record = block as Record<string, unknown>;
+          return typeof record.text === "string" ? record.text : "";
+        })
+        .join("");
+    })
+    .join("\n");
+}
+
 describe("ChatService", () => {
   it("creates a Pi JSONL session that is immediately listable", async () => {
     const { chats } = await setup();
@@ -94,6 +113,33 @@ describe("ChatService", () => {
     const files = await fs.readdir(path.join(root, "linear-algebra/chats"));
     const jsonl = await fs.readFile(path.join(root, "linear-algebra/chats", files[0] ?? ""), "utf8");
     expect(JSON.parse(jsonl.trim())).toMatchObject({ type: "session", id, cwd: root });
+  });
+
+  it("sends a quoted passage to the tutor and keeps it in the transcript", async () => {
+    const { chats, faux, hub } = await setup();
+    const id = await chats.create("linear-algebra");
+    const captured: TranscriptContext[] = [];
+    faux.setResponses([
+      (transcript) => {
+        captured.push(transcript);
+        return fauxAssistantMessage(fauxText("Eigenvalues of $A^\\top A$."));
+      },
+    ]);
+
+    const quote = "The singular values are the square roots of the eigenvalues of $A^\\top A$.";
+    const settled = waitForSettled(hub, id);
+    await chats.send("linear-algebra", id, "Why does that matter?", "notes/03-svd.md", quote);
+    await settled;
+
+    expect(captured).toHaveLength(1);
+    const prompt = contextText(captured[0]);
+    expect(prompt).toContain("Selected passage from notes/03-svd.md:");
+    expect(prompt).toContain(`> ${quote}`);
+    expect(prompt).toContain("Why does that matter?");
+
+    const transcript = await chats.get("linear-algebra", id);
+    const user = transcript.messages.find((message) => message.role === "user");
+    expect(user?.text).toBe(`Selected passage from notes/03-svd.md:\n> ${quote}\n\nWhy does that matter?`);
   });
 
   it("streams a tool turn, commits the edit, and refetches tool results", async () => {

@@ -242,3 +242,28 @@ export interface CardPatch {
   text?: string;
   extra?: string;
 }
+
+export type HighlightColor = "yellow" | "green" | "blue" | "pink";
+
+/**
+ * One saved highlight from `<set>/highlights/<note-file>.json`. Anchored by
+ * `quote` plus `prefix`/`suffix` so it survives small edits to the note.
+ */
+export interface Highlight {
+  id: string;
+  quote: string;
+  prefix: string;
+  suffix: string;
+  color: HighlightColor;
+  /** Optional learner annotation. */
+  note?: string;
+  createdAt: string;
+}
+
+/** `PATCH /api/sets/:set/highlights/:id` body; the note locates the highlight file. */
+export interface HighlightPatch {
+  note: string;
+  color?: HighlightColor;
+  /** Optional learner annotation, stored as the highlight's `note`. */
+  comment?: string;
+}

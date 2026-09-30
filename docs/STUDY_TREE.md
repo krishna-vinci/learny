@@ -24,6 +24,7 @@ study/                          # git repo; app auto-commits after agent mutatio
 │   ├── curriculum.md           # syllabus + prereq tree + progress checkboxes
 │   ├── notes/NN-slug.md        # chapters
 │   ├── cards/NN-slug.md        # cards for chapter NN
+│   ├── highlights/<note-file>.json  # learner highlights, one file per note
 │   ├── exercises/
 │   ├── artifacts/              # JS sims, diagrams
 │   ├── chats/<id>.jsonl        # Pi sessions; gitignored
@@ -113,7 +114,23 @@ note: notes/03-svd.md
 ## Chats
 
 `<set>/chats/<id>.jsonl` in Pi session format. Optional anchor (a note or source) is
-stored in session metadata. Chat listing is derived (cache), never hand-maintained.
+stored in session metadata; an optional quoted passage from that anchor is part of the
+learner's message. Chat listing is derived (cache), never hand-maintained.
+
+## Highlights
+
+`<set>/highlights/<note-file>.json` holds one JSON array per note (for
+`notes/03-svd.md` the file is `highlights/03-svd.md.json`):
+
+```json
+[{ "id": "h-8f3a1b2c", "quote": "…", "prefix": "…", "suffix": "…", "color": "yellow", "note": "…", "createdAt": "…" }]
+```
+
+- Anchored by `quote` plus up to 64 chars of `prefix`/`suffix` context, so highlights
+  survive small edits. `quote` ≤ 2000 chars, `note` (an optional learner annotation) ≤
+  1000 chars, at most 500 highlights per note.
+- `color` is one of `yellow`, `green`, `blue`, `pink`. `id` is `h-<8 hex>`.
+- Written by the app only, through the per-file lock, and committed as `user:`.
 
 ## Git
 

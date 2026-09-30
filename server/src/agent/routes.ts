@@ -26,6 +26,8 @@ function param(c: Context, name: string): string {
   return value;
 }
 
+const MAX_QUOTE_CHARS = 4000;
+
 export function chatRoutes(chats: ChatService): Hono {
   const app = new Hono();
 
@@ -61,8 +63,22 @@ export function chatRoutes(chats: ChatService): Hono {
     if (body.anchor !== undefined && typeof body.anchor !== "string") {
       return c.json({ error: "anchor must be a string" }, 400);
     }
+    if (body.quote !== undefined) {
+      if (typeof body.quote !== "string") {
+        return c.json({ error: "quote must be a string" }, 400);
+      }
+      if (body.quote.length > MAX_QUOTE_CHARS) {
+        return c.json({ error: `quote must be at most ${MAX_QUOTE_CHARS} characters` }, 400);
+      }
+    }
     try {
-      await chats.send(param(c, "set"), param(c, "id"), body.text, body.anchor as string | undefined);
+      await chats.send(
+        param(c, "set"),
+        param(c, "id"),
+        body.text,
+        body.anchor as string | undefined,
+        body.quote as string | undefined,
+      );
       return c.body(null, 202);
     } catch (error) {
       return handleError(c, error);

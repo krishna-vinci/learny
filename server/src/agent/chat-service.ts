@@ -240,6 +240,22 @@ function sameModel(left: Model<Api> | undefined, right: Model<Api>): boolean {
   return left?.provider === right.provider && left.id === right.id;
 }
 
+/**
+ * The learner's turn as the tutor reads it: a selection they made in the reader
+ * arrives quoted verbatim ahead of their question. The message is also what the
+ * chat transcript stores, so the quote stays visible next to the question.
+ */
+function learnerTurn(text: string, anchor: string | undefined, quote: string | undefined): string {
+  const passage = quote?.trim() ?? "";
+  if (passage === "") return text;
+  const heading = anchor === undefined ? "Selected passage:" : `Selected passage from ${anchor}:`;
+  const block = passage
+    .split(/\r?\n/)
+    .map((line) => `> ${line}`)
+    .join("\n");
+  return `${heading}\n${block}\n\n${text}`;
+}
+
 export class ChatService {
   readonly #root: string;
   readonly #hub: EventHub;
@@ -434,10 +450,10 @@ export class ChatService {
     live.idleTimer.unref();
   }
 
-  async #runTurn(set: string, id: string, text: string, live: LiveChat): Promise<void> {
+  async #runTurn(set: string, id: string, turn: string, live: LiveChat, learnerText: string): Promise<void> {
     let errorMessage: string | null = null;
     try {
-      await live.session.prompt(text, { expandPromptTemplates: false });
+      await live.session.prompt(turn, { expandPromptTemplates: false });
       errorMessage = live.turnError;
     } catch (error) {
       errorMessage = error instanceof Error ? error.message : String(error);
@@ -456,7 +472,7 @@ export class ChatService {
     }
     live.pendingAssistants = [];
 
-    const subject = `tutor: ${text.split(/\r?\n/, 1)[0]?.slice(0, 72) ?? ""}`;
+    const subject = `tutor: ${learnerText.split(/\r?\n/, 1)[0]?.slice(0, 72) ?? ""}`;
     let sha: string | null = null;
     if (live.writtenPaths.size > 0) {
       try {
@@ -505,7 +521,7 @@ export class ChatService {
     return { id, messages: storedMessages(manager), running: live?.running ?? this.#starting.has(key) };
   }
 
-  async send(set: string, id: string, text: string, anchor?: string): Promise<void> {
+  async send(set: string, id: string, text: string, anchor?: string, quote?: string): Promise<void> {
     const key = this.#key(set, id);
     const existing = this.#live.get(key);
     if (this.#starting.has(key) || existing?.running === true) throw new BusyError();
@@ -528,7 +544,7 @@ export class ChatService {
       live.turnError = null;
       live.writtenPaths.clear();
       live.running = true;
-      void this.#runTurn(set, id, text, live);
+      void this.#runTurn(set, id, learnerTurn(text, anchor, quote), live, text);
     } finally {
       this.#starting.delete(key);
     }
