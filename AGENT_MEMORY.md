@@ -55,6 +55,8 @@ Keep the rest of this file current. When you fix something listed under "Open ga
 - The study tree git repo auto-commits per role author (tutor/librarian/drafter/checker/cardsmith/critic/user/system).
 
 ## Gotchas learned the hard way
+- **Legacy tree on a fresh test server:** `STUDIUM_STUDY_ROOT` is migrated into the admin's tree only at boot, once an admin exists. After creating the admin via `/setup`, restart the test server once.
+- **Puppeteer and the PWA:** the service worker's `controllerchange` reload breaks `evaluate()`-based clicks. Use `elementHandle.click()` with `Promise.all([waitForNavigation, …])` (see the `stableGoto` helper in the shot scripts).
 - **Biome:** run it as `rtk proxy pnpm exec biome check <files>`. Plain biome output gets rewritten into a fake "out of memory" error.
 - **base-ui:** `Menu.Item` fires `onClick`, NOT `onSelect` (Radix). `onSelect` silently does nothing.
 - **Overlays:** sheets and dialogs opened from the phone drawer must portal to `<body>`. The drawer's stacking context puts them under the chat button.
@@ -71,11 +73,11 @@ Keep the rest of this file current. When you fix something listed under "Open ga
 - **Done:**
   - M0 skeleton, M1 sources→notes, M2 cards
   - M3a platform: accounts and SSO, per-user trees, backups, notifications, export, service
-  - M3b slice A (background jobs UX) and slice B (reading comfort)
-- **Next:** M3b slice C (themes), then M4 (study loop).
+  - M3b slices A (background jobs UX), B (reading comfort), C (themes)
+- **Next:** M3b slice D (consistent UI on proper shadcn/ui, Base UI), batches D1–D5 (`docs/prompts/m3b-slice-d.md`), then M4.
 
 ## Open gaps
-- **M3b slice C:** themes (System/Light/Dark/Sepia/Black, 6 accents, Settings → Appearance, no flash on load, status bar colour).
+- **M3b slice D:** shadcn migration in batches D1–D5 (prompt `docs/prompts/m3b-slice-d.md`, map `docs/prompts/m3b-d-uimap.md`). D6 (toast swap) only if asked.
 - **Skills update** (awaiting the owner's go):
   - a new `find-sources` skill
   - research-tool guidance in `draft-chapter`, `fact-check`, `source-summary`, `explain`, `evolve-note`, `note-authoring`, `make-deck`, `critique-cards`
@@ -92,9 +94,11 @@ Keep the rest of this file current. When you fix something listed under "Open ga
 - **Backups:** not configured yet on the live instance. The owner does this in Settings → Backups.
 
 ## Recently done
+- M3b slice C themes (merge of codex/m3b, 2026-09-30)
 - 499eb3a M3b slice B · 0265a62 M3b slice A · 8b12aca Context7 MCP · Firecrawl v2 + LAN endpoint
 - ceaad1d M3a audit fixes · M3a T1–T5 + web (accounts, SSO, workspaces, backups, notify/export)
 
 ## Log
 - 2026-09-30 · m3b-a2 (GLM Flash) · Slice A: `web/src/components/Activity/*`, `lib/job-transitions.ts`, NewChapterSheet/Reader/AddSource/Chat stay in place · the faux model can't finish drafts; verify with real models · none open.
 - 2026-09-30 · m3b-a2 (GLM Flash) · Slice B: `lib/reading-prefs.ts` (extendable for themes), `lib/immersive-store.ts`, `lib/scroll-memory.ts`, `Reader/ReadingSettings.tsx`, ImmersiveExitButton · wake lock can't be tested headless · width default 72 vs 68 undecided.
+- 2026-09-30 · m3b-c (Sonnet) · Slice C: `index.css` theme/accent tokens and code-highlight vars, `lib/theme.ts` + `reading-prefs.ts` (theme/accent), `AppearanceSection.tsx`, sidebar quick toggle, MermaidBlock, `index.html` no-flash script · the legacy migration needs a restart after the first admin exists; use real clicks with waitForNavigation under the PWA reload · none open.
