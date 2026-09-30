@@ -12,6 +12,7 @@ import { inboxRoutes } from "./routes/inbox.js";
 import { libraryRoutes } from "./routes/library.js";
 import { setsRoutes } from "./routes/sets.js";
 import { type SettingsRouteDeps, settingsRoutes } from "./routes/settings.js";
+import { todayRoutes } from "./routes/today.js";
 import type { FileLocks } from "./tree/lock.js";
 
 export interface AppDeps {
@@ -36,6 +37,7 @@ export function createApp(deps: AppDeps | LegacyAppDeps): Hono {
   app.route("/api/sets/:set/anki", ankiRoutes({ root: deps.root, locks: deps.locks, hub: deps.hub }));
   app.route("/api/sets/:set", exportRoutes({ root: deps.root, locks: deps.locks, hub: deps.hub }));
   app.route("/api/events", eventsRoutes(deps.hub));
+  app.route("/api/today", todayRoutes({ root: deps.root, jobs: deps.jobs }));
 
   if (deps.jobs !== undefined) {
     app.route("/api/jobs", jobsRoutes({ runner: deps.jobs, root: deps.root }));

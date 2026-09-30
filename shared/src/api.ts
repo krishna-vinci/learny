@@ -6,6 +6,34 @@ export interface SetSummary {
   deadline: string | null;
   nextAction: string | null;
 }
+/** Per-set study activity and pending work for `GET /api/today`. */
+export interface TodaySet extends SetSummary {
+  /** UTC calendar days until the deadline; negative means overdue. */
+  daysLeft: number | null;
+  inboxCount: number;
+  draftCards: number;
+  staleCardFiles: number;
+  runningJobs: JobView[];
+  /** Latest user-authored commit or chat file activity, as an ISO timestamp. */
+  lastStudiedAt: string | null;
+  nextChapter: string | null;
+  notesCount: number;
+}
+
+export interface TodayItem {
+  kind: "overdue" | "inbox" | "draft-cards" | "stale-cards" | "next-chapter" | "inactive";
+  set: string;
+  title: string;
+  detail: string;
+  href: string;
+}
+
+export interface TodayView {
+  sets: TodaySet[];
+  /** At most seven suggestions, in priority order. */
+  doNext: TodayItem[];
+}
+
 export interface NoteSummary {
   path: string;
   title: string;
