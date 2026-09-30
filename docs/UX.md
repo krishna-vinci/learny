@@ -267,4 +267,46 @@ overlaps; initial JS < 250 kB gzip; offline reading works.
 
 ## 8. Re-run results
 
-*(Filled in at the end of the M6 series.)*
+Re-run on the final branch (`claude/m6-leftovers`): fresh instance, phone viewport 390×844 (touch), real
+taps, `STUDIUM_FAUX=1`.
+
+### Beginner walkthrough, before → after
+
+| Step | Before | After |
+|---|---|---|
+| Open the URL | `/setup` | `/setup` (unchanged, fine) |
+| Create admin | Empty "Create your first study set" page (F1) | Lands on `/welcome`, "Step 1 of 4: What do you want to learn?" |
+| First set and plan | Dialog with hidden goal/level/plan; 2+ taps, no guidance | Topic → level → deadline → material → **Create my study set**: 4 taps after typing the topic (target ≤ 6) |
+| Set home | Five equal cards and a how-it-works list | One **Next step** ("Add your first source") plus Add a source / New chapter / Ask the tutor |
+| Navigation | Hamburger drawer, disabled rows | Bottom tab bar: Today, Notes, Practice, Search, More |
+| Add a source, New chapter | Esc did not close; raw errors | One Dialog/Sheet primitive; plain-sentence errors with a fix action |
+| Book | Raw pandoc error | Plain message; callouts keep their header with their body |
+
+Zero page errors in the run. Earlier sections verified the remaining rows with real clicks in Light, Dark and
+Sepia at 390×844 and 1440×900.
+
+### Top 10
+
+| # | Status | How |
+|---|---|---|
+| F1 | Fixed | Welcome flow and Continue page (sections 3–4). |
+| F2 | Fixed | Bottom tab bar and More sheet; no disabled rows; set name in the header. |
+| F3 | Fixed | Glossary renames: Inbox → Review, Jobs → Activity, role names out of the UI. |
+| F4 | Fixed | `friendlyMessage` for server and agent errors, with an action where one exists. |
+| F5 | Fixed | Chat dock lives in set context and sits above the tab and action bars; measured with no overlap. |
+| F6 | Fixed | Set home shows one primary action. |
+| F7 | Fixed | Toasts deduplicated, shorter, and only for results not already visible. |
+| F8 | Fixed | Undo toasts replace `confirm()`; one Dialog component for the rest. |
+| F9 | Fixed | Overlays use the shared primitive: Esc closes, focus is trapped. |
+| F10 | Fixed | Empty states name the next action with a button. |
+
+Deferred: none of the top 10. Not in scope and left as is: the Practice pages (owned elsewhere).
+
+### Measures
+
+- Initial JS: 212.6 kB gzip for everything `index.html` loads (target < 250 kB); the rest is lazy per route.
+- Contrast: `web/scripts/check-contrast.mjs` passes AA for every theme token pair.
+- Offline: recently opened notes stay readable with the network off; writes show a plain "you're offline"
+  message; caches are cleared on sign-out.
+- Book: no orphaned callout headers in the compile test or the rendered pages.
+- Security pass: see the PR for the M6 findings (one fix: backslash redirect targets).
