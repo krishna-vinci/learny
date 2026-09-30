@@ -61,6 +61,7 @@ describe("initStudyTree", () => {
         "evolve-note",
         "explain",
         "fact-check",
+        "find-sources",
         "make-deck",
         "note-authoring",
         "quiz-me",
@@ -78,7 +79,7 @@ describe("initStudyTree", () => {
     expect(await fs.readFile(path.join(root, "_global/profile.md"), "utf8")).toBe("# Custom profile\n");
   });
 
-  it("fills missing default skills but never overwrites existing skill folders", async () => {
+  it("fills missing default skills but preserves user-edited skill files", async () => {
     await fs.mkdir(path.join(root, "_global/skills/explain"), { recursive: true });
     await fs.writeFile(
       path.join(root, "_global/skills/explain/SKILL.md"),

@@ -30,6 +30,7 @@ Rules:
 - Add a new section only when the idea cannot fit an existing section without making it incoherent.
 - Move content to `:::deeper` rather than deleting useful advanced context unless the plan excludes it.
 - Preserve all `[^src:...]` references and their footnote definitions. If moving cited text, move its citation with it.
+- Register new facts from web or documentation lookups with `add_source` before adding them to the note, then keep citations to the registered source. If registration is unavailable, report the URL to the owner and leave the proposed addition pending.
 - Keep frontmatter `status` unchanged unless the workflow explicitly authorizes a transition.
 
 ## Resolve conflicts with evidence

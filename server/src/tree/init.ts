@@ -1,9 +1,9 @@
 import { existsSync, promises as fs } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { StudiumYaml } from "@studium/shared";
 import { parse as parseYaml } from "yaml";
 import { trackedFiles } from "./git.js";
+import { syncDefaultSkills } from "./skill-sync.js";
 
 export const SUPPORTED_SCHEMA_VERSION = 1;
 
@@ -53,17 +53,7 @@ async function pathExists(abs: string): Promise<boolean> {
 }
 
 async function ensureDefaultSkills(root: string): Promise<void> {
-  const source = fileURLToPath(new URL("../../../skills", import.meta.url));
-  const destination = path.join(root, "_global", "skills");
-  await fs.mkdir(destination, { recursive: true });
-
-  const entries = await fs.readdir(source, { withFileTypes: true });
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
-    const target = path.join(destination, entry.name);
-    if (await pathExists(target)) continue;
-    await fs.cp(path.join(source, entry.name), target, { recursive: true });
-  }
+  await syncDefaultSkills(root);
 }
 
 async function ensureDefaultMcp(root: string): Promise<void> {

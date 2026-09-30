@@ -1,0 +1,43 @@
+{
+  "critique-cards/SKILL.md": [
+    "e1b5f0be0a927e9be6e8c22372688c8148d6a71f40c9ae05cc30e44d7b04dac3",
+    "f4e069228a342305b849f730ffb78308c2c9df252744955fa26d63701047241a"
+  ],
+  "critique-cards/references/twenty-rules.md": [
+    "000da560207856a3742fa378ee328b029034d06d64783a5bde24bf99bf68d14d"
+  ],
+  "draft-chapter/SKILL.md": [
+    "9694a8a5ed73f6b1fa0d5585604158567d0fd5367bbb0c6679f7678b5292f0e4",
+    "37a5b9f57ff4c73b18ee4873d86b4924fa0c2c67db9cbf7713af618970aa8366"
+  ],
+  "evolve-note/SKILL.md": [
+    "cb552d20db1198980c5793456fbc897ff89088905e7bf48f3c28b29b96650fcf",
+    "d9e2aa623b28e40398a2607af7a7bcca1db2c43448c21a1ee6acbd368ccf53cc"
+  ],
+  "explain/SKILL.md": [
+    "69ce9625a82983a73b46bcf97e0f1d4ef4c47b78983c0c900a0aa47e0420b168",
+    "fa2c4314dba33571b435a4a904199f3c92fb34df87f558445bbf340c590be6aa"
+  ],
+  "fact-check/SKILL.md": [
+    "82a5037bf50a2ba5591b7e5ac9cf03db64b767c3c08ae2ea53c9364d8d90cd16",
+    "4963041abde872f94fc52ff30b6207c49a6bc5432142657bd749c44a6bf94bf7"
+  ],
+  "find-sources/SKILL.md": [
+    "a923c7d84ca4839d0057c00fd7cb5b99405748bca5d8ea7626108edd1bd90e82"
+  ],
+  "make-deck/SKILL.md": [
+    "fb24217dd48180685cb902582887613869e7b52713a176b3a08ab198b56ed7ba",
+    "863861c4387a26bfe40c96934d44bf3d67d17865eb434569621641674c37f48c"
+  ],
+  "note-authoring/SKILL.md": [
+    "4bccffccff0f9472577c0b17f50a92bcbdd4ecb3272ea04cba69a88ae60262a7",
+    "77466d73ffd48d74c9504c8f86141d442ee0377e72ce950a8373bc12aeb0ff9d"
+  ],
+  "quiz-me/SKILL.md": [
+    "75fcc33d3149570a91d3216fa42f8ad7ba9d035624ebc1208e588f1d176bf6ef"
+  ],
+  "source-summary/SKILL.md": [
+    "bd9f554fb34de91b695f9e9058c5018aeafb09548896b663199488314902069d",
+    "87d134557051853e18e48bca54414c75c0e4aab658853322c96cf6788f228086"
+  ]
+}

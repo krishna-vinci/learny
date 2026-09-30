@@ -55,6 +55,7 @@ The polar decomposition explains why ...
 - Put derivation, rare edge cases, and advanced dependencies in `:::deeper`; the main path should remain useful at the learner's current level.
 - Use Mermaid only when a diagram explains a relationship better than prose. Keep node labels short and give the diagram a caption.
 - Prefer one worked example with all intermediate steps over three skipped-step examples.
+- For each code block using a library, state the library version checked against `mcp_context7_*` docs (resolve the library id, then retrieve docs). If checking is unavailable, report the gap instead of presenting the code as verified.
 
 ## Citations
 
@@ -67,6 +68,8 @@ A real $m \times n$ matrix has $r = \operatorname{rank}(A)$ nonnegative singular
 ```
 
 Use a page or section locator when the parsed source preserves one, for example `[^src:lib-strang-la#p132]`. Preserve every existing citation while editing. If a claim has no source, label it explicitly with `**Uncertain:**` and say what verification is needed.
+
+A Context7 page counts as a source only after it is registered in `library/`. Use `add_source` when available; otherwise report the documentation URL to the owner for registration before citing it.
 
 ## Review before finishing
 
