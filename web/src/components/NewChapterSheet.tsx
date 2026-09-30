@@ -5,18 +5,11 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "react-hot-toast";
 import { ApiError, api } from "@/api/client";
-import { useLibrary } from "@/api/queries";
 import { showJobStartedToast } from "@/components/Activity/job-start-toast";
+import { SourcePicker } from "@/components/SourcePicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-/** A minimal source picker for the "New chapter" form: id + title only, via the shared
- * Library query (same one the Library pages use, so results share a cache). */
-function useLibrarySourceOptions() {
-  const { data } = useLibrary();
-  return { data: (data ?? []).map((source) => ({ id: source.id, title: source.title })) };
-}
 
 export interface NewChapterSheetProps {
   set: string;
@@ -28,12 +21,6 @@ export function NewChapterSheet({ set, onClose }: NewChapterSheetProps) {
   const [brief, setBrief] = useState("");
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  const { data: sources = [] } = useLibrarySourceOptions();
-
-  function toggleSource(id: string) {
-    setSelectedSources((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
-  }
-
   async function submit() {
     const trimmedTitle = title.trim();
     if (!trimmedTitle) return;
@@ -90,25 +77,7 @@ export function NewChapterSheet({ set, onClose }: NewChapterSheetProps) {
               placeholder="What should this chapter cover?"
             />
           </div>
-          {sources.length > 0 && (
-            <div>
-              <Label>Sources</Label>
-              <ul className="mt-1 max-h-40 overflow-y-auto rounded-md border border-border/70 p-1">
-                {sources.map((source) => (
-                  <li key={source.id}>
-                    <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded px-2 text-sm hover:bg-accent/40 md:min-h-8">
-                      <input
-                        type="checkbox"
-                        checked={selectedSources.includes(source.id)}
-                        onChange={() => toggleSource(source.id)}
-                      />
-                      <span className="min-w-0 flex-1 truncate">{source.title}</span>
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <SourcePicker selected={selectedSources} onChange={setSelectedSources} />
         </div>
 
         <div className="mt-4 flex justify-end">

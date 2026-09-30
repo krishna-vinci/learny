@@ -199,6 +199,49 @@ describe("job_proposal", () => {
   });
 });
 
+describe("proposals_loaded", () => {
+  const loaded = (proposalId: string) => ({
+    kind: "job_proposal" as const,
+    proposalId,
+    jobKind: "draft-chapter" as const,
+    title: "Draft: SVD",
+    estimate: { tokens: 12000, costUsd: null },
+  });
+  const messages: ChatMessage[] = [
+    { id: "u1", role: "user", text: "draft svd", tools: [], timestamp: "2026-01-01T00:00:00Z" },
+    {
+      id: "a1",
+      role: "assistant",
+      text: "",
+      tools: [{ toolCallId: "t1", name: "start_job", args: {}, summary: "awaiting learner confirmation" }],
+      timestamp: "2026-01-01T00:00:01Z",
+    },
+    { id: "a2", role: "assistant", text: "Please confirm.", tools: [], timestamp: "2026-01-01T00:00:02Z" },
+  ];
+
+  it("adds persisted proposals under the message that proposed them", () => {
+    const state = chatDockReducer(initialChatDockState(), { type: "reset", chatId: "c1", messages, running: false });
+    const next = chatDockReducer(state, { type: "proposals_loaded", chatId: "c1", proposals: [loaded("p1")] });
+    expect(next.proposals).toEqual([expect.objectContaining({ proposalId: "p1", messageId: "a1", status: "pending" })]);
+  });
+
+  it("dedupes by proposalId and keeps a live card's status", () => {
+    let state = chatDockReducer(initialChatDockState(), { type: "reset", chatId: "c1", messages, running: false });
+    state = chatDockReducer(state, { type: "proposals_loaded", chatId: "c1", proposals: [loaded("p1")] });
+    state = chatDockReducer(state, { type: "proposal_started", proposalId: "p1", jobId: "job-1" });
+    state = chatDockReducer(state, { type: "proposals_loaded", chatId: "c1", proposals: [loaded("p1"), loaded("p2")] });
+    expect(state.proposals.map((proposal) => [proposal.proposalId, proposal.status])).toEqual([
+      ["p1", "started"],
+      ["p2", "pending"],
+    ]);
+  });
+
+  it("ignores proposals for a chat that is not open", () => {
+    const state = chatDockReducer(initialChatDockState(), { type: "reset", chatId: "c1", messages, running: false });
+    expect(chatDockReducer(state, { type: "proposals_loaded", chatId: "c2", proposals: [loaded("p1")] })).toBe(state);
+  });
+});
+
 describe("reset after settled", () => {
   it("keeps lastCommitSha when the same chat is refetched", () => {
     let state = chatDockReducer(initialChatDockState(), { type: "reset", chatId: "c1", messages: [], running: false });

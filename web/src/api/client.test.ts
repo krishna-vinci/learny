@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiError, api, UnauthorizedError } from "./client";
+import { ApiError, api, outsidePaths, UnauthorizedError } from "./client";
 
 describe("api client", () => {
   beforeEach(() => {
@@ -112,5 +112,27 @@ describe("api client", () => {
 
     const sets = await api.sets.list();
     expect(sets).toEqual([{ slug: "linear-algebra" }]);
+  });
+
+  it("revert sends scope only when asked and exposes the paths of a scope 409", async () => {
+    const fetchMock = fetch as unknown as ReturnType<typeof vi.fn>;
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ error: "commit touches paths outside this set", paths: ["beta/PLAN.md"] }), {
+        status: 409,
+      }),
+    );
+    const error = await api.sets.revert("alpha", "abc1234").catch((e: unknown) => e);
+    expect(JSON.parse((fetchMock.mock.calls[0] as [string, RequestInit])[1].body as string)).toEqual({
+      sha: "abc1234",
+    });
+    expect(outsidePaths(error)).toEqual(["beta/PLAN.md"]);
+    expect(outsidePaths(new ApiError(409, "revert conflict", { error: "revert conflict" }))).toBeNull();
+
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ sha: "def" }), { status: 200 }));
+    await api.sets.revert("alpha", "abc1234", "set");
+    expect(JSON.parse((fetchMock.mock.calls[1] as [string, RequestInit])[1].body as string)).toEqual({
+      sha: "abc1234",
+      scope: "set",
+    });
   });
 });

@@ -2,6 +2,7 @@
 // docs/plans/2026-09-29-m1-sources-to-notes.md "T9b Jobs + Inbox + proposal card".
 import type { CheckIssue, InboxItem } from "@studium/shared";
 import { useQueryClient } from "@tanstack/react-query";
+import { ListTreeIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { useParams } from "react-router-dom";
@@ -11,6 +12,7 @@ import { NewChapterSheet } from "@/components/NewChapterSheet";
 import { MarkdownView } from "@/components/Reader";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { PlanReview } from "./InboxPlanReview";
 
 type Severity = CheckIssue["severity"];
 const SEVERITY_ORDER: Severity[] = ["blocker", "major", "minor"];
@@ -50,7 +52,17 @@ function StatusChip({ status }: { status: InboxItem["status"] }) {
   );
 }
 
+function PlanChip() {
+  return (
+    <span className="flex shrink-0 items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-2xs font-medium uppercase tracking-wide text-primary">
+      <ListTreeIcon className="size-3" aria-hidden="true" />
+      Plan
+    </span>
+  );
+}
+
 function InboxListRow({ item, onOpen }: { item: InboxItem; onOpen: () => void }) {
+  const isPlan = item.kind === "plan";
   const counts = countBySeverity(item.check?.issues ?? []);
   return (
     <li>
@@ -61,7 +73,7 @@ function InboxListRow({ item, onOpen }: { item: InboxItem; onOpen: () => void })
       >
         <div className="flex flex-wrap items-center gap-2">
           <span className="truncate font-medium text-foreground">{item.title}</span>
-          <StatusChip status={item.status} />
+          {isPlan ? <PlanChip /> : <StatusChip status={item.status} />}
         </div>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-muted-foreground">
           <span>{formatDate(item.updatedAt)}</span>
@@ -194,7 +206,11 @@ function InboxPage() {
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-6 md:px-6">
       {selected ? (
-        <ReviewView set={set} item={selected} onBack={() => setSelectedPath(null)} />
+        selected.kind === "plan" ? (
+          <PlanReview set={set} item={selected} onBack={() => setSelectedPath(null)} />
+        ) : (
+          <ReviewView set={set} item={selected} onBack={() => setSelectedPath(null)} />
+        )
       ) : (
         <>
           <div className="flex items-center justify-between">

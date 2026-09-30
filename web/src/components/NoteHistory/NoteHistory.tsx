@@ -3,8 +3,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeftIcon, RotateCcwIcon, XIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { api } from "@/api/client";
+import { api, outsidePaths } from "@/api/client";
 import { queryKeys } from "@/api/queries";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -36,6 +37,8 @@ export function NoteHistory({ set, path, className, onClose, initialSha }: NoteH
   const queryClient = useQueryClient();
   const [selectedSha, setSelectedSha] = useState<string | undefined>(initialSha);
   const [reverting, setReverting] = useState(false);
+  // Paths outside this set that the selected commit also touched; non-null opens the set-only confirm.
+  const [outside, setOutside] = useState<string[] | null>(null);
 
   // A commit link (chat "view diff", or re-navigating to the same route with a new `?commit=`)
   // can arrive while this panel is already mounted; sync the selection when it changes.
@@ -54,25 +57,66 @@ export function NoteHistory({ set, path, className, onClose, initialSha }: NoteH
     enabled: !!selectedSha,
   });
 
+  const finishRevert = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.file(set, path) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.history(set, path) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.notes(set) }),
+    ]);
+    toast.success("Reverted");
+    setSelectedSha(undefined);
+  };
+
   const handleRevert = async () => {
     if (!selectedSha) return;
     if (!window.confirm("Revert this note to this version? This cannot be undone.")) return;
     setReverting(true);
     try {
       await api.sets.revert(set, selectedSha);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.file(set, path) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.history(set, path) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.notes(set) }),
-      ]);
-      toast.success("Reverted");
-      setSelectedSha(undefined);
+      await finishRevert();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Revert failed");
+      const paths = outsidePaths(err);
+      if (paths) setOutside(paths);
+      else toast.error(err instanceof Error ? err.message : "Revert failed");
     } finally {
       setReverting(false);
     }
   };
+
+  const handleRevertSetOnly = async () => {
+    if (!selectedSha) return;
+    try {
+      await api.sets.revert(set, selectedSha, "set");
+      await finishRevert();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Revert failed");
+    }
+  };
+
+  const setOnlyDialog = (
+    <ConfirmDialog
+      open={outside !== null}
+      onOpenChange={(open) => {
+        if (!open) setOutside(null);
+      }}
+      title="Revert only this set?"
+      description="This commit also changed files outside this set. Reverting it here would restore only this set's files to their previous version. Any later edits to those files are overwritten."
+      confirmLabel="Revert this set only"
+      confirmVariant="destructive"
+      onConfirm={handleRevertSetOnly}
+    >
+      <div className="min-w-0">
+        <p className="text-xs font-medium text-foreground">Left unchanged ({outside?.length ?? 0}):</p>
+        <ul className="mt-1 max-h-32 overflow-y-auto rounded-md border border-border/70 p-2 font-mono text-xs text-muted-foreground">
+          {outside?.map((outsidePath) => (
+            <li key={outsidePath} className="break-all">
+              {outsidePath}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </ConfirmDialog>
+  );
 
   const commitList = (
     <ul>
@@ -143,6 +187,7 @@ export function NoteHistory({ set, path, className, onClose, initialSha }: NoteH
           {!selectedSha && <div className="p-3 text-sm text-muted-foreground">Select a commit to view its diff.</div>}
           {selectedSha && diffPanel}
         </div>
+        {setOnlyDialog}
       </aside>
     );
   }
@@ -180,6 +225,7 @@ export function NoteHistory({ set, path, className, onClose, initialSha }: NoteH
           {diffPanel}
         </div>
       )}
+      {setOnlyDialog}
     </div>
   );
 }

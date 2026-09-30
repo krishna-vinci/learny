@@ -6,6 +6,7 @@ import type { JobView } from "@studium/shared";
 import { useMemo } from "react";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import { bookUrl } from "@/api/client";
 import { useStudiumEvents } from "@/api/events";
 import { Button } from "@/components/ui/button";
 import { createJobTransitionTracker } from "@/lib/job-transitions";
@@ -74,6 +75,21 @@ function completionToastFor(job: JobView, navigate: (to: string) => void): Compl
         label: "Review",
         onClick: () => navigate(`/s/${set}/cards/${cardPath.replace(/^cards\//, "")}`),
       },
+    };
+  }
+  if (job.kind === "plan-set" && set) {
+    return {
+      kind: "success",
+      message: "Plan ready for review",
+      action: { label: "Open", onClick: () => navigate(`/s/${set}/inbox`) },
+    };
+  }
+  if (job.kind === "compile-book" && set) {
+    return {
+      kind: "success",
+      message: "Book ready",
+      // A plain navigation to the attachment URL downloads it without leaving the page.
+      action: { label: "Download", onClick: () => window.location.assign(bookUrl(set)) },
     };
   }
   if (job.kind === "ingest" && sourceId) {

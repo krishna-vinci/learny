@@ -54,6 +54,21 @@ export function useChatDock(set: string) {
     });
   }, [chatQuery.data]);
 
+  // Pending Tutor proposals outlive the live stream: merge the persisted ones in on chat
+  // load/switch and after each refetch (a `reset` clears the cards).
+  const proposalsQuery = useQuery({
+    queryKey: ["sets", set, "chats", chatId, "proposals"],
+    queryFn: () => api.chats.proposals(set, chatId as string),
+    enabled: chatId !== null,
+  });
+  const loadedProposals = proposalsQuery.data?.proposals;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `state.messages` re-merges after a reset clears the cards
+  useEffect(() => {
+    if (loadedProposals && state.chatId !== null) {
+      dispatch({ type: "proposals_loaded", chatId: state.chatId, proposals: loadedProposals });
+    }
+  }, [loadedProposals, state.chatId, state.messages]);
+
   useStudiumEvents((event) => {
     if (event.type !== "chat") return;
     if (event.set !== set || event.chatId !== chatId) return;
@@ -105,14 +120,28 @@ export function useChatDock(set: string) {
       dispatch({ type: "proposal_started", proposalId, jobId });
       showJobStartedToast(state.proposals.find((proposal) => proposal.proposalId === proposalId)?.title ?? "job");
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["sets", set, "chats", chatId, "proposals"] });
     },
-    onError: (error) => {
+    onError: (error, proposalId) => {
+      if (error instanceof ApiError && error.status === 404) {
+        // Expired or already consumed: the card can't run any more.
+        dispatch({ type: "proposal_dismissed", proposalId });
+        queryClient.invalidateQueries({ queryKey: ["sets", set, "chats", chatId, "proposals"] });
+        toast.error("This suggestion expired.");
+        return;
+      }
       toast.error(error instanceof ApiError ? error.message : "Failed to start job.");
     },
   });
 
   const dismissProposal = (proposalId: string) => {
     dispatch({ type: "proposal_dismissed", proposalId });
+    if (chatId === null) return;
+    // Best effort: the card is already gone locally, and an expired proposal is gone server-side.
+    api.chats
+      .dismissProposal(set, chatId, proposalId)
+      .catch(() => undefined)
+      .finally(() => queryClient.invalidateQueries({ queryKey: ["sets", set, "chats", chatId, "proposals"] }));
   };
 
   // With no chat open, the first message starts one, so the composer is never a dead end.

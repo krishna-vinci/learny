@@ -4,6 +4,7 @@ import type {
   CardPatch,
   CardView,
   ChatMessage,
+  ChatStreamEvent,
   ChatSummary,
   CommitInfo,
   FileView,
@@ -15,10 +16,15 @@ import type {
   JobView,
   NoteSummary,
   ParsedFileView,
+  PlanProposal,
   SearchKind,
   SearchResponse,
   SetSummary,
   SettingsView,
+  SiteImportRequest,
+  SiteImportResponse,
+  SiteMapRequest,
+  SiteMapResponse,
   SourceSummary,
   TodayView,
 } from "@studium/shared";
@@ -271,6 +277,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   } catch {
     return undefined as T;
   }
+}
+
+/** Paths outside the set from a revert's 409 "commit touches paths outside this set"; null for any other error. */
+export function outsidePaths(error: unknown): string[] | null {
+  if (!(error instanceof ApiError) || error.status !== 409) return null;
+  const body = error.body as { error?: unknown; paths?: unknown } | undefined;
+  if (body?.error !== "commit touches paths outside this set" || !Array.isArray(body.paths)) return null;
+  return body.paths.filter((path): path is string => typeof path === "string");
 }
 
 function qs(params: Record<string, string | number | undefined>): string {
@@ -529,8 +543,12 @@ export const api = {
     diff(set: string, sha: string, path?: string): Promise<{ diff: string }> {
       return request(`/api/sets/${encodeURIComponent(set)}/diff${qs({ sha, path })}`);
     },
-    revert(set: string, sha: string): Promise<{ sha: string }> {
-      return request(`/api/sets/${encodeURIComponent(set)}/revert`, { method: "POST", body: JSON.stringify({ sha }) });
+    /** A commit touching other sets answers 409 `{ paths }` (see `outsidePaths`); retry with `scope: "set"`. */
+    revert(set: string, sha: string, scope?: "set"): Promise<{ sha: string }> {
+      return request(`/api/sets/${encodeURIComponent(set)}/revert`, {
+        method: "POST",
+        body: JSON.stringify({ sha, ...(scope ? { scope } : {}) }),
+      });
     },
   },
 
@@ -553,6 +571,16 @@ export const api = {
     abort(set: string, id: string): Promise<void> {
       return request(`/api/sets/${encodeURIComponent(set)}/chats/${encodeURIComponent(id)}/abort`, { method: "POST" });
     },
+    /** Pending Tutor job proposals, in the shape of the live `job_proposal` stream event. */
+    proposals(set: string, id: string): Promise<{ proposals: Extract<ChatStreamEvent, { kind: "job_proposal" }>[] }> {
+      return request(`/api/sets/${encodeURIComponent(set)}/chats/${encodeURIComponent(id)}/proposals`);
+    },
+    dismissProposal(set: string, id: string, proposalId: string): Promise<void> {
+      return request(
+        `/api/sets/${encodeURIComponent(set)}/chats/${encodeURIComponent(id)}/proposals/${encodeURIComponent(proposalId)}`,
+        { method: "DELETE" },
+      );
+    },
   },
 
   library: {
@@ -573,6 +601,13 @@ export const api = {
       form.append("file", file);
       if (set) form.append("set", set);
       return request("/api/library", { method: "POST", body: form });
+    },
+    /** 400 when Firecrawl isn't configured on the server. */
+    siteMap(body: SiteMapRequest): Promise<SiteMapResponse> {
+      return request("/api/library/site-map", { method: "POST", body: JSON.stringify(body) });
+    },
+    siteImport(body: SiteImportRequest): Promise<SiteImportResponse> {
+      return request("/api/library/site-import", { method: "POST", body: JSON.stringify(body) });
     },
     parsed(id: string, file: string): Promise<ParsedFileView> {
       return request(`/api/library/${encodeURIComponent(id)}/parsed${qs({ file })}`);
@@ -597,8 +632,17 @@ export const api = {
       body:
         | { kind: Extract<JobKind, "draft-chapter">; set: string; title: string; brief?: string; sources?: string[] }
         | { kind: Extract<JobKind, "make-cards">; set: string; note: string; count?: number }
+        | {
+            kind: Extract<JobKind, "plan-set">;
+            set: string;
+            goal: string;
+            level?: number;
+            deadline?: string;
+            sources?: string[];
+          }
+        | { kind: Extract<JobKind, "compile-book">; set: string }
         | { proposalId: string },
-    ): Promise<{ jobId: string }> {
+    ): Promise<{ jobId: string; set?: string }> {
       return request("/api/jobs", { method: "POST", body: JSON.stringify(body) });
     },
     cancel(id: string): Promise<void> {
@@ -611,11 +655,37 @@ export const api = {
     list(set: string): Promise<InboxItem[]> {
       return request(`/api/sets/${encodeURIComponent(set)}/inbox`);
     },
+    /** `file` is the name under `<set>/plan-proposals/` (an inbox item's `path` without the folder). */
+    planProposal(set: string, file: string): Promise<PlanProposal> {
+      return request(`/api/sets/${encodeURIComponent(set)}/plan-proposals/${encodeURIComponent(file)}`);
+    },
+    approvePlan(set: string, file: string, draftFirst: number): Promise<{ sha: string; jobIds: string[] }> {
+      return request(`/api/sets/${encodeURIComponent(set)}/plan-proposals/${encodeURIComponent(file)}/approve`, {
+        method: "POST",
+        body: JSON.stringify({ draftFirst }),
+      });
+    },
+    discardPlan(set: string, file: string): Promise<{ sha: string | null }> {
+      return request(`/api/sets/${encodeURIComponent(set)}/plan-proposals/${encodeURIComponent(file)}/discard`, {
+        method: "POST",
+      });
+    },
     accept(set: string, path: string): Promise<{ sha: string }> {
       return request(`/api/sets/${encodeURIComponent(set)}/notes/accept`, {
         method: "POST",
         body: JSON.stringify({ path }),
       });
+    },
+  },
+
+  book: {
+    /** Metadata of the set's built book PDF, or null (404) when none exists yet. */
+    async status(set: string): Promise<{ lastModified: string | null } | null> {
+      const response = await fetch(bookUrl(set), { method: "HEAD", credentials: "same-origin" });
+      if (response.status === 401) throw new UnauthorizedError();
+      if (response.status === 404) return null;
+      if (!response.ok) throw new ApiError(response.status, response.statusText, undefined);
+      return { lastModified: response.headers.get("last-modified") };
     },
   },
 
@@ -661,6 +731,11 @@ export const api = {
     },
   },
 };
+
+/** `GET /api/sets/:set/book.pdf` as a download link; `HEAD` answers 200 with `last-modified` once a book is built. */
+export function bookUrl(set: string): string {
+  return `/api/sets/${encodeURIComponent(set)}/book.pdf`;
+}
 
 /**
  * `GET /api/sets/:set/export.apkg` as a plain download link (not run through `request`,
