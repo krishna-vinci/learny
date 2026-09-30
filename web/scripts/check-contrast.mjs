@@ -80,13 +80,21 @@ function parseColor(value, tokens, depth = 0) {
   if (fn) {
     const [body, alphaPart] = fn[2].split("/").map((part) => part.trim());
     const nums = body.split(/[\s,]+/).filter(Boolean);
-    const alpha = alphaPart === undefined ? 1 : alphaPart.endsWith("%") ? Number.parseFloat(alphaPart) / 100 : Number.parseFloat(alphaPart);
+    const alpha =
+      alphaPart === undefined
+        ? 1
+        : alphaPart.endsWith("%")
+          ? Number.parseFloat(alphaPart) / 100
+          : Number.parseFloat(alphaPart);
     if (fn[1].toLowerCase() === "oklch") {
       const L = nums[0].endsWith("%") ? Number.parseFloat(nums[0]) / 100 : Number.parseFloat(nums[0]);
       return [...oklchToRgb(L, Number.parseFloat(nums[1]), Number.parseFloat(nums[2])), alpha];
     }
     if (fn[1].toLowerCase() === "hsl") {
-      return [...hslToRgb(Number.parseFloat(nums[0]), Number.parseFloat(nums[1]) / 100, Number.parseFloat(nums[2]) / 100), alpha];
+      return [
+        ...hslToRgb(Number.parseFloat(nums[0]), Number.parseFloat(nums[1]) / 100, Number.parseFloat(nums[2]) / 100),
+        alpha,
+      ];
     }
     return [...nums.slice(0, 3).map((n) => Number.parseFloat(n) / 255), alpha];
   }
@@ -153,11 +161,16 @@ for (const theme of THEMES) {
       try {
         const page = parseColor("var(--background)", tokens);
         const bgRaw = parseColor(`var(${bgToken})`, tokens);
-        const bg = tint ? over([bgRaw[0], bgRaw[1], bgRaw[2], tint], over(page, [1, 1, 1, 1])) : over(bgRaw, over(page, [1, 1, 1, 1]));
+        const bg = tint
+          ? over([bgRaw[0], bgRaw[1], bgRaw[2], tint], over(page, [1, 1, 1, 1]))
+          : over(bgRaw, over(page, [1, 1, 1, 1]));
         const fg = over(parseColor(`var(${fgToken})`, tokens), bg);
         const r = ratio(fg, bg);
         checked += 1;
-        if (r < min) failures.push(`${theme}/${accent}: ${label} ${r.toFixed(2)}:1 (needs ${min}:1) [${fgToken} on ${bgToken}${tint ? ` @${tint * 100}%` : ""}]`);
+        if (r < min)
+          failures.push(
+            `${theme}/${accent}: ${label} ${r.toFixed(2)}:1 (needs ${min}:1) [${fgToken} on ${bgToken}${tint ? ` @${tint * 100}%` : ""}]`,
+          );
       } catch (error) {
         failures.push(`${theme}/${accent}: ${label}: ${error.message}`);
       }
