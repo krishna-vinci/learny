@@ -83,7 +83,6 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - **In progress:** M4 study loop (`docs/plans/2026-09-30-m4-study-loop.md`). Merged: M4-0 through M4-6 and M4-7a (Today, ⌘K search, selection + highlights). Next: M4-7b remaining screens (Claude cloud, `docs/plans/2026-10-01-m4-7b-cloud.md`), the search-snippet plain-text fix, then M4-8 review.
 
 ## Open gaps
-- **Search snippets show raw markdown and mermaid source** (e.g. `U["U"] --> Ax…`). The index should store plain text: strip fenced code/mermaid blocks, markdown syntax, frontmatter and footnote definitions from `body` in `server/src/search/index.ts`, and keep code blocks out of snippets.
 - **Book PDF layout:** callout boxes can split across pages, leaving an orphaned header (e.g. "Deeper" at the bottom of p5, its body on p6, and a mostly blank page). Keep a callout's header with its first lines (`block(breakable: …)` or `sticky` in `server/templates/book/book.typ` / `callouts.lua`). Mermaid appears as "(diagram in the app)".
 - **shadcn migration (deferred to M6):** batches D1–D5 in `docs/prompts/m3b-slice-d.md`, with the map in `docs/prompts/m3b-d-uimap.md` (the map will go stale; refresh it before running). New UI should still prefer the existing `components/ui` kit.
 - **Skills update** (awaiting the owner's go):
@@ -99,6 +98,7 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - **Backups:** not configured yet on the live instance. The owner does this in Settings → Backups.
 
 ## Recently done
+- M4-2b search indexes plain text
 - M4-7a Today page, ⌘K search, selection actions + highlights (003723f)
 - M4-4 Outliner + plan-set + plan approval + curriculum fix (38d4722)
 - M4-5 book PDF (10b5d71): 18-page A5 book of linear-algebra verified
@@ -121,3 +121,4 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - 2026-09-30 · M4-5 (Sol 6.1) · `jobs/book-{assemble,paths,job}.ts`, `routes/book.ts`, `templates/book/{book.typ,callouts.lua}`, Dockerfile pinned pandoc/typst · AI gate exempts only direct compile-book jobs · callouts can split badly across pages.
 - 2026-09-30 · M4-4 (Sol 6.1) · Outliner role (writes only `<set>/plan-proposals/`), `jobs/plan-job.ts`, `inbox/plans.ts`, plan GET/approve/discard in `routes/inbox.ts`, `tree/curriculum.ts`, `skills/plan-set`; `tree/edit.ts` `writeTextLocked` (requires the held lock) · approve returns `{sha, jobIds}`; draft jobs tick curriculum lines · UI in M4-7b.
 - 2026-10-01 · M4-7a (Sol 6.1) · `pages/TodayPage.tsx` (landing), `components/Search/*`, `Reader/ReaderPassages.tsx` + `highlight-{dom,text}.ts`, chat quote plumbing · 93 real-click checks at 390/1440 in light and dark · snippets show raw markdown (open gap).
+- 2026-10-01 · M4-2b (DeepSeek) · `search/plaintext.ts` strips frontmatter, code/mermaid, footnotes, directives and markup from indexed bodies · a restart rebuilds the index (`rebuildAll` at workspace start) · image alt text kept.
