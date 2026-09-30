@@ -6,6 +6,7 @@ import type {
   JobView,
   NoteSummary,
   ParsedFileView,
+  PlanProposal,
   SetSummary,
   SettingsView,
   SourceSummary,
@@ -411,6 +412,16 @@ export function useInbox(set: string | undefined) {
     queryKey: queryKeys.inbox(set ?? ""),
     queryFn: () => api.inbox.list(set as string),
     enabled: !!set,
+  });
+}
+
+/** A plan proposal's raw PLAN.md / curriculum.md fences and its suggested source URLs. */
+export function usePlanProposal(set: string | undefined, file: string | undefined) {
+  return useQuery<PlanProposal>({
+    queryKey: [...queryKeys.inbox(set ?? ""), "plan", file ?? ""],
+    queryFn: () => api.inbox.planProposal(set as string, file as string),
+    enabled: !!set && !!file,
+    retry: false,
   });
 }
 
