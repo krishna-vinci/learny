@@ -1,6 +1,21 @@
 /* Adapted from Memos (MIT) — https://github.com/usememos/memos */
 @import "tailwindcss";
 
+/*
+ * Slice C theming. `data-theme` on <html> is one of system|light|dark|sepia|black
+ * (lib/theme.ts sets it from the reading-prefs store; index.html's inline no-flash
+ * script sets it before first paint). Light lives on the bare :root, since it's the
+ * fallback whenever data-theme is absent or "light". dark/sepia/black each define the
+ * full token set on `:root[data-theme="…"]`. "system" (and no attribute at all, for
+ * pre-JS/tests) apply the dark set only under `prefers-color-scheme: dark` — see the
+ * `@media` block below, which reads the *same* `--dark-*` values defined here so the
+ * dark palette's 30-odd colours live in exactly one place instead of two.
+ *
+ * `data-accent` on <html> is one of blue (default)|teal|green|amber|rose|violet and
+ * overrides --primary/--primary-foreground/--ring per theme family; the anchor colours
+ * for the five non-default accents are declared once below and referenced from every
+ * theme's override block for the same reason.
+ */
 :root {
   --background: oklch(0.9818 0.0054 95.0986);
   --foreground: oklch(0.2438 0.0269 95.7226);
@@ -30,6 +45,97 @@
   --sidebar-foreground: oklch(0.359 0.0051 106.6524);
   --sidebar-accent: oklch(0.9245 0.0138 92.9892);
   --sidebar-accent-foreground: oklch(0.325 0 0);
+  --shadow-float:
+    0 1px 2px hsl(0 0% 0% / 0.05), 0 8px 24px -6px hsl(0 0% 0% / 0.1), 0 24px 56px -16px hsl(0 0% 0% / 0.14);
+
+  /* Code highlighting (github.css replacement — see MarkdownView.tsx) */
+  --code-bg: oklch(0.965 0.006 95);
+  --code-fg: var(--foreground);
+  --code-keyword: oklch(0.5 0.19 20);
+  --code-string: oklch(0.38 0.11 260);
+  --code-comment: oklch(0.52 0.01 95);
+  --code-number: oklch(0.48 0.15 250);
+  --code-title: oklch(0.43 0.16 300);
+  --code-attr: oklch(0.52 0.17 40);
+
+  /* Dark palette, defined once here and consumed by [data-theme="dark"] and the
+     prefers-color-scheme system block below, so the values aren't duplicated. */
+  --dark-background: oklch(0.24 0.008 255);
+  --dark-foreground: oklch(0.9 0.006 255);
+  --dark-card: oklch(0.275 0.009 255);
+  --dark-card-foreground: oklch(0.9 0.006 255);
+  --dark-popover: oklch(0.32 0.01 255);
+  --dark-popover-foreground: oklch(0.92 0.006 255);
+  --dark-secondary: oklch(0.33 0.011 255);
+  --dark-secondary-foreground: oklch(0.88 0.006 255);
+  --dark-muted: oklch(0.35 0.011 255);
+  --dark-muted-foreground: oklch(0.72 0.007 255);
+  --dark-accent: oklch(0.39 0.018 250);
+  --dark-accent-foreground: oklch(0.94 0.006 255);
+  --dark-destructive: oklch(0.64 0.18 24);
+  --dark-destructive-foreground: oklch(0.98 0.004 255);
+  --dark-success: oklch(0.7 0.15 155);
+  --dark-success-foreground: oklch(0.2 0.03 155);
+  --dark-warning: oklch(0.78 0.14 75);
+  --dark-warning-foreground: oklch(0.25 0.03 75);
+  --dark-shadow-float:
+    0 1px 2px hsl(0 0% 0% / 0.3), 0 8px 24px -6px hsl(0 0% 0% / 0.4), 0 24px 56px -16px hsl(0 0% 0% / 0.5);
+  --dark-border: oklch(0.38 0.01 255);
+  --dark-input: oklch(0.42 0.011 255);
+  --dark-overlay: oklch(0 0 0);
+  --dark-sidebar: oklch(0.21 0.009 255);
+  --dark-sidebar-foreground: oklch(0.76 0.007 255);
+  --dark-sidebar-accent: oklch(0.31 0.015 250);
+  --dark-sidebar-accent-foreground: oklch(0.9 0.006 255);
+  --dark-primary: oklch(0.66 0.11 250);
+  --dark-primary-foreground: oklch(0.24 0.008 255);
+  --dark-ring: oklch(0.58 0.095 250);
+  --dark-code-bg: oklch(0.2 0.01 255);
+  --dark-code-fg: var(--dark-foreground);
+  --dark-code-keyword: oklch(0.72 0.17 20);
+  --dark-code-string: oklch(0.75 0.09 200);
+  --dark-code-comment: oklch(0.6 0.01 255);
+  --dark-code-number: oklch(0.75 0.12 250);
+  --dark-code-title: oklch(0.78 0.12 300);
+  --dark-code-attr: oklch(0.78 0.14 60);
+
+  /* Accent anchors: light/dark/sepia/black primary + ring per accent family, referenced
+     from the per-theme accent override blocks so each hue's numbers live once. */
+  --accent-teal-primary-light: oklch(0.45 0.09 195);
+  --accent-teal-primary-dark: oklch(0.66 0.12 195);
+  --accent-teal-primary-sepia: oklch(0.4 0.09 195);
+  --accent-teal-primary-black: oklch(0.7 0.12 195);
+  --accent-teal-ring-dark: oklch(0.58 0.105 195);
+  --accent-teal-ring-black: oklch(0.62 0.105 195);
+
+  --accent-green-primary-light: oklch(0.45 0.11 145);
+  --accent-green-primary-dark: oklch(0.66 0.14 145);
+  --accent-green-primary-sepia: oklch(0.4 0.11 145);
+  --accent-green-primary-black: oklch(0.7 0.14 145);
+  --accent-green-ring-dark: oklch(0.58 0.125 145);
+  --accent-green-ring-black: oklch(0.62 0.125 145);
+
+  --accent-amber-primary-light: oklch(0.45 0.12 75);
+  --accent-amber-primary-dark: oklch(0.66 0.15 75);
+  --accent-amber-primary-sepia: oklch(0.4 0.12 75);
+  --accent-amber-primary-black: oklch(0.7 0.15 75);
+  --accent-amber-ring-dark: oklch(0.58 0.135 75);
+  --accent-amber-ring-black: oklch(0.62 0.135 75);
+
+  --accent-rose-primary-light: oklch(0.45 0.14 350);
+  --accent-rose-primary-dark: oklch(0.66 0.16 350);
+  --accent-rose-primary-sepia: oklch(0.4 0.14 350);
+  --accent-rose-primary-black: oklch(0.7 0.16 350);
+  --accent-rose-ring-dark: oklch(0.58 0.145 350);
+  --accent-rose-ring-black: oklch(0.62 0.145 350);
+
+  --accent-violet-primary-light: oklch(0.45 0.13 300);
+  --accent-violet-primary-dark: oklch(0.66 0.16 300);
+  --accent-violet-primary-sepia: oklch(0.4 0.13 300);
+  --accent-violet-primary-black: oklch(0.7 0.16 300);
+  --accent-violet-ring-dark: oklch(0.58 0.145 300);
+  --accent-violet-ring-black: oklch(0.62 0.145 300);
+
   --font-sans:
     ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
@@ -43,43 +149,315 @@
   --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
   --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
   --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
-  --shadow-float:
-    0 1px 2px hsl(0 0% 0% / 0.05), 0 8px 24px -6px hsl(0 0% 0% / 0.1), 0 24px 56px -16px hsl(0 0% 0% / 0.14);
 }
 
+/* Dark — explicit choice, regardless of OS preference. */
+:root[data-theme="dark"] {
+  --background: var(--dark-background);
+  --foreground: var(--dark-foreground);
+  --card: var(--dark-card);
+  --card-foreground: var(--dark-card-foreground);
+  --popover: var(--dark-popover);
+  --popover-foreground: var(--dark-popover-foreground);
+  --primary: var(--dark-primary);
+  --primary-foreground: var(--dark-primary-foreground);
+  --secondary: var(--dark-secondary);
+  --secondary-foreground: var(--dark-secondary-foreground);
+  --muted: var(--dark-muted);
+  --muted-foreground: var(--dark-muted-foreground);
+  --accent: var(--dark-accent);
+  --accent-foreground: var(--dark-accent-foreground);
+  --destructive: var(--dark-destructive);
+  --destructive-foreground: var(--dark-destructive-foreground);
+  --success: var(--dark-success);
+  --success-foreground: var(--dark-success-foreground);
+  --warning: var(--dark-warning);
+  --warning-foreground: var(--dark-warning-foreground);
+  --shadow-float: var(--dark-shadow-float);
+  --border: var(--dark-border);
+  --input: var(--dark-input);
+  --ring: var(--dark-ring);
+  --overlay: var(--dark-overlay);
+  --sidebar: var(--dark-sidebar);
+  --sidebar-foreground: var(--dark-sidebar-foreground);
+  --sidebar-accent: var(--dark-sidebar-accent);
+  --sidebar-accent-foreground: var(--dark-sidebar-accent-foreground);
+  --code-bg: var(--dark-code-bg);
+  --code-fg: var(--dark-code-fg);
+  --code-keyword: var(--dark-code-keyword);
+  --code-string: var(--dark-code-string);
+  --code-comment: var(--dark-code-comment);
+  --code-number: var(--dark-code-number);
+  --code-title: var(--dark-code-title);
+  --code-attr: var(--dark-code-attr);
+}
+
+/* System — the dark palette applies only when the OS prefers dark AND the user hasn't
+   explicitly picked light/sepia/black. Reuses the same --dark-* values as above. */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: oklch(0.24 0.008 255);
-    --foreground: oklch(0.9 0.006 255);
-    --card: oklch(0.275 0.009 255);
-    --card-foreground: oklch(0.9 0.006 255);
-    --popover: oklch(0.32 0.01 255);
-    --popover-foreground: oklch(0.92 0.006 255);
-    --primary: oklch(0.66 0.11 250);
-    --primary-foreground: oklch(0.24 0.008 255);
-    --secondary: oklch(0.33 0.011 255);
-    --secondary-foreground: oklch(0.88 0.006 255);
-    --muted: oklch(0.35 0.011 255);
-    --muted-foreground: oklch(0.72 0.007 255);
-    --accent: oklch(0.39 0.018 250);
-    --accent-foreground: oklch(0.94 0.006 255);
-    --destructive: oklch(0.64 0.18 24);
-    --destructive-foreground: oklch(0.98 0.004 255);
-    --success: oklch(0.7 0.15 155);
-    --success-foreground: oklch(0.2 0.03 155);
-    --warning: oklch(0.78 0.14 75);
-    --warning-foreground: oklch(0.25 0.03 75);
-    --shadow-float:
-      0 1px 2px hsl(0 0% 0% / 0.3), 0 8px 24px -6px hsl(0 0% 0% / 0.4), 0 24px 56px -16px hsl(0 0% 0% / 0.5);
-    --border: oklch(0.38 0.01 255);
-    --input: oklch(0.42 0.011 255);
-    --ring: oklch(0.58 0.095 250);
-    --overlay: oklch(0 0 0);
-    --sidebar: oklch(0.21 0.009 255);
-    --sidebar-foreground: oklch(0.76 0.007 255);
-    --sidebar-accent: oklch(0.31 0.015 250);
-    --sidebar-accent-foreground: oklch(0.9 0.006 255);
+  :root[data-theme="system"],
+  :root:not([data-theme]) {
+    --background: var(--dark-background);
+    --foreground: var(--dark-foreground);
+    --card: var(--dark-card);
+    --card-foreground: var(--dark-card-foreground);
+    --popover: var(--dark-popover);
+    --popover-foreground: var(--dark-popover-foreground);
+    --primary: var(--dark-primary);
+    --primary-foreground: var(--dark-primary-foreground);
+    --secondary: var(--dark-secondary);
+    --secondary-foreground: var(--dark-secondary-foreground);
+    --muted: var(--dark-muted);
+    --muted-foreground: var(--dark-muted-foreground);
+    --accent: var(--dark-accent);
+    --accent-foreground: var(--dark-accent-foreground);
+    --destructive: var(--dark-destructive);
+    --destructive-foreground: var(--dark-destructive-foreground);
+    --success: var(--dark-success);
+    --success-foreground: var(--dark-success-foreground);
+    --warning: var(--dark-warning);
+    --warning-foreground: var(--dark-warning-foreground);
+    --shadow-float: var(--dark-shadow-float);
+    --border: var(--dark-border);
+    --input: var(--dark-input);
+    --ring: var(--dark-ring);
+    --overlay: var(--dark-overlay);
+    --sidebar: var(--dark-sidebar);
+    --sidebar-foreground: var(--dark-sidebar-foreground);
+    --sidebar-accent: var(--dark-sidebar-accent);
+    --sidebar-accent-foreground: var(--dark-sidebar-accent-foreground);
+    --code-bg: var(--dark-code-bg);
+    --code-fg: var(--dark-code-fg);
+    --code-keyword: var(--dark-code-keyword);
+    --code-string: var(--dark-code-string);
+    --code-comment: var(--dark-code-comment);
+    --code-number: var(--dark-code-number);
+    --code-title: var(--dark-code-title);
+    --code-attr: var(--dark-code-attr);
   }
+
+  /* Non-default accents under system-dark — same anchors as [data-theme="dark"] below. */
+  :root[data-theme="system"][data-accent="teal"],
+  :root:not([data-theme])[data-accent="teal"] {
+    --primary: var(--accent-teal-primary-dark);
+    --primary-foreground: var(--dark-primary-foreground);
+    --ring: var(--accent-teal-ring-dark);
+  }
+  :root[data-theme="system"][data-accent="green"],
+  :root:not([data-theme])[data-accent="green"] {
+    --primary: var(--accent-green-primary-dark);
+    --primary-foreground: var(--dark-primary-foreground);
+    --ring: var(--accent-green-ring-dark);
+  }
+  :root[data-theme="system"][data-accent="amber"],
+  :root:not([data-theme])[data-accent="amber"] {
+    --primary: var(--accent-amber-primary-dark);
+    --primary-foreground: var(--dark-primary-foreground);
+    --ring: var(--accent-amber-ring-dark);
+  }
+  :root[data-theme="system"][data-accent="rose"],
+  :root:not([data-theme])[data-accent="rose"] {
+    --primary: var(--accent-rose-primary-dark);
+    --primary-foreground: var(--dark-primary-foreground);
+    --ring: var(--accent-rose-ring-dark);
+  }
+  :root[data-theme="system"][data-accent="violet"],
+  :root:not([data-theme])[data-accent="violet"] {
+    --primary: var(--accent-violet-primary-dark);
+    --primary-foreground: var(--dark-primary-foreground);
+    --ring: var(--accent-violet-ring-dark);
+  }
+}
+
+/* Sepia — warm paper background, brown-grey text. */
+:root[data-theme="sepia"] {
+  --background: oklch(0.95 0.03 85);
+  --foreground: oklch(0.32 0.025 75);
+  --card: oklch(0.97 0.025 85);
+  --card-foreground: oklch(0.3 0.025 75);
+  --popover: oklch(0.97 0.025 85);
+  --popover-foreground: oklch(0.32 0.025 75);
+  --primary: oklch(0.4 0.08 250);
+  --primary-foreground: oklch(0.97 0.025 85);
+  --secondary: oklch(0.9 0.03 82);
+  --secondary-foreground: oklch(0.35 0.025 75);
+  --muted: oklch(0.9 0.028 83);
+  --muted-foreground: oklch(0.48 0.02 75);
+  --accent: oklch(0.9 0.03 82);
+  --accent-foreground: oklch(0.3 0.025 75);
+  --destructive: oklch(0.48 0.14 25);
+  --destructive-foreground: oklch(0.97 0.02 85);
+  --success: oklch(0.5 0.13 150);
+  --success-foreground: oklch(0.97 0.02 150);
+  --warning: oklch(0.55 0.13 70);
+  --warning-foreground: oklch(0.25 0.03 75);
+  --border: oklch(0.85 0.03 80);
+  --input: oklch(0.78 0.03 80);
+  --ring: oklch(0.4 0.08 250);
+  --overlay: oklch(0 0 0);
+  --sidebar: oklch(0.92 0.03 83);
+  --sidebar-foreground: oklch(0.35 0.025 75);
+  --sidebar-accent: oklch(0.88 0.03 82);
+  --sidebar-accent-foreground: oklch(0.28 0.025 75);
+  --shadow-float:
+    0 1px 2px hsl(30 20% 20% / 0.08), 0 8px 24px -6px hsl(30 20% 20% / 0.14), 0 24px 56px -16px hsl(30 20% 20% / 0.18);
+  --code-bg: oklch(0.9 0.035 80);
+  --code-fg: var(--foreground);
+  --code-keyword: oklch(0.45 0.18 20);
+  --code-string: oklch(0.35 0.1 250);
+  --code-comment: oklch(0.5 0.02 78);
+  --code-number: oklch(0.4 0.14 250);
+  --code-title: oklch(0.4 0.15 300);
+  --code-attr: oklch(0.42 0.16 50);
+}
+
+/* Black — true black background for OLED phones, dimmed borders, same accent story as dark. */
+:root[data-theme="black"] {
+  --background: oklch(0 0 0);
+  --foreground: oklch(0.9 0.006 255);
+  --card: oklch(0.09 0.004 255);
+  --card-foreground: oklch(0.9 0.006 255);
+  --popover: oklch(0.12 0.006 255);
+  --popover-foreground: oklch(0.92 0.006 255);
+  --primary: oklch(0.7 0.11 250);
+  --primary-foreground: oklch(0.08 0 0);
+  --secondary: oklch(0.14 0.006 255);
+  --secondary-foreground: oklch(0.88 0.006 255);
+  --muted: oklch(0.15 0.007 255);
+  --muted-foreground: oklch(0.68 0.007 255);
+  --accent: oklch(0.16 0.012 250);
+  --accent-foreground: oklch(0.92 0.006 255);
+  --destructive: oklch(0.64 0.18 24);
+  --destructive-foreground: oklch(0.06 0 0);
+  --success: oklch(0.7 0.15 155);
+  --success-foreground: oklch(0.08 0.02 155);
+  --warning: oklch(0.78 0.14 75);
+  --warning-foreground: oklch(0.1 0.02 75);
+  --border: oklch(0.22 0.008 255);
+  --input: oklch(0.26 0.009 255);
+  --ring: oklch(0.62 0.095 250);
+  --overlay: oklch(0 0 0);
+  --sidebar: oklch(0.04 0.004 255);
+  --sidebar-foreground: oklch(0.74 0.007 255);
+  --sidebar-accent: oklch(0.18 0.014 250);
+  --sidebar-accent-foreground: oklch(0.9 0.006 255);
+  --shadow-float:
+    0 1px 2px hsl(0 0% 0% / 0.4), 0 8px 24px -6px hsl(0 0% 0% / 0.5), 0 24px 56px -16px hsl(0 0% 0% / 0.6);
+  --code-bg: oklch(0.07 0.004 255);
+  --code-fg: var(--foreground);
+  --code-keyword: oklch(0.75 0.18 20);
+  --code-string: oklch(0.78 0.09 200);
+  --code-comment: oklch(0.62 0.01 255);
+  --code-number: oklch(0.78 0.13 250);
+  --code-title: oklch(0.8 0.13 300);
+  --code-attr: oklch(0.8 0.15 60);
+}
+
+/* Accents — override --primary/--primary-foreground/--ring per theme family. Blue is the
+   default and already baked into each theme block above, so only the other five need
+   overrides here. */
+:root[data-accent="teal"] {
+  --primary: var(--accent-teal-primary-light);
+  --primary-foreground: oklch(0.9818 0.0054 95.0986);
+  --ring: var(--accent-teal-primary-light);
+}
+:root[data-accent="green"] {
+  --primary: var(--accent-green-primary-light);
+  --primary-foreground: oklch(0.9818 0.0054 95.0986);
+  --ring: var(--accent-green-primary-light);
+}
+:root[data-accent="amber"] {
+  --primary: var(--accent-amber-primary-light);
+  --primary-foreground: oklch(0.9818 0.0054 95.0986);
+  --ring: var(--accent-amber-primary-light);
+}
+:root[data-accent="rose"] {
+  --primary: var(--accent-rose-primary-light);
+  --primary-foreground: oklch(0.9818 0.0054 95.0986);
+  --ring: var(--accent-rose-primary-light);
+}
+:root[data-accent="violet"] {
+  --primary: var(--accent-violet-primary-light);
+  --primary-foreground: oklch(0.9818 0.0054 95.0986);
+  --ring: var(--accent-violet-primary-light);
+}
+
+:root[data-theme="dark"][data-accent="teal"] {
+  --primary: var(--accent-teal-primary-dark);
+  --primary-foreground: var(--dark-primary-foreground);
+  --ring: var(--accent-teal-ring-dark);
+}
+:root[data-theme="dark"][data-accent="green"] {
+  --primary: var(--accent-green-primary-dark);
+  --primary-foreground: var(--dark-primary-foreground);
+  --ring: var(--accent-green-ring-dark);
+}
+:root[data-theme="dark"][data-accent="amber"] {
+  --primary: var(--accent-amber-primary-dark);
+  --primary-foreground: var(--dark-primary-foreground);
+  --ring: var(--accent-amber-ring-dark);
+}
+:root[data-theme="dark"][data-accent="rose"] {
+  --primary: var(--accent-rose-primary-dark);
+  --primary-foreground: var(--dark-primary-foreground);
+  --ring: var(--accent-rose-ring-dark);
+}
+:root[data-theme="dark"][data-accent="violet"] {
+  --primary: var(--accent-violet-primary-dark);
+  --primary-foreground: var(--dark-primary-foreground);
+  --ring: var(--accent-violet-ring-dark);
+}
+
+:root[data-theme="sepia"][data-accent="teal"] {
+  --primary: var(--accent-teal-primary-sepia);
+  --primary-foreground: oklch(0.97 0.025 85);
+  --ring: var(--accent-teal-primary-sepia);
+}
+:root[data-theme="sepia"][data-accent="green"] {
+  --primary: var(--accent-green-primary-sepia);
+  --primary-foreground: oklch(0.97 0.025 85);
+  --ring: var(--accent-green-primary-sepia);
+}
+:root[data-theme="sepia"][data-accent="amber"] {
+  --primary: var(--accent-amber-primary-sepia);
+  --primary-foreground: oklch(0.97 0.025 85);
+  --ring: var(--accent-amber-primary-sepia);
+}
+:root[data-theme="sepia"][data-accent="rose"] {
+  --primary: var(--accent-rose-primary-sepia);
+  --primary-foreground: oklch(0.97 0.025 85);
+  --ring: var(--accent-rose-primary-sepia);
+}
+:root[data-theme="sepia"][data-accent="violet"] {
+  --primary: var(--accent-violet-primary-sepia);
+  --primary-foreground: oklch(0.97 0.025 85);
+  --ring: var(--accent-violet-primary-sepia);
+}
+
+:root[data-theme="black"][data-accent="teal"] {
+  --primary: var(--accent-teal-primary-black);
+  --primary-foreground: oklch(0.08 0 0);
+  --ring: var(--accent-teal-ring-black);
+}
+:root[data-theme="black"][data-accent="green"] {
+  --primary: var(--accent-green-primary-black);
+  --primary-foreground: oklch(0.08 0 0);
+  --ring: var(--accent-green-ring-black);
+}
+:root[data-theme="black"][data-accent="amber"] {
+  --primary: var(--accent-amber-primary-black);
+  --primary-foreground: oklch(0.08 0 0);
+  --ring: var(--accent-amber-ring-black);
+}
+:root[data-theme="black"][data-accent="rose"] {
+  --primary: var(--accent-rose-primary-black);
+  --primary-foreground: oklch(0.08 0 0);
+  --ring: var(--accent-rose-ring-black);
+}
+:root[data-theme="black"][data-accent="violet"] {
+  --primary: var(--accent-violet-primary-black);
+  --primary-foreground: oklch(0.08 0 0);
+  --ring: var(--accent-violet-ring-black);
 }
 
 @theme inline {
@@ -345,4 +723,93 @@
 .studium-prose-compact :where(th) {
   background: var(--muted);
   font-weight: 600;
+}
+
+/*
+ * Code highlighting (Slice C): replaces the light-only `highlight.js/styles/github.css`
+ * import that MarkdownView used to pull in (removed there). CodeBlock.tsx renders
+ * highlight.js's own markup — `<code class="language-x">` with `.hljs-*` token spans
+ * inside — so this just maps those classes to the theme's `--code-*` variables instead
+ * of a fixed light palette. Scoped to the Reader's full `.studium-prose` (not the chat
+ * dock's `.studium-prose-compact`, which never runs code through highlight.js and keeps
+ * its own plain `--muted` block styling above).
+ */
+.studium-prose:not(.studium-prose-compact) pre:has(code[class*="language-"]) {
+  background: var(--code-bg);
+}
+.studium-prose:not(.studium-prose-compact) pre:has(code[class*="language-"]) code {
+  color: var(--code-fg);
+}
+.hljs-doctag,
+.hljs-keyword,
+.hljs-meta .hljs-keyword,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type,
+.hljs-variable.language_ {
+  color: var(--code-keyword);
+}
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.class_.inherited__,
+.hljs-title.function_ {
+  color: var(--code-title);
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-literal,
+.hljs-meta,
+.hljs-number,
+.hljs-operator,
+.hljs-variable,
+.hljs-selector-attr,
+.hljs-selector-class,
+.hljs-selector-id {
+  color: var(--code-number);
+}
+.hljs-regexp,
+.hljs-string,
+.hljs-meta .hljs-string {
+  color: var(--code-string);
+}
+.hljs-built_in,
+.hljs-symbol {
+  color: var(--code-attr);
+}
+.hljs-comment,
+.hljs-code,
+.hljs-formula {
+  color: var(--code-comment);
+}
+.hljs-name,
+.hljs-quote,
+.hljs-selector-tag,
+.hljs-selector-pseudo {
+  color: var(--code-title);
+}
+.hljs-subst {
+  color: var(--code-fg);
+}
+.hljs-section {
+  color: var(--code-title);
+  font-weight: bold;
+}
+.hljs-bullet {
+  color: var(--code-number);
+}
+.hljs-emphasis {
+  color: var(--code-fg);
+  font-style: italic;
+}
+.hljs-strong {
+  color: var(--code-fg);
+  font-weight: bold;
+}
+.hljs-addition {
+  color: var(--success);
+  background-color: color-mix(in oklch, var(--success) 15%, transparent);
+}
+.hljs-deletion {
+  color: var(--destructive);
+  background-color: color-mix(in oklch, var(--destructive) 15%, transparent);
 }

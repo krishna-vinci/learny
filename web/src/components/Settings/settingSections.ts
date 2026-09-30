@@ -9,6 +9,7 @@ import {
   LaptopIcon,
   LogOutIcon,
   type LucideIcon,
+  PaletteIcon,
   ServerIcon,
   Settings2Icon,
   UserIcon,
@@ -16,6 +17,7 @@ import {
 } from "lucide-react";
 import type { ComponentType } from "react";
 import AccessTokenSection from "./AccessTokenSection";
+import AppearanceSection from "./AppearanceSection";
 import BackupsSection from "./BackupsSection";
 import DataSection from "./DataSection";
 import GeneralSection from "./GeneralSection";
@@ -30,6 +32,7 @@ import SSOSection from "./SSOSection";
 
 export type SettingSectionKey =
   | "my-account"
+  | "appearance"
   | "sessions"
   | "access-tokens"
   | "notifications"
@@ -54,6 +57,7 @@ export interface SettingSectionDefinition {
 
 export const SETTINGS_SECTIONS: SettingSectionDefinition[] = [
   { key: "my-account", scope: "basic", label: "My account", icon: UserIcon, component: MyAccountSection },
+  { key: "appearance", scope: "basic", label: "Appearance", icon: PaletteIcon, component: AppearanceSection },
   { key: "sessions", scope: "basic", label: "Sessions", icon: LaptopIcon, component: SessionsSection },
   { key: "access-tokens", scope: "basic", label: "Access tokens", icon: KeyRoundIcon, component: AccessTokenSection },
   { key: "notifications", scope: "basic", label: "Notifications", icon: BellIcon, component: NotificationsSection },
