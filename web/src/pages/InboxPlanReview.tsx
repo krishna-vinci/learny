@@ -247,7 +247,8 @@ export function PlanReview({ set, item, onBack }: { set: string; item: InboxItem
             </div>
           </div>
         )}
-        <div className="flex gap-2">
+        {/* pe-20 on phones keeps Approve clear of the floating chat button. */}
+        <div className="flex gap-2 pe-20 md:pe-0">
           <Button
             variant="outline"
             className="h-11 flex-1 md:h-9 md:flex-none"

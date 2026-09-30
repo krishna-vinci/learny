@@ -184,7 +184,10 @@ function BookCard({ set, jobs }: { set: string; jobs: JobView[] }) {
   const running = bookJobs.find(isActiveJob);
   // The newest job decides whether a failure is still the current story.
   const latest = bookJobs.at(0);
-  const failed = latest?.status === "failed" ? latest : undefined;
+  const builtAt = book?.lastModified ? Date.parse(book.lastModified) : Number.NaN;
+  const finishedAt = latest?.finishedAt ? Date.parse(latest.finishedAt) : Number.NaN;
+  // A failure older than the current book is no longer the story (Last-Modified has 1 s resolution).
+  const failed = latest?.status === "failed" && !(builtAt + 999 >= finishedAt) ? latest : undefined;
   const built = formatBuilt(book?.lastModified ?? null);
 
   async function build() {
@@ -283,7 +286,7 @@ export default function SetHomePage() {
         {plan?.body && <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{goalText(plan.body)}</p>}
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
         <ActionButton
           icon={NotebookTextIcon}
           label="New chapter"

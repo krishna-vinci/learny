@@ -209,7 +209,7 @@ export function DocsSiteTab({ defaultSet, onClose }: { defaultSet?: string | nul
             </span>
           </div>
           {atCap && (
-            <p className="rounded-md border border-warning/40 bg-warning/10 px-2 py-1.5 text-xs text-warning-foreground">
+            <p className="rounded-md border border-warning/40 bg-warning/10 px-2 py-1.5 text-xs text-foreground">
               Imports are limited to {MAX_IMPORT_PAGES} pages at a time. Import these, then find more.
             </p>
           )}
