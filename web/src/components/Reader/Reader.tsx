@@ -2,9 +2,10 @@ import type { FileView } from "@studium/shared";
 import { HistoryIcon, LayersIcon, PencilIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import { useSaveFile } from "@/api/queries";
+import { showJobStartedToast } from "@/components/Activity/job-start-toast";
 import { NoteHistory } from "@/components/NoteHistory";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -135,14 +136,7 @@ export function Reader({ set, path, file, className }: ReaderProps) {
     setMakingCards(true);
     try {
       await api.jobs.create({ kind: "make-cards", set, note: path });
-      toast.success(
-        <span>
-          Making cards…{" "}
-          <Link to="/jobs" className="underline" onClick={() => toast.dismiss()}>
-            View jobs
-          </Link>
-        </span>,
-      );
+      showJobStartedToast(titleFromFrontmatter(file));
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Failed to start the cards job.");
     } finally {

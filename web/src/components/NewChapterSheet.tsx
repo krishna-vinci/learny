@@ -4,9 +4,9 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "react-hot-toast";
-import { useNavigate } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import { useLibrary } from "@/api/queries";
+import { showJobStartedToast } from "@/components/Activity/job-start-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,7 +29,6 @@ export function NewChapterSheet({ set, onClose }: NewChapterSheetProps) {
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const { data: sources = [] } = useLibrarySourceOptions();
-  const navigate = useNavigate();
 
   function toggleSource(id: string) {
     setSelectedSources((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
@@ -47,9 +46,8 @@ export function NewChapterSheet({ set, onClose }: NewChapterSheetProps) {
         ...(brief.trim() ? { brief: brief.trim() } : {}),
         ...(selectedSources.length > 0 ? { sources: selectedSources } : {}),
       });
-      toast.success("Draft job started");
+      showJobStartedToast(trimmedTitle);
       onClose();
-      navigate("/jobs");
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Failed to start job.");
     } finally {

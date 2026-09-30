@@ -7,6 +7,9 @@ import type { CSSProperties } from "react";
 import { useRef } from "react";
 import { Outlet } from "react-router-dom";
 import { useLiveStudiumUpdates } from "@/api/queries";
+import { DesktopActivityIndicator } from "@/components/Activity/ActivityIndicator";
+import { JobTitleBadge } from "@/components/Activity/JobTitleBadge";
+import { JobToasts } from "@/components/Activity/JobToasts";
 import AppSidebar, {
   MobileAppHeader,
   MobileAppSidebar,
@@ -27,14 +30,17 @@ import { cn } from "@/lib/utils";
 function CollapsedSidebarRail({ onExpand }: { onExpand: () => void }) {
   return (
     <div className="flex h-full w-full flex-col items-center bg-sidebar pt-2">
-      <Tooltip>
-        <TooltipTrigger
-          render={<Button variant="quiet" size="icon-compact" onClick={onExpand} aria-label="Expand sidebar" />}
-        >
-          <PanelLeftOpenIcon className="size-4" />
-        </TooltipTrigger>
-        <TooltipContent side="right">Expand sidebar</TooltipContent>
-      </Tooltip>
+      <div className="flex flex-col items-center gap-1">
+        <DesktopActivityIndicator />
+        <Tooltip>
+          <TooltipTrigger
+            render={<Button variant="quiet" size="icon-compact" onClick={onExpand} aria-label="Expand sidebar" />}
+          >
+            <PanelLeftOpenIcon className="size-4" />
+          </TooltipTrigger>
+          <TooltipContent side="right">Expand sidebar</TooltipContent>
+        </Tooltip>
+      </div>
     </div>
   );
 }
@@ -53,6 +59,8 @@ const RootLayoutContent = () => {
       className="min-h-full w-full bg-background"
       style={{ [SIDEBAR_WIDTH_VAR]: `${effectiveSidebarWidth}px` } as CSSProperties}
     >
+      <JobToasts />
+      <JobTitleBadge />
       <div className="fixed inset-y-0 start-0 z-30 hidden w-(--app-sidebar-width) border-e border-border/70 md:block">
         {collapsed ? (
           <CollapsedSidebarRail onExpand={() => setCollapsed(false)} />

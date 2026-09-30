@@ -4,6 +4,7 @@
 import { ArrowDownIcon, PlusIcon, SendIcon, SquareIcon } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { openActivityPanel } from "@/components/Activity/activity-store";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -33,9 +34,13 @@ function ProposalCard({
         <p className="font-medium text-foreground">{proposal.title}</p>
         <p className="mt-1 text-muted-foreground">
           Started ·{" "}
-          <Link to="/jobs" className="text-primary underline">
-            view in Jobs
-          </Link>
+          <button
+            type="button"
+            className="text-primary underline"
+            onClick={() => proposal.jobId && openActivityPanel(proposal.jobId)}
+          >
+            view activity
+          </button>
         </p>
       </div>
     );
