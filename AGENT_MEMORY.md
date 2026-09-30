@@ -55,6 +55,8 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - The study tree git repo auto-commits per role author (tutor/librarian/drafter/checker/cardsmith/critic/user/system).
 
 ## Gotchas learned the hard way
+- **A new JobKind needs web updates too:** `web/src/components/Activity/ActivityPanelContent.tsx` `KIND_ICONS` is `Record<JobKind, …>`, so server tasks that add a kind must also run the web `tsc --noEmit`.
+- **Test fixtures with a legacy tree:** create the admin from env (`STUDIUM_USERNAME` plus `STUDIUM_PASSWORD_HASH` from `printf 'pw\n' | pnpm --filter @studium/server --silent hash-password`) so it exists at FIRST boot. `/setup` creates an empty workspace, and then the legacy tree never migrates.
 - **Claude cloud tasks:** a self-contained plan in `docs/plans/` → the cloud session works on a `claude/<task>` branch → PR → the orchestrator fetches it into a review worktree, merges main in, reruns tests and merges with `gh pr merge`. The cloud can't see local data or services.
 - **Default skills:** edit `skills/*` in the repo, then run `node scripts/skill-history.mjs` so `skills/.defaults-history.json` records the new hashes. On boot, `syncDefaultSkills` updates tree copies that match a known earlier default, keeps user-edited ones, and commits `system: update default skills`.
 - **Tools on the host:** `pandoc` 3.12 and `typst` 0.15.1 are in `~/.local/bin` (the service PATH includes it). MinerU isn't deployed yet (`MINERU_URL` unset).
@@ -78,9 +80,10 @@ The orchestrator keeps the rest of this file current. When something listed unde
   - M0 skeleton, M1 sources→notes, M2 cards
   - M3a platform: accounts and SSO, per-user trees, backups, notifications, export, service
   - M3b slices A (background jobs UX), B (reading comfort), C (themes)
-- **In progress:** M4 study loop (`docs/plans/2026-09-30-m4-study-loop.md`). Merged: M4-0 skills, M4-1 Today API, M4-2 search, M4-3 quotes + highlights, M4-4 Outliner/plan-set, M4-5 book PDF, M4-6 site import. Running: M4-7a UI (Today, ⌘K, selection + highlights) on Sol. Next: M4-7b UI (plan a set, plan review, book button, site import, chat proposal cards) → Sonnet cloud; then M4-8 review.
+- **In progress:** M4 study loop (`docs/plans/2026-09-30-m4-study-loop.md`). Merged: M4-0 through M4-6 and M4-7a (Today, ⌘K search, selection + highlights). Next: M4-7b remaining screens (Claude cloud, `docs/plans/2026-10-01-m4-7b-cloud.md`), the search-snippet plain-text fix, then M4-8 review.
 
 ## Open gaps
+- **Search snippets show raw markdown and mermaid source** (e.g. `U["U"] --> Ax…`). The index should store plain text: strip fenced code/mermaid blocks, markdown syntax, frontmatter and footnote definitions from `body` in `server/src/search/index.ts`, and keep code blocks out of snippets.
 - **Book PDF layout:** callout boxes can split across pages, leaving an orphaned header (e.g. "Deeper" at the bottom of p5, its body on p6, and a mostly blank page). Keep a callout's header with its first lines (`block(breakable: …)` or `sticky` in `server/templates/book/book.typ` / `callouts.lua`). Mermaid appears as "(diagram in the app)".
 - **shadcn migration (deferred to M6):** batches D1–D5 in `docs/prompts/m3b-slice-d.md`, with the map in `docs/prompts/m3b-d-uimap.md` (the map will go stale; refresh it before running). New UI should still prefer the existing `components/ui` kit.
 - **Skills update** (awaiting the owner's go):
@@ -96,6 +99,7 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - **Backups:** not configured yet on the live instance. The owner does this in Settings → Backups.
 
 ## Recently done
+- M4-7a Today page, ⌘K search, selection actions + highlights (003723f)
 - M4-4 Outliner + plan-set + plan approval + curriculum fix (38d4722)
 - M4-5 book PDF (10b5d71): 18-page A5 book of linear-algebra verified
 - PR #1 M0–M2 follow-ups (51f8bfe): revert scope, persisted chat proposals (server), resumed-ingest title, directive titles · M4-6 site import (40c34cd)
@@ -116,3 +120,4 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - 2026-09-30 · PR #1 (Claude cloud, Sonnet) · revert scope (`git.ts` changedPaths/revertPaths, 409 or `scope:"set"`); chat proposals sidecar `<set>/chats/<id>.proposals.json` + GET/DELETE routes; resumed-ingest title; directive `{title=}` · the web proposals UI is still open.
 - 2026-09-30 · M4-5 (Sol 6.1) · `jobs/book-{assemble,paths,job}.ts`, `routes/book.ts`, `templates/book/{book.typ,callouts.lua}`, Dockerfile pinned pandoc/typst · AI gate exempts only direct compile-book jobs · callouts can split badly across pages.
 - 2026-09-30 · M4-4 (Sol 6.1) · Outliner role (writes only `<set>/plan-proposals/`), `jobs/plan-job.ts`, `inbox/plans.ts`, plan GET/approve/discard in `routes/inbox.ts`, `tree/curriculum.ts`, `skills/plan-set`; `tree/edit.ts` `writeTextLocked` (requires the held lock) · approve returns `{sha, jobIds}`; draft jobs tick curriculum lines · UI in M4-7b.
+- 2026-10-01 · M4-7a (Sol 6.1) · `pages/TodayPage.tsx` (landing), `components/Search/*`, `Reader/ReaderPassages.tsx` + `highlight-{dom,text}.ts`, chat quote plumbing · 93 real-click checks at 390/1440 in light and dark · snippets show raw markdown (open gap).
