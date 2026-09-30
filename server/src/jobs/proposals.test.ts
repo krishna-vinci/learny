@@ -9,6 +9,43 @@ import { estimateDraftJob, ProposalStore } from "./proposals.js";
 
 const SAMPLE_SET = fileURLToPath(new URL("../../../examples/sample-set", import.meta.url));
 
+describe("ProposalStore persistence", () => {
+  it("survives a restart: pending proposals reload, expired and taken ones do not", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "studium-proposals-"));
+    const file = path.join(dir, ".cache", "proposals.json");
+    let now = 1_000;
+    try {
+      const store = new ProposalStore(() => now, file);
+      const keep = store.create({ set: "linear-algebra", title: "Eigenvalues" }, { tokens: 1_000, costUsd: null });
+      const taken = store.create({ set: "linear-algebra", title: "SVD" }, { tokens: 1_000, costUsd: null });
+      store.take(taken.proposalId);
+
+      const restarted = new ProposalStore(() => now, file);
+      expect(restarted.has(keep.proposalId)).toBe(true);
+      expect(restarted.has(taken.proposalId)).toBe(false);
+      expect(restarted.take(keep.proposalId)).toEqual({ set: "linear-algebra", title: "Eigenvalues" });
+      await expect(fs.access(file)).rejects.toThrow(); // nothing pending: the file is removed
+
+      const expiring = restarted.create({ set: "linear-algebra", title: "Late" }, { tokens: 1, costUsd: null });
+      now += 31 * 60 * 1000;
+      expect(new ProposalStore(() => now, file).has(expiring.proposalId)).toBe(false);
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("ignores a corrupt file", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "studium-proposals-"));
+    const file = path.join(dir, "proposals.json");
+    await fs.writeFile(file, "not json");
+    try {
+      expect(new ProposalStore(Date.now, file).has("anything")).toBe(false);
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("ProposalStore", () => {
   it("stores proposals for 30 minutes and consumes them once", () => {
     let now = 1_000;

@@ -8,12 +8,14 @@ import { ChatService } from "../agent/chat-service.js";
 import { createApp } from "../app.js";
 import { EventHub } from "../events.js";
 import { startInboxWatcher } from "../ingest/inbox-watcher.js";
+import { defaultSiteQueueFile, SiteImportQueue } from "../ingest/site-queue.js";
 import { createBookJob } from "../jobs/book-job.js";
 import { createCardsJob } from "../jobs/cards-job.js";
 import { createDraftJob } from "../jobs/draft-job.js";
 import { createIngestJob } from "../jobs/ingest-job.js";
 import { loadJobHistory } from "../jobs/log.js";
 import { createPlanJob } from "../jobs/plan-job.js";
+import { ProposalStore } from "../jobs/proposals.js";
 import { JobRunner } from "../jobs/runner.js";
 import { McpManager } from "../mcp/bridge.js";
 import { loadMcpConfig } from "../mcp/config.js";
@@ -174,7 +176,12 @@ export class WorkspaceManager {
     jobs.register("compile-book", createBookJob({ root, locks }));
     jobs.seedHistory(await loadJobHistory(root));
 
-    const chats = new ChatService({ root, hub, locks, mcp, runtime: this.#runtime, jobs });
+    // Pending chat job proposals and the site-import queue live in the workspace's (git-ignored) .cache, so
+    // they survive a restart. Expired proposals are dropped on load; unfinished imports are re-queued.
+    const proposals = new ProposalStore(Date.now, path.join(root, ".cache", "proposals.json"));
+    const siteQueue = new SiteImportQueue({ root, hub, jobs, file: defaultSiteQueueFile(root) });
+    void siteQueue.resume().catch((error) => console.warn(`studium: resuming site imports for ${username}`, error));
+    const chats = new ChatService({ root, hub, locks, mcp, runtime: this.#runtime, jobs, proposals });
     const search = openSearchIndex(root);
     const reportSearchError = (error: unknown) => console.warn(`studium: search index for ${username}`, error);
     void search.rebuildAll().catch(reportSearchError);
@@ -191,6 +198,8 @@ export class WorkspaceManager {
       chats,
       jobs,
       search,
+      proposals,
+      siteQueue,
       settings: { runtime: this.#runtime, mcp, env: process.env },
     });
 
@@ -214,6 +223,7 @@ export class WorkspaceManager {
         stopped = true;
         stopNotifications();
         stopSearchUpdates();
+        siteQueue.dispose();
         await stopWatcher().catch(() => undefined);
         await search.close();
         if (stopInboxWatcher !== null) await stopInboxWatcher().catch(() => undefined);

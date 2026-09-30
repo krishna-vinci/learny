@@ -2,6 +2,8 @@ import { Hono } from "hono";
 import type { ChatService } from "./agent/chat-service.js";
 import { chatRoutes } from "./agent/routes.js";
 import type { EventHub } from "./events.js";
+import type { SiteImportQueue } from "./ingest/site-queue.js";
+import type { ProposalStore } from "./jobs/proposals.js";
 import { jobsRoutes } from "./jobs/routes.js";
 import type { JobRunner } from "./jobs/runner.js";
 import { ankiRoutes } from "./routes/anki.js";
@@ -27,6 +29,9 @@ export interface AppDeps {
   jobs?: JobRunner;
   search?: SearchIndex;
   settings?: SettingsRouteDeps;
+  /** Per-workspace stores that survive a restart (see workspaces/manager.ts). */
+  proposals?: ProposalStore;
+  siteQueue?: SiteImportQueue;
 }
 
 type LegacyAppDeps = Omit<AppDeps, "chats">;
@@ -54,8 +59,14 @@ export function createApp(deps: AppDeps | LegacyAppDeps): Hono {
   }
 
   if (deps.jobs !== undefined) {
-    app.route("/api/jobs", jobsRoutes({ runner: deps.jobs, root: deps.root, hub: deps.hub }));
-    app.route("/api/library", libraryRoutes({ root: deps.root, jobs: deps.jobs, hub: deps.hub }));
+    app.route(
+      "/api/jobs",
+      jobsRoutes({ runner: deps.jobs, root: deps.root, hub: deps.hub, proposals: deps.proposals }),
+    );
+    app.route(
+      "/api/library",
+      libraryRoutes({ root: deps.root, jobs: deps.jobs, hub: deps.hub, siteQueue: deps.siteQueue }),
+    );
   }
 
   if (deps.settings !== undefined) {

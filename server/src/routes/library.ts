@@ -15,6 +15,7 @@ import {
   readSource,
 } from "../ingest/library.js";
 import { assertPublicUrl, SafeFetchError } from "../ingest/safe-fetch.js";
+import { jobTitleFor, SiteImportQueue } from "../ingest/site-queue.js";
 import type { JobRunner } from "../jobs/runner.js";
 import { resolveInRoot } from "../tree/paths.js";
 import { isSetSlug } from "../tree/read.js";
@@ -28,6 +29,8 @@ export interface LibraryRoutesDeps {
   root: string;
   jobs: JobRunner;
   hub: EventHub;
+  /** The workspace's site-import queue (persisted); a private in-memory one is used when omitted. */
+  siteQueue?: SiteImportQueue;
   /** Overridable for tests; defaults to {@link MAX_UPLOAD_BYTES}. */
   maxUploadBytes?: number;
   /** Overridable for tests; defaults to the upload cap plus multipart overhead. */
@@ -58,20 +61,11 @@ async function resolveSet(root: string, value: unknown): Promise<string | null |
   }
 }
 
-function jobTitle(url: string): string {
-  try {
-    const parsed = new URL(url);
-    const last = parsed.pathname
-      .split("/")
-      .filter((part) => part !== "")
-      .pop();
-    return last === undefined ? parsed.hostname : decodeURIComponent(last);
-  } catch {
-    return url;
-  }
-}
-
-export function libraryRoutes(deps: LibraryRoutesDeps): Hono {
+export function libraryRoutes(input: LibraryRoutesDeps): Hono {
+  const deps = {
+    ...input,
+    siteQueue: input.siteQueue ?? new SiteImportQueue({ root: input.root, hub: input.hub, jobs: input.jobs }),
+  };
   const { root } = deps;
   const maxUploadBytes = deps.maxUploadBytes ?? MAX_UPLOAD_BYTES;
   const maxBodyBytes = deps.maxBodyBytes ?? maxUploadBytes + MULTIPART_OVERHEAD_BYTES;
@@ -149,7 +143,7 @@ async function mapSite(c: Context): Promise<Response> {
   }
 }
 
-async function importSite(c: Context, deps: LibraryRoutesDeps): Promise<Response> {
+async function importSite(c: Context, deps: LibraryRoutesDeps & { siteQueue: SiteImportQueue }): Promise<Response> {
   const body = await readJson(c);
   if (
     body === null ||
@@ -190,34 +184,8 @@ async function importSite(c: Context, deps: LibraryRoutesDeps): Promise<Response
     urls.push(url);
   }
 
-  queueSiteImport(deps, urls, set);
+  deps.siteQueue.enqueue(urls, set);
   return c.json({ queued: urls.length, skipped } satisfies SiteImportResponse, 202);
-}
-
-/**
- * Keep at most three outstanding ingest jobs for this import. The remaining URLs
- * stay in this in-memory queue; a workspace job event releases each slot. A running
- * cancellation releases its slot only after the handler exits (finishedAt is set).
- */
-function queueSiteImport(deps: LibraryRoutesDeps, urls: string[], set: string | null): void {
-  if (urls.length === 0) return;
-  const active = new Set<string>();
-  let next = 0;
-  const stop = deps.hub.subscribe((event) => {
-    if (event.type !== "job" || event.job.finishedAt === null || !active.delete(event.job.id)) return;
-    pump();
-  });
-  function pump(): void {
-    while (active.size < 3 && next < urls.length) {
-      const url = urls[next++];
-      if (url === undefined) break;
-      const input: IngestJobInput = { url, set };
-      const job = deps.jobs.enqueue("ingest", input, { set, title: jobTitle(url) });
-      active.add(job.id);
-    }
-    if (next === urls.length && active.size === 0) stop();
-  }
-  pump();
 }
 
 async function addUrl(c: Context, deps: LibraryRoutesDeps): Promise<Response> {
@@ -242,7 +210,7 @@ async function addUrl(c: Context, deps: LibraryRoutesDeps): Promise<Response> {
   }
 
   const input: IngestJobInput = { url, set };
-  const job = deps.jobs.enqueue("ingest", input, { set, title: jobTitle(url) });
+  const job = deps.jobs.enqueue("ingest", input, { set, title: jobTitleFor(url) });
   return c.json({ jobId: job.id }, 202);
 }
 

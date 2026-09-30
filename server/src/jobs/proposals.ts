@@ -1,4 +1,4 @@
-import { promises as fs } from "node:fs";
+import { promises as fs, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { Api, Model } from "@earendil-works/pi-ai";
 import { defineTool, type ModelRuntime, type ToolDefinition } from "@earendil-works/pi-coding-agent";
@@ -41,9 +41,16 @@ function cloneInput(input: ProposalInput): ProposalInput {
 export class ProposalStore {
   readonly #items = new Map<string, StoredProposal>();
   readonly #now: () => number;
+  readonly #file: string | null;
 
-  constructor(now: () => number = Date.now) {
+  /**
+   * With `file`, pending proposals survive a server restart: they are written (atomically) to that
+   * JSON file on every change and reloaded, unexpired ones only, when the store is created.
+   */
+  constructor(now: () => number = Date.now, file: string | null = null) {
     this.#now = now;
+    this.#file = file;
+    if (file !== null) this.#load(file);
   }
 
   create(input: DraftChapterInput, estimate: JobProposalEvent["estimate"]): JobProposalEvent {
@@ -66,6 +73,7 @@ export class ProposalStore {
       input: cloneInput(input),
       expiresAt: this.#now() + PROPOSAL_TTL_MS,
     });
+    this.#save();
     return { kind: "job_proposal", proposalId, jobKind, title, estimate };
   }
 
@@ -74,6 +82,7 @@ export class ProposalStore {
     const stored = this.#items.get(proposalId);
     if (stored === undefined) return null;
     this.#items.delete(proposalId);
+    this.#save();
     return cloneInput(stored.input);
   }
 
@@ -84,13 +93,52 @@ export class ProposalStore {
   }
 
   discard(proposalId: string): void {
-    this.#items.delete(proposalId);
+    if (this.#items.delete(proposalId)) this.#save();
   }
 
   #prune(): void {
     const now = this.#now();
+    let removed = false;
     for (const [id, proposal] of this.#items) {
-      if (proposal.expiresAt <= now) this.#items.delete(id);
+      if (proposal.expiresAt <= now) {
+        this.#items.delete(id);
+        removed = true;
+      }
+    }
+    if (removed) this.#save();
+  }
+
+  #load(file: string): void {
+    try {
+      const parsed: unknown = JSON.parse(readFileSync(file, "utf8"));
+      if (!Array.isArray(parsed)) return;
+      const now = this.#now();
+      for (const entry of parsed) {
+        if (typeof entry !== "object" || entry === null) continue;
+        const { id, input, expiresAt } = entry as { id?: unknown; input?: unknown; expiresAt?: unknown };
+        if (typeof id !== "string" || typeof expiresAt !== "number" || expiresAt <= now) continue;
+        if (typeof input !== "object" || input === null || typeof (input as { set?: unknown }).set !== "string")
+          continue;
+        this.#items.set(id, { input: input as ProposalInput, expiresAt });
+      }
+    } catch {
+      // No file yet, or unreadable: start empty. Proposals are a convenience, never the only copy of data.
+    }
+  }
+
+  #save(): void {
+    if (this.#file === null) return;
+    try {
+      if (this.#items.size === 0) {
+        rmSync(this.#file, { force: true });
+        return;
+      }
+      mkdirSync(path.dirname(this.#file), { recursive: true });
+      const temp = `${this.#file}.tmp-${process.pid}`;
+      writeFileSync(temp, JSON.stringify([...this.#items].map(([id, item]) => ({ id, ...item }))));
+      renameSync(temp, this.#file);
+    } catch (error) {
+      console.warn("studium: could not persist job proposals", error);
     }
   }
 }
