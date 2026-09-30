@@ -55,6 +55,8 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - The study tree git repo auto-commits per role author (tutor/librarian/drafter/checker/cardsmith/critic/user/system).
 
 ## Gotchas learned the hard way
+- **Default skills:** edit `skills/*` in the repo, then run `node scripts/skill-history.mjs` so `skills/.defaults-history.json` records the new hashes. On boot, `syncDefaultSkills` updates tree copies that match a known earlier default, keeps user-edited ones, and commits `system: update default skills`.
+- **Tools on the host:** `pandoc` 3.12 and `typst` 0.15.1 are in `~/.local/bin` (the service PATH includes it). MinerU isn't deployed yet (`MINERU_URL` unset).
 - **Never stop processes broadly** (`pkill node`, `pkill tsx`, `killall`). Stop only the PID of the test server you started (save `$!`). The live app is the `studium.service` user unit on port 3000; a broad kill took the site down on 2026-09-30. The unit now uses `Restart=always`, but still don't do it.
 - **Legacy tree on a fresh test server:** `STUDIUM_STUDY_ROOT` is migrated into the admin's tree only at boot, once an admin exists. After creating the admin via `/setup`, restart the test server once.
 - **Puppeteer and the PWA:** the service worker's `controllerchange` reload breaks `evaluate()`-based clicks. Use `elementHandle.click()` with `Promise.all([waitForNavigation, …])` (see the `stableGoto` helper in the shot scripts).
@@ -75,7 +77,7 @@ The orchestrator keeps the rest of this file current. When something listed unde
   - M0 skeleton, M1 sources→notes, M2 cards
   - M3a platform: accounts and SSO, per-user trees, backups, notifications, export, service
   - M3b slices A (background jobs UX), B (reading comfort), C (themes)
-- **Next:** M4 study loop. The shadcn migration is deferred to M6 (the owner finishes milestones first).
+- **In progress:** M4 study loop (`docs/plans/2026-09-30-m4-study-loop.md`). Merged: M4-0 skills + skill sync, M4-1 Today API, M4-3 quotes + highlights. Running: M4-2 search. Next: M4-4 Outliner, M4-5 book PDF, M4-6 site import, M4-7 UI (Sonnet). The shadcn migration is deferred to M6.
 
 ## Open gaps
 - **shadcn migration (deferred to M6):** batches D1–D5 in `docs/prompts/m3b-slice-d.md`, with the map in `docs/prompts/m3b-d-uimap.md` (the map will go stale; refresh it before running). New UI should still prefer the existing `components/ui` kit.
@@ -95,6 +97,7 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - **Backups:** not configured yet on the live instance. The owner does this in Settings → Backups.
 
 ## Recently done
+- M4-3 quotes + highlights (62b6e78), M4-1 Today API (e173784), M4-0 research skills + skill sync (718fbba)
 - M3b slice C themes (merge of codex/m3b, 2026-09-30)
 - 499eb3a M3b slice B · 0265a62 M3b slice A · 8b12aca Context7 MCP · Firecrawl v2 + LAN endpoint
 - ceaad1d M3a audit fixes · M3a T1–T5 + web (accounts, SSO, workspaces, backups, notify/export)
@@ -103,3 +106,6 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - 2026-09-30 · m3b-a2 (GLM Flash) · Slice A: `web/src/components/Activity/*`, `lib/job-transitions.ts`, NewChapterSheet/Reader/AddSource/Chat stay in place · the faux model can't finish drafts; verify with real models · none open.
 - 2026-09-30 · m3b-a2 (GLM Flash) · Slice B: `lib/reading-prefs.ts` (extendable for themes), `lib/immersive-store.ts`, `lib/scroll-memory.ts`, `Reader/ReadingSettings.tsx`, ImmersiveExitButton · wake lock can't be tested headless · width default 72 vs 68 undecided.
 - 2026-09-30 · m3b-c (Sonnet) · Slice C: `index.css` theme/accent tokens and code-highlight vars, `lib/theme.ts` + `reading-prefs.ts` (theme/accent), `AppearanceSection.tsx`, sidebar quick toggle, MermaidBlock, `index.html` no-flash script · the legacy migration needs a restart after the first admin exists; use real clicks with waitForNavigation under the PWA reload · none open.
+- 2026-09-30 · M4-0 (Sol 6.1) · `skills/find-sources` + research guidance in 8 skills; `server/src/tree/skill-sync.ts`, `scripts/skill-history.mjs`, `skills/.defaults-history.json` · the live tree updated all 8 and added find-sources on restart · none open.
+- 2026-09-30 · M4-1 (Sol 6.1) · `GET /api/today` (`server/src/today/build.ts`, `routes/today.ts`, `inbox/read.ts`); git `log` gained an `author` filter (orchestrator fix: reads one commit, not the full history) · Today UI is Sonnet's.
+- 2026-09-30 · M4-3 (DeepSeek) · chat `quote` field (`chat-service.ts` `learnerTurn`); highlights API `routes/highlights.ts` at `<set>/highlights/<note>.json`; body key `comment` = annotation · the transcript keeps the full quote.
