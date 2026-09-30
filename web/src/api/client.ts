@@ -4,6 +4,7 @@ import type {
   CardPatch,
   CardView,
   ChatMessage,
+  ChatStreamEvent,
   ChatSummary,
   CommitInfo,
   FileView,
@@ -552,6 +553,16 @@ export const api = {
     },
     abort(set: string, id: string): Promise<void> {
       return request(`/api/sets/${encodeURIComponent(set)}/chats/${encodeURIComponent(id)}/abort`, { method: "POST" });
+    },
+    /** Pending Tutor job proposals, in the shape of the live `job_proposal` stream event. */
+    proposals(set: string, id: string): Promise<{ proposals: Extract<ChatStreamEvent, { kind: "job_proposal" }>[] }> {
+      return request(`/api/sets/${encodeURIComponent(set)}/chats/${encodeURIComponent(id)}/proposals`);
+    },
+    dismissProposal(set: string, id: string, proposalId: string): Promise<void> {
+      return request(
+        `/api/sets/${encodeURIComponent(set)}/chats/${encodeURIComponent(id)}/proposals/${encodeURIComponent(proposalId)}`,
+        { method: "DELETE" },
+      );
     },
   },
 

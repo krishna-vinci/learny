@@ -13,7 +13,7 @@ export interface StreamingMessage {
   tools: StreamingToolCall[];
 }
 
-type JobProposalEvent = Extract<ChatStreamEvent, { kind: "job_proposal" }>;
+export type JobProposalEvent = Extract<ChatStreamEvent, { kind: "job_proposal" }>;
 
 /**
  * A Tutor `start_job` proposal (decision 7): rendered as a Run/Dismiss card attached to
@@ -44,6 +44,7 @@ export interface ChatDockState {
 
 export type ChatDockAction =
   | { type: "reset"; chatId: string | null; messages: ChatMessage[]; running: boolean }
+  | { type: "proposals_loaded"; chatId: string; proposals: JobProposalEvent[] }
   | { type: "stream"; chatId: string; event: ChatStreamEvent }
   | { type: "proposal_started"; proposalId: string; jobId: string }
   | { type: "proposal_dismissed"; proposalId: string };
@@ -120,6 +121,12 @@ function applyStreamEvent(state: ChatDockState, event: ChatStreamEvent): ChatDoc
   }
 }
 
+/** Where a proposal loaded from the server renders: the last message that called `start_job`, else the last message. */
+function proposalAnchor(messages: ChatMessage[]): string {
+  const proposing = messages.findLast((message) => message.tools.some((tool) => tool.name === "start_job"));
+  return (proposing ?? messages.at(-1))?.id ?? "streaming";
+}
+
 export function chatDockReducer(state: ChatDockState, action: ChatDockAction): ChatDockState {
   if (action.type === "reset") {
     return {
@@ -132,6 +139,24 @@ export function chatDockReducer(state: ChatDockState, action: ChatDockAction): C
       error: null,
       proposals: [],
     };
+  }
+  if (action.type === "proposals_loaded") {
+    // Merge only: live cards (and their started/dismissed status) win over the fetched list.
+    if (state.chatId === null || action.chatId !== state.chatId) return state;
+    const known = new Set(state.proposals.map((proposal) => proposal.proposalId));
+    const added = action.proposals
+      .filter((proposal) => !known.has(proposal.proposalId))
+      .map(
+        (proposal): JobProposalCard => ({
+          proposalId: proposal.proposalId,
+          jobKind: proposal.jobKind,
+          title: proposal.title,
+          estimate: proposal.estimate,
+          messageId: proposalAnchor(state.messages),
+          status: "pending",
+        }),
+      );
+    return added.length === 0 ? state : { ...state, proposals: [...state.proposals, ...added] };
   }
   if (action.type === "proposal_started") {
     return {
