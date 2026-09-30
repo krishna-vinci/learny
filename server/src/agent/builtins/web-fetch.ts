@@ -1,6 +1,7 @@
 import { defineTool, type ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
-import { assertPublicUrl, decodeBody, readCappedResponse, safeFetch } from "../../ingest/safe-fetch.js";
+import { firecrawlScrape } from "../../ingest/firecrawl.js";
+import { assertPublicUrl, decodeBody, safeFetch } from "../../ingest/safe-fetch.js";
 
 const DOWNLOAD_TIMEOUT_MS = 15_000;
 const MAX_DOWNLOAD_BYTES = 5 * 1024 * 1024;
@@ -28,17 +29,6 @@ function errorResult(error: unknown) {
   return {
     content: [{ type: "text" as const, text: `Error: ${message}` }],
     details: { isError: true as boolean, summary: message } satisfies ToolDetails,
-  };
-}
-
-function withTimeout(controller = new AbortController()): { signal: AbortSignal; stop: () => void } {
-  const timer = setTimeout(() => controller.abort(), DOWNLOAD_TIMEOUT_MS);
-  return {
-    signal: controller.signal,
-    stop: () => {
-      clearTimeout(timer);
-      controller.abort();
-    },
   };
 }
 
@@ -71,38 +61,16 @@ async function htmlToMarkdown(html: string, fallbackUrl: URL): Promise<string> {
   return `${turndown.turndown(html).trim()}\n`;
 }
 
-function firecrawlEndpoint(base: string): string {
-  const trimmed = base.replace(/\/+$/, "");
-  if (trimmed.endsWith("/scrape")) return trimmed;
-  return trimmed.endsWith("/v1") ? `${trimmed}/scrape` : `${trimmed}/v1/scrape`;
-}
-
 async function firecrawlMarkdown(url: URL, opts: WebFetchOptions): Promise<string | null> {
-  if (opts.firecrawlUrl === undefined) return null;
-  const { signal, stop } = withTimeout();
+  if (opts.firecrawlUrl === undefined || opts.firecrawlUrl === "") return null;
   try {
-    const response = await fetch(firecrawlEndpoint(opts.firecrawlUrl), {
-      method: "POST",
-      signal,
-      headers: {
-        accept: "application/json",
-        "content-type": "application/json",
-        ...(opts.firecrawlKey === undefined ? {} : { authorization: `Bearer ${opts.firecrawlKey}` }),
-      },
-      body: JSON.stringify({ url: url.toString(), formats: ["markdown"] }),
+    const scraped = await firecrawlScrape(url.toString(), {
+      baseUrl: opts.firecrawlUrl,
+      ...(opts.firecrawlKey === undefined ? {} : { apiKey: opts.firecrawlKey }),
     });
-    const bytes = await readCappedResponse(response, MAX_DOWNLOAD_BYTES, firecrawlEndpoint(opts.firecrawlUrl));
-    if (!response.ok) return null;
-    const payload: unknown = JSON.parse(decodeBody(bytes, response.headers.get("content-type")));
-    if (typeof payload !== "object" || payload === null) return null;
-    const data = (payload as { data?: unknown }).data;
-    if (typeof data !== "object" || data === null) return null;
-    const markdown = (data as { markdown?: unknown }).markdown;
-    return typeof markdown === "string" && markdown.trim() !== "" ? markdown : null;
+    return scraped.markdown;
   } catch {
     return null;
-  } finally {
-    stop();
   }
 }
 

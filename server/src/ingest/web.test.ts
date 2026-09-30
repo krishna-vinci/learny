@@ -57,7 +57,7 @@ describe("extractWeb", () => {
     expect(extracted.parseTier).toBe("firecrawl");
     expect(extracted.title).toBe("FC");
     expect(extracted.markdown).toContain("From Firecrawl");
-    expect(String(fetchMock.mock.calls[0]?.[0])).toContain("/v1/scrape");
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain("/v2/scrape");
   });
 
   it("falls back to readability when Firecrawl fails", async () => {

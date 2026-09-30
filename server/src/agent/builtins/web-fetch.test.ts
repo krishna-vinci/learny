@@ -109,7 +109,7 @@ describe("webFetchTool", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://firecrawl.example/v1/scrape",
+      "https://firecrawl.example/v2/scrape",
       expect.objectContaining({
         method: "POST",
         headers: expect.objectContaining({ authorization: "Bearer test-key" }),
