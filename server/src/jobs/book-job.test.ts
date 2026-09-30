@@ -178,4 +178,27 @@ describe("compile-book", () => {
     );
     expect(await fs.readdir(path.join(root, ".cache"))).toEqual([]);
   });
+
+  it("keeps a callout's label attached to its first lines", async () => {
+    const template = await fs.readFile(
+      fileURLToPath(new URL("../../templates/book/book.typ", import.meta.url)),
+      "utf8",
+    );
+    const callout = /#let book-callout[\s\S]*?\n\]\n/.exec(template)?.[0] ?? "";
+    // A sticky label block cannot be left alone at the bottom of a page.
+    expect(callout).toMatch(/block\(sticky: true[^)]*\)\[#text\(weight: "bold", size: 10pt\)\[#label\]\]/);
+  });
+
+  it.skipIf(!hasBinaries)("compiles a long chapter full of callouts that straddle page breaks", async () => {
+    const filler = Array.from(
+      { length: 40 },
+      (_, index) =>
+        `Paragraph ${index} ${"vector space ".repeat(30)}\n\n:::definition\nDefinition ${index} ${"rank ".repeat(25)}\n:::\n\n:::deeper\n${"kernel image ".repeat(30)}\n\n${"span basis ".repeat(30)}\n:::\n`,
+    ).join("\n");
+    await fs.appendFile(path.join(root, "linear-algebra/notes/02-matrices.md"), `\n${filler}\n`);
+    await createBookJob({ root, locks: new FileLocks() })({ set: "linear-algebra" }, context());
+    const pdf = await fs.readFile(await bookPdfPath(root, "linear-algebra"));
+    expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
+    expect(pdf.length).toBeGreaterThan(10_000);
+  });
 });

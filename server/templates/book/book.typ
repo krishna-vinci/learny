@@ -18,8 +18,9 @@
 #let book-callout(label, body) = block(width: 100%, inset: 10pt,
   fill: rgb("f3f5f7"), stroke: (left: 2pt + rgb("52748c")), radius: 3pt,
   above: 0.8em, below: 0.8em)[
-  #text(weight: "bold", size: 10pt)[#label]
-  #v(0.4em)
+  // The label sticks to the first block of the body, so a callout never starts with an orphaned
+  // header at the bottom of a page. The box itself may still break across pages.
+  #block(sticky: true, above: 0pt, below: 0.4em)[#text(weight: "bold", size: 10pt)[#label]]
   #body
 ]
 $if(highlighting-definitions)$
