@@ -9,6 +9,32 @@
     <link rel="icon" href="/icons/icon.svg" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <title>Studium</title>
+    <!--
+      Slice C, no-flash: sets data-theme/data-accent before the stylesheet or React ever
+      run, so the first paint is already the right theme instead of flashing light-then-
+      dark. Kept CSP-simple (no imports, no template literals reused elsewhere) since it
+      has to be inline. lib/theme.ts takes over once React mounts, including reacting to
+      further "system" OS changes; this script only needs to run once, and never touches
+      the theme-color meta itself (its light-mode default above is a fine fallback for the
+      brief window before the stylesheet applies).
+    -->
+    <script>
+      var raw = null;
+      var prefs = null;
+      var theme = "system";
+      var accent = "blue";
+      try {
+        raw = localStorage.getItem("studium.reading-prefs");
+        prefs = raw ? JSON.parse(raw) : null;
+        theme = prefs && typeof prefs.theme === "string" ? prefs.theme : theme;
+        accent = prefs && typeof prefs.accent === "string" ? prefs.accent : accent;
+      } catch (_e) {
+        // localStorage unavailable (private mode, disabled storage): the CSS defaults
+        // (light, blue) already apply with no attribute set.
+      }
+      document.documentElement.setAttribute("data-theme", theme);
+      document.documentElement.setAttribute("data-accent", accent);
+    </script>
   </head>
   <body>
     <div id="root"></div>

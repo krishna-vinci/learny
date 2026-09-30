@@ -13,10 +13,13 @@ import {
   Loader2Icon,
   LogOutIcon,
   MenuIcon,
+  MonitorIcon,
+  MoonIcon,
   NotebookTextIcon,
   PanelLeftCloseIcon,
   PlusIcon,
   SettingsIcon,
+  SunIcon,
   WrenchIcon,
 } from "lucide-react";
 import { useState } from "react";
@@ -36,6 +39,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { isActiveJob } from "@/lib/job-transitions";
+import { setReadingPrefs, type Theme, useReadingPrefs } from "@/lib/reading-prefs";
 import { cn } from "@/lib/utils";
 import { useLastVisitedSet } from "@/pages/useLastVisitedSet";
 import { useSignOut } from "@/pages/useSignOut";
@@ -225,6 +229,50 @@ const MoreSection = ({ set }: { set?: string }) => {
   );
 };
 
+// Slice C quick toggle: System → Light → Dark → System…, skipping Sepia/Black (those stay
+// Settings → Appearance-only, since a one-tap cycle through all 5 would be tedious).
+const THEME_CYCLE = ["system", "light", "dark"] as const satisfies readonly Theme[];
+const THEME_TOGGLE_META: Record<(typeof THEME_CYCLE)[number], { icon: typeof MonitorIcon; label: string }> = {
+  system: { icon: MonitorIcon, label: "System" },
+  light: { icon: SunIcon, label: "Light" },
+  dark: { icon: MoonIcon, label: "Dark" },
+};
+
+function ThemeToggleButton() {
+  const { theme } = useReadingPrefs();
+  // A theme outside the 3-step cycle (Sepia/Black, picked from Settings) still needs a
+  // sensible next stop — from either, the cycle continues at "system".
+  const current = (THEME_CYCLE as readonly Theme[]).includes(theme)
+    ? (theme as (typeof THEME_CYCLE)[number])
+    : "system";
+  const meta = THEME_TOGGLE_META[current];
+  const Icon = meta.icon;
+
+  const cycleTheme = () => {
+    const index = THEME_CYCLE.indexOf(current);
+    setReadingPrefs({ theme: THEME_CYCLE[(index + 1) % THEME_CYCLE.length] });
+  };
+
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            variant="quiet"
+            size="icon-compact"
+            onClick={cycleTheme}
+            aria-label={`Theme: ${meta.label}. Click to switch.`}
+            className="shrink-0"
+          />
+        }
+      >
+        <Icon className="size-4" />
+      </TooltipTrigger>
+      <TooltipContent side="right">Theme: {meta.label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 // Signed-in user's name/avatar, pinned to the bottom of the sidebar next to Sign out —
 // outside the scrollable section list so it's always visible.
 const UserFooter = () => {
@@ -248,6 +296,7 @@ const UserFooter = () => {
         </span>
         <span className="min-w-0 truncate text-sm text-foreground">{user?.displayName || user?.username || "…"}</span>
       </button>
+      <ThemeToggleButton />
       <Tooltip>
         <TooltipTrigger
           render={

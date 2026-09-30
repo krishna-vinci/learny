@@ -25,6 +25,7 @@ import ChatDock from "@/components/ChatDock";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useImmersive, useImmersiveEffects } from "@/lib/immersive-store";
+import { useApplyTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 /** Shown in the fixed sidebar rail in place of the full sidebar when collapsed: just
@@ -52,6 +53,7 @@ const RootLayoutContent = () => {
   const { width: sidebarWidth, minWidth, maxWidth, setWidth: setSidebarWidth } = useSidebarWidth();
   const { collapsed, setCollapsed } = useSidebarCollapsed();
   useLiveStudiumUpdates();
+  useApplyTheme();
   const immersive = useImmersive();
   useImmersiveEffects();
 

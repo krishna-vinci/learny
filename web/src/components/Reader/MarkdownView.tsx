@@ -3,7 +3,9 @@
 // one renderer for a whole note body: Memos' mention/tag/attachment/theme machinery is stripped,
 // and Studium's directive callouts + source citations are added via remarkStudium.ts.)
 import "katex/dist/katex.min.css";
-import "highlight.js/styles/github.css";
+// Slice C: no longer imports highlight.js/styles/github.css (light-only). The `.hljs-*`
+// token colours are themed via CSS variables in index.css instead (see the "Code
+// highlighting" block there).
 import { memo } from "react";
 import type { Components } from "react-markdown";
 import ReactMarkdown from "react-markdown";

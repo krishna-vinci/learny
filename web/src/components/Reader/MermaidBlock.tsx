@@ -1,7 +1,17 @@
 // Adapted from Memos (MIT) — https://github.com/usememos/memos
 import { useEffect, useState } from "react";
+import { useResolvedTheme } from "@/lib/reading-prefs";
 import { cn } from "@/lib/utils";
 import { extractCodeContent } from "./utils";
+
+/** Mermaid ships its own themes; map Studium's resolved theme to the closest one — "dark"
+ * for dark/black (both dark surfaces), "neutral" for sepia (works on a warm background
+ * better than "default", which assumes white), "default" for light. */
+function mermaidThemeFor(resolved: "light" | "dark" | "sepia" | "black"): "default" | "dark" | "neutral" {
+  if (resolved === "dark" || resolved === "black") return "dark";
+  if (resolved === "sepia") return "neutral";
+  return "default";
+}
 
 interface MermaidBlockProps {
   children?: React.ReactNode;
@@ -19,6 +29,7 @@ const formatErrorMessage = (err: unknown): string => {
 export const MermaidBlock = ({ children, className }: MermaidBlockProps) => {
   const [svg, setSvg] = useState<string>("");
   const [error, setError] = useState<string>("");
+  const resolvedTheme = useResolvedTheme();
 
   const codeContent = extractCodeContent(children);
 
@@ -41,12 +52,15 @@ export const MermaidBlock = ({ children, className }: MermaidBlockProps) => {
 
         mermaid.initialize({
           startOnLoad: false,
-          theme: "default",
+          theme: mermaidThemeFor(resolvedTheme),
           securityLevel: "strict",
           fontFamily: getComputedStyle(document.body).fontFamily || "sans-serif",
           suppressErrorRendering: true,
         });
 
+        // Re-initializing changes mermaid's *next* render, not any already-rendered SVG, so a
+        // fresh id (rather than reusing one) avoids mermaid's own "diagram already rendered"
+        // guard from skipping the re-render when the theme changes.
         const id = `mermaid-${Math.random().toString(36).substring(7)}`;
         const { svg: renderedSvg } = await mermaid.render(id, codeContent);
         if (cancelled) return;
@@ -66,7 +80,7 @@ export const MermaidBlock = ({ children, className }: MermaidBlockProps) => {
     return () => {
       cancelled = true;
     };
-  }, [codeContent]);
+  }, [codeContent, resolvedTheme]);
 
   if (error) {
     return (
