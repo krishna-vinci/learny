@@ -1,5 +1,18 @@
 # M3b Slice D, step 1 — UI map for the shadcn migration
 
+> **Refreshed 2026-10-01 (M6 section 2).** The map below is from before M4. Current state of `web/src`:
+> - Pills: all migrated to `components/ui/badge.tsx` (0 hand-built `rounded-full px-…` chips left).
+> - Empty states: `ui/empty.tsx` on Sets, Library, Cards, To review (Inbox), Activity (Jobs); the dashed boxes that
+>   remain are `SSOSection`, `AccessTokenSection`, `AddSourceSheet`, `CardFilePage`, `SignIn`, `SetHomePage`
+>   ("how it works"), `TodayPage`.
+> - Loading: skeletons on lists, reader, sidebar notes; 13 "Loading…" texts remain in Settings sections.
+> - Hand-rolled overlays (`createPortal`): `ActivityIndicator`, `PlanSetSheet`, `NewNoteDialog`, `ReadingSettings`,
+>   `ReaderPassages`, `NewChapterSheet`, `NewSetDialog`, plus the `AddSourceSheet` (fixed-position) and mobile chat.
+> - Native `<select>`: `BackupsSection`, `ModelsSection`. Native `confirm()`: `NoteHistory`, `Reader`, `InboxPage`.
+> - New since the map: M4 screens (Today, Search, plan review, docs-site tab, book card) and M4-7b sheets.
+> - Design rules live in `docs/DESIGN.md`.
+
+
 Read-only survey of `/home/krishna/learny` at branch `main`, commit `c589e1f`
 ("docs: model routing …"). Date 2026-09-30. Everything below is `main` as it is; the
 following files are being changed in a different worktree and must be re-read before the

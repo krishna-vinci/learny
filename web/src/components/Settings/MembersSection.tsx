@@ -9,6 +9,7 @@ import { toast } from "react-hot-toast";
 import { ApiError, type User, type UserRole } from "@/api/client";
 import { useAdminUsers, useCreateUser, useCurrentUser, useDeleteUser, useUpdateUser } from "@/api/queries";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -239,9 +240,9 @@ const MembersSection = () => {
                   <span className="font-medium text-foreground">{u.displayName || u.username}</span>
                   <span className="text-muted-foreground">@{u.username}</span>
                   {u.state === "ARCHIVED" && (
-                    <span className="rounded-full bg-muted px-1.5 py-0.5 text-2xs uppercase tracking-wide text-muted-foreground">
+                    <Badge variant="muted" caps>
                       Archived
-                    </span>
+                    </Badge>
                   )}
                 </div>
                 <div className="mt-0.5 text-xs text-muted-foreground">

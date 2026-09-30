@@ -1,35 +1,36 @@
 import type { SourceSummary } from "@studium/shared";
+import type { BadgeVariant } from "@/components/ui/badge";
 
 /** Visual treatment for a `source.md` `credibility` value (docs/INGEST.md tiers A-D). */
 export interface TierBadge {
   label: string;
-  className: string;
+  variant: BadgeVariant;
 }
 
-const TIER_CLASSES: Record<"A" | "B" | "C" | "D", string> = {
-  A: "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-400",
-  B: "bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400",
-  C: "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400",
-  D: "bg-gray-200 text-gray-700 dark:bg-gray-500/15 dark:text-gray-400",
+const TIER_VARIANTS: Record<"A" | "B" | "C" | "D", BadgeVariant> = {
+  A: "success",
+  B: "tint",
+  C: "warning",
+  D: "muted",
 };
 
-const PENDING_BADGE: TierBadge = { label: "Pending", className: "bg-muted text-muted-foreground" };
+const PENDING_BADGE: TierBadge = { label: "Pending", variant: "muted" };
 
 /**
- * Maps a source's `credibility` frontmatter value to a badge (label + Tailwind classes).
+ * Maps a source's `credibility` frontmatter value to a badge (label + Badge variant).
  * `null` or the library writer's placeholder `"pending"` (T6 `PENDING_CREDIBILITY`) render
  * as a muted "Pending" chip until the Librarian fills it in; anything starting with A-D
  * (case-insensitive — the Librarian may write "A" or a longer "A - reason" string) gets its
- * tier color; any other non-empty value falls back to a muted chip showing that text as-is.
+ * tier variant; any other non-empty value falls back to a muted chip showing that text as-is.
  */
 export function tierBadge(credibility: string | null | undefined): TierBadge {
   const value = credibility?.trim();
   if (!value || value.toLowerCase() === "pending") return PENDING_BADGE;
   const tier = value.charAt(0).toUpperCase();
   if (tier === "A" || tier === "B" || tier === "C" || tier === "D") {
-    return { label: tier, className: TIER_CLASSES[tier] };
+    return { label: tier, variant: TIER_VARIANTS[tier] };
   }
-  return { label: value, className: PENDING_BADGE.className };
+  return { label: value, variant: PENDING_BADGE.variant };
 }
 
 /** Client-side search over the library list: matches title, authors, or id (case-insensitive). */

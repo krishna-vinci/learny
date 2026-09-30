@@ -19,21 +19,19 @@ function source(overrides: Partial<SourceSummary>): SourceSummary {
 }
 
 describe("tierBadge", () => {
-  it("maps A-D tier letters (and longer reason strings) to their color class", () => {
-    expect(tierBadge("A")).toEqual({
-      label: "A",
-      className: "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-400",
-    });
+  it("maps A-D tier letters (and longer reason strings) to their badge variant", () => {
+    expect(tierBadge("A")).toEqual({ label: "A", variant: "success" });
+    expect(tierBadge("C")).toEqual({ label: "C", variant: "warning" });
     expect(tierBadge("B - Wikipedia article").label).toBe("B");
   });
 
   it("shows a muted Pending badge for null or the pending placeholder", () => {
-    expect(tierBadge(null)).toEqual({ label: "Pending", className: "bg-muted text-muted-foreground" });
-    expect(tierBadge("pending")).toEqual({ label: "Pending", className: "bg-muted text-muted-foreground" });
+    expect(tierBadge(null)).toEqual({ label: "Pending", variant: "muted" });
+    expect(tierBadge("pending")).toEqual({ label: "Pending", variant: "muted" });
   });
 
   it("falls back to a muted chip for an unrecognized value", () => {
-    expect(tierBadge("unrated")).toEqual({ label: "unrated", className: "bg-muted text-muted-foreground" });
+    expect(tierBadge("unrated")).toEqual({ label: "unrated", variant: "muted" });
   });
 });
 

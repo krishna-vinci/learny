@@ -8,7 +8,6 @@ import {
   BookOpenIcon,
   DownloadIcon,
   ListChecksIcon,
-  Loader2Icon,
   MessageSquareIcon,
   NotebookTextIcon,
   PlusIcon,
@@ -23,10 +22,15 @@ import { useBook, useCardFiles, useInbox, useJobs, useNoteFile, useNotes, useSet
 import { openActivityPanel } from "@/components/Activity/activity-store";
 import { openChatDock } from "@/components/ChatDock/openChatDock";
 import { AddSourceSheet } from "@/components/Library/AddSourceSheet";
+import { RowsSkeleton } from "@/components/ListSkeleton";
 import { NewChapterSheet } from "@/components/NewChapterSheet";
 import { NewNoteDialog } from "@/components/NewNoteDialog";
 import { PlanSetSheet } from "@/components/PlanSetSheet";
+import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import { isActiveJob } from "@/lib/job-transitions";
 import { cn } from "@/lib/utils";
 
@@ -81,7 +85,7 @@ function DraftingRow({ job }: { job: JobView }) {
         aria-label={`Drafting ${job.title}: ${job.progress || "starting"}`}
         className="flex min-h-11 w-full items-center gap-2 border-b border-border/70 py-2.5 text-start last:border-b-0 hover:bg-accent/40"
       >
-        <Loader2Icon className="size-4 shrink-0 animate-spin text-muted-foreground/70" aria-hidden="true" />
+        <Spinner className="shrink-0 text-muted-foreground/70" aria-label="Drafting" />
         <span className="min-w-0 flex-1 truncate text-muted-foreground">{job.title}</span>
         <span className="max-w-[10rem] shrink-0 truncate text-xs text-muted-foreground/80">
           {job.progress || "Drafting…"}
@@ -111,9 +115,7 @@ function WaitingRow({
       >
         <Icon className="size-4 shrink-0 text-muted-foreground/70" aria-hidden="true" />
         <span className="min-w-0 flex-1 text-foreground">{label}</span>
-        <span className="shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">
-          {count}
-        </span>
+        <Badge variant="tint">{count}</Badge>
       </Link>
     </li>
   );
@@ -204,16 +206,16 @@ function BookCard({ set, jobs }: { set: string; jobs: JobView[] }) {
   return (
     <section className="mt-6" aria-label="Book">
       <h2 className="text-sm font-semibold text-foreground">Book</h2>
-      <div className="mt-2 flex flex-col gap-3 rounded-md border border-border/70 p-3 sm:flex-row sm:items-center">
+      <Card size="sm" className="mt-2 flex-col gap-3 px-3 sm:flex-row sm:items-center">
         <BookOpenIcon className="hidden size-5 shrink-0 text-muted-foreground/70 sm:block" aria-hidden="true" />
         <div className="min-w-0 flex-1 text-sm">
           {running ? (
             <p className="flex items-center gap-2 text-foreground">
-              <Loader2Icon className="size-4 shrink-0 animate-spin text-muted-foreground" aria-hidden="true" />
+              <Spinner className="shrink-0 text-muted-foreground" aria-label="Building" />
               <span className="min-w-0 truncate">{running.progress || "Building book…"}</span>
             </p>
           ) : isLoading ? (
-            <p className="text-muted-foreground">Checking…</p>
+            <Skeleton className="h-9 w-48" />
           ) : book ? (
             <>
               <p className="font-medium text-foreground">Your notes as a PDF book</p>
@@ -251,7 +253,7 @@ function BookCard({ set, jobs }: { set: string; jobs: JobView[] }) {
             {running || starting ? "Building…" : book ? "Rebuild" : "Build book (PDF)"}
           </Button>
         </div>
-      </div>
+      </Card>
     </section>
   );
 }
@@ -340,7 +342,7 @@ export default function SetHomePage() {
 
       <section className="mt-6">
         <h2 className="text-sm font-semibold text-foreground">Notes</h2>
-        {notesLoading && <p className="mt-2 text-sm text-muted-foreground">Loading…</p>}
+        {notesLoading && <RowsSkeleton rows={3} className="mt-2" />}
         {!notesLoading && notes.length === 0 && draftingJobs.length === 0 && (
           <HowItWorks
             onNewChapter={() => setNewChapterOpen(true)}

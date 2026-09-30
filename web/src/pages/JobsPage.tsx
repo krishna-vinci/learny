@@ -2,33 +2,31 @@
 // tokens, cost and result links. Per docs/plans/2026-09-29-m1-sources-to-notes.md "T9b".
 import type { JobResult, JobStatus, JobView } from "@studium/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2Icon, TriangleAlertIcon } from "lucide-react";
+import { TriangleAlertIcon, WrenchIcon } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { Link } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import { queryKeys, useJobs } from "@/api/queries";
+import { PageSkeleton } from "@/components/ListSkeleton";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { Spinner } from "@/components/ui/spinner";
 import { formatCost, formatDuration, formatTokenUsage } from "@/lib/job-format";
-import { cn } from "@/lib/utils";
 
-const STATUS_CLASSES: Record<JobStatus, string> = {
-  queued: "bg-muted text-muted-foreground",
-  running: "bg-primary/15 text-primary",
-  done: "bg-success/15 text-success",
-  failed: "bg-destructive/15 text-destructive",
-  cancelled: "bg-muted text-muted-foreground",
+const STATUS_VARIANTS: Record<JobStatus, BadgeVariant> = {
+  queued: "muted",
+  running: "tint",
+  done: "success",
+  failed: "destructive",
+  cancelled: "muted",
 };
 
 function StatusChip({ status }: { status: JobStatus }) {
   return (
-    <span
-      className={cn(
-        "shrink-0 rounded-full px-2 py-0.5 text-2xs font-medium uppercase tracking-wide",
-        STATUS_CLASSES[status],
-      )}
-    >
+    <Badge variant={STATUS_VARIANTS[status]} caps>
       {status}
-    </span>
+    </Badge>
   );
 }
 
@@ -58,7 +56,7 @@ function RunningJobRow({ job, onCancel, cancelling }: { job: JobView; onCancel: 
     <li className="flex flex-col gap-2 border-b border-border/70 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <Loader2Icon className="size-3.5 shrink-0 animate-spin text-primary" aria-hidden="true" />
+          <Spinner className="size-3.5 shrink-0 text-primary" aria-label="Running" />
           <span className="truncate font-medium text-foreground">{job.title}</span>
           <StatusChip status={job.status} />
         </div>
@@ -112,7 +110,7 @@ function JobsPage() {
   });
 
   if (isLoading) {
-    return <div className="p-6 text-sm text-muted-foreground">Loading jobs…</div>;
+    return <PageSkeleton rows={3} />;
   }
   if (isError || !jobs) {
     return <div className="p-6 text-sm text-destructive">Failed to load jobs.</div>;
@@ -128,7 +126,7 @@ function JobsPage() {
       <section className="mt-6">
         <h2 className="text-sm font-semibold text-foreground">Running</h2>
         {running.length === 0 ? (
-          <p className="mt-2 text-sm text-muted-foreground">Nothing running right now.</p>
+          <p className="mt-2 text-sm text-muted-foreground">Nothing is running right now.</p>
         ) : (
           <ul className="mt-2 rounded-md border border-border/70 px-3">
             {running.map((job) => (
@@ -146,7 +144,17 @@ function JobsPage() {
       <section className="mt-8">
         <h2 className="text-sm font-semibold text-foreground">Recent</h2>
         {recent.length === 0 ? (
-          <p className="mt-2 text-sm text-muted-foreground">No jobs yet.</p>
+          <Empty className="mt-2">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <WrenchIcon />
+              </EmptyMedia>
+              <EmptyTitle>Nothing has run yet</EmptyTitle>
+              <EmptyDescription>
+                When the assistant writes a chapter, makes cards or adds a source, it shows up here.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         ) : (
           <ul className="mt-2 rounded-md border border-border/70 px-3">
             {recent.map((job) => (

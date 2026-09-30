@@ -1,6 +1,6 @@
 // Adapted from Memos (MIT) — https://github.com/usememos/memos
 import type { ReactNode } from "react";
-import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 import AuthFooter from "./AuthFooter";
 
 interface Props {
@@ -13,14 +13,9 @@ interface Props {
 
 export function AuthChip({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-2xs font-medium uppercase tracking-wide text-accent-foreground",
-        className,
-      )}
-    >
+    <Badge variant="accent" caps className={className}>
       {children}
-    </span>
+    </Badge>
   );
 }
 

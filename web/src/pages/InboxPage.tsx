@@ -2,25 +2,28 @@
 // docs/plans/2026-09-29-m1-sources-to-notes.md "T9b Jobs + Inbox + proposal card".
 import type { CheckIssue, InboxItem } from "@studium/shared";
 import { useQueryClient } from "@tanstack/react-query";
-import { ListTreeIcon } from "lucide-react";
+import { ArchiveIcon, ListTreeIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { useParams } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import { queryKeys, useInbox, useNoteFile } from "@/api/queries";
+import { PageSkeleton, RowsSkeleton } from "@/components/ListSkeleton";
 import { NewChapterSheet } from "@/components/NewChapterSheet";
 import { MarkdownView } from "@/components/Reader";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { cn } from "@/lib/utils";
 import { PlanReview } from "./InboxPlanReview";
 
 type Severity = CheckIssue["severity"];
 const SEVERITY_ORDER: Severity[] = ["blocker", "major", "minor"];
 const SEVERITY_LABEL: Record<Severity, string> = { blocker: "Blocker", major: "Major", minor: "Minor" };
-const SEVERITY_BADGE_CLASSES: Record<Severity, string> = {
-  blocker: "bg-destructive/15 text-destructive",
-  major: "bg-warning/15 text-warning-foreground",
-  minor: "bg-muted text-muted-foreground",
+const SEVERITY_VARIANTS: Record<Severity, "destructive" | "warning" | "muted"> = {
+  blocker: "destructive",
+  major: "warning",
+  minor: "muted",
 };
 const SEVERITY_SECTION_CLASSES: Record<Severity, string> = {
   blocker: "border-destructive/40 bg-destructive/5",
@@ -41,23 +44,18 @@ function countBySeverity(issues: CheckIssue[]): Partial<Record<Severity, number>
 
 function StatusChip({ status }: { status: InboxItem["status"] }) {
   return (
-    <span
-      className={cn(
-        "shrink-0 rounded-full px-2 py-0.5 text-2xs font-medium uppercase tracking-wide",
-        status === "checked" ? "bg-success/15 text-success" : "bg-muted text-muted-foreground",
-      )}
-    >
+    <Badge variant={status === "checked" ? "success" : "muted"} caps>
       {status}
-    </span>
+    </Badge>
   );
 }
 
 function PlanChip() {
   return (
-    <span className="flex shrink-0 items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-2xs font-medium uppercase tracking-wide text-primary">
-      <ListTreeIcon className="size-3" aria-hidden="true" />
+    <Badge variant="tint" caps>
+      <ListTreeIcon aria-hidden="true" />
       Plan
-    </span>
+    </Badge>
   );
 }
 
@@ -78,12 +76,9 @@ function InboxListRow({ item, onOpen }: { item: InboxItem; onOpen: () => void })
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-muted-foreground">
           <span>{formatDate(item.updatedAt)}</span>
           {SEVERITY_ORDER.filter((severity) => counts[severity]).map((severity) => (
-            <span
-              key={severity}
-              className={cn("rounded-full px-1.5 py-0.5 text-2xs font-medium", SEVERITY_BADGE_CLASSES[severity])}
-            >
+            <Badge key={severity} variant={SEVERITY_VARIANTS[severity]}>
               {counts[severity]} {SEVERITY_LABEL[severity].toLowerCase()}
-            </span>
+            </Badge>
           ))}
         </div>
       </button>
@@ -172,7 +167,7 @@ function ReviewView({ set, item, onBack }: { set: string; item: InboxItem; onBac
       <section className="mt-4">
         <h2 className="text-sm font-semibold text-foreground">Note</h2>
         <div className="mt-2 rounded-md border border-border/70 p-4">
-          {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
+          {isLoading && <RowsSkeleton rows={3} />}
           {isError && <p className="text-sm text-destructive">Failed to load this note.</p>}
           {file && <MarkdownView content={file.body} />}
         </div>
@@ -195,7 +190,7 @@ function InboxPage() {
   const [formOpen, setFormOpen] = useState(false);
 
   if (isLoading) {
-    return <div className="p-6 text-sm text-muted-foreground">Loading inbox…</div>;
+    return <PageSkeleton rows={3} />;
   }
   if (isError || !items) {
     return <div className="p-6 text-sm text-destructive">Failed to load the inbox.</div>;
@@ -221,7 +216,22 @@ function InboxPage() {
           </div>
 
           {items.length === 0 ? (
-            <p className="mt-4 text-sm text-muted-foreground">Nothing awaiting review.</p>
+            <Empty className="mt-4">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <ArchiveIcon />
+                </EmptyMedia>
+                <EmptyTitle>Nothing to review</EmptyTitle>
+                <EmptyDescription>
+                  Chapters and plans the assistant writes wait here until you accept them.
+                </EmptyDescription>
+              </EmptyHeader>
+              <EmptyContent>
+                <Button className="h-11 md:h-9" onClick={() => setFormOpen(true)}>
+                  New chapter
+                </Button>
+              </EmptyContent>
+            </Empty>
           ) : (
             <ul className="mt-4 rounded-md border border-border/70 px-3">
               {items.map((item) => (

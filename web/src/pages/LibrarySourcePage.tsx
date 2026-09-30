@@ -7,15 +7,16 @@ import { ArrowLeftIcon, ChevronLeftIcon, FileTextIcon, XIcon } from "lucide-reac
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useLibraryParsedFile, useLibrarySource } from "@/api/queries";
+import { PageSkeleton, RowsSkeleton } from "@/components/ListSkeleton";
 import { MarkdownView } from "@/components/Reader";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { cn } from "@/lib/utils";
 import { tierBadge } from "./library-utils";
 
 function ParsedFileContent({ id, file }: { id: string; file: string }) {
   const { data, isLoading, isError } = useLibraryParsedFile(id, file);
-  if (isLoading) return <p className="p-4 text-sm text-muted-foreground">Loading…</p>;
+  if (isLoading) return <RowsSkeleton rows={3} className="p-4" />;
   if (isError || !data) return <p className="p-4 text-sm text-destructive">Failed to load this file.</p>;
   return (
     <div className="p-4">
@@ -70,7 +71,7 @@ export default function LibrarySourcePage() {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   if (isLoading) {
-    return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
+    return <PageSkeleton rows={4} />;
   }
   if (isError || !data) {
     return <div className="p-6 text-sm text-destructive">Failed to load this source.</div>;
@@ -91,9 +92,7 @@ export default function LibrarySourcePage() {
       <div className="flex flex-col gap-2 border-b border-border/70 pb-4">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-lg font-semibold">{source.title}</h1>
-          <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-2xs font-medium", badge.className)}>
-            {badge.label}
-          </span>
+          <Badge variant={badge.variant}>{badge.label}</Badge>
         </div>
         <p className="text-sm text-muted-foreground">
           {source.authors.length > 0 ? source.authors.join(", ") : "Unknown author"} · {source.type} ·{" "}

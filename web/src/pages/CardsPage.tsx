@@ -4,22 +4,24 @@
 // m2-cards-and-review.md decision 6). Pattern follows InboxPage: list -> a review, here a
 // separate route (`CardFilePage`) rather than local state, since card files are deep-linkable.
 import type { CardFileView } from "@studium/shared";
-import { AlertTriangleIcon, ChevronRightIcon } from "lucide-react";
+import { AlertTriangleIcon, ChevronRightIcon, LayersIcon } from "lucide-react";
 import type { MouseEvent } from "react";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import { useCardFiles, useNotes } from "@/api/queries";
+import { PageSkeleton } from "@/components/ListSkeleton";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { type CARD_STATUS_ORDER, statusChips } from "./cards-utils";
 
-const STATUS_CHIP_CLASSES: Record<(typeof CARD_STATUS_ORDER)[number], string> = {
-  draft: "bg-muted text-muted-foreground",
-  approved: "bg-success/15 text-success",
-  rejected: "bg-destructive/15 text-destructive",
-  exported: "bg-primary/15 text-primary",
+const STATUS_CHIP_VARIANTS: Record<(typeof CARD_STATUS_ORDER)[number], "muted" | "success" | "destructive" | "tint"> = {
+  draft: "muted",
+  approved: "success",
+  rejected: "destructive",
+  exported: "tint",
 };
 
 /** `cards/03-svd.md` -> `03-svd.md` (the part of the path after the `cards/` prefix). */
@@ -65,20 +67,17 @@ function CardFileRow({
           <div className="flex flex-wrap items-center gap-2">
             <span className="truncate font-medium text-foreground">{title}</span>
             {file.stale && (
-              <span className="flex items-center gap-1 rounded-full bg-warning/15 px-2 py-0.5 text-2xs font-medium text-warning-foreground">
-                <AlertTriangleIcon className="size-3" />
+              <Badge variant="warning">
+                <AlertTriangleIcon />
                 stale — note changed
-              </span>
+              </Badge>
             )}
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             {statusChips(file.counts).map((chip) => (
-              <span
-                key={chip.status}
-                className={cn("rounded-full px-1.5 py-0.5 text-2xs font-medium", STATUS_CHIP_CLASSES[chip.status])}
-              >
+              <Badge key={chip.status} variant={STATUS_CHIP_VARIANTS[chip.status]}>
                 {chip.count} {chip.status}
-              </span>
+              </Badge>
             ))}
             {statusChips(file.counts).length === 0 && (
               <span className="text-2xs text-muted-foreground">No cards yet</span>
@@ -109,7 +108,7 @@ function CardsPage() {
   };
 
   if (isLoading) {
-    return <div className="p-6 text-sm text-muted-foreground">Loading cards…</div>;
+    return <PageSkeleton rows={3} />;
   }
   if (isError || !files) {
     return <div className="p-6 text-sm text-destructive">Failed to load cards.</div>;
@@ -120,9 +119,23 @@ function CardsPage() {
       <h1 className="text-lg font-semibold text-foreground">Cards</h1>
 
       {files.length === 0 ? (
-        <p className="mt-4 text-sm text-muted-foreground">
-          No card files yet. Open a note and use “Make cards” to draft some.
-        </p>
+        <Empty className="mt-4">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <LayersIcon />
+            </EmptyMedia>
+            <EmptyTitle>No cards yet</EmptyTitle>
+            <EmptyDescription>
+              Flashcards help you remember what you read. Pick a chapter and the assistant drafts cards for you to
+              review.
+            </EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <Button className="h-11 md:h-9" onClick={() => navigate(`/s/${set}`)}>
+              Choose a chapter
+            </Button>
+          </EmptyContent>
+        </Empty>
       ) : (
         <ul className="mt-4 rounded-md border border-border/70 px-3">
           {files.map((file) => (

@@ -6,8 +6,12 @@ import { CheckIcon, LibraryBigIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useSets } from "@/api/queries";
+import { RowsSkeleton } from "@/components/ListSkeleton";
 import { NewSetDialog } from "@/components/NewSetDialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { useLastVisitedSet } from "./useLastVisitedSet";
 
 const STATUS_LABEL: Record<SetSummary["status"], string> = {
@@ -17,30 +21,31 @@ const STATUS_LABEL: Record<SetSummary["status"], string> = {
   done: "Done",
 };
 
-const STATUS_CLASSES: Record<SetSummary["status"], string> = {
-  draft: "bg-muted text-muted-foreground",
-  active: "bg-primary/15 text-primary",
-  paused: "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400",
-  done: "bg-success/15 text-success",
+const STATUS_VARIANTS: Record<SetSummary["status"], "muted" | "tint" | "warning" | "success"> = {
+  draft: "muted",
+  active: "tint",
+  paused: "warning",
+  done: "success",
 };
 
 function SetCard({ set, current }: { set: SetSummary; current: boolean }) {
   return (
     <li>
-      <Link
-        to={`/s/${set.slug}`}
-        className="flex min-h-[76px] flex-col gap-1.5 rounded-lg border border-border/70 bg-background p-3.5 shadow-xs transition-colors hover:bg-accent/40"
-      >
-        <div className="flex items-start justify-between gap-2">
-          <p className="min-w-0 flex-1 truncate text-base font-medium text-foreground">{set.title}</p>
-          <div className="flex shrink-0 items-center gap-1.5">
-            <span className={`rounded-full px-2 py-0.5 text-2xs font-medium ${STATUS_CLASSES[set.status]}`}>
-              {STATUS_LABEL[set.status]}
-            </span>
-            {current && <CheckIcon className="size-4 text-primary" aria-label="Current study set" />}
-          </div>
-        </div>
-        <p className="line-clamp-2 text-sm text-muted-foreground">{set.nextAction ?? "No next action yet."}</p>
+      <Link to={`/s/${set.slug}`} className="block rounded-lg focus-visible:outline-2 focus-visible:outline-ring">
+        <Card size="sm" className="min-h-[76px] gap-1.5 shadow-xs transition-colors hover:bg-accent/40">
+          <CardHeader>
+            <div className="flex items-start justify-between gap-2">
+              <CardTitle className="min-w-0 flex-1 truncate">{set.title}</CardTitle>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <Badge variant={STATUS_VARIANTS[set.status]}>{STATUS_LABEL[set.status]}</Badge>
+                {current && <CheckIcon className="size-4 text-primary" aria-label="Current study set" />}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="line-clamp-2 text-sm text-muted-foreground">{set.nextAction ?? "No next action yet."}</p>
+          </CardContent>
+        </Card>
       </Link>
     </li>
   );
@@ -60,19 +65,25 @@ export default function SetsPage() {
         </Button>
       </div>
 
-      {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {isLoading && <RowsSkeleton rows={3} />}
 
       {!isLoading && sets.length === 0 && (
-        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border px-6 py-16 text-center">
-          <LibraryBigIcon className="size-10 text-muted-foreground/60" />
-          <p className="text-sm font-medium text-foreground">Create your first study set</p>
-          <p className="max-w-xs text-sm text-muted-foreground">
-            A study set holds the notes, sources, and cards for one thing you're learning.
-          </p>
-          <Button className="h-11" onClick={() => setNewSetOpen(true)}>
-            <PlusIcon /> New study set
-          </Button>
-        </div>
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <LibraryBigIcon />
+            </EmptyMedia>
+            <EmptyTitle>Create your first study set</EmptyTitle>
+            <EmptyDescription>
+              A study set holds the notes, sources, and cards for one thing you're learning.
+            </EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <Button className="h-11" onClick={() => setNewSetOpen(true)}>
+              <PlusIcon /> New study set
+            </Button>
+          </EmptyContent>
+        </Empty>
       )}
 
       {sets.length > 0 && (

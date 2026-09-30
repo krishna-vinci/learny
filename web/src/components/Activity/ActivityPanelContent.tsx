@@ -4,23 +4,25 @@
 // desktop popover or a phone bottom sheet.
 import type { JobKind, JobStatus, JobView } from "@studium/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { BookOpenIcon, LayersIcon, LinkIcon, ListTreeIcon, Loader2Icon, NotebookTextIcon } from "lucide-react";
+import { BookOpenIcon, LayersIcon, LinkIcon, ListTreeIcon, NotebookTextIcon } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { Link } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import { useJobs, useSets } from "@/api/queries";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { formatDuration } from "@/lib/job-format";
 import { isActiveJob, isRecentlyFinishedJob } from "@/lib/job-transitions";
 import { cn } from "@/lib/utils";
 import { closeActivityPanel } from "./activity-store";
 
-const STATUS_CLASSES: Record<JobStatus, string> = {
-  queued: "bg-muted text-muted-foreground",
-  running: "bg-primary/15 text-primary",
-  done: "bg-success/15 text-success",
-  failed: "bg-destructive/15 text-destructive",
-  cancelled: "bg-muted text-muted-foreground",
+const STATUS_VARIANTS: Record<JobStatus, BadgeVariant> = {
+  queued: "muted",
+  running: "tint",
+  done: "success",
+  failed: "destructive",
+  cancelled: "muted",
 };
 
 const KIND_ICONS: Record<JobKind, typeof LinkIcon> = {
@@ -33,14 +35,9 @@ const KIND_ICONS: Record<JobKind, typeof LinkIcon> = {
 
 function StatusChip({ status }: { status: JobStatus }) {
   return (
-    <span
-      className={cn(
-        "shrink-0 rounded-full px-1.5 py-0.5 text-2xs font-medium uppercase tracking-wide",
-        STATUS_CLASSES[status],
-      )}
-    >
+    <Badge variant={STATUS_VARIANTS[status]} caps>
       {status}
-    </span>
+    </Badge>
   );
 }
 
@@ -72,7 +69,7 @@ function JobRow({
     >
       <div className="flex items-start gap-2">
         {active ? (
-          <Loader2Icon className="mt-0.5 size-4 shrink-0 animate-spin text-primary" aria-hidden="true" />
+          <Spinner className="mt-0.5 shrink-0 text-primary" aria-label="Running" />
         ) : (
           <KindIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
         )}

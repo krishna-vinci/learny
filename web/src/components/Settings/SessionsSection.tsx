@@ -7,6 +7,7 @@ import { toast } from "react-hot-toast";
 import { ApiError } from "@/api/client";
 import { useRevokeSession, useSessions } from "@/api/queries";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { relativeTime } from "./format";
 import SettingSection from "./SettingSection";
@@ -42,9 +43,9 @@ const SessionsSection = () => {
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-medium text-foreground">
                   <span className="max-w-[16rem] truncate">{session.userAgent || "Unknown device"}</span>
                   {session.current && (
-                    <span className="rounded-full bg-accent px-1.5 py-0.5 text-2xs font-medium uppercase tracking-wide text-accent-foreground">
+                    <Badge variant="accent" caps>
                       This device
-                    </span>
+                    </Badge>
                   )}
                 </div>
                 <div className="mt-0.5 text-xs text-muted-foreground">

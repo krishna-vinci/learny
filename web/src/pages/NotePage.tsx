@@ -1,5 +1,6 @@
 import { useParams } from "react-router-dom";
 import { useNoteFile } from "@/api/queries";
+import { ReaderSkeleton } from "@/components/ListSkeleton";
 import { Reader } from "@/components/Reader";
 
 /** Renders `GET /file` for the note at the current route (`/s/:set/n/*`) through `Reader`. */
@@ -15,7 +16,7 @@ export default function NotePage() {
     return <div className="p-6 text-sm text-muted-foreground">No note selected.</div>;
   }
   if (isLoading) {
-    return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
+    return <ReaderSkeleton />;
   }
   if (isError || !file) {
     return <div className="p-6 text-sm text-destructive">Failed to load this note.</div>;

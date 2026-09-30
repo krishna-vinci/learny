@@ -17,10 +17,12 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useLibrary } from "@/api/queries";
 import { AddSourceSheet } from "@/components/Library/AddSourceSheet";
+import { RowsSkeleton } from "@/components/ListSkeleton";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
 import { filterSources, tierBadge } from "./library-utils";
 import { useLastVisitedSet } from "./useLastVisitedSet";
 
@@ -62,19 +64,25 @@ export default function LibraryPage() {
           </div>
         )}
 
-        {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
+        {isLoading && <RowsSkeleton rows={4} />}
 
         {!isLoading && sources.length === 0 && (
-          <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border px-6 py-16 text-center">
-            <BookOpenIcon className="size-10 text-muted-foreground/60" />
-            <p className="text-sm font-medium">No sources yet</p>
-            <p className="max-w-xs text-sm text-muted-foreground">
-              Add a web page, PDF, Wikipedia article, or paper to start building your library.
-            </p>
-            <Button onClick={() => setSheetOpen(true)}>
-              <PlusIcon /> Add source
-            </Button>
-          </div>
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <BookOpenIcon />
+              </EmptyMedia>
+              <EmptyTitle>No sources yet</EmptyTitle>
+              <EmptyDescription>
+                Add a web page, PDF, Wikipedia article, or paper to start building your library.
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button onClick={() => setSheetOpen(true)}>
+                <PlusIcon /> Add source
+              </Button>
+            </EmptyContent>
+          </Empty>
         )}
 
         {!isLoading && sources.length > 0 && filtered.length === 0 && (
@@ -123,9 +131,7 @@ function SourceRow({ source }: { source: SourceSummary }) {
             {source.sets.length > 0 ? ` · ${source.sets.join(", ")}` : ""}
           </p>
         </div>
-        <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-2xs font-medium", badge.className)}>
-          {badge.label}
-        </span>
+        <Badge variant={badge.variant}>{badge.label}</Badge>
       </Link>
     </li>
   );

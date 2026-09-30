@@ -1,12 +1,13 @@
 // A2: the global background-jobs control — a spinner button with the queued+running
 // count, rendered in the phone header or the desktop sidebar header. Tapping it opens
 // the activity panel: a bottom sheet on phone, a popover on desktop.
-import { Loader2Icon, XIcon } from "lucide-react";
+import { XIcon } from "lucide-react";
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 import { useJobs } from "@/api/queries";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { isActiveJob } from "@/lib/job-transitions";
 import { cn } from "@/lib/utils";
@@ -45,7 +46,7 @@ function ActivityTriggerButton({
       onClick={onClick}
       className={cn("relative", className)}
     >
-      <Loader2Icon className="size-[18px] animate-spin" aria-hidden="true" />
+      <Spinner className="size-[18px]" aria-label="Running" />
       <span
         className="absolute -end-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-4 text-primary-foreground tabular-nums"
         aria-hidden="true"

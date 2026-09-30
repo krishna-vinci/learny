@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToday } from "@/api/queries";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -117,18 +118,13 @@ export default function TodayPage() {
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <h3 className="text-sm font-semibold text-foreground">{set.title}</h3>
                       {set.daysLeft !== null && (
-                        <span
-                          className={cn(
-                            "rounded-full bg-muted px-2 py-1 text-xs",
-                            set.daysLeft < 0 ? "bg-destructive/10 text-destructive" : "text-muted-foreground",
-                          )}
-                        >
+                        <Badge variant={set.daysLeft < 0 ? "destructive" : "muted"}>
                           {set.daysLeft < 0
                             ? `${Math.abs(set.daysLeft)}d overdue`
                             : set.daysLeft === 0
                               ? "Due today"
                               : `${set.daysLeft}d left`}
-                        </span>
+                        </Badge>
                       )}
                     </div>
                     <p className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">

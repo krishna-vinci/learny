@@ -12,6 +12,7 @@ import { queryKeys, usePlanProposal } from "@/api/queries";
 import { showJobStartedToast } from "@/components/Activity/job-start-toast";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { MarkdownView } from "@/components/Reader";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { parsePlanSummary, parseProposedChapters } from "./plan-proposal";
 
@@ -138,9 +139,9 @@ export function PlanReview({ set, item, onBack }: { set: string; item: InboxItem
         <h1 className="min-w-0 flex-1 truncate text-lg font-semibold text-foreground">
           {summary?.title ?? item.title}
         </h1>
-        <span className="shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-2xs font-medium uppercase tracking-wide text-primary">
+        <Badge variant="tint" caps>
           Plan
-        </span>
+        </Badge>
       </div>
 
       {isLoading && <p className="mt-4 text-sm text-muted-foreground">Loading…</p>}

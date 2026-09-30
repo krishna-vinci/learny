@@ -11,6 +11,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ApiError, api, exportUrl } from "@/api/client";
 import { queryKeys, useCardFile, useNotes, useSettings } from "@/api/queries";
 import { MarkdownView } from "@/components/Reader";
+import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -49,16 +50,16 @@ function editStateFor(card: CardView): EditState {
 }
 
 function StatusPill({ status }: { status: CardView["status"] }) {
-  const classes: Record<CardView["status"], string> = {
-    draft: "bg-muted text-muted-foreground",
-    approved: "bg-success/15 text-success",
-    rejected: "bg-destructive/15 text-destructive",
-    exported: "bg-primary/15 text-primary",
+  const variants: Record<CardView["status"], "muted" | "success" | "destructive" | "tint"> = {
+    draft: "muted",
+    approved: "success",
+    rejected: "destructive",
+    exported: "tint",
   };
   return (
-    <span className={cn("rounded-full px-2 py-0.5 text-2xs font-medium uppercase tracking-wide", classes[status])}>
+    <Badge variant={variants[status]} caps>
       {status}
-    </span>
+    </Badge>
   );
 }
 

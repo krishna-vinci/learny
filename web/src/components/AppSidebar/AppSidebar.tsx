@@ -10,7 +10,6 @@ import {
   BookOpenIcon,
   LibraryBigIcon,
   ListChecksIcon,
-  Loader2Icon,
   LogOutIcon,
   MenuIcon,
   MonitorIcon,
@@ -38,6 +37,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { isActiveJob } from "@/lib/job-transitions";
 import { setReadingPrefs, type Theme, useReadingPrefs } from "@/lib/reading-prefs";
@@ -60,7 +61,7 @@ function DraftingSidebarRow({ job }: { job: JobView }) {
       className={cn(SIDEBAR_ROW_CLASSES, "text-muted-foreground/80 hover:bg-sidebar-accent/65 hover:text-foreground")}
     >
       <span className={SIDEBAR_LEADING_SLOT_CLASSES} aria-hidden="true">
-        <Loader2Icon className="size-4 animate-spin opacity-70" strokeWidth={1.8} />
+        <Spinner className="opacity-70" aria-label="Drafting" />
       </span>
       <span className="min-w-0 flex-1 truncate text-start">{job.title}</span>
       <span className="max-w-[9rem] shrink-0 truncate text-2xs text-muted-foreground/70">
@@ -99,7 +100,13 @@ const NotesSection = ({ set, activeNotePath }: { set: string; activeNotePath?: s
           </DropdownMenu>
         }
       >
-        {isLoading && <div className="px-2 py-1 text-sm text-muted-foreground">Loading…</div>}
+        {isLoading && (
+          <div className="flex flex-col gap-1.5 px-2 py-1" role="status" aria-label="Loading notes">
+            <Skeleton className="h-5 w-full" />
+            <Skeleton className="h-5 w-5/6" />
+            <Skeleton className="h-5 w-2/3" />
+          </div>
+        )}
         {!isLoading && notes.length === 0 && (
           <div className="px-2 py-1 text-sm text-muted-foreground">No notes yet</div>
         )}

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { ApiError, api } from "@/api/client";
 import { queryKeys, useSettings } from "@/api/queries";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { groupModelsByProvider } from "@/pages/settings-utils";
@@ -173,9 +174,9 @@ const ModelsSection = () => {
             >
               {role.label}
               {role.later && (
-                <span className="rounded-full bg-muted px-1.5 py-0.5 text-2xs font-normal uppercase tracking-wide text-muted-foreground">
+                <Badge variant="muted" caps>
                   later
-                </span>
+                </Badge>
               )}
             </label>
             <p className="mt-0.5 text-sm text-muted-foreground">{role.description}</p>
