@@ -334,6 +334,16 @@ async function runLibrarian(
   return { commitSha, warning: null };
 }
 
+/** Title recorded in `library/<id>/source.md`, or null when it is missing or unreadable. */
+async function storedSourceTitle(root: string, sourceId: string): Promise<string | null> {
+  try {
+    const { frontmatter } = parseFrontmatter(await readText(root, `library/${sourceId}/source.md`));
+    return typeof frontmatter.title === "string" && frontmatter.title.trim() !== "" ? frontmatter.title.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Finish an ingest that matched an existing source: link it to the target set,
  * clear the inbox file, and resume the Librarian when the summary is still pending.
@@ -346,6 +356,9 @@ async function handleExisting(
   inbox: InboxFile | null,
 ): Promise<JobResult> {
   if (await isSourcePending(deps.root, sourceId)) {
+    // The duplicate is found before extraction, so the job title is still derived from the URL.
+    const title = await storedSourceTitle(deps.root, sourceId);
+    if (title !== null) ctx.setTitle?.(title);
     ctx.progress("Resuming summary");
     const summary = await runLibrarian(deps, sourceId, ctx);
     if (set !== null) {

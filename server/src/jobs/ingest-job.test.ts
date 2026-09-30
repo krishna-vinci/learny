@@ -300,6 +300,8 @@ describe("ingest job", () => {
     const result = await handler({ url: "https://example.com/pending" }, run.ctx);
 
     expect(result).toMatchObject({ sourceId: "lib-pending", commitSha: expect.stringMatching(/^[0-9a-f]{40}$/) });
+    expect(run.titles).toEqual(["Pending source"]);
+    await expect(fs.readFile(path.join(root, sourceRel), "utf8")).resolves.toContain("title: Pending source");
     await expect(fs.readFile(path.join(root, sourceRel), "utf8")).resolves.toContain("Resumed summary.");
     expect(run.progress).toEqual([
       "Detecting input",
