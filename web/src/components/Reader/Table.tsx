@@ -9,7 +9,8 @@ interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
 export const Table = ({ children, className, node: _node, ...props }: TableProps) => {
   return (
     <div className="my-2 w-full overflow-x-auto rounded-lg border border-border bg-muted/20">
-      <table className={cn("w-full border-collapse text-sm", className)} {...props}>
+      {/* `em`, not rem: the table tracks the reader's text size (B1); cells inherit it. */}
+      <table className={cn("w-full border-collapse text-[0.9em]", className)} {...props}>
         {children}
       </table>
     </div>
@@ -62,10 +63,7 @@ interface TableHeaderCellProps extends React.ThHTMLAttributes<HTMLTableCellEleme
 
 export const TableHeaderCell = ({ children, className, node: _node, ...props }: TableHeaderCellProps) => {
   return (
-    <th
-      className={cn("px-2 py-1 text-left align-middle text-sm font-medium text-muted-foreground", className)}
-      {...props}
-    >
+    <th className={cn("px-2 py-1 text-left align-middle font-medium text-muted-foreground", className)} {...props}>
       {children}
     </th>
   );
@@ -78,7 +76,7 @@ interface TableCellProps extends React.TdHTMLAttributes<HTMLTableCellElement> {
 
 export const TableCell = ({ children, className, node: _node, ...props }: TableCellProps) => {
   return (
-    <td className={cn("px-2 py-1 text-left align-middle text-sm", className)} {...props}>
+    <td className={cn("px-2 py-1 text-left align-middle", className)} {...props}>
       {children}
     </td>
   );

@@ -179,12 +179,17 @@
  * reliably wins over Tailwind's own utility layer without `!important`. Table/pre/inline-code
  * markup in the Reader already gets its layout from dedicated components (Table.tsx,
  * CodeBlock.tsx) — those are left alone here except for inline `code`, which has none.
+ *
+ * B1 reading comfort: the Reader root sets `--reader-font-size`, `--reader-measure`,
+ * `--reader-leading` and `--reader-font` from the persisted reading prefs; the fallbacks
+ * below are today's shipped values, so anything outside the reader (chat) is unchanged.
  */
 .studium-prose {
   color: var(--foreground);
-  font-size: 1rem;
-  line-height: 1.7;
-  max-width: 68ch;
+  font-family: var(--reader-font, var(--font-sans));
+  font-size: var(--reader-font-size, 1rem);
+  line-height: var(--reader-leading, 1.7);
+  max-width: var(--reader-measure, 68ch);
 }
 
 .studium-prose > :where(:first-child) {

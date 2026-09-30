@@ -5,6 +5,7 @@
 // one shell is ever mounted, picked via `useMediaQuery` rather than CSS hide/show.
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useImmersive } from "@/lib/immersive-store";
 import DesktopChatDock from "./DesktopChatDock";
 import MobileChatDock from "./MobileChatDock";
 import { useChatDock } from "./useChatDock";
@@ -24,12 +25,15 @@ function ChatDockWithSet({ set }: { set: string }) {
 /** Right-hand chat dock: chat picker, streaming transcript, and composer. */
 function ChatDock() {
   const { set } = useOpenNote();
+  const immersive = useImmersive();
 
-  if (!set) {
-    return <div className="hidden w-9 shrink-0 border-s border-border/70 lg:block" />;
-  }
-
-  return <ChatDockWithSet set={set} />;
+  // B2: hidden, not unmounted, while the immersive reader is up — the wrapper is
+  // `display: contents` otherwise, so the layout is exactly as if it weren't there.
+  return (
+    <div className={immersive ? "hidden" : "contents"}>
+      {set ? <ChatDockWithSet set={set} /> : <div className="hidden w-9 shrink-0 border-s border-border/70 lg:block" />}
+    </div>
+  );
 }
 
 export default ChatDock;

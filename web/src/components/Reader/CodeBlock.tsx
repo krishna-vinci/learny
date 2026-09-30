@@ -108,8 +108,9 @@ const HighlightedCodeBlock = ({ codeContent, language }: HighlightedCodeBlockPro
       </div>
 
       <div className="overflow-x-auto">
+        {/* `em`, not rem: the block tracks the reader's text size (B1) at the plan's 0.9 ratio. */}
         <code
-          className={cn("block px-3 py-2 text-sm leading-relaxed", `language-${language}`)}
+          className={cn("block px-3 py-2 text-[0.9em] leading-relaxed", `language-${language}`)}
           // The highlighted output is from highlight.js against this block's own code content
           // (escaped as a fallback before highlighting resolves), not raw untrusted HTML.
           // biome-ignore lint/security/noDangerouslySetInnerHtml: highlight.js-produced markup or the escaped fallback.
