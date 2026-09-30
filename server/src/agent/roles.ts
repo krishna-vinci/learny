@@ -35,7 +35,7 @@ export const ROLES: Record<RoleName, RoleSpec> = {
   tutor: {
     modelRole: "tutor",
     tools: [...STUDY_TOOLS, ...RESEARCH_TOOLS, ...SKILL_TOOLS, ...CHAT_JOB_TOOLS],
-    mcpServers: ["searxng", "papers"],
+    mcpServers: ["searxng", "papers", "context7"],
     skills: ["explain", "evolve-note", "note-authoring", "quiz-me"],
     requiresSet: true,
     scope: (set) => ({ set, library: false }),
@@ -58,7 +58,7 @@ export const ROLES: Record<RoleName, RoleSpec> = {
   drafter: {
     modelRole: "drafter",
     tools: [...STUDY_TOOLS, ...RESEARCH_TOOLS, ...SKILL_TOOLS],
-    mcpServers: ["papers"],
+    mcpServers: ["papers", "context7"],
     skills: ["draft-chapter", "note-authoring"],
     requiresSet: true,
     scope: (set) => ({ set, library: true }),
@@ -68,7 +68,7 @@ export const ROLES: Record<RoleName, RoleSpec> = {
   checker: {
     modelRole: "checker",
     tools: [...STUDY_TOOLS, ...RESEARCH_TOOLS, ...SKILL_TOOLS],
-    mcpServers: ["searxng", "papers"],
+    mcpServers: ["searxng", "papers", "context7"],
     skills: ["fact-check"],
     requiresSet: true,
     scope: (set) => ({ set, library: true }),

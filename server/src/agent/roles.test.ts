@@ -27,7 +27,7 @@ beforeEach(async () => {
   process.env.PI_CODING_AGENT_DIR = agentDir;
   await fs.cp(SAMPLE_SET, root, { recursive: true });
 
-  fakeServers = [createFakeMcpServer("searxng"), createFakeMcpServer("papers")];
+  fakeServers = [createFakeMcpServer("searxng"), createFakeMcpServer("papers"), createFakeMcpServer("context7")];
   mcp = new McpManager(
     fakeServers.map((fake) => fake.config),
     (config) => {

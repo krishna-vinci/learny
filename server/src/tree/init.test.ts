@@ -24,6 +24,7 @@ describe("initStudyTree", () => {
     const searxngUrl = "$" + "{SEARXNG_URL}";
     const papersUrl = "$" + "{PAPERS_MCP_URL}";
     const papersToken = "$" + "{PAPERS_MCP_TOKEN}";
+    const context7Key = "$" + "{CONTEXT7_API_KEY}";
     const result = await initStudyTree(root);
     expect(result).toEqual({ created: true });
 
@@ -44,6 +45,10 @@ describe("initStudyTree", () => {
           url: papersUrl,
           headers: { Authorization: `Bearer ${papersToken}` },
           disabledTools: ["download_scihub"],
+        },
+        context7: {
+          url: "https://mcp.context7.com/mcp",
+          headers: { CONTEXT7_API_KEY: context7Key },
         },
       },
     });

@@ -24,6 +24,10 @@ const DEFAULT_MCP_JSON = `{
       "url": "\${PAPERS_MCP_URL}",
       "headers": { "Authorization": "Bearer \${PAPERS_MCP_TOKEN}" },
       "disabledTools": ["download_scihub"]
+    },
+    "context7": {
+      "url": "https://mcp.context7.com/mcp",
+      "headers": { "CONTEXT7_API_KEY": "\${CONTEXT7_API_KEY}" }
     }
   }
 }\n`;
