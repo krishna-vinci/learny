@@ -17,6 +17,7 @@ import type {
   NoteSummary,
   ParsedFileView,
   PlanProposal,
+  QuestionType,
   SearchKind,
   SearchResponse,
   SetSummary,
@@ -238,7 +239,7 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   // FormData sets its own multipart boundary in the Content-Type header; letting fetch
   // compute it (by not setting Content-Type ourselves) is required for multipart bodies.
   const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
@@ -641,6 +642,16 @@ export const api = {
             sources?: string[];
           }
         | { kind: Extract<JobKind, "compile-book">; set: string }
+        | {
+            kind: "make-quiz";
+            set: string;
+            notes?: string[];
+            topics?: string[];
+            count: number;
+            types?: QuestionType[];
+            difficulty?: 1 | 2 | 3;
+          }
+        | { kind: "make-problems"; set: string; note: string; count: number }
         | { proposalId: string },
     ): Promise<{ jobId: string; set?: string }> {
       return request("/api/jobs", { method: "POST", body: JSON.stringify(body) });

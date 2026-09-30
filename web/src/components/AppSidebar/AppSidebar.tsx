@@ -20,6 +20,7 @@ import {
   PlusIcon,
   SettingsIcon,
   SunIcon,
+  TargetIcon,
   WrenchIcon,
 } from "lucide-react";
 import { useState } from "react";
@@ -220,6 +221,13 @@ const MoreSection = ({ set }: { set?: string }) => {
           disabled={!set}
           state={cardsActive ? "current" : "idle"}
           onClick={set ? () => goTo(`/s/${set}/cards`) : undefined}
+        />
+        <SidebarRow
+          icon={TargetIcon}
+          label="Practice"
+          disabled={!set}
+          state={set && location.pathname === `/s/${set}/practice` ? "current" : "idle"}
+          onClick={set ? () => goTo(`/s/${set}/practice`) : undefined}
         />
         <SidebarRow
           icon={SettingsIcon}

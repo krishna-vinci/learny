@@ -13,6 +13,7 @@ import JobsPage from "@/pages/JobsPage";
 import LibraryPage from "@/pages/LibraryPage";
 import LibrarySourcePage from "@/pages/LibrarySourcePage";
 import NotePage from "@/pages/NotePage";
+import PracticePage from "@/pages/PracticePage";
 import SetHomePage from "@/pages/SetHomePage";
 import SetsPage from "@/pages/SetsPage";
 import SettingsPage from "@/pages/SettingsPage";
@@ -82,6 +83,7 @@ export const router = createBrowserRouter([
       { path: "settings/:section", element: <SettingsPage /> },
       { path: "jobs", element: <JobsPage /> },
       { path: "s/:set", element: <SetHomePage /> },
+      { path: "s/:set/practice", element: <PracticePage /> },
       { path: "s/:set/inbox", element: <InboxPage /> },
       { path: "s/:set/cards", element: <CardsPage /> },
       { path: "s/:set/cards/*", element: <CardFilePage /> },

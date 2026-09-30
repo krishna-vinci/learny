@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToday } from "@/api/queries";
+import { WeakTopics } from "@/components/Practice/common";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -111,10 +112,10 @@ export default function TodayPage() {
             )}
             <ul className="grid gap-2 sm:grid-cols-2">
               {data.sets.map((set) => (
-                <li key={set.slug}>
+                <li key={set.slug} className="flex h-full flex-col rounded-lg border border-border/70 bg-card">
                   <Link
                     to={`/s/${set.slug}`}
-                    className="flex h-full flex-col gap-2 rounded-lg border border-border/70 bg-card p-4 transition-colors hover:bg-accent/40 focus-visible:outline-2 focus-visible:outline-ring"
+                    className="flex flex-col gap-2 p-4 transition-colors hover:bg-accent/40 focus-visible:outline-2 focus-visible:outline-ring"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <h3 className="text-sm font-semibold text-foreground">{set.title}</h3>
@@ -146,6 +147,15 @@ export default function TodayPage() {
                         : (set.nextAction ?? "Choose a chapter to continue.")}
                     </p>
                   </Link>
+                  <div className="mt-auto flex flex-col gap-2 border-t border-border/50 px-4 py-3">
+                    <Link
+                      to={`/s/${set.slug}/practice`}
+                      className="inline-flex min-h-11 items-center text-sm text-primary"
+                    >
+                      {set.practiceDue} topics due for practice →
+                    </Link>
+                    {set.weakTopics.length > 0 && <WeakTopics spots={set.weakTopics} set={set.slug} />}
+                  </div>
                 </li>
               ))}
             </ul>

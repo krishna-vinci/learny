@@ -13,6 +13,7 @@ import {
   NotebookTextIcon,
   PlusIcon,
   SparklesIcon,
+  TargetIcon,
   WrenchIcon,
 } from "lucide-react";
 import { useState } from "react";
@@ -335,6 +336,19 @@ export default function SetHomePage() {
           </ul>
         </section>
       )}
+
+      <Link
+        to={`/s/${set}/practice`}
+        className="mt-6 flex min-h-20 items-center gap-3 rounded-lg border border-border bg-card p-4 hover:bg-accent/40 focus-visible:outline-2 focus-visible:outline-ring"
+      >
+        <TargetIcon className="size-5 shrink-0 text-primary" aria-hidden="true" />
+        <span>
+          <span className="block font-medium text-foreground">Practice</span>
+          <span className="text-sm text-muted-foreground">
+            Check your understanding with quizzes, teach-backs, and problems.
+          </span>
+        </span>
+      </Link>
 
       <BookCard set={set} jobs={jobs} />
 

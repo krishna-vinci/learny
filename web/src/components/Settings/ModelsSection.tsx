@@ -25,6 +25,8 @@ const ROLES: RoleInfo[] = [
   { key: "checker", label: "Checker", description: "Fact-checks chapters on a different model" },
   { key: "cardsmith", label: "Cardsmith", description: "Flashcards (M2)", later: true },
   { key: "critic", label: "Critic", description: "Flashcards (M2)", later: true },
+  { key: "examiner", label: "Examiner", description: "Generates quizzes and problems" },
+  { key: "grader", label: "Grader", description: "Grades answers and teach-backs" },
   { key: "scout", label: "Scout", description: "Finds sources", later: true },
   { key: "outliner", label: "Outliner", description: "Plans curricula", later: true },
 ];
