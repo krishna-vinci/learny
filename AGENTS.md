@@ -5,8 +5,8 @@ Instructions for coding agents (Codex, Claude, others) working in this repo.
 Studium (repo: learny) is a self-hosted, agent-powered learning app: agents turn sources into
 evolving Markdown notes and Anki cards, stored as plain files in a *study tree*.
 Read `/home/krishna/learny/AGENT_MEMORY.md` first: owner rules, system map, gotchas, status, and open
-gaps. At the end of every task, append one entry (5 lines max) to its **Log**, and keep its other sections
-current.
+gaps. Do NOT edit it yourself (parallel agents would collide): put a 5-line log entry and any new gotchas in
+your final report; the orchestrator adds them to AGENT_MEMORY.md.
 
 Read before planning or claiming behaviour:
 
