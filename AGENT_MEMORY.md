@@ -78,11 +78,10 @@ The orchestrator keeps the rest of this file current. When something listed unde
   - M0 skeleton, M1 sources→notes, M2 cards
   - M3a platform: accounts and SSO, per-user trees, backups, notifications, export, service
   - M3b slices A (background jobs UX), B (reading comfort), C (themes)
-- **In progress:** M4 study loop (`docs/plans/2026-09-30-m4-study-loop.md`). Merged: M4-0 skills + skill sync, M4-1 Today API, M4-2 search, M4-3 quotes + highlights. Next: M4-4 Outliner, M4-5 book PDF, M4-6 site import, M4-7 UI (Sonnet). The shadcn migration is deferred to M6.
+- **In progress:** M4 study loop (`docs/plans/2026-09-30-m4-study-loop.md`). Merged: M4-0 skills, M4-1 Today API, M4-2 search, M4-3 quotes + highlights, M4-4 Outliner/plan-set, M4-5 book PDF, M4-6 site import. Running: M4-7a UI (Today, ⌘K, selection + highlights) on Sol. Next: M4-7b UI (plan a set, plan review, book button, site import, chat proposal cards) → Sonnet cloud; then M4-8 review.
 
 ## Open gaps
 - **Book PDF layout:** callout boxes can split across pages, leaving an orphaned header (e.g. "Deeper" at the bottom of p5, its body on p6, and a mostly blank page). Keep a callout's header with its first lines (`block(breakable: …)` or `sticky` in `server/templates/book/book.typ` / `callouts.lua`). Mermaid appears as "(diagram in the app)".
-- **Today's "next chapter"** comes from unticked `curriculum.md` checkboxes, but existing chapters aren't ticked (e.g. it suggests "Draft 02 — Matrices" though the note exists). Fix it in M4-4: also skip curriculum items whose note already exists, and have the Outliner/drafter tick items.
 - **shadcn migration (deferred to M6):** batches D1–D5 in `docs/prompts/m3b-slice-d.md`, with the map in `docs/prompts/m3b-d-uimap.md` (the map will go stale; refresh it before running). New UI should still prefer the existing `components/ui` kit.
 - **Skills update** (awaiting the owner's go):
   - a new `find-sources` skill
@@ -97,6 +96,7 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - **Backups:** not configured yet on the live instance. The owner does this in Settings → Backups.
 
 ## Recently done
+- M4-4 Outliner + plan-set + plan approval + curriculum fix (38d4722)
 - M4-5 book PDF (10b5d71): 18-page A5 book of linear-algebra verified
 - PR #1 M0–M2 follow-ups (51f8bfe): revert scope, persisted chat proposals (server), resumed-ingest title, directive titles · M4-6 site import (40c34cd)
 - M4-2 search (11cbdeb) · M4-3 quotes + highlights (62b6e78), M4-1 Today API (e173784), M4-0 research skills + skill sync (718fbba)
@@ -115,3 +115,4 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - 2026-09-30 · M4-6 (Sol 6.1) · `ingest/firecrawl.ts` firecrawlMap; `routes/library.ts` site-map/site-import (host or subdomain only, 100 cap, 3 concurrent, dedupe); AI-gated · the pending queue is in memory (lost on restart) · UI later.
 - 2026-09-30 · PR #1 (Claude cloud, Sonnet) · revert scope (`git.ts` changedPaths/revertPaths, 409 or `scope:"set"`); chat proposals sidecar `<set>/chats/<id>.proposals.json` + GET/DELETE routes; resumed-ingest title; directive `{title=}` · the web proposals UI is still open.
 - 2026-09-30 · M4-5 (Sol 6.1) · `jobs/book-{assemble,paths,job}.ts`, `routes/book.ts`, `templates/book/{book.typ,callouts.lua}`, Dockerfile pinned pandoc/typst · AI gate exempts only direct compile-book jobs · callouts can split badly across pages.
+- 2026-09-30 · M4-4 (Sol 6.1) · Outliner role (writes only `<set>/plan-proposals/`), `jobs/plan-job.ts`, `inbox/plans.ts`, plan GET/approve/discard in `routes/inbox.ts`, `tree/curriculum.ts`, `skills/plan-set`; `tree/edit.ts` `writeTextLocked` (requires the held lock) · approve returns `{sha, jobIds}`; draft jobs tick curriculum lines · UI in M4-7b.
