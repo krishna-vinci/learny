@@ -5,7 +5,6 @@
 import type { JobKind, JobStatus, JobView } from "@studium/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BookOpenIcon, LayersIcon, LinkIcon, ListTreeIcon, NotebookTextIcon } from "lucide-react";
-import { toast } from "react-hot-toast";
 import { Link } from "react-router-dom";
 import { api } from "@/api/client";
 import { useJobs, useSets } from "@/api/queries";
@@ -15,6 +14,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { friendlyMessage } from "@/lib/friendly-errors";
 import { formatDuration } from "@/lib/job-format";
 import { isActiveJob, isRecentlyFinishedJob } from "@/lib/job-transitions";
+import { toast } from "@/lib/notify";
 import { cn } from "@/lib/utils";
 import { closeActivityPanel } from "./activity-store";
 

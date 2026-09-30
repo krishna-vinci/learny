@@ -4,7 +4,6 @@
 // phone user without clipboard access can still read and copy the token.
 import { CopyIcon, KeyRoundIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
-import { toast } from "react-hot-toast";
 import { ApiError } from "@/api/client";
 import { useAccessTokens, useCreateAccessToken, useDeleteAccessToken } from "@/api/queries";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -19,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "@/lib/notify";
 import { relativeTime } from "./format";
 import SettingSection from "./SettingSection";
 
@@ -152,7 +152,6 @@ const AccessTokenSection = () => {
     if (!deleteTarget) return;
     try {
       await deleteToken.mutateAsync(deleteTarget);
-      toast.success("Access token deleted");
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Failed to delete token.");
     }

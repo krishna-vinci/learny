@@ -4,7 +4,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeftIcon, CheckIcon, Loader2Icon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { toast } from "react-hot-toast";
 import { Navigate, useNavigate } from "react-router-dom";
 import { api } from "@/api/client";
 import { queryKeys, useSets } from "@/api/queries";
@@ -12,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { friendlyMessage } from "@/lib/friendly-errors";
+import { toast } from "@/lib/notify";
 import {
   canContinue,
   clearDraft,

@@ -5,7 +5,6 @@
 // confirm) rather than Memos' single delete.
 import { PlusIcon, ShieldCheckIcon, Trash2Icon, UserIcon } from "lucide-react";
 import { useState } from "react";
-import { toast } from "react-hot-toast";
 import { ApiError, type User, type UserRole } from "@/api/client";
 import { useAdminUsers, useCreateUser, useCurrentUser, useDeleteUser, useUpdateUser } from "@/api/queries";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -15,6 +14,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { toast } from "@/lib/notify";
 import SettingSection from "./SettingSection";
 
 function CreateMemberDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
@@ -40,7 +40,6 @@ function CreateMemberDialog({ open, onOpenChange }: { open: boolean; onOpenChang
         aiEnabled,
         ...(password ? { password } : {}),
       });
-      toast.success(`Member ${username} created`);
       onOpenChange(false);
       reset();
     } catch (err) {
@@ -127,7 +126,6 @@ function EditMemberDialog({ user, onOpenChange }: { user: User | null; onOpenCha
         id: user.id,
         patch: { role, aiEnabled, ...(newPassword ? { password: newPassword } : {}) },
       });
-      toast.success(`${user.username} updated`);
       onOpenChange(false);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Failed to update member.");
@@ -195,7 +193,6 @@ const MembersSection = () => {
         id: target.id,
         patch: { state: target.state === "NORMAL" ? "ARCHIVED" : "NORMAL" },
       });
-      toast.success(target.state === "NORMAL" ? `${target.username} archived` : `${target.username} restored`);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Failed to update member.");
     }
@@ -205,7 +202,6 @@ const MembersSection = () => {
     if (!purgeTarget) return;
     try {
       await deleteUser.mutateAsync({ id: purgeTarget.id, purge: true });
-      toast.success(`${purgeTarget.username}'s data was purged`);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Failed to purge member.");
     }

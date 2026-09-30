@@ -5,7 +5,6 @@
 // lands in the set's Inbox for review.
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/api/client";
 import { useCreateSet } from "@/api/queries";
@@ -15,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { friendlyMessage } from "@/lib/friendly-errors";
+import { toast } from "@/lib/notify";
 
 export interface NewSetDialogProps {
   open: boolean;

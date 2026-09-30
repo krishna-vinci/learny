@@ -2,13 +2,13 @@ import type { CommitInfo } from "@studium/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeftIcon, RotateCcwIcon, XIcon } from "lucide-react";
 import { useEffect, useState } from "react";
-import toast from "react-hot-toast";
 import { api, outsidePaths } from "@/api/client";
 import { queryKeys } from "@/api/queries";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { toast } from "@/lib/notify";
 import { cn } from "@/lib/utils";
 import { DiffView } from "./DiffView";
 

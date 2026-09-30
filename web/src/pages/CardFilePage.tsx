@@ -6,7 +6,6 @@ import { AnkiConnectClient, type CardView, syncCards } from "@studium/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangleIcon, CheckIcon, DownloadIcon, PencilIcon, RefreshCwIcon, XIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { toast } from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
 import { ApiError, api, exportUrl } from "@/api/client";
 import { queryKeys, useCardFile, useNotes, useSettings } from "@/api/queries";
@@ -16,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ActionBar } from "@/lib/action-bar";
 import { friendlyMessage } from "@/lib/friendly-errors";
+import { toast } from "@/lib/notify";
 import { cn } from "@/lib/utils";
 import {
   criticLabel,
@@ -321,8 +321,7 @@ function CardFilePage() {
     if (!path) return;
     setApprovingAll(true);
     try {
-      const result = await api.cards.approveClean(set, path);
-      toast.success(`Approved ${result.approved} critic-clean card${result.approved === 1 ? "" : "s"}`);
+      const _result = await api.cards.approveClean(set, path);
       invalidate();
     } catch (err) {
       toast.error(friendlyMessage(err, "Failed to approve cards."));

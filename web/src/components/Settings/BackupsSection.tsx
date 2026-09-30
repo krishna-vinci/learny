@@ -3,7 +3,6 @@
 // Memos port (Memos has no backup feature).
 
 import { useEffect, useRef, useState } from "react";
-import { toast } from "react-hot-toast";
 import type { BackupDestination, ProbeResult, SnapshotInfo } from "@/api/client";
 import { ApiError } from "@/api/client";
 import {
@@ -24,6 +23,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { toast } from "@/lib/notify";
 import { relativeTime } from "./format";
 import SettingGroup from "./SettingGroup";
 import SettingRow from "./SettingRow";

@@ -3,13 +3,13 @@
 // MembersSection for archive/purge), so this ports just the profile + password change.
 import { KeyRoundIcon, PenLineIcon } from "lucide-react";
 import { useEffect, useState } from "react";
-import { toast } from "react-hot-toast";
 import { ApiError } from "@/api/client";
 import { useChangePassword, useCurrentUser, useUpdateMe } from "@/api/queries";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "@/lib/notify";
 import LinkedIdentitySection from "./LinkedIdentitySection";
 import SettingGroup from "./SettingGroup";
 import SettingSection from "./SettingSection";

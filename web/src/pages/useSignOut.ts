@@ -1,8 +1,8 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
+import { toast } from "@/lib/notify";
 
 /**
  * Signs out via `POST /api/auth/signout`, clears the whole React Query cache (so a

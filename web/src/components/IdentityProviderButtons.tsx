@@ -3,9 +3,9 @@
 // PKCE authorize flow (`@/lib/oauth`). Shared by SignIn (mode "signin") and
 // LinkedIdentitySection (mode "link").
 import { KeyRoundIcon } from "lucide-react";
-import { toast } from "react-hot-toast";
 import type { PublicIdentityProvider } from "@/api/client";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/lib/notify";
 import { startOAuthFlow } from "@/lib/oauth";
 
 interface Props {

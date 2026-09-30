@@ -9,7 +9,6 @@ import {
   PencilIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { toast } from "react-hot-toast";
 import { useSearchParams } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import { useHighlights, useSaveFile } from "@/api/queries";
@@ -26,6 +25,7 @@ import {
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { friendlyMessage } from "@/lib/friendly-errors";
 import { exitImmersive, isImmersive, toggleImmersive, useImmersive } from "@/lib/immersive-store";
+import { toast } from "@/lib/notify";
 import { readingPrefsVars, useReadingPrefs } from "@/lib/reading-prefs";
 import { readScrollPosition, saveScrollPosition } from "@/lib/scroll-memory";
 import { cn } from "@/lib/utils";

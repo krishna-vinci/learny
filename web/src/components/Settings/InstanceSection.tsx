@@ -2,12 +2,12 @@
 // Trimmed to the two fields T1 exposes (`server/src/accounts/settings.ts`); SSO
 // providers land in slice (b), backups/notifications in later slices.
 import { useEffect, useState } from "react";
-import { toast } from "react-hot-toast";
 import { ApiError } from "@/api/client";
 import { useAdminInstance, useUpdateAdminInstance } from "@/api/queries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { toast } from "@/lib/notify";
 import SettingGroup from "./SettingGroup";
 import SettingRow from "./SettingRow";
 import SettingSection from "./SettingSection";

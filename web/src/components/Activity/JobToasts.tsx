@@ -1,31 +1,29 @@
 // A4/A5: app-wide job completion toasts. Only SSE events are watched — jobs already
 // terminal in the startup snapshot never toast — and each id notifies once. Completion
-// toasts live ~8s and cap themselves at three: react-hot-toast has no global max, so
+// toasts follow lib/notify (3 s, 5 s with an action; failures stay) and cap themselves at three: react-hot-toast has no global max, so
 // this module trims its own oldest toast when a fourth lands.
 import type { JobView } from "@studium/shared";
 import { useMemo } from "react";
-import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { bookUrl } from "@/api/client";
 import { useStudiumEvents } from "@/api/events";
 import { Button } from "@/components/ui/button";
 import { friendlyMessage } from "@/lib/friendly-errors";
 import { createJobTransitionTracker } from "@/lib/job-transitions";
+import { toast } from "@/lib/notify";
 import { openActivityPanel } from "./activity-store";
 
-const COMPLETION_TOAST_MS = 8000;
 const MAX_COMPLETION_TOASTS = 3;
 const NUDGE_STORAGE_KEY = "studium.notifications-nudge-dismissed";
-const NUDGE_COMPLETION_COUNT = 3;
 const NUDGE_TOAST_ID = "studium-activity-nudge";
 
-const completionToastIds: ReturnType<typeof toast.success>[] = [];
+const completionToastIds: string[] = [];
 // Module scope, not component state: RootLayout (and therefore JobToasts) remounts on
 // every route change, but "after the third completion" means this tab's session. The
 // dismissal itself persists in localStorage across sessions.
-const nudgeState = { count: 0, hiddenFinish: false, shown: false, initialized: false };
+const nudgeState = { hiddenFinish: false, shown: false, initialized: false };
 
-function ToastAction({ label, onClick }: { label: string; onClick: () => void }) {
+function _ToastAction({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button type="button" className="shrink-0 text-primary underline underline-offset-2" onClick={onClick}>
       {label}
@@ -103,14 +101,8 @@ function completionToastFor(job: JobView, navigate: (to: string) => void): Compl
 }
 
 function showCompletionToast(toastSpec: CompletionToast): void {
-  const show = toastSpec.kind === "success" ? toast.success : toast.error;
-  const id = show(
-    <span className="flex min-w-0 items-center gap-2">
-      <span className="min-w-0">{toastSpec.message}</span>
-      {toastSpec.action && <ToastAction label={toastSpec.action.label} onClick={toastSpec.action.onClick} />}
-    </span>,
-    { duration: COMPLETION_TOAST_MS },
-  );
+  const options = toastSpec.action ? { action: toastSpec.action } : undefined;
+  const id = (toastSpec.kind === "success" ? toast.success : toast.error)(toastSpec.message, options);
   completionToastIds.push(id);
   while (completionToastIds.length > MAX_COMPLETION_TOASTS) {
     const oldest = completionToastIds.shift();
@@ -184,10 +176,12 @@ export function JobToasts() {
       nudgeState.initialized = true;
       nudgeState.shown = readNudgeDismissed();
     }
-    nudgeState.count += 1;
+    // The "turn on notifications" tip is for someone who missed a result: show it once, and only when a
+    // job finished while this tab was hidden (docs/UX.md rule 6). Counting completions never triggers it.
     if (document.visibilityState === "hidden") nudgeState.hiddenFinish = true;
-    if (!nudgeState.shown && (nudgeState.hiddenFinish || nudgeState.count >= NUDGE_COMPLETION_COUNT)) {
+    if (!nudgeState.shown && nudgeState.hiddenFinish) {
       nudgeState.shown = true;
+      rememberNudgeDismissal(); // once, ever: showing it counts as having offered it
       showNotificationNudge(navigate);
     }
   });

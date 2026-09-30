@@ -2,13 +2,13 @@
 // note with the editor already open (`?edit=1`) so the user can start typing right away.
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { useCreateNote } from "@/api/queries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { friendlyMessage } from "@/lib/friendly-errors";
+import { toast } from "@/lib/notify";
 
 export interface NewNoteDialogProps {
   set: string;

@@ -4,7 +4,6 @@
 // docs/plans/2026-09-29-m3a-platform.md T3.
 import { CopyIcon, KeyRoundIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useState } from "react";
-import { toast } from "react-hot-toast";
 import { ApiError, type IdentityProviderAdmin, type IdentityProviderInput } from "@/api/client";
 import {
   useAdminIdentityProviders,
@@ -25,6 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { toast } from "@/lib/notify";
 import { callbackRedirectUri } from "@/lib/oauth";
 import { IDP_TEMPLATES, type IdpTemplate } from "./idp-templates";
 import SettingGroup from "./SettingGroup";
@@ -181,10 +181,8 @@ function ProviderFormDialog({
     try {
       if (isEdit) {
         await update.mutateAsync({ id: provider.id, patch: input });
-        toast.success("Provider updated");
       } else {
         await create.mutateAsync(input);
-        toast.success("Provider added");
       }
       onOpenChange(false);
     } catch (err) {
@@ -384,7 +382,6 @@ const SSOSection = () => {
     if (!deleteTarget) return;
     try {
       await deleteProvider.mutateAsync(deleteTarget.id);
-      toast.success("Provider removed");
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Failed to remove provider.");
     }

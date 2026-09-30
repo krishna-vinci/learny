@@ -2,13 +2,13 @@
 // set's Inbox. The goal is prefilled from the set's current PLAN.md.
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { toast } from "react-hot-toast";
 import { api } from "@/api/client";
 import { showJobStartedToast } from "@/components/Activity/job-start-toast";
 import { EMPTY_PLAN_OPTIONS, PlanOptions, planOptionsBody } from "@/components/PlanOptions";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { friendlyMessage } from "@/lib/friendly-errors";
+import { toast } from "@/lib/notify";
 
 export interface PlanSetSheetProps {
   set: string;

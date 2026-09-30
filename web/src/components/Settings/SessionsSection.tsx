@@ -3,12 +3,12 @@
 // constraints) are listable and revocable.
 import { LaptopIcon } from "lucide-react";
 import { useState } from "react";
-import { toast } from "react-hot-toast";
 import { ApiError } from "@/api/client";
 import { useRevokeSession, useSessions } from "@/api/queries";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/lib/notify";
 import { relativeTime } from "./format";
 import SettingSection from "./SettingSection";
 
@@ -22,7 +22,6 @@ const SessionsSection = () => {
     if (!target) return;
     try {
       await revoke.mutateAsync(target);
-      toast.success("Session revoked");
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Failed to revoke session.");
     }

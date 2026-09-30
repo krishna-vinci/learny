@@ -5,7 +5,6 @@ import type { InboxItem } from "@studium/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckIcon, ExternalLinkIcon, MinusIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
-import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/api/client";
 import { queryKeys, usePlanProposal } from "@/api/queries";
@@ -16,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ActionBar } from "@/lib/action-bar";
 import { friendlyMessage } from "@/lib/friendly-errors";
+import { toast } from "@/lib/notify";
 import { parsePlanSummary, parseProposedChapters } from "./plan-proposal";
 
 const MAX_DRAFT_FIRST = 5;

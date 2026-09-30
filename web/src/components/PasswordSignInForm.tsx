@@ -5,12 +5,12 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { LoaderIcon } from "lucide-react";
 import { useState } from "react";
-import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import { queryKeys } from "@/api/queries";
 import CredentialFields from "@/components/CredentialFields";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/lib/notify";
 
 interface PasswordSignInFormProps {
   redirectPath?: string;

@@ -7,7 +7,6 @@ import type { JobView } from "@studium/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2Icon, FileIcon, GlobeIcon, LinkIcon, Loader2Icon, TriangleAlertIcon, XIcon } from "lucide-react";
 import { useEffect, useState } from "react";
-import { toast } from "react-hot-toast";
 import { Link } from "react-router-dom";
 import { api } from "@/api/client";
 import { useStudiumEvents } from "@/api/events";
@@ -16,6 +15,7 @@ import { showJobStartedToast } from "@/components/Activity/job-start-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { friendlyMessage } from "@/lib/friendly-errors";
+import { toast } from "@/lib/notify";
 import { cn } from "@/lib/utils";
 import { DocsSiteTab } from "./DocsSiteTab";
 

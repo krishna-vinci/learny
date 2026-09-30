@@ -3,11 +3,11 @@
 // list (id/title/authUrl/clientId/scopes — same one SignIn uses), cross-referenced with
 // `GET /api/me/identities` for which ones this account already has linked.
 import { UnlinkIcon } from "lucide-react";
-import { toast } from "react-hot-toast";
 import { ApiError } from "@/api/client";
 import { useAuthStatus, useIdentities, useUnlinkIdentity } from "@/api/queries";
 import IdentityProviderButtons from "@/components/IdentityProviderButtons";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/lib/notify";
 import { relativeTime } from "./format";
 import SettingGroup from "./SettingGroup";
 
@@ -25,7 +25,6 @@ const LinkedIdentitySection = () => {
   async function handleUnlink(providerId: number) {
     try {
       await unlink.mutateAsync(providerId);
-      toast.success("Identity unlinked");
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Failed to unlink identity.");
     }

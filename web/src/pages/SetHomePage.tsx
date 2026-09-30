@@ -14,7 +14,6 @@ import {
   SparklesIcon,
 } from "lucide-react";
 import { useState } from "react";
-import { toast } from "react-hot-toast";
 import { Link, useParams } from "react-router-dom";
 import { api, bookUrl } from "@/api/client";
 import { useBook, useJobs, useLibrary, useNoteFile, useNotes, useSets, useToday } from "@/api/queries";
@@ -32,6 +31,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { type ContinueStep, nextStep } from "@/lib/continue-step";
 import { friendlyMessage } from "@/lib/friendly-errors";
 import { isActiveJob } from "@/lib/job-transitions";
+import { toast } from "@/lib/notify";
 import { cn } from "@/lib/utils";
 
 function NoteRow({ set, path, title, order }: { set: string; path: string; title: string; order: number | null }) {

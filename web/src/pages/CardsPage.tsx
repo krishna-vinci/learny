@@ -7,7 +7,6 @@ import type { CardFileView } from "@studium/shared";
 import { AlertTriangleIcon, ChevronRightIcon, LayersIcon } from "lucide-react";
 import type { MouseEvent } from "react";
 import { useState } from "react";
-import { toast } from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "@/api/client";
 import { useCardFiles, useNotes } from "@/api/queries";
@@ -16,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { friendlyMessage } from "@/lib/friendly-errors";
+import { toast } from "@/lib/notify";
 import { type CARD_STATUS_ORDER, statusChips } from "./cards-utils";
 
 const STATUS_CHIP_VARIANTS: Record<(typeof CARD_STATUS_ORDER)[number], "muted" | "success" | "destructive" | "tint"> = {

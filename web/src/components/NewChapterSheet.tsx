@@ -3,7 +3,6 @@
 // from InboxPage so SetHomePage and the sidebar's "+" menu can open the same sheet.
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { toast } from "react-hot-toast";
 import { api } from "@/api/client";
 import { showJobStartedToast } from "@/components/Activity/job-start-toast";
 import { SourcePicker } from "@/components/SourcePicker";
@@ -11,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { friendlyMessage } from "@/lib/friendly-errors";
+import { toast } from "@/lib/notify";
 
 export interface NewChapterSheetProps {
   set: string;

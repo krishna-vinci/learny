@@ -3,7 +3,6 @@
 // `/api/me/notifications` (server/src/notify/routes.ts).
 import { BellRingIcon, SmartphoneIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useState } from "react";
-import { toast } from "react-hot-toast";
 import { ApiError } from "@/api/client";
 import {
   useDeletePush,
@@ -17,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { toast } from "@/lib/notify";
 import { subscribeToPush } from "@/lib/push";
 import { relativeTime } from "./format";
 import SettingGroup from "./SettingGroup";

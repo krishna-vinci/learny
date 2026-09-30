@@ -3,11 +3,11 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { toast } from "react-hot-toast";
 import { ApiError, api } from "@/api/client";
 import { queryKeys, useSettings } from "@/api/queries";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/lib/notify";
 import { cn } from "@/lib/utils";
 import { groupModelsByProvider } from "@/pages/settings-utils";
 import SettingSection from "./SettingSection";

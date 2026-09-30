@@ -3,7 +3,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { LoaderIcon } from "lucide-react";
 import { useState } from "react";
-import { toast } from "react-hot-toast";
 import { Navigate, useNavigate } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import { queryKeys, useAuthStatus } from "@/api/queries";
@@ -11,6 +10,7 @@ import AuthPageLayout from "@/components/AuthPageLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "@/lib/notify";
 
 const USERNAME_PATTERN = /^[a-z0-9][a-z0-9_-]{1,31}$/;
 

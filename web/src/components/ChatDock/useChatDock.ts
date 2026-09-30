@@ -4,11 +4,11 @@
 // own body; the two shells only render around this.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type KeyboardEvent, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { toast } from "react-hot-toast";
 import { ApiError, api } from "@/api/client";
 import { useStudiumEvents } from "@/api/events";
 import { showJobStartedToast } from "@/components/Activity/job-start-toast";
 import { friendlyMessage } from "@/lib/friendly-errors";
+import { toast } from "@/lib/notify";
 import { type ChatDockRequest, OPEN_CHAT_DOCK_EVENT, takeChatDockRequest } from "./openChatDock";
 import { type ChatDockState, chatDockReducer, initialChatDockState } from "./reducer";
 import { useOpenNote } from "./useOpenNote";

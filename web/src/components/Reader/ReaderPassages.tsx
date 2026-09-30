@@ -3,7 +3,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { HighlighterIcon, MessageSquareIcon, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { toast } from "react-hot-toast";
 import { api } from "@/api/client";
 import { queryKeys } from "@/api/queries";
 import { openChatDock } from "@/components/ChatDock/openChatDock";
@@ -12,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { toast } from "@/lib/notify";
 import { cn } from "@/lib/utils";
 import { articleText, capturePassage, clearHighlights, type PassageSelection, placeHighlights } from "./highlight-dom";
 import { MarkdownView } from "./MarkdownView";
