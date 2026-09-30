@@ -127,7 +127,7 @@ export interface SiteImportResponse {
   skipped: { url: string; reason: string }[];
 }
 
-export type JobKind = "ingest" | "draft-chapter" | "make-cards" | "compile-book";
+export type JobKind = "ingest" | "draft-chapter" | "make-cards" | "compile-book" | "plan-set";
 export type JobStatus = "queued" | "running" | "done" | "failed" | "cancelled";
 /** How a job's model usage is billed: flat subscription, metered list price, or both. */
 export type JobBilling = "subscription" | "metered" | "mixed";
@@ -141,6 +141,7 @@ export interface JobUsage {
 }
 
 export interface JobResult {
+  proposalPath?: string;
   notePath?: string;
   cardPath?: string;
   sourceId?: string;
@@ -170,11 +171,19 @@ export interface CheckIssue {
 }
 
 export interface InboxItem {
+  /** Missing kind means chapter, for compatibility with older items. */
+  kind?: "chapter" | "plan";
   path: string;
   title: string;
   status: "draft" | "checked";
   check: { issues: CheckIssue[]; summary: string } | null;
   updatedAt: string;
+}
+
+export interface PlanProposal {
+  plan: string;
+  curriculum: string;
+  sourcesToAdd: string[];
 }
 
 export interface ServiceHealth {

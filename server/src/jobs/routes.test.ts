@@ -4,6 +4,7 @@ import path from "node:path";
 import { Hono } from "hono";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EventHub } from "../events.js";
+import { ensureRepo, log } from "../tree/git.js";
 import { ProposalStore } from "./proposals.js";
 import { jobsRoutes } from "./routes.js";
 import { JobRunner } from "./runner.js";
@@ -49,6 +50,34 @@ describe("jobs routes", () => {
     expect(runner.get(jobId)?.kind).toBe("compile-book");
   });
 
+  it("creates a missing set before enqueueing plan-set and rejects bad input without creating a set", async () => {
+    await ensureRepo(root);
+    const rooted = new Hono();
+    rooted.route("/api/jobs", jobsRoutes({ runner, root }));
+    const received: unknown[] = [];
+    runner.register("plan-set", async (input) => {
+      received.push(input);
+      return undefined;
+    });
+    const post = (patch: Record<string, unknown> = {}) =>
+      rooted.request("/api/jobs", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ kind: "plan-set", set: "new-set", goal: "Learn algebra", ...patch }),
+      });
+    expect((await post({ level: 6 })).status).toBe(400);
+    expect((await post({ deadline: "2026-02-31" })).status).toBe(400);
+    await expect(fs.access(path.join(root, "new-set"))).rejects.toThrow();
+    const response = await post({ level: 2, deadline: "2026-12-01" });
+    expect(response.status).toBe(202);
+    expect(await response.json()).toMatchObject({ jobId: expect.any(String), set: "new-set" });
+    await vi.waitFor(() => expect(received).toHaveLength(1));
+    expect(received[0]).toMatchObject({ set: "new-set", goal: "Learn algebra", level: 2, deadline: "2026-12-01" });
+    expect(await fs.readFile(path.join(root, "new-set/PLAN.md"), "utf8")).toContain("Learn algebra");
+    expect((await log(root, { limit: 1 }))[0]).toMatchObject({ author: "user", subject: "user: create set new-set" });
+    await post({ goal: "Learn more" });
+    expect(await fs.readdir(root)).not.toContain("new-set-2");
+  });
   it("rejects make-cards for a note that does not exist (404) when the root is known", async () => {
     const rooted = new Hono();
     rooted.route("/api/jobs", jobsRoutes({ runner, proposals, root }));

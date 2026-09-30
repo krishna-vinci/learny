@@ -7,7 +7,8 @@ import { rethrowRoleModelError, runRole } from "../agent/run-role.js";
 import type { EventHub } from "../events.js";
 import { slugify } from "../ingest/ids.js";
 import type { McpManager } from "../mcp/bridge.js";
-import { editFile, readText } from "../tree/edit.js";
+import { chapterExists, parseCurriculum } from "../tree/curriculum.js";
+import { editFile, readText, writeTextLocked } from "../tree/edit.js";
 import { commitPaths } from "../tree/git.js";
 import type { FileLocks } from "../tree/lock.js";
 import { resolveInRoot } from "../tree/paths.js";
@@ -223,6 +224,28 @@ function checkerTask(notePath: string, reportPath: string, sources: string[], re
   ].join("\n");
 }
 
+export async function tickCurriculum(
+  deps: Pick<DraftJobDeps, "root" | "locks">,
+  set: string,
+  notePath: string,
+  title: string,
+): Promise<string | null> {
+  const rel = `${set}/curriculum.md`;
+  const holder = `drafter:curriculum:${crypto.randomUUID()}`;
+  return deps.locks.withLock(rel, holder, async () => {
+    const text = await optionalText(deps.root, rel);
+    const chapters = parseCurriculum(text);
+    const chapter =
+      chapters.find((item) => slugify(item.title, 40) === slugify(title, 40)) ??
+      chapters.find((item) => chapterExists(item, [notePath]));
+    if (chapter === undefined || chapter.checked) return null;
+    const lines = text.split("\n");
+    lines[chapter.line] = (lines[chapter.line] ?? "").replace("[ ]", "[x]");
+    await writeTextLocked(deps.root, deps.locks, holder, rel, lines.join("\n"), (candidate) => candidate === rel);
+    return rel;
+  });
+}
+
 export function createDraftJob(deps: DraftJobDeps): JobHandler {
   return async (rawInput: unknown, ctx: JobContext) => {
     const input = parseDraftChapterInput(rawInput);
@@ -344,9 +367,10 @@ export function createDraftJob(deps: DraftJobDeps): JobHandler {
 
       ctx.progress(blocked ? "Finished with open blocker issues" : "Chapter checked");
       ctx.signal.throwIfAborted();
+      const curriculumPath = await tickCurriculum(deps, input.set, notePath, input.title);
       const checkerSha = await commitPaths(
         deps.root,
-        [noteRootPath, reportRootPath],
+        [noteRootPath, reportRootPath, ...(curriculumPath === null ? [] : [curriculumPath])],
         `checker: ${input.title}`,
         "checker",
       );

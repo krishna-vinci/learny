@@ -88,7 +88,7 @@ it("aggregates Today through the workspace app using only that workspace's sets"
     staleCardFiles: 1,
     notesCount: 4,
     lastStudiedAt: chatDate.toISOString(),
-    nextChapter: "02 — Matrices, elimination, and rank",
+    nextChapter: null,
   });
   expect(view.sets[1]?.daysLeft).toEqual(expect.any(Number));
   expect(view.sets[1]?.runningJobs.map((job) => job.status)).toEqual(["queued", "running"]);

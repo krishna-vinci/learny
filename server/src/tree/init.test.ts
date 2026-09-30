@@ -64,6 +64,7 @@ describe("initStudyTree", () => {
         "find-sources",
         "make-deck",
         "note-authoring",
+        "plan-set",
         "quiz-me",
         "source-summary",
       ].sort(),

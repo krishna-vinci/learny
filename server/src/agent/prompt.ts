@@ -55,7 +55,7 @@ export async function buildTutorPrompt(
 }
 
 export async function buildBatchRolePrompt(opts: {
-  role: "librarian" | "drafter" | "checker" | "cardsmith" | "critic";
+  role: "librarian" | "outliner" | "drafter" | "checker" | "cardsmith" | "critic";
   root: string;
   set: string | null;
   skills: readonly SkillSummary[];
@@ -69,6 +69,11 @@ export async function buildBatchRolePrompt(opts: {
           optionalText(opts.root, `${opts.set}/curriculum.md`),
         ]);
   const roleInstructions = {
+    outliner: [
+      "You are the Studium Outliner. Propose a study plan and prerequisite-ordered curriculum for the learner.",
+      "Write only Markdown proposals under plan-proposals/. Never edit PLAN.md, curriculum.md, notes, or the library.",
+      "The learner approves proposals in the Inbox. Propose new sources as URLs; never register them or invent library ids.",
+    ],
     librarian: [
       "You are the Studium Librarian. Read source material in library/ and improve only that source's source.md.",
       "Use exact, surgical edits. Do not write notes, plans, cards, or other library files.",

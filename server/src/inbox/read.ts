@@ -1,8 +1,9 @@
 import type { Dirent, Stats } from "node:fs";
 import { promises as fs } from "node:fs";
 import type { CheckIssue, InboxItem } from "@studium/shared";
-import { NoteFrontmatter, parseFrontmatter } from "@studium/shared";
+import { NoteFrontmatter, PlanFrontmatter, parseFrontmatter } from "@studium/shared";
 import { resolveInRoot } from "../tree/paths.js";
+import { PROPOSAL_FILE, parsePlanProposal, proposalRootPath } from "./plans.js";
 
 function checkSummary(report: string): string {
   const match = /^## Summary\s*\r?\n([\s\S]*?)(?=^##\s|\s*$)/im.exec(report);
@@ -46,8 +47,8 @@ export async function readInbox(root: string, set: string): Promise<InboxItem[]>
   try {
     entries = await fs.readdir(notesDir, { withFileTypes: true });
   } catch (error) {
-    if (error instanceof Error && "code" in error && error.code === "ENOENT") return [];
-    throw error;
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") entries = [];
+    else throw error;
   }
 
   const items: InboxItem[] = [];
@@ -81,10 +82,50 @@ export async function readInbox(root: string, set: string): Promise<InboxItem[]>
       if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
     }
     items.push({
+      kind: "chapter",
       path: noteRel,
       title: parsed.data.title ?? entry.name.replace(/\.md$/, ""),
       status: parsed.data.status,
       check,
+      updatedAt: stat.mtime.toISOString(),
+    });
+  }
+  let proposals: Dirent[];
+  try {
+    proposals = await fs.readdir(resolveInRoot(root, `${set}/plan-proposals`), { withFileTypes: true });
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") proposals = [];
+    else throw error;
+  }
+  for (const entry of proposals) {
+    if (!entry.isFile() || !PROPOSAL_FILE.test(entry.name)) continue;
+    const rel = proposalRootPath(root, set, entry.name);
+    let text: string;
+    let stat: Stats;
+    try {
+      [text, stat] = await Promise.all([
+        fs.readFile(resolveInRoot(root, rel), "utf8"),
+        fs.stat(resolveInRoot(root, rel)),
+      ]);
+    } catch (error) {
+      // Approval/discard may remove a proposal between directory listing and reading.
+      if (error instanceof Error && "code" in error && error.code === "ENOENT") continue;
+      throw error;
+    }
+    let title: string;
+    try {
+      const proposal = parsePlanProposal(text);
+      title = PlanFrontmatter.parse(parseFrontmatter(proposal.plan).frontmatter).title ?? entry.name;
+    } catch {
+      // Keep malformed/unfinished proposals visible so the learner can discard them.
+      title = entry.name;
+    }
+    items.push({
+      kind: "plan",
+      path: `plan-proposals/${entry.name}`,
+      title,
+      status: "draft",
+      check: null,
       updatedAt: stat.mtime.toISOString(),
     });
   }

@@ -1,9 +1,12 @@
 import { existsSync } from "node:fs";
 import { Hono } from "hono";
+import type { EventHub } from "../events.js";
+import { createSet } from "../tree/authoring.js";
 import { resolveInRoot } from "../tree/paths.js";
 import { parseCompileBookInput } from "./book-paths.js";
 import { parseMakeCardsInput } from "./cards-job.js";
 import { parseDraftChapterInput } from "./draft-job.js";
+import { parsePlanSetInput } from "./plan-job.js";
 import { jobProposals, type ProposalStore } from "./proposals.js";
 import type { JobRunner } from "./runner.js";
 
@@ -11,6 +14,7 @@ export interface JobsRoutesDeps {
   runner: JobRunner;
   /** Study root; when set, make-cards requests for a missing note are rejected up front. */
   root?: string;
+  hub?: EventHub;
   proposals?: ProposalStore;
 }
 
@@ -36,10 +40,29 @@ export function jobsRoutes(deps: JobsRoutesDeps): Hono {
           typeof body === "object" &&
           body !== null &&
           "kind" in body &&
-          (body.kind === "draft-chapter" || body.kind === "make-cards" || body.kind === "compile-book")
+          (body.kind === "draft-chapter" ||
+            body.kind === "make-cards" ||
+            body.kind === "compile-book" ||
+            body.kind === "plan-set")
         )
       ) {
-        throw new Error('kind must be "draft-chapter", "make-cards" or "compile-book"');
+        throw new Error('kind must be "draft-chapter", "make-cards", "compile-book" or "plan-set"');
+      }
+      if (typeof input === "object" && input !== null && "kind" in input && input.kind === "plan-set") {
+        const parsed = parsePlanSetInput(input);
+        if (deps.root === undefined) throw new Error("study root is required for plan-set");
+        for (const source of parsed.sources ?? []) {
+          if (!existsSync(resolveInRoot(deps.root, `library/${source}/source.md`)))
+            throw new Error(`source not found: ${source}`);
+        }
+        if (!existsSync(resolveInRoot(deps.root, `${parsed.set}/PLAN.md`))) {
+          const created = await createSet(deps.root, { title: parsed.set, goal: parsed.goal });
+          parsed.set = created.slug;
+          if (created.sha !== null)
+            deps.hub?.publish({ type: "commit", sha: created.sha, subject: created.subject, author: "user" });
+        }
+        const job = deps.runner.enqueue("plan-set", parsed, { set: parsed.set, title: `Plan: ${parsed.goal}` });
+        return c.json({ jobId: job.id, set: parsed.set }, 202);
       }
       if (typeof input === "object" && input !== null && "kind" in input && input.kind === "make-cards") {
         const parsed = parseMakeCardsInput(input);

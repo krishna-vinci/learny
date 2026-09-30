@@ -93,6 +93,19 @@ export async function readText(root: string, rel: string): Promise<string> {
   }
 }
 
+/** For coordinated mutations whose caller already holds the target lock. */
+export async function writeTextLocked(
+  root: string,
+  locks: FileLocks,
+  holder: string,
+  rel: string,
+  content: string,
+  canWrite: (rootRelativePath: string) => boolean,
+): Promise<void> {
+  if (locks.holderOf(rel) !== holder) throw new Error(`File lock is required: ${rel}`);
+  await atomicWrite(writableAbsolutePath(root, rel, canWrite), content);
+}
+
 export async function editFile(
   root: string,
   locks: FileLocks,

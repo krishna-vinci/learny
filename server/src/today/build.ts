@@ -8,6 +8,7 @@ import type {
   TodaySet,
   TodayView,
 } from "@studium/shared";
+import { chapterExists, parseCurriculum } from "../tree/curriculum.js";
 
 export interface TodaySetInput extends SetSummary {
   inbox: InboxItem[];
@@ -17,27 +18,15 @@ export interface TodaySetInput extends SetSummary {
   chatActivity: string[];
   curriculum: string | null;
   notesCount: number;
+  notePaths?: string[];
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export function parseNextChapter(curriculum: string | null): string | null {
-  let fence: { marker: string; length: number } | null = null;
-  for (const line of (curriculum ?? "").split(/\r?\n/)) {
-    const marker = /^\s*(`{3,}|~{3,})(.*)$/.exec(line);
-    if (marker?.[1] !== undefined) {
-      if (fence === null) {
-        fence = { marker: marker[1][0] ?? "", length: marker[1].length };
-      } else if (marker[1][0] === fence.marker && marker[1].length >= fence.length && marker[2]?.trim() === "") {
-        fence = null;
-      }
-      continue;
-    }
-    if (fence !== null) continue;
-    const title = /^\s*(?:[-+*]|\d+[.)])\s+\[ \]\s+(.+)$/.exec(line)?.[1]?.trim();
-    if (title) return title;
-  }
-  return null;
+export function parseNextChapter(curriculum: string | null, notePaths: readonly string[] = []): string | null {
+  return (
+    parseCurriculum(curriculum).find((chapter) => !chapter.checked && !chapterExists(chapter, notePaths))?.label ?? null
+  );
 }
 
 function daysUntil(deadline: string | null, now: Date): number | null {
@@ -82,7 +71,7 @@ export function buildToday(inputs: TodaySetInput[], now: Date): TodayView {
     staleCardFiles: input.cardFiles.filter((file) => file.stale).length,
     runningJobs: input.jobs.filter((job) => job.status === "queued" || job.status === "running"),
     lastStudiedAt: lastStudied(input),
-    nextChapter: parseNextChapter(input.curriculum),
+    nextChapter: parseNextChapter(input.curriculum, input.notePaths),
     notesCount: input.notesCount,
   }));
   const ordered = [...sets].sort(dueOrder);

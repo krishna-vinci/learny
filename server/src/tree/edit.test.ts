@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readdir, readFile, rm, symlink, writeFile } from "node:
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createFile, EditError, editFile, readText, replaceFile } from "./edit";
+import { createFile, EditError, editFile, readText, replaceFile, writeTextLocked } from "./edit";
 import { FileLocks } from "./lock";
 
 describe("edit", () => {
@@ -29,6 +29,25 @@ describe("edit", () => {
 
     const files = await readdir(path.dirname(noteAbs()));
     expect(files).toEqual(["a.md"]);
+  });
+
+  it("requires the caller's lock for atomic multi-file writes and still enforces path policy", async () => {
+    const rel = "linear-algebra/PLAN.md";
+    const canWrite = (candidate: string) => candidate === rel;
+    await expect(writeTextLocked(root, locks, "user", rel, "# Plan\n", canWrite)).rejects.toThrow(
+      "File lock is required",
+    );
+    await locks.withLock(rel, "user", async () => {
+      await writeTextLocked(root, locks, "user", rel, "# Plan\n", canWrite);
+      await expect(writeTextLocked(root, locks, "other", rel, "denied", canWrite)).rejects.toThrow(
+        "File lock is required",
+      );
+      await expect(writeTextLocked(root, locks, "user", rel, "denied", () => false)).rejects.toMatchObject({
+        code: "forbidden",
+      });
+    });
+    expect(await readFile(path.join(root, rel), "utf8")).toBe("# Plan\n");
+    expect(await readdir(path.join(root, "linear-algebra"))).toEqual(["PLAN.md", "notes"]);
   });
 
   it("reports no_match when the old string is absent", async () => {

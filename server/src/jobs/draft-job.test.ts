@@ -9,7 +9,7 @@ import { EventHub } from "../events.js";
 import { McpManager } from "../mcp/bridge.js";
 import { diff, ensureRepo, log } from "../tree/git.js";
 import { FileLocks } from "../tree/lock.js";
-import { createDraftJob, hasBlockingIssues, setNoteStatusTool } from "./draft-job.js";
+import { createDraftJob, hasBlockingIssues, setNoteStatusTool, tickCurriculum } from "./draft-job.js";
 
 const SAMPLE_SET = fileURLToPath(new URL("../../../examples/sample-set", import.meta.url));
 
@@ -38,6 +38,10 @@ afterEach(async () => {
 
 describe("draft chapter job", () => {
   it("drafts, checks, marks checked, and commits the note and report", async () => {
+    await fs.appendFile(
+      path.join(root, "linear-algebra/curriculum.md"),
+      "\n- [ ] 04 — Eigenvalues\n  Scope: Eigenvalues and eigenvectors.\n  Prerequisites: 02\n",
+    );
     const runtime = await createModelRuntime();
     const faux = fauxProvider({ provider: "faux", models: [{ id: "echo" }] });
     runtime.registerNativeProvider(faux.provider);
@@ -96,6 +100,9 @@ describe("draft chapter job", () => {
       fs.readFile(path.join(root, "linear-algebra/log/checks/04-eigenvalues.md"), "utf8"),
     ).resolves.toContain("No issues found");
     expect(progress).toEqual(["Drafting chapter", "Checking chapter", "Chapter checked"]);
+    expect(await fs.readFile(path.join(root, "linear-algebra/curriculum.md"), "utf8")).toContain(
+      "- [x] 04 — Eigenvalues",
+    );
 
     // Two commits in order: the drafter's note, then the checker's report + status edit.
     const [checkerCommit, drafterCommit] = await log(root, { limit: 2 });
@@ -107,6 +114,23 @@ describe("draft chapter job", () => {
     expect(await diff(root, checkerCommit?.sha ?? "", "linear-algebra/log/checks/04-eigenvalues.md")).toContain(
       "No issues found",
     );
+    expect(await diff(root, checkerCommit?.sha ?? "", "linear-algebra/curriculum.md")).toContain("+- [x]");
+  });
+
+  it("ticks by title when note numbering differs, preserving CRLF and fenced examples", async () => {
+    const rel = "linear-algebra/curriculum.md";
+    await fs.writeFile(
+      path.join(root, rel),
+      "```md\r\n- [ ] 01 — Matrices\r\n```\r\n- [ ] 01 — Vectors\r\n- [ ] 02 — Matrices\r\n",
+    );
+    const deps = { root, locks: new FileLocks() };
+    expect(await tickCurriculum(deps, "linear-algebra", "notes/09-matrices.md", "Matrices")).toBe(rel);
+    expect(await fs.readFile(path.join(root, rel), "utf8")).toBe(
+      "```md\r\n- [ ] 01 — Matrices\r\n```\r\n- [ ] 01 — Vectors\r\n- [x] 02 — Matrices\r\n",
+    );
+    expect(await tickCurriculum(deps, "linear-algebra", "notes/09-matrices.md", "Matrices")).toBeNull();
+    await fs.unlink(path.join(root, rel));
+    expect(await tickCurriculum(deps, "linear-algebra", "notes/09-matrices.md", "Matrices")).toBeNull();
   });
 
   it("fails when the drafter writes outside its reserved note path", async () => {

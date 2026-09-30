@@ -149,6 +149,18 @@ describe("buildToday", () => {
 });
 
 describe("parseNextChapter", () => {
+  it("skips existing notes by chapter number or slugified title", () => {
+    const curriculum = "- [ ] 02 — Matrices\n- [ ] 03 — Linear systems\n- [ ] 04 — Eigenvalues\n";
+    expect(parseNextChapter(curriculum, ["notes/02-matrices-and-rank.md", "notes/12-linear-systems.md"])).toBe(
+      "04 — Eigenvalues",
+    );
+    expect(
+      parseNextChapter(curriculum, ["notes/02-matrices.md", "notes/03-systems.md", "notes/eigenvalues.md"]),
+    ).toBeNull();
+    expect(
+      buildToday([set("algebra", { curriculum, notePaths: ["notes/02-matrices.md"] })], NOW).sets[0]?.nextChapter,
+    ).toBe("03 — Linear systems");
+  });
   it("finds the first unchecked list item, ignoring completed tasks and code fences", () => {
     expect(
       parseNextChapter(

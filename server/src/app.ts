@@ -37,7 +37,7 @@ export function createApp(deps: AppDeps | LegacyAppDeps): Hono {
   const app = new Hono();
 
   app.route("/api/sets", setsRoutes({ root: deps.root, hub: deps.hub, locks: deps.locks }));
-  app.route("/api/sets/:set", inboxRoutes({ root: deps.root, locks: deps.locks, hub: deps.hub }));
+  app.route("/api/sets/:set", inboxRoutes({ root: deps.root, locks: deps.locks, hub: deps.hub, jobs: deps.jobs }));
   app.route("/api/sets/:set/cards", cardsRoutes({ root: deps.root, locks: deps.locks, hub: deps.hub }));
   app.route("/api/sets/:set/anki", ankiRoutes({ root: deps.root, locks: deps.locks, hub: deps.hub }));
   app.route("/api/sets/:set/highlights", highlightsRoutes({ root: deps.root, locks: deps.locks, hub: deps.hub }));
@@ -54,7 +54,7 @@ export function createApp(deps: AppDeps | LegacyAppDeps): Hono {
   }
 
   if (deps.jobs !== undefined) {
-    app.route("/api/jobs", jobsRoutes({ runner: deps.jobs, root: deps.root }));
+    app.route("/api/jobs", jobsRoutes({ runner: deps.jobs, root: deps.root, hub: deps.hub }));
     app.route("/api/library", libraryRoutes({ root: deps.root, jobs: deps.jobs, hub: deps.hub }));
   }
 

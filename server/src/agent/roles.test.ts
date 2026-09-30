@@ -101,7 +101,7 @@ describe("role system", () => {
     expect(isRateLimitError("invalid_api_key")).toBe(false);
   });
 
-  it.each<RoleName>(["tutor", "librarian", "drafter", "checker", "cardsmith", "critic"])(
+  it.each<RoleName>(["tutor", "librarian", "outliner", "drafter", "checker", "cardsmith", "critic"])(
     "%s receives exactly its allowlisted tools",
     async (role) => {
       const runtime = await createModelRuntime();
@@ -170,6 +170,36 @@ describe("role system", () => {
     });
     expect(denied.details).toMatchObject({ isError: true });
     await expect(fs.access(path.join(root, "linear-algebra/notes/checker-note.md"))).rejects.toThrow();
+  });
+
+  it("confines outliner writes to proposal Markdown, including symlink targets", async () => {
+    const allowed = await execute("outliner", "study_create", {
+      path: "plan-proposals/2026-09-30.md",
+      content: "# Proposal\n",
+    });
+    expect(allowed.details).toMatchObject({ isError: false });
+    for (const rel of [
+      "notes/99-escape.md",
+      "PLAN.md",
+      "curriculum.md",
+      "library/lib-strang-la/source.md",
+      "plan-proposals/nested/escape.md",
+      "plan-proposals/escape.json",
+    ]) {
+      const denied = await execute("outliner", "study_create", { path: rel, content: "denied" });
+      expect(denied.details).toMatchObject({ isError: true });
+    }
+    await fs.symlink(
+      path.join(root, "linear-algebra/notes/03-svd.md"),
+      path.join(root, "linear-algebra/plan-proposals/alias.md"),
+    );
+    const alias = await execute("outliner", "study_edit", {
+      path: "plan-proposals/alias.md",
+      old_string: "Singular value decomposition",
+      new_string: "denied",
+    });
+    expect(alias.details).toMatchObject({ isError: true });
+    expect(ROLES.outliner.tools).not.toContain("add_source");
   });
 });
 

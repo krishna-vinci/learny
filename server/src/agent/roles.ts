@@ -2,7 +2,7 @@ import { isWritableByAgent } from "../tree/paths.js";
 import type { SkillSummary } from "./builtins/skills.js";
 import { buildBatchRolePrompt, buildTutorPrompt } from "./prompt.js";
 
-export type RoleName = "tutor" | "librarian" | "drafter" | "checker" | "cardsmith" | "critic";
+export type RoleName = "tutor" | "librarian" | "outliner" | "drafter" | "checker" | "cardsmith" | "critic";
 
 export interface RolePromptContext {
   root: string;
@@ -64,6 +64,19 @@ export const ROLES: Record<RoleName, RoleSpec> = {
     scope: (set) => ({ set, library: true }),
     write: (set, rel) => setPath(set, "notes", rel),
     promptBuilder: ({ root, set, skills }) => buildBatchRolePrompt({ role: "drafter", root, set, skills }),
+  },
+  outliner: {
+    modelRole: "outliner",
+    tools: [...STUDY_TOOLS, ...RESEARCH_TOOLS, ...SKILL_TOOLS],
+    mcpServers: ["searxng", "papers", "context7"],
+    skills: ["plan-set", "find-sources"],
+    requiresSet: true,
+    scope: (set) => ({ set, library: true }),
+    write: (set, rel) =>
+      set !== null &&
+      rel.startsWith(`${set}/plan-proposals/`) &&
+      /^[a-zA-Z0-9][a-zA-Z0-9._-]*\.md$/.test(rel.slice(`${set}/plan-proposals/`.length)),
+    promptBuilder: ({ root, set, skills }) => buildBatchRolePrompt({ role: "outliner", root, set, skills }),
   },
   checker: {
     modelRole: "checker",

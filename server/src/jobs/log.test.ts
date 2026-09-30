@@ -29,6 +29,11 @@ describe("formatJobLogLine", () => {
     );
   });
 
+  it("round-trips plan-set jobs through the persisted history discriminator", () => {
+    const line = formatJobLogLine(makeJob({ kind: "plan-set" }));
+    expect(parseJobLogLine(line, "linear-algebra")).toMatchObject({ kind: "plan-set", status: "done" });
+  });
+
   it("omits the commit segment when there is no commit and normalizes quotes", () => {
     const line = formatJobLogLine(
       makeJob({
