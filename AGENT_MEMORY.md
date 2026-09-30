@@ -82,9 +82,10 @@ The orchestrator keeps the rest of this file current. When something listed unde
   - M0 skeleton, M1 sources→notes, M2 cards
   - M3a platform: accounts and SSO, per-user trees, backups, notifications, export, service
   - M3b slices A (background jobs UX), B (reading comfort), C (themes)
-- **In progress:** M4 is implemented; the M4-8 review found 11 issues (`docs/prompts/m4-8-review-report.md`), with the fix prompt `docs/prompts/m4-8-fixes.md` awaiting dispatch. **M5:** M5-A server merged; M5-B web running on Sol 6.1 (same session). **M6** goes to the Claude cloud (`docs/plans/2026-10-01-m6-simple-and-polished.md`).
+- **In progress:** M4 is implemented; the M4-8 review found 11 issues (`docs/prompts/m4-8-review-report.md`), with the fix prompt `docs/prompts/m4-8-fixes.md` awaiting dispatch. **M5 done** (M5-A server, M5-B web). **M6** goes to the Claude cloud (`docs/plans/2026-10-01-m6-simple-and-polished.md`).
 
 ## Open gaps
+- **Phone overlap:** on quiz feedback the sticky Next bar and the chat button cover answer options (same class as the Inbox review bar). Fixed by the M6 navigation/calm sections.
 - **Book PDF layout:** callout boxes can split across pages, leaving an orphaned header (e.g. "Deeper" at the bottom of p5, its body on p6, and a mostly blank page). Keep a callout's header with its first lines (`block(breakable: …)` or `sticky` in `server/templates/book/book.typ` / `callouts.lua`). Mermaid appears as "(diagram in the app)".
 - **shadcn migration (deferred to M6):** batches D1–D5 in `docs/prompts/m3b-slice-d.md`, with the map in `docs/prompts/m3b-d-uimap.md` (the map will go stale; refresh it before running). New UI should still prefer the existing `components/ui` kit.
 - **Skills update** (awaiting the owner's go):
@@ -99,6 +100,7 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - **Backups:** not configured yet on the live instance. The owner does this in Settings → Backups.
 
 ## Recently done
+- M5-B practice screens (quiz, teach-back, problems)
 - M5-A practice server (eeed44c) · reset-password CLI (a6a57b5)
 - PR #2 M4-7b screens (3a9626f): plan a set, plan review, book card, docs-site import, chat proposals after reload, set-only revert, toasts
 - M4-2b search indexes plain text
@@ -127,3 +129,4 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - 2026-10-01 · M4-2b (DeepSeek) · `search/plaintext.ts` strips frontmatter, code/mermaid, footnotes, directives and markup from indexed bodies · a restart rebuilds the index (`rebuildAll` at workspace start) · image alt text kept.
 - 2026-10-01 · PR #2 M4-7b (cloud Sonnet) · `NewSetDialog`/`PlanSetSheet`/`PlanOptions`/`SourcePicker`, `pages/InboxPlanReview.tsx` + `plan-proposal.ts`, set-home `BookCard` (HEAD `book.pdf`), `Library/DocsSiteTab.tsx`, ChatDock `proposals_loaded` + DELETE, NoteHistory 409 → `scope:"set"` · new sets are created via `POST /api/sets` before `plan-set` so the title is kept · verified live: book card downloads.
 - 2026-10-01 · M5-A (Sol 6.1) · `server/src/practice/*` (store, grading, weak-spots), `routes/practice.ts`, `agent/builtins/practice.ts`, `agent/practice-grader.ts`, `jobs/{practice-job,grade-job}.ts`, skills make-quiz/make-problems/grade-answer · EMA alpha 0.5; `grade-answer` is an internal fallback JobKind; problems and teach-backs are JSON-fenced Markdown · the orchestrator added the TodayPage `practice` icon.
+- 2026-10-01 · M5-B (Sol 6.1) · `pages/PracticePage.tsx` and practice components (quiz, teach-back, problems), navigation, Today weak topics, toasts, Settings roles · 35 browser checks at 390/1440 in light/dark/sepia · the phone Next bar overlaps content (M6).
