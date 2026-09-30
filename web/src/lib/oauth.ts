@@ -34,7 +34,9 @@ async function codeChallengeFor(codeVerifier: string): Promise<string> {
 
 /** Only allow same-origin, path-relative return targets (never an open redirect). */
 export function safeReturnUrl(raw: string | null | undefined): string {
+  // Browsers read `/\host` like `//host`, and control characters can hide a scheme-relative URL.
   if (!raw?.startsWith("/") || raw.startsWith("//")) return "/";
+  for (const ch of raw) if (ch === "\\" || ch.charCodeAt(0) < 0x20) return "/";
   return raw;
 }
 

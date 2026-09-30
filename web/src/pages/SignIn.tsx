@@ -7,12 +7,13 @@ import AuthPageLayout from "@/components/AuthPageLayout";
 import IdentityProviderButtons from "@/components/IdentityProviderButtons";
 import PasswordSignInForm from "@/components/PasswordSignInForm";
 import { Separator } from "@/components/ui/separator";
+import { safeReturnUrl } from "@/lib/oauth";
 
 function getSafeRedirectPath(raw: string | null): string | undefined {
   if (!raw) return undefined;
   // Only allow same-origin, path-relative redirects.
-  if (!raw.startsWith("/") || raw.startsWith("//")) return undefined;
-  return raw;
+  const safe = safeReturnUrl(raw);
+  return safe === "/" && raw !== "/" ? undefined : safe;
 }
 
 const SignIn = () => {
