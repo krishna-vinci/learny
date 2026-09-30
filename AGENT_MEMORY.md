@@ -75,10 +75,10 @@ Keep the rest of this file current. When you fix something listed under "Open ga
   - M0 skeleton, M1 sources→notes, M2 cards
   - M3a platform: accounts and SSO, per-user trees, backups, notifications, export, service
   - M3b slices A (background jobs UX), B (reading comfort), C (themes)
-- **Next:** M3b slice D (consistent UI on proper shadcn/ui, Base UI), batches D1–D5 (`docs/prompts/m3b-slice-d.md`), then M4.
+- **Next:** M4 study loop. The shadcn migration is deferred to M6 (the owner finishes milestones first).
 
 ## Open gaps
-- **M3b slice D:** shadcn migration in batches D1–D5 (prompt `docs/prompts/m3b-slice-d.md`, map `docs/prompts/m3b-d-uimap.md`). D6 (toast swap) only if asked.
+- **shadcn migration (deferred to M6):** batches D1–D5 in `docs/prompts/m3b-slice-d.md`, with the map in `docs/prompts/m3b-d-uimap.md` (the map will go stale; refresh it before running). New UI should still prefer the existing `components/ui` kit.
 - **Skills update** (awaiting the owner's go):
   - a new `find-sources` skill
   - research-tool guidance in `draft-chapter`, `fact-check`, `source-summary`, `explain`, `evolve-note`, `note-authoring`, `make-deck`, `critique-cards`

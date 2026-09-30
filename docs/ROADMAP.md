@@ -2,7 +2,7 @@
 
 Locked 2026-09-28 (D20). MVP = M0 + M1 + M2.
 
-**Status (2026-09-29):** M0, M1, M2 done — each verified end-to-end (API + real models + browser at 390/1440 px; M2 `.apkg` validated with the official Anki importer). M3a done 2026-09-29 (accounts + SSO, per-user trees, restic backups, ntfy/Web Push, export, systemd user service). Next: M3b (D28). Anki stays `.apkg` + frozen browser sync (D23).
+**Status (2026-09-29):** M0, M1, M2 done — each verified end-to-end (API + real models + browser at 390/1440 px; M2 `.apkg` validated with the official Anki importer). M3 done: M3a 2026-09-29 (accounts + SSO, per-user trees, restic backups, ntfy/Web Push, export, systemd user service), M3b 2026-09-30 (background jobs UX, reading comfort, themes). Next: M4 (D28). Anki stays `.apkg` + frozen browser sync (D23).
 
 ## Repo layout
 
@@ -29,7 +29,7 @@ learny/                     # pnpm workspaces
 | M3b | Comfort | background jobs UX (global activity indicator, "drafting…" placeholders, done/failed notifications, no forced navigation), reader settings (font size, width, serif/sans), full-screen reading, themes (light/dark/sepia/black + accents) | draft 3 chapters while reading another; adjust text on phone |
 | M4 | Study loop | Today page, search (⌘K: notes, sources, cards, chats), selection actions (ask / explain simpler / make card / highlight), set intake + Outliner (outline → approve → queue drafts), book PDF (Pandoc → Typst), MinerU | app says what to do today; a set compiles to a PDF book |
 | M5 | Practice | quizzes + weak-spot log, teach-back (tutor grades your explanation), problem sets with worked solutions; weak spots feed Today | a weak topic from a quiz shows up on Today |
-| M6 | Polish | Scout (find new sources), offline reading, M0–M2 follow-ups, code-splitting, i18n, public release | |
+| M6 | Polish | full shadcn/ui (Base UI) migration (`docs/prompts/m3b-slice-d.md`, D1–D5), Scout (find new sources), offline reading, M0–M2 follow-ups, code-splitting, i18n, public release | |
 
 ## M0 follow-ups (deferred, 2026-09-28)
 
