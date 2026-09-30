@@ -10,7 +10,7 @@ const KATEX_BLOCK_CLASS_NAMES = ["language-math", "math-display"] as const;
  * Sanitization schema for a rendered note body. Extends the default (GitHub-style) schema to
  * allow:
  * - the KaTeX marker classes used before trusted KaTeX rendering runs (see above)
- * - Studium's directive callout (`data-callout`, `data-deeper`) and citation
+ * - Studium's directive callout (`data-callout`, `data-deeper`, `data-title`) and citation
  *   (`data-citation-src`, `data-citation-page`) attributes, set only by our own remark plugins
  *   in `remarkStudium.ts` — never by note content directly
  * - the `open` attribute on `<details>`, used by the `:::deeper` callout

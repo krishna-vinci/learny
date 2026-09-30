@@ -82,7 +82,10 @@ next_action: Review chapter 3 cards
 
 Markdown (D6): GFM, `$…$` / `$$…$$` math, mermaid, directives
 (`:::definition`, `:::theorem`, `:::example`, `:::deeper`). `:::deeper` blocks render
-collapsed — one file serves multiple depths.
+collapsed — one file serves multiple depths. A directive may carry a title attribute,
+`:::definition{title="Rank"}`: callouts show it after the label ("DEFINITION · Rank") and
+`:::deeper{title="Why it works"}` uses it as the summary text instead of "Deeper". The title is
+plain text (rendered escaped, at most 200 characters); other attributes are ignored.
 
 ```md
 ---

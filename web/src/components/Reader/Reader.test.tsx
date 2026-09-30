@@ -35,4 +35,21 @@ describe("MarkdownView", () => {
     render(<MarkdownView content={SAMPLE} />);
     expect(screen.getByTitle("lib-strang-la, p.364")).toBeTruthy();
   });
+
+  it("shows a directive title in the callout header and as the deeper summary", () => {
+    render(
+      <MarkdownView
+        content={`:::definition{title="Rank"}\nThe number of pivots.\n:::\n\n:::deeper{title="Why it works"}\nProof sketch.\n:::\n\n:::example\nNo title.\n:::\n`}
+      />,
+    );
+    expect(screen.getByText("Definition · Rank")).toBeTruthy();
+    expect(screen.getByText("Why it works").tagName).toBe("SUMMARY");
+    expect(screen.getByText("Example")).toBeTruthy();
+  });
+
+  it("renders a directive title as text, never HTML", () => {
+    render(<MarkdownView content={`:::theorem{title="<img src=x onerror=alert(1)>"}\nBody.\n:::\n`} />);
+    expect(document.querySelector("img")).toBeNull();
+    expect(screen.getByText("Theorem · <img src=x onerror=alert(1)>")).toBeTruthy();
+  });
 });
