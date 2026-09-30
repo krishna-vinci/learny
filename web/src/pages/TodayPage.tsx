@@ -7,6 +7,7 @@ import {
   LayersIcon,
   RefreshCwIcon,
   SunIcon,
+  TargetIcon,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToday } from "@/api/queries";
@@ -20,6 +21,7 @@ const icons: Record<TodayItem["kind"], typeof SunIcon> = {
   "stale-cards": RefreshCwIcon,
   "next-chapter": BookOpenIcon,
   inactive: SunIcon,
+  practice: TargetIcon,
 };
 
 function studiedAgo(at: string | null): string {

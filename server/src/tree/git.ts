@@ -15,10 +15,24 @@ export type Author =
   | "checker"
   | "cardsmith"
   | "critic"
+  | "examiner"
+  | "grader"
   | "user"
   | "system";
 
 const AUTHOR_ENV: Record<Author, Record<string, string>> = {
+  examiner: {
+    GIT_AUTHOR_NAME: "Studium Examiner",
+    GIT_AUTHOR_EMAIL: "examiner@studium.local",
+    GIT_COMMITTER_NAME: "Studium Examiner",
+    GIT_COMMITTER_EMAIL: "examiner@studium.local",
+  },
+  grader: {
+    GIT_AUTHOR_NAME: "Studium Grader",
+    GIT_AUTHOR_EMAIL: "grader@studium.local",
+    GIT_COMMITTER_NAME: "Studium Grader",
+    GIT_COMMITTER_EMAIL: "grader@studium.local",
+  },
   outliner: {
     GIT_AUTHOR_NAME: "Studium Outliner",
     GIT_AUTHOR_EMAIL: "outliner@studium.local",
@@ -126,6 +140,10 @@ async function repoHasCommits(root: string): Promise<boolean> {
 
 function mapAuthorName(name: string): string {
   switch (name) {
+    case "Studium Examiner":
+      return "examiner";
+    case "Studium Grader":
+      return "grader";
     case "Studium Tutor":
       return "tutor";
     case "Studium Librarian":

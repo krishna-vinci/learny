@@ -74,7 +74,16 @@ function systemText(context: TranscriptContext): string {
 function expectedTools(role: RoleName): string[] {
   const mcpNames = ROLES[role].mcpServers.flatMap((server) => [`mcp_${server}_echo`, `mcp_${server}_fail`]);
   // These contextual tools need a job target or runner and are supplied by their caller.
-  const contextual = new Set(["start_job", "add_source", "record_quiz_result", "add_card", "review_card"]);
+  const contextual = new Set([
+    "start_job",
+    "add_source",
+    "record_quiz_result",
+    "add_card",
+    "review_card",
+    "add_practice_question",
+    "add_problem",
+    "submit_grade",
+  ]);
   return [...ROLES[role].tools.filter((name) => !contextual.has(name)), ...mcpNames].sort();
 }
 
@@ -101,39 +110,46 @@ describe("role system", () => {
     expect(isRateLimitError("invalid_api_key")).toBe(false);
   });
 
-  it.each<RoleName>(["tutor", "librarian", "outliner", "drafter", "checker", "cardsmith", "critic"])(
-    "%s receives exactly its allowlisted tools",
-    async (role) => {
-      const runtime = await createModelRuntime();
-      const faux = fauxProvider({ provider: "faux", models: [{ id: "echo" }] });
-      runtime.registerNativeProvider(faux.provider);
-      let names: string[] = [];
-      let prompt = "";
-      faux.setResponses([
-        (context) => {
-          names = declaredTools(context);
-          prompt = systemText(context);
-          return fauxAssistantMessage(fauxText("done"));
-        },
-      ]);
+  it.each<RoleName>([
+    "tutor",
+    "librarian",
+    "outliner",
+    "drafter",
+    "checker",
+    "cardsmith",
+    "critic",
+    "examiner",
+    "grader",
+  ])("%s receives exactly its allowlisted tools", async (role) => {
+    const runtime = await createModelRuntime();
+    const faux = fauxProvider({ provider: "faux", models: [{ id: "echo" }] });
+    runtime.registerNativeProvider(faux.provider);
+    let names: string[] = [];
+    let prompt = "";
+    faux.setResponses([
+      (context) => {
+        names = declaredTools(context);
+        prompt = systemText(context);
+        return fauxAssistantMessage(fauxText("done"));
+      },
+    ]);
 
-      const result = await runRole(role, {
-        root,
-        set: role === "librarian" ? null : "linear-algebra",
-        task: "Do the task.",
-        locks: new FileLocks(),
-        mcp,
-        runtime,
-      });
+    const result = await runRole(role, {
+      root,
+      set: role === "librarian" ? null : "linear-algebra",
+      task: "Do the task.",
+      locks: new FileLocks(),
+      mcp,
+      runtime,
+    });
 
-      expect(names).toEqual(expectedTools(role));
-      expect(prompt).toContain("## Available skills");
-      for (const skill of ROLES[role].skills) expect(prompt).toContain(`**${skill}**`);
-      expect(result.text).toBe("done");
-      expect(result.messages.some((message) => (message as Message).role === "assistant")).toBe(true);
-      expect(result.written).toEqual([]);
-    },
-  );
+    expect(names).toEqual(expectedTools(role));
+    expect(prompt).toContain("## Available skills");
+    for (const skill of ROLES[role].skills) expect(prompt).toContain(`**${skill}**`);
+    expect(result.text).toBe("done");
+    expect(result.messages.some((message) => (message as Message).role === "assistant")).toBe(true);
+    expect(result.written).toEqual([]);
+  });
 
   it("prevents the librarian from writing a note but permits source.md edits", async () => {
     const denied = await execute("librarian", "study_edit", {
@@ -217,4 +233,20 @@ describe("strict-mode tool arguments", () => {
     const read = tools.find((tool) => tool.name === "study_read");
     expect(read?.prepareArguments?.({ path: "notes/a.md", offset: null, limit: null })).toEqual({ path: "notes/a.md" });
   });
+});
+
+it("confines Examiner writes and leaves the Grader read-only", () => {
+  expect(ROLES.examiner.write("linear-algebra", "linear-algebra/practice/quizzes/quiz-12345678.json")).toBe(true);
+  expect(ROLES.examiner.write("linear-algebra", "linear-algebra/practice/problems/03-svd.md")).toBe(true);
+  for (const rel of [
+    "linear-algebra/notes/03-svd.md",
+    "other/practice/problems/03-svd.md",
+    "linear-algebra/practice/teachback/tb-12345678.md",
+    "linear-algebra/log/practice.jsonl",
+    "linear-algebra/practice/quizzes/../notes.md",
+  ])
+    expect(ROLES.examiner.write("linear-algebra", rel)).toBe(false);
+  expect(ROLES.grader.write("linear-algebra", "linear-algebra/practice/quizzes/quiz-12345678.json")).toBe(false);
+  expect(ROLES.grader.tools).not.toContain("study_edit");
+  expect(ROLES.grader.tools).not.toContain("study_create");
 });

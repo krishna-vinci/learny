@@ -18,10 +18,12 @@ export interface TodaySet extends SetSummary {
   lastStudiedAt: string | null;
   nextChapter: string | null;
   notesCount: number;
+  weakTopics: WeakSpot[];
+  practiceDue: number;
 }
 
 export interface TodayItem {
-  kind: "overdue" | "inbox" | "draft-cards" | "stale-cards" | "next-chapter" | "inactive";
+  kind: "overdue" | "inbox" | "draft-cards" | "stale-cards" | "practice" | "next-chapter" | "inactive";
   set: string;
   title: string;
   detail: string;
@@ -127,7 +129,15 @@ export interface SiteImportResponse {
   skipped: { url: string; reason: string }[];
 }
 
-export type JobKind = "ingest" | "draft-chapter" | "make-cards" | "compile-book" | "plan-set";
+export type JobKind =
+  | "ingest"
+  | "draft-chapter"
+  | "make-cards"
+  | "compile-book"
+  | "plan-set"
+  | "make-quiz"
+  | "make-problems"
+  | "grade-answer";
 export type JobStatus = "queued" | "running" | "done" | "failed" | "cancelled";
 /** How a job's model usage is billed: flat subscription, metered list price, or both. */
 export type JobBilling = "subscription" | "metered" | "mixed";
@@ -141,6 +151,9 @@ export interface JobUsage {
 }
 
 export interface JobResult {
+  quizId?: string;
+  problemFile?: string;
+  practiceResult?: PracticeAttemptResult;
   proposalPath?: string;
   notePath?: string;
   cardPath?: string;
@@ -321,4 +334,90 @@ export interface HighlightPatch {
   color?: HighlightColor;
   /** Optional learner annotation, stored as the highlight's `note`. */
   comment?: string;
+}
+
+export type QuestionType = "mcq" | "multi" | "short" | "numeric" | "cloze";
+export type PracticeResponse = string | number | string[];
+export type PracticeVerdict = "right" | "partial" | "wrong";
+
+/** Public question; private answers and explanations are never part of a quiz GET. */
+export interface PracticeQuestion {
+  id: string;
+  type: QuestionType;
+  prompt: string;
+  options?: string[];
+  unit?: string;
+  note: string;
+  anchor: string;
+  topic: string;
+  difficulty: 1 | 2 | 3;
+  src?: string;
+}
+export interface PracticeQuiz {
+  id: string;
+  title: string;
+  createdAt: string;
+  questions: PracticeQuestion[];
+}
+export interface PracticeAttemptResult {
+  id: string;
+  questionId: string;
+  score: number;
+  verdict: PracticeVerdict;
+  feedback: string;
+  answer: string | number | string[] | { value: number; tolerance: number };
+  explanation: string;
+  note: string;
+  anchor: string;
+  topic: string;
+  src?: string;
+  solution?: string;
+  revealed?: boolean;
+}
+export interface ProblemView {
+  id: string;
+  statement: string;
+  note: string;
+  anchor: string;
+  topic: string;
+  difficulty: 1 | 2 | 3;
+  src?: string;
+  answerType: "numeric" | "expression" | "short";
+  hintCount: number;
+}
+export interface ProblemSetView {
+  file: string;
+  note: string;
+  createdAt: string;
+  problems: ProblemView[];
+}
+export interface TeachBackResult {
+  id: string;
+  note: string;
+  topic: string;
+  createdAt: string;
+  accuracy: number;
+  completeness: number;
+  clarity: number;
+  misconceptions: { claim: string; correction: string; citation: string }[];
+  missing: string[];
+  score: number;
+  feedback: string;
+}
+export interface WeakSpot {
+  topic: string;
+  note: string;
+  strength: number;
+  attempts: number;
+  lastSeen: string;
+  nextReview: string;
+  intervalDays: 1 | 2 | 4 | 8 | 16;
+  gap: string;
+}
+export interface PracticeSummary {
+  quizzes: { id: string; title: string; createdAt: string; questionCount: number; attempts: PracticeAttemptResult[] }[];
+  problemSets: { file: string; note: string; createdAt: string; problemCount: number }[];
+  teachbacks: TeachBackResult[];
+  weakSpots: WeakSpot[];
+  dueCount: number;
 }

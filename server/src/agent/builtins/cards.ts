@@ -1,9 +1,9 @@
 import { randomBytes } from "node:crypto";
 import { promises as fs } from "node:fs";
-import path from "node:path";
 import { defineTool, type ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { CARD_ID_PATTERN, parseCardFile, renderCritic, setCardCommentField } from "@studium/shared";
 import { Type } from "typebox";
+import { PracticeStore, practiceId } from "../../practice/store.js";
 import { editFile } from "../../tree/edit.js";
 import type { FileLocks } from "../../tree/lock.js";
 import { resolveInRoot } from "../../tree/paths.js";
@@ -202,35 +202,42 @@ export function recordQuizResultTool(opts: QuizToolOptions): ToolDefinition {
   return defineTool({
     name: "record_quiz_result",
     label: "Record quiz result",
-    description: "Append one graded quiz result to this study set's private quiz log.",
+    description: "Append a chat quiz result to both quiz.md and practice.jsonl and update weak spots.",
     parameters: Type.Object({
       topic: Type.String({ minLength: 1 }),
       question: Type.String({ minLength: 1 }),
       verdict: Type.Union([Type.Literal("right"), Type.Literal("partial"), Type.Literal("wrong")]),
-      gap: Type.Optional(Type.String()),
+      gap: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+      note: Type.Optional(Type.Union([Type.String(), Type.Null()])),
     }),
     executionMode: "sequential" as const,
-    async execute(_toolCallId, params) {
+    async execute(_id, params) {
       try {
         const topic = quizValue(params.topic);
         const question = quizValue(params.question);
         if (topic === "" || question === "") throw new Error("topic and question are required");
-        const gap = params.gap === undefined ? undefined : quizValue(params.gap);
-        const line = `- ${(opts.now ?? (() => new Date()))().toISOString()} | topic: ${topic} | question: ${question} | verdict: ${params.verdict}${gap === undefined || gap === "" ? "" : ` | gap: ${gap}`}\n`;
-        const abs = resolveInRoot(opts.root, rootRel);
-        await opts.locks.withLock(rootRel, opts.holder, async () => {
-          await fs.mkdir(path.dirname(abs), { recursive: true });
-          let prefix = "";
-          try {
-            const current = await fs.readFile(abs, "utf8");
-            prefix = current === "" ? "# Quiz log\n\n" : current.endsWith("\n") ? "" : "\n";
-          } catch (error) {
-            if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
-            prefix = "# Quiz log\n\n";
-          }
-          await appendSynced(abs, prefix + line);
-        });
-        opts.onWrite?.(rootRel);
+        const gap = quizValue(params.gap ?? "");
+        const note = params.note?.trim() ?? "";
+        const store = new PracticeStore(
+          { root: opts.root, locks: opts.locks, commit: false, onWrite: opts.onWrite },
+          opts.set,
+        );
+        if (note !== "") await store.checkNote(note);
+        const createdAt = (opts.now ?? (() => new Date()))().toISOString();
+        const line = `- ${createdAt} | topic: ${topic} | question: ${question} | verdict: ${params.verdict}${gap === "" ? "" : ` | gap: ${gap}`}${note === "" ? "" : ` | note: ${note}`}`;
+        await store.record(
+          {
+            id: practiceId("chat"),
+            kind: "chat",
+            createdAt,
+            topic: params.topic.trim(),
+            note,
+            score: params.verdict === "right" ? 1 : params.verdict === "partial" ? 0.5 : 0,
+            gap: params.gap?.trim() ?? "",
+            chatLogLine: line,
+          },
+          "tutor",
+        );
         return ok(`recorded ${params.verdict} quiz result`, { path: rootRel });
       } catch (error) {
         return errorResult(error);

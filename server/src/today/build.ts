@@ -7,7 +7,9 @@ import type {
   TodayItem,
   TodaySet,
   TodayView,
+  WeakSpot,
 } from "@studium/shared";
+import { isDue, weakTopics } from "../practice/weak-spots.js";
 import { chapterExists, parseCurriculum } from "../tree/curriculum.js";
 
 export interface TodaySetInput extends SetSummary {
@@ -19,6 +21,7 @@ export interface TodaySetInput extends SetSummary {
   curriculum: string | null;
   notesCount: number;
   notePaths?: string[];
+  weakSpots?: WeakSpot[];
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -73,6 +76,8 @@ export function buildToday(inputs: TodaySetInput[], now: Date): TodayView {
     lastStudiedAt: lastStudied(input),
     nextChapter: parseNextChapter(input.curriculum, input.notePaths),
     notesCount: input.notesCount,
+    weakTopics: weakTopics(input.weakSpots ?? [], now).slice(0, 3),
+    practiceDue: (input.weakSpots ?? []).filter((spot) => isDue(spot, now)).length,
   }));
   const ordered = [...sets].sort(dueOrder);
   const doNext: TodayItem[] = [];
@@ -112,6 +117,10 @@ export function buildToday(inputs: TodaySetInput[], now: Date): TodayView {
         "/cards",
       );
     }
+  }
+  for (const set of ordered) {
+    for (const spot of set.weakTopics)
+      add(set, "practice", `Practise ${spot.topic}`, set.title, `/practice?topic=${encodeURIComponent(spot.topic)}`);
   }
   for (const set of ordered) {
     if (set.status === "active" && set.nextChapter !== null) {

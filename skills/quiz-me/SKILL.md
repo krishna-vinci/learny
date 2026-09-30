@@ -56,7 +56,7 @@ After grading, call:
 {"topic":"matrix rank","question":"For A=..., what is rank(A), and why?","verdict":"partial","gap":"Treated dependent rows as if every row were zero."}
 ```
 
-Use `record_quiz_result` once per answered question. Keep `gap` short and diagnostic; omit it for a clean correct response unless a useful hesitation was evident. Never include secrets or sensitive profile details.
+Use `record_quiz_result` once per answered question. Include the set-relative `note` path when known. The tool keeps `log/quiz.md`, also appends to `log/practice.jsonl`, and updates `practice/weak-spots.json` so chat quiz results feed Today practice suggestions. Keep `gap` short and diagnostic; omit it for a clean correct response unless a useful hesitation was evident. Never include secrets or sensitive profile details.
 
 If the tool is unavailable, continue the quiz and show the proposed log payload once. State that the result was not persisted; do not claim to have appended `log/quiz.md` and do not use a generic edit tool as a substitute.
 

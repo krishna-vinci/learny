@@ -198,6 +198,8 @@ export class RoleModelError extends Error {
 }
 
 const ROLE_LABELS: Record<RoleName, string> = {
+  examiner: "Examiner",
+  grader: "Grader",
   tutor: "Tutor",
   librarian: "Librarian",
   outliner: "Outliner",

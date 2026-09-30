@@ -11,9 +11,11 @@ import { startInboxWatcher } from "../ingest/inbox-watcher.js";
 import { createBookJob } from "../jobs/book-job.js";
 import { createCardsJob } from "../jobs/cards-job.js";
 import { createDraftJob } from "../jobs/draft-job.js";
+import { createGradeJob } from "../jobs/grade-job.js";
 import { createIngestJob } from "../jobs/ingest-job.js";
 import { loadJobHistory } from "../jobs/log.js";
 import { createPlanJob } from "../jobs/plan-job.js";
+import { createPracticeJob } from "../jobs/practice-job.js";
 import { JobRunner } from "../jobs/runner.js";
 import { McpManager } from "../mcp/bridge.js";
 import { loadMcpConfig } from "../mcp/config.js";
@@ -172,6 +174,12 @@ export class WorkspaceManager {
     jobs.register("make-cards", createCardsJob({ root, locks, mcp, runtime: this.#runtime, hub }));
     jobs.register("ingest", createIngestJob({ root, locks, mcp, runtime: this.#runtime, hub }));
     jobs.register("compile-book", createBookJob({ root, locks }));
+    jobs.register("make-quiz", createPracticeJob({ root, locks, mcp, runtime: this.#runtime, hub }, "make-quiz"));
+    jobs.register(
+      "make-problems",
+      createPracticeJob({ root, locks, mcp, runtime: this.#runtime, hub }, "make-problems"),
+    );
+    jobs.register("grade-answer", createGradeJob({ root, locks, mcp, runtime: this.#runtime, hub }));
     jobs.seedHistory(await loadJobHistory(root));
 
     const chats = new ChatService({ root, hub, locks, mcp, runtime: this.#runtime, jobs });
@@ -191,6 +199,7 @@ export class WorkspaceManager {
       chats,
       jobs,
       search,
+      practice: { agent: { root, locks, mcp, runtime: this.#runtime, hub } },
       settings: { runtime: this.#runtime, mcp, env: process.env },
     });
 

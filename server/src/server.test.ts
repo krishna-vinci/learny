@@ -179,6 +179,8 @@ describe("top-level server", () => {
       "/api/library",
       "/api/library/site-import",
       "/api/library/site-import/",
+      "/api/sets/sample/practice/teachback",
+      "/api/sets/sample/practice/teachback/",
       "/api/sets/sample/chats/chat-1/messages",
       "/api/sets/sample/chats/chat-1/abort",
     ]) {
@@ -270,4 +272,30 @@ describe("top-level server", () => {
     expect(await (await app.request("/settings")).text()).toContain("Studium");
     expect((await app.request("/api/nope")).status).toBe(401);
   });
+});
+
+it("passes a trusted account AI binding to the workspace practice gate", async () => {
+  const user = await createUser(db, { username: "learner", role: "USER", aiEnabled: false });
+  const session = createSession(db, user.id, { userAgent: "", ip: "" });
+  workspace = new Hono();
+  workspace.post("/api/sets/sample/practice/quizzes/quiz-12345678/answer", (c) =>
+    c.json(
+      {
+        aiEnabled: (c.env as { practiceAiEnabled: boolean }).practiceAiEnabled,
+        existing: (c.env as { existing: string }).existing,
+      },
+      202,
+    ),
+  );
+  const response = await server().request(
+    "/api/sets/sample/practice/quizzes/quiz-12345678/answer",
+    {
+      method: "POST",
+      headers: { ...cookie(session.token), "content-type": "application/json", "practice-ai-enabled": "true" },
+      body: "{}",
+    },
+    { existing: "preserved", practiceAiEnabled: true },
+  );
+  expect(response.status).toBe(202);
+  expect(await response.json()).toEqual({ aiEnabled: false, existing: "preserved" });
 });

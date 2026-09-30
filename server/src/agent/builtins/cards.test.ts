@@ -140,7 +140,19 @@ describe("card agent tools", () => {
     );
 
     expect(result.details).toMatchObject({ isError: false, path: "linear-algebra/log/quiz.md" });
-    expect(writes).toEqual(["linear-algebra/log/quiz.md"]);
+    expect(writes).toEqual([
+      "linear-algebra/log/quiz.md",
+      "linear-algebra/log/practice.jsonl",
+      "linear-algebra/practice/weak-spots.json",
+    ]);
+    const attempts = (await fs.readFile(path.join(root, "linear-algebra/log/practice.jsonl"), "utf8"))
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+    expect(attempts).toHaveLength(1);
+    expect(attempts[0]).toMatchObject({ kind: "chat", score: 0.5, topic: "matrix rank" });
+    const weak = JSON.parse(await fs.readFile(path.join(root, "linear-algebra/practice/weak-spots.json"), "utf8"));
+    expect(weak).toEqual([expect.objectContaining({ attempts: 1, strength: 0.5, topic: "matrix rank" })]);
     await expect(fs.readFile(path.join(root, "linear-algebra/log/quiz.md"), "utf8")).resolves.toBe(
       "# Quiz log\n\n- 2026-09-29T10:00:00.000Z | topic: matrix rank | question: What is rank? | verdict: partial | gap: Missed the nonzero row.\n",
     );
