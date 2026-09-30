@@ -13,7 +13,6 @@ import { JobTitleBadge } from "@/components/Activity/JobTitleBadge";
 import { JobToasts } from "@/components/Activity/JobToasts";
 import AppSidebar, {
   MobileAppHeader,
-  MobileAppSidebar,
   MobileSidebarProvider,
   SIDEBAR_COLLAPSED_WIDTH,
   SIDEBAR_WIDTH_VAR,
@@ -22,6 +21,7 @@ import AppSidebar, {
   useSidebarWidth,
 } from "@/components/AppSidebar";
 import ChatDock from "@/components/ChatDock";
+import { BottomTabBar } from "@/components/Navigation/BottomTabBar";
 import { SearchPalette } from "@/components/Search/SearchPalette";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -93,11 +93,14 @@ const RootLayoutContent = () => {
           )}
         </div>
       )}
-      {!immersive && <MobileAppSidebar />}
+      {!immersive && <BottomTabBar />}
       <div className={cn("flex min-h-full w-full flex-col", !immersive && "md:ps-(--app-sidebar-width)")}>
         {!immersive && <MobileAppHeader />}
         <div className="flex min-h-0 flex-1">
-          <main className="min-w-0 flex-1">
+          {/* Phones: room for the fixed tab bar (3.5 rem + safe area). */}
+          <main
+            className={cn("min-w-0 flex-1", !immersive && "pb-[calc(3.6rem+env(safe-area-inset-bottom,0px))] md:pb-0")}
+          >
             <Outlet />
           </main>
           <ChatDock />

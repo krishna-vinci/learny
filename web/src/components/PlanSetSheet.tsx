@@ -52,7 +52,7 @@ export function PlanSetSheet({ set, title, initialGoal, onClose }: PlanSetSheetP
           </Button>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
-          The agent proposes a new plan and chapter outline. Nothing changes until you approve it in the Inbox.
+          The agent proposes a new plan and chapter outline. Nothing changes until you approve it under To review.
         </p>
 
         <div className="mt-4 flex flex-col gap-4">

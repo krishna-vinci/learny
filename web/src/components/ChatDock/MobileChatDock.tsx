@@ -5,12 +5,14 @@
 import { MessageSquareIcon, XIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useHasActionBar } from "@/lib/action-bar";
 import ChatPanel from "./ChatPanel";
 import { OPEN_CHAT_DOCK_EVENT } from "./openChatDock";
 import type { UseChatDockResult } from "./useChatDock";
 
 function MobileChatDock({ chat }: { chat: UseChatDockResult }) {
   const [open, setOpen] = useState(false);
+  const hasActionBar = useHasActionBar();
 
   // Lets pages outside the dock (SetHomePage's "Ask tutor") open the same sheet — see
   // openChatDock.ts.
@@ -22,15 +24,17 @@ function MobileChatDock({ chat }: { chat: UseChatDockResult }) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label="Open chat"
-        className="fixed end-4 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-float active:scale-95"
-        style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}
-      >
-        <MessageSquareIcon className="size-6" />
-      </button>
+      {/* Above the phone tab bar; hidden while a sticky action bar is on screen so they never overlap. */}
+      {!hasActionBar && (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label="Open chat"
+          className="fixed end-4 bottom-[calc(env(safe-area-inset-bottom,0px)+4.5rem)] z-40 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-float active:scale-95 md:bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)]"
+        >
+          <MessageSquareIcon className="size-6" />
+        </button>
+      )}
 
       {open && (
         <div className="fixed inset-0 z-50 flex h-[100dvh] flex-col bg-background">

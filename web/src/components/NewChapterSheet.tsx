@@ -13,11 +13,13 @@ import { Label } from "@/components/ui/label";
 
 export interface NewChapterSheetProps {
   set: string;
+  /** Prefills the title, e.g. the next chapter of the plan. */
+  initialTitle?: string;
   onClose: () => void;
 }
 
-export function NewChapterSheet({ set, onClose }: NewChapterSheetProps) {
-  const [title, setTitle] = useState("");
+export function NewChapterSheet({ set, initialTitle, onClose }: NewChapterSheetProps) {
+  const [title, setTitle] = useState(initialTitle ?? "");
   const [brief, setBrief] = useState("");
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);

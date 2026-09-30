@@ -33,6 +33,18 @@ export function tierBadge(credibility: string | null | undefined): TierBadge {
   return { label: value, variant: PENDING_BADGE.variant };
 }
 
+const PARSE_TIER_LABELS: Record<SourceSummary["parseTier"], string> = {
+  basic: "Plain text",
+  mineru: "Full layout",
+  firecrawl: "Web capture",
+  transcript: "Transcript",
+};
+
+/** How a source was read, in plain words (the `parse_tier` frontmatter value). */
+export function parseTierLabel(tier: SourceSummary["parseTier"]): string {
+  return PARSE_TIER_LABELS[tier] ?? tier;
+}
+
 /** Client-side search over the library list: matches title, authors, or id (case-insensitive). */
 export function filterSources(sources: SourceSummary[], query: string): SourceSummary[] {
   const q = query.trim().toLowerCase();

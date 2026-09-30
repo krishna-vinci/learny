@@ -14,6 +14,7 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import { MarkdownView } from "@/components/Reader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ActionBar } from "@/lib/action-bar";
 import { parsePlanSummary, parseProposedChapters } from "./plan-proposal";
 
 const MAX_DRAFT_FIRST = 5;
@@ -217,7 +218,7 @@ export function PlanReview({ set, item, onBack }: { set: string; item: InboxItem
         </>
       )}
 
-      <div className="sticky bottom-0 mt-4 flex flex-col gap-2 border-t border-border/70 bg-background py-3 sm:flex-row sm:items-center sm:justify-end">
+      <ActionBar className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
         {data && (
           <div className="flex items-center justify-between gap-2 sm:justify-end">
             <span className="text-sm text-muted-foreground">Draft first</span>
@@ -248,8 +249,7 @@ export function PlanReview({ set, item, onBack }: { set: string; item: InboxItem
             </div>
           </div>
         )}
-        {/* pe-20 on phones keeps Approve clear of the floating chat button. */}
-        <div className="flex gap-2 pe-20 md:pe-0">
+        <div className="flex gap-2">
           <Button
             variant="outline"
             className="h-11 flex-1 md:h-9 md:flex-none"
@@ -265,7 +265,7 @@ export function PlanReview({ set, item, onBack }: { set: string; item: InboxItem
             </Button>
           )}
         </div>
-      </div>
+      </ActionBar>
 
       <ConfirmDialog
         open={discardOpen}

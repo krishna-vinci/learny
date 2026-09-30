@@ -253,7 +253,7 @@ function SubmitOutcome({ result, job, onClose }: { result: SubmitResult; job: Jo
   if (status === "failed") {
     return (
       <div className="flex flex-col items-center gap-3 py-8 text-center">
-        <p className="text-sm font-medium text-destructive">Ingest failed</p>
+        <p className="text-sm font-medium text-destructive">Couldn't add this source</p>
         <p className="text-xs text-muted-foreground">{job?.error ?? "Unknown error"}</p>
       </div>
     );
@@ -262,7 +262,7 @@ function SubmitOutcome({ result, job, onClose }: { result: SubmitResult; job: Jo
   if (status === "cancelled") {
     return (
       <div className="flex flex-col items-center gap-3 py-8 text-center">
-        <p className="text-sm font-medium text-muted-foreground">Ingest cancelled</p>
+        <p className="text-sm font-medium text-muted-foreground">Adding cancelled</p>
       </div>
     );
   }

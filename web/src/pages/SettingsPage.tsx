@@ -8,8 +8,10 @@ import { useCurrentUser } from "@/api/queries";
 import {
   DEFAULT_SETTING_SECTION,
   isSettingSectionKey,
+  SETTING_GROUP_LABELS,
   SETTINGS_SECTIONS,
   type SettingSectionDefinition,
+  type SettingSectionGroup,
 } from "@/components/Settings/settingSections";
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -44,6 +46,45 @@ function SectionNavItem({
   );
 }
 
+const GROUP_ORDER: SettingSectionGroup[] = ["personal", "learning", "admin"];
+
+/** The section list with a small heading per group (empty groups, e.g. Admin for members, are skipped). */
+function GroupedNav({
+  sections,
+  activeKey,
+  onOpen,
+}: {
+  sections: SettingSectionDefinition[];
+  activeKey?: string;
+  onOpen: (key: string) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-4">
+      {GROUP_ORDER.map((group) => {
+        const items = sections.filter((section) => section.group === group);
+        if (items.length === 0) return null;
+        return (
+          <div key={group}>
+            <h2 className="px-3 pb-1 text-2xs font-medium uppercase tracking-wide text-muted-foreground">
+              {SETTING_GROUP_LABELS[group]}
+            </h2>
+            <div className="flex flex-col gap-0.5">
+              {items.map((section) => (
+                <SectionNavItem
+                  key={section.key}
+                  section={section}
+                  active={section.key === activeKey}
+                  onClick={() => onOpen(section.key)}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function SettingsPage() {
   const params = useParams<{ section?: string }>();
   const navigate = useNavigate();
@@ -69,16 +110,11 @@ function SettingsPage() {
     return (
       <div className="mx-auto flex w-full max-w-5xl gap-8 px-6 py-8">
         <nav className="w-56 shrink-0">
-          <div className="flex flex-col gap-0.5">
-            {visibleSections.map((section) => (
-              <SectionNavItem
-                key={section.key}
-                section={section}
-                active={section.key === effectiveKey}
-                onClick={() => navigate(`/settings/${section.key}`)}
-              />
-            ))}
-          </div>
+          <GroupedNav
+            sections={visibleSections}
+            activeKey={effectiveKey}
+            onOpen={(key) => navigate(`/settings/${key}`)}
+          />
         </nav>
         <div className="min-w-0 flex-1">{ActiveComponent && <ActiveComponent />}</div>
       </div>
@@ -91,16 +127,7 @@ function SettingsPage() {
     return (
       <div className="w-full px-4 py-4">
         <h1 className="mb-3 text-lg font-semibold text-foreground">Settings</h1>
-        <div className="flex flex-col gap-0.5 rounded-lg border border-border/70 p-1">
-          {visibleSections.map((section) => (
-            <SectionNavItem
-              key={section.key}
-              section={section}
-              active={false}
-              onClick={() => navigate(`/settings/${section.key}`)}
-            />
-          ))}
-        </div>
+        <GroupedNav sections={visibleSections} onOpen={(key) => navigate(`/settings/${key}`)} />
       </div>
     );
   }

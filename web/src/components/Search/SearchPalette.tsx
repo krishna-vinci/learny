@@ -26,6 +26,11 @@ function readRecents(): string[] {
     return [];
   }
 }
+/** Opens the ⌘K palette from anywhere (the phone tab bar's Search tab). */
+export function openSearch(): void {
+  window.dispatchEvent(new Event(OPEN_SEARCH));
+}
+
 export function SearchButton({ compact = false, onOpen }: { compact?: boolean; onOpen?: () => void }) {
   return (
     <Button
@@ -36,7 +41,7 @@ export function SearchButton({ compact = false, onOpen }: { compact?: boolean; o
       title="Search (Ctrl/⌘ K)"
       onClick={() => {
         onOpen?.();
-        window.dispatchEvent(new Event(OPEN_SEARCH));
+        openSearch();
       }}
     >
       <SearchIcon className="size-4" />

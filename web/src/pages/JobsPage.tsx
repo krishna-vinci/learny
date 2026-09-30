@@ -121,10 +121,10 @@ function JobsPage() {
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-6 md:px-6">
-      <h1 className="text-lg font-semibold text-foreground">Jobs</h1>
+      <h1 className="text-lg font-semibold text-foreground">Activity</h1>
 
       <section className="mt-6">
-        <h2 className="text-sm font-semibold text-foreground">Running</h2>
+        <h2 className="text-sm font-semibold text-foreground">In progress</h2>
         {running.length === 0 ? (
           <p className="mt-2 text-sm text-muted-foreground">Nothing is running right now.</p>
         ) : (

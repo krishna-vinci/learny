@@ -12,7 +12,7 @@ import { MarkdownView } from "@/components/Reader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { tierBadge } from "./library-utils";
+import { parseTierLabel, tierBadge } from "./library-utils";
 
 function ParsedFileContent({ id, file }: { id: string; file: string }) {
   const { data, isLoading, isError } = useLibraryParsedFile(id, file);
@@ -86,17 +86,19 @@ export default function LibrarySourcePage() {
         to="/library"
         className="inline-flex min-h-[44px] items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeftIcon className="size-3.5" /> Library
+        <ArrowLeftIcon className="size-3.5" /> Sources
       </Link>
 
       <div className="flex flex-col gap-2 border-b border-border/70 pb-4">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-lg font-semibold">{source.title}</h1>
-          <Badge variant={badge.variant}>{badge.label}</Badge>
+          <Badge variant={badge.variant} title={`Source quality: ${badge.label}`}>
+            {badge.label}
+          </Badge>
         </div>
         <p className="text-sm text-muted-foreground">
           {source.authors.length > 0 ? source.authors.join(", ") : "Unknown author"} · {source.type} ·{" "}
-          {source.parseTier}
+          {parseTierLabel(source.parseTier)}
           {source.url && (
             <>
               {" · "}

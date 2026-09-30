@@ -1,4 +1,4 @@
-export { default, MobileAppHeader, MobileAppSidebar } from "./AppSidebar";
+export { default, MobileAppHeader } from "./AppSidebar";
 export { MobileSidebarProvider, useMobileSidebar } from "./MobileSidebarContext";
 export { default as SidebarResizeHandle } from "./SidebarResizeHandle";
 export { useSidebarCollapsed } from "./useSidebarCollapsed";

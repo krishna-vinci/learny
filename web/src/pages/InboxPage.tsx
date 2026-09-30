@@ -14,6 +14,7 @@ import { MarkdownView } from "@/components/Reader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { ActionBar } from "@/lib/action-bar";
 import { cn } from "@/lib/utils";
 import { PlanReview } from "./InboxPlanReview";
 
@@ -173,11 +174,11 @@ function ReviewView({ set, item, onBack }: { set: string; item: InboxItem; onBac
         </div>
       </section>
 
-      <div className="sticky bottom-0 mt-4 flex justify-end border-t border-border/70 bg-background py-3">
+      <ActionBar className="mt-4 flex justify-end">
         <Button className="h-11 w-full md:h-9 md:w-auto" onClick={handleAcceptClick} disabled={accepting}>
           {accepting ? "Accepting…" : canAccept ? "Accept" : "Accept anyway"}
         </Button>
-      </div>
+      </ActionBar>
     </div>
   );
 }
@@ -209,7 +210,7 @@ function InboxPage() {
       ) : (
         <>
           <div className="flex items-center justify-between">
-            <h1 className="text-lg font-semibold text-foreground">Inbox</h1>
+            <h1 className="text-lg font-semibold text-foreground">To review</h1>
             <Button className="h-11 md:h-8" size="sm" onClick={() => setFormOpen(true)}>
               New chapter
             </Button>

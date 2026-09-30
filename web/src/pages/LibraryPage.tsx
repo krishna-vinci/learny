@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { filterSources, tierBadge } from "./library-utils";
+import { filterSources, parseTierLabel, tierBadge } from "./library-utils";
 import { useLastVisitedSet } from "./useLastVisitedSet";
 
 const TYPE_ICON: Record<SourceType, LucideIcon> = {
@@ -46,7 +46,7 @@ export default function LibraryPage() {
     <TooltipProvider>
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 p-4 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-lg font-semibold">Library</h1>
+          <h1 className="text-lg font-semibold">Sources</h1>
           <Button onClick={() => setSheetOpen(true)}>
             <PlusIcon /> Add source
           </Button>
@@ -127,11 +127,14 @@ function SourceRow({ source }: { source: SourceSummary }) {
             )}
           </div>
           <p className="truncate text-xs text-muted-foreground">
-            {source.authors.length > 0 ? source.authors.join(", ") : "Unknown author"} · {source.parseTier}
+            {source.authors.length > 0 ? source.authors.join(", ") : "Unknown author"} ·{" "}
+            {parseTierLabel(source.parseTier)}
             {source.sets.length > 0 ? ` · ${source.sets.join(", ")}` : ""}
           </p>
         </div>
-        <Badge variant={badge.variant}>{badge.label}</Badge>
+        <Badge variant={badge.variant} title={`Source quality: ${badge.label}`}>
+          {badge.label}
+        </Badge>
       </Link>
     </li>
   );

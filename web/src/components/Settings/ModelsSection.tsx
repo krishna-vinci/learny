@@ -20,14 +20,14 @@ interface RoleInfo {
 }
 
 const ROLES: RoleInfo[] = [
-  { key: "tutor", label: "Tutor", description: "Chat & note edits" },
-  { key: "librarian", label: "Librarian", description: "Summarizes sources" },
-  { key: "drafter", label: "Drafter", description: "Writes chapters" },
-  { key: "checker", label: "Checker", description: "Fact-checks chapters on a different model" },
-  { key: "cardsmith", label: "Cardsmith", description: "Flashcards (M2)", later: true },
-  { key: "critic", label: "Critic", description: "Flashcards (M2)", later: true },
-  { key: "scout", label: "Scout", description: "Finds sources", later: true },
-  { key: "outliner", label: "Outliner", description: "Plans curricula", later: true },
+  { key: "tutor", label: "Tutor", description: "Answers your questions and edits notes in chat" },
+  { key: "librarian", label: "Source summaries", description: "Summarises the sources you add" },
+  { key: "drafter", label: "Chapter writing", description: "Writes chapters from your sources" },
+  { key: "checker", label: "Fact-checking", description: "Checks chapters (works best on a different model)" },
+  { key: "cardsmith", label: "Flashcard writing", description: "Writes flashcards from a chapter" },
+  { key: "critic", label: "Flashcard checking", description: "Rejects weak flashcards before you see them" },
+  { key: "scout", label: "Finding sources", description: "Finds sources for a topic", later: true },
+  { key: "outliner", label: "Study plans", description: "Plans your chapters" },
 ];
 
 const SELECT_CLASSES = cn(

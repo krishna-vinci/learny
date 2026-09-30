@@ -1,4 +1,4 @@
-import type { TodayItem } from "@studium/shared";
+import type { TodayItem, TodaySet } from "@studium/shared";
 import {
   ArchiveIcon,
   BookOpenIcon,
@@ -12,6 +12,7 @@ import { Link } from "react-router-dom";
 import { useToday } from "@/api/queries";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { friendlyDetail } from "@/lib/continue-step";
 import { cn } from "@/lib/utils";
 
 const icons: Record<TodayItem["kind"], typeof SunIcon> = {
@@ -30,6 +31,25 @@ function studiedAgo(at: string | null): string {
   if (minutes < 60) return `Last studied ${minutes}m ago`;
   if (minutes < 1440) return `Last studied ${Math.floor(minutes / 60)}h ago`;
   return `Last studied ${Math.floor(minutes / 1440)}d ago`;
+}
+
+/** Only what needs attention: zero counters are noise (docs/UX.md). */
+function SetCounters({ set }: { set: TodaySet }) {
+  const counters = [
+    set.inboxCount > 0 && `${set.inboxCount} to review`,
+    set.draftCards > 0 && `${set.draftCards} new ${set.draftCards === 1 ? "card" : "cards"} to check`,
+    set.staleCardFiles > 0 &&
+      `${set.staleCardFiles} ${set.staleCardFiles === 1 ? "chapter's cards need" : "chapters' cards need"} a refresh`,
+    set.runningJobs.length > 0 && `${set.runningJobs.length} running in the background`,
+  ].filter((text): text is string => typeof text === "string");
+  if (counters.length === 0) return null;
+  return (
+    <p className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+      {counters.map((text) => (
+        <span key={text}>{text}</span>
+      ))}
+    </p>
+  );
 }
 
 export default function TodayPage() {
@@ -90,7 +110,7 @@ export default function TodayPage() {
                       />
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-foreground">{item.title}</p>
-                        <p className="text-sm text-muted-foreground">{item.detail}</p>
+                        <p className="text-sm text-muted-foreground">{friendlyDetail(item.detail)}</p>
                       </div>
                       <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                     </Link>
@@ -127,12 +147,7 @@ export default function TodayPage() {
                         </Badge>
                       )}
                     </div>
-                    <p className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                      <span>{set.inboxCount} chapters to review</span>
-                      <span>{set.draftCards} draft cards</span>
-                      <span>{set.staleCardFiles} stale card files</span>
-                      <span>{set.runningJobs.length} running jobs</span>
-                    </p>
+                    <SetCounters set={set} />
                     <p className="text-xs text-muted-foreground">{studiedAgo(set.lastStudiedAt)}</p>
                     <p className="text-sm text-foreground">
                       {set.nextChapter

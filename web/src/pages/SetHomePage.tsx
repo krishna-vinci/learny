@@ -1,24 +1,23 @@
-// `/s/:set` — the set's home page (replaces the old `SetOverviewPlaceholder`, which left
-// phones on a blank screen since the note list lives behind the ☰ drawer there). Shows
-// the set's goal/next action, the primary authoring actions, the notes list, a "waiting
-// on you" summary, and — for a set with no notes yet — a "how it works" empty state.
+// `/s/:set` — the set's "Continue" page: the set's goal, ONE primary next step (from Today's
+// do-next, see lib/continue-step.ts), a small row of secondary actions, the rest behind
+// "More actions", and the notes list (docs/UX.md: one primary action per screen).
 import type { JobView } from "@studium/shared";
 import {
-  ArchiveIcon,
+  ArrowRightIcon,
   BookOpenIcon,
+  ChevronDownIcon,
   DownloadIcon,
   ListChecksIcon,
   MessageSquareIcon,
   NotebookTextIcon,
   PlusIcon,
   SparklesIcon,
-  WrenchIcon,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { Link, useParams } from "react-router-dom";
 import { ApiError, api, bookUrl } from "@/api/client";
-import { useBook, useCardFiles, useInbox, useJobs, useNoteFile, useNotes, useSets } from "@/api/queries";
+import { useBook, useJobs, useLibrary, useNoteFile, useNotes, useSets, useToday } from "@/api/queries";
 import { openActivityPanel } from "@/components/Activity/activity-store";
 import { openChatDock } from "@/components/ChatDock/openChatDock";
 import { AddSourceSheet } from "@/components/Library/AddSourceSheet";
@@ -26,39 +25,13 @@ import { RowsSkeleton } from "@/components/ListSkeleton";
 import { NewChapterSheet } from "@/components/NewChapterSheet";
 import { NewNoteDialog } from "@/components/NewNoteDialog";
 import { PlanSetSheet } from "@/components/PlanSetSheet";
-import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
+import { type ContinueStep, nextStep } from "@/lib/continue-step";
 import { isActiveJob } from "@/lib/job-transitions";
 import { cn } from "@/lib/utils";
-
-function ActionButton({
-  icon: Icon,
-  label,
-  description,
-  onClick,
-}: {
-  icon: typeof PlusIcon;
-  label: string;
-  description: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex min-h-[72px] flex-col items-start gap-1 rounded-lg border border-border/70 bg-background p-3 text-start shadow-xs transition-colors hover:bg-accent/40"
-    >
-      <span className="flex items-center gap-2 font-medium text-foreground">
-        <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-        {label}
-      </span>
-      <span className="text-sm text-muted-foreground">{description}</span>
-    </button>
-  );
-}
 
 function NoteRow({ set, path, title, order }: { set: string; path: string; title: string; order: number | null }) {
   return (
@@ -92,76 +65,6 @@ function DraftingRow({ job }: { job: JobView }) {
         </span>
       </button>
     </li>
-  );
-}
-
-function WaitingRow({
-  icon: Icon,
-  label,
-  count,
-  to,
-}: {
-  icon: typeof ArchiveIcon;
-  label: string;
-  count: number;
-  to: string;
-}) {
-  if (count === 0) return null;
-  return (
-    <li>
-      <Link
-        to={to}
-        className="flex min-h-11 items-center gap-2 border-b border-border/70 py-2 last:border-b-0 hover:bg-accent/40"
-      >
-        <Icon className="size-4 shrink-0 text-muted-foreground/70" aria-hidden="true" />
-        <span className="min-w-0 flex-1 text-foreground">{label}</span>
-        <Badge variant="tint">{count}</Badge>
-      </Link>
-    </li>
-  );
-}
-
-function HowItWorks({
-  onNewChapter,
-  onWriteNote,
-  onAddSource,
-}: {
-  onNewChapter: () => void;
-  onWriteNote: () => void;
-  onAddSource: () => void;
-}) {
-  const steps = [
-    { n: 1, title: "Add a source", body: "Bring in a web page, PDF, or paper to learn from." },
-    { n: 2, title: "New chapter", body: "The agent drafts a note from your sources, and a checker verifies it." },
-    { n: 3, title: "Make cards", body: "Turn a note into flashcards, review them, then send to Anki." },
-  ];
-  return (
-    <div className="mt-6 rounded-lg border border-dashed border-border/70 p-4">
-      <p className="text-sm font-medium text-foreground">How it works</p>
-      <ol className="mt-3 flex flex-col gap-3">
-        {steps.map((step) => (
-          <li key={step.n} className="flex items-start gap-3">
-            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
-              {step.n}
-            </span>
-            <div className="min-w-0">
-              <p className="font-medium text-foreground">{step.title}</p>
-              <p className="text-sm text-muted-foreground">{step.body}</p>
-            </div>
-          </li>
-        ))}
-      </ol>
-      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
-        <ActionButton icon={PlusIcon} label="Add source" description="Web page, PDF, paper…" onClick={onAddSource} />
-        <ActionButton
-          icon={NotebookTextIcon}
-          label="New chapter"
-          description="Draft from sources"
-          onClick={onNewChapter}
-        />
-        <ActionButton icon={ListChecksIcon} label="Write a note" description="Start from blank" onClick={onWriteNote} />
-      </div>
-    </div>
   );
 }
 
@@ -258,97 +161,151 @@ function BookCard({ set, jobs }: { set: string; jobs: JobView[] }) {
   );
 }
 
+/** PLAN.md placeholders like "(not set yet)" are not a goal worth showing. */
+function visibleText(text: string | null | undefined): string | null {
+  const trimmed = text?.trim() ?? "";
+  return trimmed === "" || /^\(.*\)$/.test(trimmed) ? null : trimmed;
+}
+
+/** The one primary action of the page: the next best step for this set. */
+function ContinueCard({
+  step,
+  onNewChapter,
+  onAddSource,
+  onTutor,
+}: {
+  step: ContinueStep;
+  onNewChapter: () => void;
+  onAddSource: () => void;
+  onTutor: () => void;
+}) {
+  const action =
+    step.kind === "link" ? (
+      <Link to={step.href} className={cn(buttonVariants(), "h-11 w-full justify-center sm:h-9 sm:w-auto")}>
+        {step.cta}
+        <ArrowRightIcon aria-hidden="true" />
+      </Link>
+    ) : (
+      <Button
+        className="h-11 w-full sm:h-9 sm:w-auto"
+        onClick={step.kind === "new-chapter" ? onNewChapter : step.kind === "add-source" ? onAddSource : onTutor}
+      >
+        {step.cta}
+        <ArrowRightIcon aria-hidden="true" />
+      </Button>
+    );
+  return (
+    <Card className="mt-5 gap-3 border-primary/40 bg-primary/5 px-4" aria-label="Next step">
+      <div>
+        <p className="text-2xs font-medium uppercase tracking-wide text-primary">Next step</p>
+        <p className="mt-1 text-base font-semibold text-foreground">{step.title}</p>
+        <p className="mt-0.5 text-sm text-muted-foreground">{step.detail}</p>
+      </div>
+      {action}
+    </Card>
+  );
+}
+
 export default function SetHomePage() {
   const params = useParams<{ set: string }>();
   const set = params.set as string;
   const { data: sets } = useSets();
   const { data: notes = [], isLoading: notesLoading } = useNotes(set);
-  const { data: inboxItems = [] } = useInbox(set);
-  const { data: cardFiles = [] } = useCardFiles(set);
+  const { data: library = [] } = useLibrary();
+  const { data: today } = useToday();
   const { data: jobs = [] } = useJobs(set);
   const { data: plan } = useNoteFile(set, "PLAN.md");
 
-  const [newChapterOpen, setNewChapterOpen] = useState(false);
+  const [newChapterOpen, setNewChapterOpen] = useState<{ title?: string } | null>(null);
   const [newNoteOpen, setNewNoteOpen] = useState(false);
   const [addSourceOpen, setAddSourceOpen] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const summary = sets?.find((s) => s.slug === set);
-  const planCount = inboxItems.filter((item) => item.kind === "plan").length;
-  const chapterCount = inboxItems.length - planCount;
-  const draftCardCount = cardFiles.reduce((total, file) => total + (file.counts.draft ?? 0), 0);
   const runningJobCount = jobs.filter((job) => job.status === "queued" || job.status === "running").length;
   const draftingJobs = jobs.filter((job) => job.kind === "draft-chapter" && job.set === set && isActiveJob(job));
+  const linkedSources = library.filter((source) => source.sets.includes(set)).length;
+  const step = nextStep({ set, doNext: today?.doNext ?? [], notesCount: notes.length, linkedSources });
+  const goal = plan?.body ? visibleText(goalText(plan.body)) : null;
+  const nextAction = visibleText(summary?.nextAction);
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-6 md:px-6">
       <div>
         <h1 className="text-xl font-semibold text-foreground">{summary?.title ?? set}</h1>
-        {summary?.nextAction && <p className="mt-1 text-sm text-muted-foreground">{summary.nextAction}</p>}
-        {plan?.body && <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{goalText(plan.body)}</p>}
+        {goal && <p className="mt-1 line-clamp-3 text-sm text-muted-foreground">{goal}</p>}
+        {!goal && nextAction && <p className="mt-1 text-sm text-muted-foreground">{nextAction}</p>}
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-        <ActionButton
-          icon={NotebookTextIcon}
-          label="New chapter"
-          description="Draft from sources"
-          onClick={() => setNewChapterOpen(true)}
-        />
-        <ActionButton
-          icon={ListChecksIcon}
-          label="Write a note"
-          description="Start from blank"
-          onClick={() => setNewNoteOpen(true)}
-        />
-        <ActionButton
-          icon={PlusIcon}
-          label="Add source"
-          description="Web page, PDF, paper…"
-          onClick={() => setAddSourceOpen(true)}
-        />
-        <ActionButton
-          icon={SparklesIcon}
-          label="Plan with agent"
-          description="Propose a plan and outline"
-          onClick={() => setPlanOpen(true)}
-        />
-        <ActionButton
-          icon={MessageSquareIcon}
-          label="Ask tutor"
-          description="Chat about this set"
-          onClick={() => openChatDock()}
-        />
-      </div>
-
-      {(inboxItems.length > 0 || draftCardCount > 0 || runningJobCount > 0) && (
-        <section className="mt-6">
-          <h2 className="text-sm font-semibold text-foreground">Waiting on you</h2>
-          <ul className={cn("mt-2 rounded-md border border-border/70 px-3")}>
-            <WaitingRow icon={ArchiveIcon} label="Chapters to review" count={chapterCount} to={`/s/${set}/inbox`} />
-            <WaitingRow icon={ListChecksIcon} label="Plans to review" count={planCount} to={`/s/${set}/inbox`} />
-            <WaitingRow
-              icon={NotebookTextIcon}
-              label="Draft cards to review"
-              count={draftCardCount}
-              to={`/s/${set}/cards`}
-            />
-            <WaitingRow icon={WrenchIcon} label="Jobs running" count={runningJobCount} to="/jobs" />
-          </ul>
-        </section>
+      <ContinueCard
+        step={step}
+        onNewChapter={() => setNewChapterOpen({ title: step.kind === "new-chapter" ? step.chapterTitle : undefined })}
+        onAddSource={() => setAddSourceOpen(true)}
+        onTutor={() => openChatDock()}
+      />
+      {runningJobCount > 0 && (
+        <p className="mt-2 text-sm text-muted-foreground">
+          {runningJobCount} running in the background.{" "}
+          <Link to="/jobs" className="text-primary underline underline-offset-2">
+            See activity
+          </Link>
+        </p>
       )}
 
-      <BookCard set={set} jobs={jobs} />
+      <div className="mt-4 flex flex-wrap gap-2">
+        {step.kind !== "add-source" && (
+          <Button variant="outline" size="sm" className="h-11 md:h-8" onClick={() => setAddSourceOpen(true)}>
+            <PlusIcon aria-hidden="true" />
+            Add source
+          </Button>
+        )}
+        {step.kind !== "new-chapter" && (
+          <Button variant="outline" size="sm" className="h-11 md:h-8" onClick={() => setNewChapterOpen({})}>
+            <NotebookTextIcon aria-hidden="true" />
+            New chapter
+          </Button>
+        )}
+        {step.kind !== "tutor" && (
+          <Button variant="outline" size="sm" className="h-11 md:h-8" onClick={() => openChatDock()}>
+            <MessageSquareIcon aria-hidden="true" />
+            Ask the tutor
+          </Button>
+        )}
+        <Button
+          variant="quiet"
+          size="sm"
+          className="h-11 md:h-8"
+          aria-expanded={moreOpen}
+          aria-controls="more-actions"
+          onClick={() => setMoreOpen((open) => !open)}
+        >
+          More actions
+          <ChevronDownIcon className={cn("transition-transform", moreOpen && "rotate-180")} aria-hidden="true" />
+        </Button>
+      </div>
+
+      {moreOpen && (
+        <div id="more-actions" className="mt-2 flex flex-col gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" className="h-11 md:h-8" onClick={() => setNewNoteOpen(true)}>
+              <ListChecksIcon aria-hidden="true" />
+              Write a note
+            </Button>
+            <Button variant="outline" size="sm" className="h-11 md:h-8" onClick={() => setPlanOpen(true)}>
+              <SparklesIcon aria-hidden="true" />
+              Make a plan
+            </Button>
+          </div>
+          <BookCard set={set} jobs={jobs} />
+        </div>
+      )}
 
       <section className="mt-6">
         <h2 className="text-sm font-semibold text-foreground">Notes</h2>
         {notesLoading && <RowsSkeleton rows={3} className="mt-2" />}
         {!notesLoading && notes.length === 0 && draftingJobs.length === 0 && (
-          <HowItWorks
-            onNewChapter={() => setNewChapterOpen(true)}
-            onWriteNote={() => setNewNoteOpen(true)}
-            onAddSource={() => setAddSourceOpen(true)}
-          />
+          <p className="mt-2 text-sm text-muted-foreground">Chapters you write or draft will be listed here.</p>
         )}
         {!notesLoading && (notes.length > 0 || draftingJobs.length > 0) && (
           <ul className="mt-2 rounded-md border border-border/70 px-3">
@@ -370,7 +327,9 @@ export default function SetHomePage() {
           onClose={() => setPlanOpen(false)}
         />
       )}
-      {newChapterOpen && <NewChapterSheet set={set} onClose={() => setNewChapterOpen(false)} />}
+      {newChapterOpen && (
+        <NewChapterSheet set={set} initialTitle={newChapterOpen.title} onClose={() => setNewChapterOpen(null)} />
+      )}
       <NewNoteDialog set={set} open={newNoteOpen} onOpenChange={setNewNoteOpen} />
       <AddSourceSheet open={addSourceOpen} onOpenChange={setAddSourceOpen} defaultSet={set} />
     </div>

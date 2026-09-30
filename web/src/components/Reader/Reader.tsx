@@ -1,5 +1,13 @@
 import type { FileView } from "@studium/shared";
-import { HighlighterIcon, HistoryIcon, LayersIcon, Maximize2Icon, Minimize2Icon, PencilIcon } from "lucide-react";
+import {
+  HighlighterIcon,
+  HistoryIcon,
+  LayersIcon,
+  Maximize2Icon,
+  Minimize2Icon,
+  MoreHorizontalIcon,
+  PencilIcon,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useSearchParams } from "react-router-dom";
@@ -7,7 +15,13 @@ import { ApiError, api } from "@/api/client";
 import { useHighlights, useSaveFile } from "@/api/queries";
 import { showJobStartedToast } from "@/components/Activity/job-start-toast";
 import { NoteHistory } from "@/components/NoteHistory";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { exitImmersive, isImmersive, toggleImmersive, useImmersive } from "@/lib/immersive-store";
 import { readingPrefsVars, useReadingPrefs } from "@/lib/reading-prefs";
@@ -308,39 +322,40 @@ export function Reader({ set, path, file, className }: ReaderProps) {
           >
             {!bodyHasTitle && <h1 className="text-2xl font-semibold text-foreground">{titleFromFrontmatter(file)}</h1>}
             <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-                <PencilIcon />
-                Edit
-              </Button>
               <Button variant="outline" size="sm" onClick={() => void makeCards()} disabled={makingCards}>
                 <LayersIcon />
                 {makingCards ? "Starting…" : "Make cards"}
               </Button>
-              <Button
-                variant={historyOpen ? "secondary" : "outline"}
-                size="sm"
-                aria-pressed={historyOpen}
-                onClick={() => (historyOpen ? closeHistory() : setHistoryOpen(true))}
-              >
-                <HistoryIcon />
-                History
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setHighlightsOpen(true)}>
-                <HighlighterIcon />
-                Highlights ({highlights.length})
-              </Button>
               <ReadingSettingsControl />
-              <Button
-                variant={immersive ? "secondary" : "outline"}
-                size="sm"
-                aria-pressed={immersive}
-                aria-label={immersive ? "Exit full screen" : "Full screen"}
-                title={immersive ? "Exit full screen (f)" : "Full screen (f)"}
-                onClick={toggleImmersive}
-              >
-                {immersive ? <Minimize2Icon /> : <Maximize2Icon />}
-                <span className="hidden md:inline">{immersive ? "Exit full screen" : "Full screen"}</span>
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  aria-label="More note actions"
+                  className={buttonVariants({ variant: "outline", size: "sm" })}
+                >
+                  <MoreHorizontalIcon />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-44">
+                  <DropdownMenuItem className="min-h-11 md:min-h-0" onClick={() => setEditing(true)}>
+                    <PencilIcon />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="min-h-11 md:min-h-0"
+                    onClick={() => (historyOpen ? closeHistory() : setHistoryOpen(true))}
+                  >
+                    <HistoryIcon />
+                    {historyOpen ? "Hide history" : "History"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="min-h-11 md:min-h-0" onClick={() => setHighlightsOpen(true)}>
+                    <HighlighterIcon />
+                    Highlights ({highlights.length})
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="min-h-11 md:min-h-0" onClick={toggleImmersive}>
+                    {immersive ? <Minimize2Icon /> : <Maximize2Icon />}
+                    {immersive ? "Exit full screen" : "Full screen"}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
           {highlightsQuery.isError && (

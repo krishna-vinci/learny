@@ -136,7 +136,7 @@ export function NewSetDialog({ open, onOpenChange }: NewSetDialogProps) {
             <span>
               <span className="font-medium text-foreground">Let the agent plan it</span>
               <span className="block text-xs text-muted-foreground">
-                Drafts a plan and chapter outline for you to review in the Inbox.
+                Drafts a plan and chapter outline for you to review.
               </span>
             </span>
           </label>
