@@ -77,9 +77,10 @@ The orchestrator keeps the rest of this file current. When something listed unde
   - M0 skeleton, M1 sources→notes, M2 cards
   - M3a platform: accounts and SSO, per-user trees, backups, notifications, export, service
   - M3b slices A (background jobs UX), B (reading comfort), C (themes)
-- **In progress:** M4 study loop (`docs/plans/2026-09-30-m4-study-loop.md`). Merged: M4-0 skills + skill sync, M4-1 Today API, M4-3 quotes + highlights. Running: M4-2 search. Next: M4-4 Outliner, M4-5 book PDF, M4-6 site import, M4-7 UI (Sonnet). The shadcn migration is deferred to M6.
+- **In progress:** M4 study loop (`docs/plans/2026-09-30-m4-study-loop.md`). Merged: M4-0 skills + skill sync, M4-1 Today API, M4-2 search, M4-3 quotes + highlights. Next: M4-4 Outliner, M4-5 book PDF, M4-6 site import, M4-7 UI (Sonnet). The shadcn migration is deferred to M6.
 
 ## Open gaps
+- **Today's "next chapter"** comes from unticked `curriculum.md` checkboxes, but existing chapters aren't ticked (e.g. it suggests "Draft 02 — Matrices" though the note exists). Fix it in M4-4: also skip curriculum items whose note already exists, and have the Outliner/drafter tick items.
 - **shadcn migration (deferred to M6):** batches D1–D5 in `docs/prompts/m3b-slice-d.md`, with the map in `docs/prompts/m3b-d-uimap.md` (the map will go stale; refresh it before running). New UI should still prefer the existing `components/ui` kit.
 - **Skills update** (awaiting the owner's go):
   - a new `find-sources` skill
@@ -97,7 +98,7 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - **Backups:** not configured yet on the live instance. The owner does this in Settings → Backups.
 
 ## Recently done
-- M4-3 quotes + highlights (62b6e78), M4-1 Today API (e173784), M4-0 research skills + skill sync (718fbba)
+- M4-2 search (11cbdeb) · M4-3 quotes + highlights (62b6e78), M4-1 Today API (e173784), M4-0 research skills + skill sync (718fbba)
 - M3b slice C themes (merge of codex/m3b, 2026-09-30)
 - 499eb3a M3b slice B · 0265a62 M3b slice A · 8b12aca Context7 MCP · Firecrawl v2 + LAN endpoint
 - ceaad1d M3a audit fixes · M3a T1–T5 + web (accounts, SSO, workspaces, backups, notify/export)
@@ -109,3 +110,4 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - 2026-09-30 · M4-0 (Sol 6.1) · `skills/find-sources` + research guidance in 8 skills; `server/src/tree/skill-sync.ts`, `scripts/skill-history.mjs`, `skills/.defaults-history.json` · the live tree updated all 8 and added find-sources on restart · none open.
 - 2026-09-30 · M4-1 (Sol 6.1) · `GET /api/today` (`server/src/today/build.ts`, `routes/today.ts`, `inbox/read.ts`); git `log` gained an `author` filter (orchestrator fix: reads one commit, not the full history) · Today UI is Sonnet's.
 - 2026-09-30 · M4-3 (DeepSeek) · chat `quote` field (`chat-service.ts` `learnerTurn`); highlights API `routes/highlights.ts` at `<set>/highlights/<note>.json`; body key `comment` = annotation · the transcript keeps the full quote.
+- 2026-09-30 · M4-2 (Sol 6.1) · `server/src/search/index.ts` (FTS5 per workspace at `.cache/search.db`), `routes/search.ts`, workspace lifecycle hooks · chats matched at query time; last term is a prefix; result paths are root-relative, cards use `#card-id` · none open.
