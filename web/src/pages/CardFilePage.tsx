@@ -10,9 +10,12 @@ import { toast } from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
 import { ApiError, api, exportUrl } from "@/api/client";
 import { queryKeys, useCardFile, useNotes, useSettings } from "@/api/queries";
+import { FirstUseHint } from "@/components/FirstUseHint";
 import { MarkdownView } from "@/components/Reader";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { ActionBar } from "@/lib/action-bar";
+import { friendlyMessage } from "@/lib/friendly-errors";
 import { cn } from "@/lib/utils";
 import {
   criticLabel,
@@ -239,7 +242,7 @@ function CardFilePage() {
       await api.cards.patch(set, id, body);
       invalidate();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to update the card.");
+      toast.error(friendlyMessage(err, "Failed to update the card."));
     } finally {
       setBusy(false);
     }
@@ -322,7 +325,7 @@ function CardFilePage() {
       toast.success(`Approved ${result.approved} critic-clean card${result.approved === 1 ? "" : "s"}`);
       invalidate();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to approve cards.");
+      toast.error(friendlyMessage(err, "Failed to approve cards."));
     } finally {
       setApprovingAll(false);
     }
@@ -380,7 +383,7 @@ function CardFilePage() {
         setSyncMode("hidden");
         toast.error("AnkiConnect isn't configured on the server.");
       } else {
-        toast.error(err instanceof ApiError ? err.message : "Sync to Anki failed.");
+        toast.error(friendlyMessage(err, "Sync to Anki failed."));
       }
     } finally {
       setSyncing(false);
@@ -403,13 +406,17 @@ function CardFilePage() {
   const cleanDraftCount = cards.filter((c) => c.status === "draft" && c.critic?.verdict === "ok").length;
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 pb-28 pt-6 md:px-6 md:pb-6">
+    <div className="mx-auto w-full max-w-3xl px-4 pb-6 pt-6 md:px-6">
       <div className="flex items-center gap-2">
         <Button variant="outline" size="sm" className="h-11 md:h-7" onClick={() => navigate(`/s/${set}/cards`)}>
           Back
         </Button>
         <h1 className="min-w-0 flex-1 truncate text-lg font-semibold text-foreground">{chapterTitle}</h1>
       </div>
+
+      <FirstUseHint id="card-keys" className="mt-3 hidden md:flex">
+        Review faster with the keyboard: A approves, R rejects, E edits, J and K move between cards.
+      </FirstUseHint>
 
       {detail.stale && (
         <p className="mt-3 flex items-center gap-1.5 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning-foreground">
@@ -550,10 +557,7 @@ function CardFilePage() {
       )}
 
       {!editing && current && (
-        <div
-          className="fixed inset-x-0 bottom-0 z-20 flex items-center gap-2 border-t border-border/70 bg-background px-4 py-3 md:hidden"
-          style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.75rem)" }}
-        >
+        <ActionBar className="mt-4 flex items-center gap-2 md:hidden">
           <Button
             variant="destructive"
             className="h-12 flex-1 text-base"
@@ -575,7 +579,7 @@ function CardFilePage() {
           <Button className="h-12 flex-1 text-base" onClick={() => void approve()} disabled={busy} aria-label="Approve">
             <CheckIcon className="size-5" />
           </Button>
-        </div>
+        </ActionBar>
       )}
     </div>
   );

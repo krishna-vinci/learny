@@ -7,11 +7,12 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BookOpenIcon, LayersIcon, LinkIcon, ListTreeIcon, NotebookTextIcon } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { Link } from "react-router-dom";
-import { ApiError, api } from "@/api/client";
+import { api } from "@/api/client";
 import { useJobs, useSets } from "@/api/queries";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { friendlyMessage } from "@/lib/friendly-errors";
 import { formatDuration } from "@/lib/job-format";
 import { isActiveJob, isRecentlyFinishedJob } from "@/lib/job-transitions";
 import { cn } from "@/lib/utils";
@@ -120,7 +121,7 @@ export function ActivityPanelContent({ focusJobId }: { focusJobId?: string }) {
       queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === "jobs" });
     },
     onError: (error) => {
-      toast.error(error instanceof ApiError ? error.message : "Failed to cancel job.");
+      toast.error(friendlyMessage(error, "Failed to cancel job."));
     },
   });
 
@@ -135,7 +136,7 @@ export function ActivityPanelContent({ focusJobId }: { focusJobId?: string }) {
       toast.success(`Retrying "${draft.title}"…`);
     },
     onError: (error) => {
-      toast.error(error instanceof ApiError ? error.message : "Failed to retry job.");
+      toast.error(friendlyMessage(error, "Failed to retry job."));
     },
   });
 

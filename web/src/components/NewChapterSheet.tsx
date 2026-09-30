@@ -4,12 +4,13 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "react-hot-toast";
-import { ApiError, api } from "@/api/client";
+import { api } from "@/api/client";
 import { showJobStartedToast } from "@/components/Activity/job-start-toast";
 import { SourcePicker } from "@/components/SourcePicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { friendlyMessage } from "@/lib/friendly-errors";
 
 export interface NewChapterSheetProps {
   set: string;
@@ -38,7 +39,7 @@ export function NewChapterSheet({ set, initialTitle, onClose }: NewChapterSheetP
       showJobStartedToast(trimmedTitle);
       onClose();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to start job.");
+      toast.error(friendlyMessage(err, "Failed to start job."));
     } finally {
       setSubmitting(false);
     }

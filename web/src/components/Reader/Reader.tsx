@@ -14,6 +14,7 @@ import { useSearchParams } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import { useHighlights, useSaveFile } from "@/api/queries";
 import { showJobStartedToast } from "@/components/Activity/job-start-toast";
+import { FirstUseHint } from "@/components/FirstUseHint";
 import { NoteHistory } from "@/components/NoteHistory";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -23,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { friendlyMessage } from "@/lib/friendly-errors";
 import { exitImmersive, isImmersive, toggleImmersive, useImmersive } from "@/lib/immersive-store";
 import { readingPrefsVars, useReadingPrefs } from "@/lib/reading-prefs";
 import { readScrollPosition, saveScrollPosition } from "@/lib/scroll-memory";
@@ -80,7 +82,7 @@ function NoteEditor({ set, path, file, onDone }: { set: string; path: string; fi
           return;
         }
       }
-      toast.error(err instanceof ApiError ? err.message : "Failed to save this note.");
+      toast.error(friendlyMessage(err, "Failed to save this note."));
     }
   }
 
@@ -167,7 +169,7 @@ export function Reader({ set, path, file, className }: ReaderProps) {
       await api.jobs.create({ kind: "make-cards", set, note: path });
       showJobStartedToast(titleFromFrontmatter(file));
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to start the cards job.");
+      toast.error(friendlyMessage(err, "Failed to start the cards job."));
     } finally {
       setMakingCards(false);
     }
@@ -358,6 +360,9 @@ export function Reader({ set, path, file, className }: ReaderProps) {
               </DropdownMenu>
             </div>
           </div>
+          <FirstUseHint id="select-text" enabled={file.body.trim() !== ""} className="mb-3">
+            Select any text to ask the tutor about it or to highlight it.
+          </FirstUseHint>
           {highlightsQuery.isError && (
             <p role="alert" className="mb-3 text-sm text-destructive">
               Could not load highlights.{" "}

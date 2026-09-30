@@ -10,8 +10,10 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToday } from "@/api/queries";
+import { RowsSkeleton } from "@/components/ListSkeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { friendlyDetail } from "@/lib/continue-step";
 import { cn } from "@/lib/utils";
 
@@ -71,26 +73,43 @@ export default function TodayPage() {
           <RefreshCwIcon className={cn("size-4", isFetching && "animate-spin")} />
         </Button>
       </div>
-      {isLoading && (
-        <p role="status" className="text-sm text-muted-foreground">
-          Finding your next step…
-        </p>
-      )}
+      {isLoading && <RowsSkeleton rows={3} />}
       {isError && (
         <p role="alert" className="text-sm text-destructive">
           Could not load Today. Use Refresh to try again.
         </p>
       )}
-      {data && (
+      {data && data.sets.length === 0 && (
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <SunIcon />
+            </EmptyMedia>
+            <EmptyTitle>Nothing to study yet</EmptyTitle>
+            <EmptyDescription>
+              Today shows your next step across everything you're learning. Start a study set and it will appear here.
+            </EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <Button className="h-11 md:h-9" render={<Link to="/welcome" />} nativeButton={false}>
+              Get started
+            </Button>
+          </EmptyContent>
+        </Empty>
+      )}
+      {data && data.sets.length > 0 && (
         <>
           <section className="flex flex-col gap-3" aria-labelledby="do-next-title">
             <h2 id="do-next-title" className="text-sm font-semibold text-foreground">
               Do next
             </h2>
             {data.doNext.length === 0 && (
-              <p className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
-                You're caught up. Open a set to keep learning.
-              </p>
+              <Empty>
+                <EmptyHeader>
+                  <EmptyTitle>You're all caught up</EmptyTitle>
+                  <EmptyDescription>Nothing needs you right now. Pick a set below to keep going.</EmptyDescription>
+                </EmptyHeader>
+              </Empty>
             )}
             <ul className="flex flex-col gap-2">
               {data.doNext.slice(0, 7).map((item) => {
@@ -123,11 +142,6 @@ export default function TodayPage() {
             <h2 id="your-sets-title" className="text-sm font-semibold text-foreground">
               Your sets
             </h2>
-            {data.sets.length === 0 && (
-              <Link to="/" className="text-sm text-primary underline">
-                Create your first study set
-              </Link>
-            )}
             <ul className="grid gap-2 sm:grid-cols-2">
               {data.sets.map((set) => (
                 <li key={set.slug}>

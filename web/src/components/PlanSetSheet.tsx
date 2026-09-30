@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "react-hot-toast";
-import { ApiError, api } from "@/api/client";
+import { api } from "@/api/client";
 import { showJobStartedToast } from "@/components/Activity/job-start-toast";
 import { EMPTY_PLAN_OPTIONS, PlanOptions, planOptionsBody } from "@/components/PlanOptions";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { friendlyMessage } from "@/lib/friendly-errors";
 
 export interface PlanSetSheetProps {
   set: string;
@@ -29,7 +30,7 @@ export function PlanSetSheet({ set, title, initialGoal, onClose }: PlanSetSheetP
       showJobStartedToast(title, "Planning");
       onClose();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to start planning.");
+      toast.error(friendlyMessage(err, "Failed to start planning."));
     } finally {
       setSubmitting(false);
     }

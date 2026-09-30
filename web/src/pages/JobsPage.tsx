@@ -5,13 +5,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { TriangleAlertIcon, WrenchIcon } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { Link } from "react-router-dom";
-import { ApiError, api } from "@/api/client";
+import { api } from "@/api/client";
 import { queryKeys, useJobs } from "@/api/queries";
 import { PageSkeleton } from "@/components/ListSkeleton";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Spinner } from "@/components/ui/spinner";
+import { friendlyMessage } from "@/lib/friendly-errors";
 import { formatCost, formatDuration, formatTokenUsage } from "@/lib/job-format";
 
 const STATUS_VARIANTS: Record<JobStatus, BadgeVariant> = {
@@ -105,7 +106,7 @@ function JobsPage() {
       queryClient.invalidateQueries({ queryKey: queryKeys.jobs() });
     },
     onError: (error) => {
-      toast.error(error instanceof ApiError ? error.message : "Failed to cancel job.");
+      toast.error(friendlyMessage(error, "Failed to cancel job."));
     },
   });
 

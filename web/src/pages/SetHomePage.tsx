@@ -16,7 +16,7 @@ import {
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { Link, useParams } from "react-router-dom";
-import { ApiError, api, bookUrl } from "@/api/client";
+import { api, bookUrl } from "@/api/client";
 import { useBook, useJobs, useLibrary, useNoteFile, useNotes, useSets, useToday } from "@/api/queries";
 import { openActivityPanel } from "@/components/Activity/activity-store";
 import { openChatDock } from "@/components/ChatDock/openChatDock";
@@ -30,6 +30,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { type ContinueStep, nextStep } from "@/lib/continue-step";
+import { friendlyMessage } from "@/lib/friendly-errors";
 import { isActiveJob } from "@/lib/job-transitions";
 import { cn } from "@/lib/utils";
 
@@ -100,7 +101,7 @@ function BookCard({ set, jobs }: { set: string; jobs: JobView[] }) {
     try {
       await api.jobs.create({ kind: "compile-book", set });
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to start the book build.");
+      toast.error(friendlyMessage(err, "Failed to start the book build."));
     } finally {
       setStarting(false);
     }
@@ -131,7 +132,9 @@ function BookCard({ set, jobs }: { set: string; jobs: JobView[] }) {
             </>
           )}
           {!running && failed && (
-            <p className="mt-1 text-xs text-destructive">Last build failed: {failed.error ?? "unknown error"}</p>
+            <p className="mt-1 text-xs text-destructive">
+              The last try didn't work. {friendlyMessage(failed.error ?? "")}
+            </p>
           )}
         </div>
         <div className="flex gap-2">
@@ -165,6 +168,22 @@ function BookCard({ set, jobs }: { set: string; jobs: JobView[] }) {
 function visibleText(text: string | null | undefined): string | null {
   const trimmed = text?.trim() ?? "";
   return trimmed === "" || /^\(.*\)$/.test(trimmed) ? null : trimmed;
+}
+
+/** Shown instead of the next-step card while "Make a plan" runs (first run and replans). */
+function PreparingCard({ job }: { job: JobView }) {
+  return (
+    <Card className="mt-5 gap-2 border-primary/40 bg-primary/5 px-4" aria-label="Plan in progress" role="status">
+      <p className="flex items-center gap-2 text-base font-semibold text-foreground">
+        <Spinner className="shrink-0 text-primary" aria-label="Working" />
+        Your plan is being prepared
+      </p>
+      <p className="text-sm text-muted-foreground">
+        {job.progress ? `${job.progress}.` : "The assistant is reading your goal and sources."} This takes a minute or
+        two. You can look around; it will be waiting under To review.
+      </p>
+    </Card>
+  );
 }
 
 /** The one primary action of the page: the next best step for this set. */
@@ -225,6 +244,7 @@ export default function SetHomePage() {
   const summary = sets?.find((s) => s.slug === set);
   const runningJobCount = jobs.filter((job) => job.status === "queued" || job.status === "running").length;
   const draftingJobs = jobs.filter((job) => job.kind === "draft-chapter" && job.set === set && isActiveJob(job));
+  const planningJob = jobs.find((job) => job.kind === "plan-set" && job.set === set && isActiveJob(job));
   const linkedSources = library.filter((source) => source.sets.includes(set)).length;
   const step = nextStep({ set, doNext: today?.doNext ?? [], notesCount: notes.length, linkedSources });
   const goal = plan?.body ? visibleText(goalText(plan.body)) : null;
@@ -238,13 +258,17 @@ export default function SetHomePage() {
         {!goal && nextAction && <p className="mt-1 text-sm text-muted-foreground">{nextAction}</p>}
       </div>
 
-      <ContinueCard
-        step={step}
-        onNewChapter={() => setNewChapterOpen({ title: step.kind === "new-chapter" ? step.chapterTitle : undefined })}
-        onAddSource={() => setAddSourceOpen(true)}
-        onTutor={() => openChatDock()}
-      />
-      {runningJobCount > 0 && (
+      {planningJob ? (
+        <PreparingCard job={planningJob} />
+      ) : (
+        <ContinueCard
+          step={step}
+          onNewChapter={() => setNewChapterOpen({ title: step.kind === "new-chapter" ? step.chapterTitle : undefined })}
+          onAddSource={() => setAddSourceOpen(true)}
+          onTutor={() => openChatDock()}
+        />
+      )}
+      {runningJobCount > 0 && !planningJob && (
         <p className="mt-2 text-sm text-muted-foreground">
           {runningJobCount} running in the background.{" "}
           <Link to="/jobs" className="text-primary underline underline-offset-2">

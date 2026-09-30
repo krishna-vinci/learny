@@ -9,12 +9,13 @@ import { CheckCircle2Icon, FileIcon, GlobeIcon, LinkIcon, Loader2Icon, TriangleA
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { Link } from "react-router-dom";
-import { ApiError, api } from "@/api/client";
+import { api } from "@/api/client";
 import { useStudiumEvents } from "@/api/events";
 import { queryKeys } from "@/api/queries";
 import { showJobStartedToast } from "@/components/Activity/job-start-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { friendlyMessage } from "@/lib/friendly-errors";
 import { cn } from "@/lib/utils";
 import { DocsSiteTab } from "./DocsSiteTab";
 
@@ -40,9 +41,7 @@ function formatBytes(bytes: number): string {
 }
 
 function errorMessage(error: unknown): string {
-  if (error instanceof ApiError) return error.message;
-  if (error instanceof Error) return error.message;
-  return "Failed to add source";
+  return friendlyMessage(error, "Couldn't add this source. Check the link or file and try again.");
 }
 
 export function AddSourceSheet({ open, onOpenChange, defaultSet }: AddSourceSheetProps) {
@@ -254,7 +253,7 @@ function SubmitOutcome({ result, job, onClose }: { result: SubmitResult; job: Jo
     return (
       <div className="flex flex-col items-center gap-3 py-8 text-center">
         <p className="text-sm font-medium text-destructive">Couldn't add this source</p>
-        <p className="text-xs text-muted-foreground">{job?.error ?? "Unknown error"}</p>
+        <p className="text-xs text-muted-foreground">{friendlyMessage(job?.error ?? "")}</p>
       </div>
     );
   }

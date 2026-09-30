@@ -9,12 +9,13 @@ import type { MouseEvent } from "react";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
-import { ApiError, api } from "@/api/client";
+import { api } from "@/api/client";
 import { useCardFiles, useNotes } from "@/api/queries";
 import { PageSkeleton } from "@/components/ListSkeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { friendlyMessage } from "@/lib/friendly-errors";
 import { type CARD_STATUS_ORDER, statusChips } from "./cards-utils";
 
 const STATUS_CHIP_VARIANTS: Record<(typeof CARD_STATUS_ORDER)[number], "muted" | "success" | "destructive" | "tint"> = {
@@ -50,7 +51,7 @@ function CardFileRow({
       await api.jobs.create({ kind: "make-cards", set, note: file.note, count: 0 });
       toast.success("Re-check started");
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to start the re-check.");
+      toast.error(friendlyMessage(err, "Failed to start the re-check."));
     } finally {
       setRechecking(false);
     }

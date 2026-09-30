@@ -4,9 +4,10 @@
 import type { SiteImportResponse, SiteMapPage } from "@studium/shared";
 import { Loader2Icon } from "lucide-react";
 import { useMemo, useState } from "react";
-import { ApiError, api } from "@/api/client";
+import { api } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { friendlyMessage } from "@/lib/friendly-errors";
 
 /** Mirror of the server's per-import cap (`POST /api/library/site-import`). */
 const MAX_IMPORT_PAGES = 100;
@@ -30,10 +31,6 @@ function pagePath(page: SiteMapPage): string {
   } catch {
     return page.url;
   }
-}
-
-function errorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
 }
 
 export function DocsSiteTab({ defaultSet, onClose }: { defaultSet?: string | null; onClose: () => void }) {
@@ -70,11 +67,7 @@ export function DocsSiteTab({ defaultSet, onClose }: { defaultSet?: string | nul
       });
       setPages(response.pages);
     } catch (error) {
-      setFindError(
-        error instanceof ApiError && error.status === 400
-          ? error.message
-          : errorMessage(error, "Could not list that site's pages."),
-      );
+      setFindError(friendlyMessage(error, "Could not list that site's pages."));
     } finally {
       setFinding(false);
     }
@@ -111,7 +104,7 @@ export function DocsSiteTab({ defaultSet, onClose }: { defaultSet?: string | nul
         }),
       );
     } catch (error) {
-      setImportError(errorMessage(error, "Import failed."));
+      setImportError(friendlyMessage(error, "Import failed."));
     } finally {
       setImporting(false);
     }

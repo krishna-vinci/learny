@@ -7,13 +7,14 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-import { ApiError, api } from "@/api/client";
+import { api } from "@/api/client";
 import { useCreateSet } from "@/api/queries";
 import { showJobStartedToast } from "@/components/Activity/job-start-toast";
 import { EMPTY_PLAN_OPTIONS, PlanOptions, planOptionsBody } from "@/components/PlanOptions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { friendlyMessage } from "@/lib/friendly-errors";
 
 export interface NewSetDialogProps {
   open: boolean;
@@ -57,7 +58,7 @@ export function NewSetDialog({ open, onOpenChange }: NewSetDialogProps) {
         ...(goal.trim() ? { goal: goal.trim() } : {}),
       }));
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to create study set.");
+      toast.error(friendlyMessage(err, "Failed to create study set."));
       return;
     }
     if (agentPlan) {
@@ -67,11 +68,7 @@ export function NewSetDialog({ open, onOpenChange }: NewSetDialogProps) {
         showJobStartedToast(trimmedTitle, "Planning");
       } catch (err) {
         // The set exists either way; the learner can retry from its home page.
-        toast.error(
-          err instanceof ApiError
-            ? `Set created, but planning failed: ${err.message}`
-            : "Set created, but planning failed.",
-        );
+        toast.error(`Your set was created, but the plan couldn't start. ${friendlyMessage(err)}`);
       } finally {
         setPlanning(false);
       }

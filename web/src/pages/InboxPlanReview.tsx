@@ -7,7 +7,7 @@ import { CheckIcon, ExternalLinkIcon, MinusIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-import { ApiError, api } from "@/api/client";
+import { api } from "@/api/client";
 import { queryKeys, usePlanProposal } from "@/api/queries";
 import { showJobStartedToast } from "@/components/Activity/job-start-toast";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -15,6 +15,7 @@ import { MarkdownView } from "@/components/Reader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ActionBar } from "@/lib/action-bar";
+import { friendlyMessage } from "@/lib/friendly-errors";
 import { parsePlanSummary, parseProposedChapters } from "./plan-proposal";
 
 const MAX_DRAFT_FIRST = 5;
@@ -53,7 +54,7 @@ function SourceRow({ url, set }: { url: string; set: string }) {
       queryClient.invalidateQueries({ queryKey: queryKeys.library });
     } catch (err) {
       setState(null);
-      toast.error(err instanceof ApiError ? err.message : "Failed to add source.");
+      toast.error(friendlyMessage(err, "Failed to add source."));
     }
   }
 
@@ -115,7 +116,7 @@ export function PlanReview({ set, item, onBack }: { set: string; item: InboxItem
       );
       navigate(`/s/${set}`);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to approve the plan.");
+      toast.error(friendlyMessage(err, "Failed to approve the plan."));
       setApproving(false);
     }
   }
@@ -127,7 +128,7 @@ export function PlanReview({ set, item, onBack }: { set: string; item: InboxItem
       toast.success("Plan discarded");
       onBack();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to discard the plan.");
+      toast.error(friendlyMessage(err, "Failed to discard the plan."));
     }
   }
 

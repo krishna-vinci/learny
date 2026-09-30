@@ -1,9 +1,12 @@
+import { LibraryBigIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
-import { createBrowserRouter, Navigate, useLocation, useSearchParams } from "react-router-dom";
+import { createBrowserRouter, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuthStatus, useCurrentUser, useSets } from "@/api/queries";
 import { NewSetDialog } from "@/components/NewSetDialog";
 import { Button } from "@/components/ui/button";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import RootLayout from "@/layouts/RootLayout";
+import { setSkipped, wasSkipped } from "@/lib/onboarding";
 import AdminSignIn from "@/pages/AdminSignIn";
 import AuthCallback from "@/pages/AuthCallback";
 import CardFilePage from "@/pages/CardFilePage";
@@ -19,6 +22,7 @@ import SettingsPage from "@/pages/SettingsPage";
 import Setup from "@/pages/Setup";
 import SignIn from "@/pages/SignIn";
 import TodayPage from "@/pages/TodayPage";
+import WelcomePage from "@/pages/WelcomePage";
 
 /** Redirects `/login[?redirect=]` (the pre-M3a route) to `/auth`, preserving the query. */
 function LegacyLoginRedirect() {
@@ -42,18 +46,40 @@ function AuthGate({ children }: { children: ReactNode }) {
 
 function HomeRedirect() {
   const { data: sets, isLoading } = useSets();
+  const navigate = useNavigate();
   const [newSetOpen, setNewSetOpen] = useState(false);
   if (isLoading) return null;
   if (!sets || sets.length === 0) {
+    // A brand-new learner gets the guided first-run flow; someone who skipped it gets a calm empty state.
+    if (!wasSkipped()) return <Navigate to="/welcome" replace />;
     return (
-      <div className="mx-auto flex w-full max-w-md flex-col items-center gap-3 px-4 py-16 text-center">
-        <p className="text-lg font-semibold text-foreground">Create your first study set</p>
-        <p className="text-sm text-muted-foreground">
-          A study set holds the notes, sources, and cards for one thing you're learning.
-        </p>
-        <Button className="mt-2 h-11" onClick={() => setNewSetOpen(true)}>
-          New study set
-        </Button>
+      <div className="mx-auto flex w-full max-w-md flex-1 px-4 py-10">
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <LibraryBigIcon />
+            </EmptyMedia>
+            <EmptyTitle>Start your first study set</EmptyTitle>
+            <EmptyDescription>
+              A study set holds the notes, sources and cards for one thing you're learning. Answer four quick questions
+              and we'll make a plan.
+            </EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <Button
+              className="h-11 w-full"
+              onClick={() => {
+                setSkipped(false);
+                navigate("/welcome");
+              }}
+            >
+              Get started
+            </Button>
+            <Button variant="quiet" className="h-11 w-full" onClick={() => setNewSetOpen(true)}>
+              Just create an empty set
+            </Button>
+          </EmptyContent>
+        </Empty>
         <NewSetDialog open={newSetOpen} onOpenChange={setNewSetOpen} />
       </div>
     );
@@ -67,6 +93,14 @@ export const router = createBrowserRouter([
   { path: "/auth", element: <SignIn /> },
   { path: "/auth/admin", element: <AdminSignIn /> },
   { path: "/auth/callback", element: <AuthCallback /> },
+  {
+    path: "/welcome",
+    element: (
+      <AuthGate>
+        <WelcomePage />
+      </AuthGate>
+    ),
+  },
   {
     path: "/",
     element: (

@@ -8,6 +8,7 @@ import { toast } from "react-hot-toast";
 import { ApiError, api } from "@/api/client";
 import { useStudiumEvents } from "@/api/events";
 import { showJobStartedToast } from "@/components/Activity/job-start-toast";
+import { friendlyMessage } from "@/lib/friendly-errors";
 import { type ChatDockRequest, OPEN_CHAT_DOCK_EVENT, takeChatDockRequest } from "./openChatDock";
 import { type ChatDockState, chatDockReducer, initialChatDockState } from "./reducer";
 import { useOpenNote } from "./useOpenNote";
@@ -104,7 +105,7 @@ export function useChatDock(set: string) {
         toast.error("Chat is busy — wait for it to finish.");
         return;
       }
-      toast.error(error instanceof ApiError ? error.message : "Failed to send message.");
+      toast.error(friendlyMessage(error, "Failed to send message."));
     },
   });
 
@@ -130,7 +131,7 @@ export function useChatDock(set: string) {
         toast.error("This suggestion expired.");
         return;
       }
-      toast.error(error instanceof ApiError ? error.message : "Failed to start job.");
+      toast.error(friendlyMessage(error, "Failed to start job."));
     },
   });
 

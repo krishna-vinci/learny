@@ -4,11 +4,11 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-import { ApiError } from "@/api/client";
 import { useCreateNote } from "@/api/queries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { friendlyMessage } from "@/lib/friendly-errors";
 
 export interface NewNoteDialogProps {
   set: string;
@@ -38,7 +38,7 @@ export function NewNoteDialog({ set, open, onOpenChange }: NewNoteDialogProps) {
       setTitle("");
       navigate(`/s/${set}/n/${path.replace(/^notes\//, "")}?edit=1`);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to create note.");
+      toast.error(friendlyMessage(err, "Failed to create note."));
     }
   }
 

@@ -6,7 +6,7 @@ import { ArchiveIcon, ListTreeIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { useParams } from "react-router-dom";
-import { ApiError, api } from "@/api/client";
+import { api } from "@/api/client";
 import { queryKeys, useInbox, useNoteFile } from "@/api/queries";
 import { PageSkeleton, RowsSkeleton } from "@/components/ListSkeleton";
 import { NewChapterSheet } from "@/components/NewChapterSheet";
@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { ActionBar } from "@/lib/action-bar";
+import { friendlyMessage } from "@/lib/friendly-errors";
 import { cn } from "@/lib/utils";
 import { PlanReview } from "./InboxPlanReview";
 
@@ -104,7 +105,7 @@ function ReviewView({ set, item, onBack }: { set: string; item: InboxItem; onBac
       queryClient.invalidateQueries({ queryKey: queryKeys.notes(set) });
       onBack();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Failed to accept.");
+      toast.error(friendlyMessage(err, "Failed to accept."));
     } finally {
       setAccepting(false);
     }

@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { bookUrl } from "@/api/client";
 import { useStudiumEvents } from "@/api/events";
 import { Button } from "@/components/ui/button";
+import { friendlyMessage } from "@/lib/friendly-errors";
 import { createJobTransitionTracker } from "@/lib/job-transitions";
 import { openActivityPanel } from "./activity-store";
 
@@ -32,10 +33,9 @@ function ToastAction({ label, onClick }: { label: string; onClick: () => void })
   );
 }
 
+/** Plain-language reason for a failed job (raw agent/server text never reaches the learner). */
 function shortError(error: string | undefined): string {
-  if (!error) return "unknown error";
-  const firstLine = (error.split("\n")[0] ?? "").trim();
-  return firstLine.length > 120 ? `${firstLine.slice(0, 117)}…` : firstLine;
+  return friendlyMessage(error ?? "");
 }
 
 interface CompletionToast {
@@ -53,7 +53,7 @@ function completionToastFor(job: JobView, navigate: (to: string) => void): Compl
   if (job.status === "failed") {
     return {
       kind: "error",
-      message: `"${job.title}" failed: ${shortError(job.error)}`,
+      message: `"${job.title}": ${shortError(job.error)}`,
       action: { label: "Details", onClick: () => openActivityPanel(job.id) },
     };
   }
