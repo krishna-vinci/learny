@@ -30,6 +30,7 @@ import { openActivityPanel } from "@/components/Activity/activity-store";
 import { AddSourceSheet } from "@/components/Library/AddSourceSheet";
 import { NewChapterSheet } from "@/components/NewChapterSheet";
 import { NewNoteDialog } from "@/components/NewNoteDialog";
+import { SearchButton } from "@/components/Search/SearchPalette";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -177,6 +178,12 @@ const MoreSection = ({ set }: { set?: string }) => {
         }
       >
         <SidebarRow
+          icon={SunIcon}
+          label="Today"
+          state={location.pathname === "/today" ? "current" : "idle"}
+          onClick={() => goTo("/today")}
+        />
+        <SidebarRow
           icon={LibraryBigIcon}
           label="All study sets"
           state={location.pathname === "/sets" ? "current" : "idle"}
@@ -319,6 +326,7 @@ const UserFooter = () => {
 };
 
 const AppSidebar = ({ className, onCollapse }: { className?: string; onCollapse?: () => void }) => {
+  const { setMobileOpen } = useMobileSidebar();
   const params = useParams<{ set?: string; "*"?: string }>();
   // Outside `/s/:set` (library, jobs, settings), everything in the sidebar — the switcher
   // label, the notes list, and the Inbox/Cards links — falls back to the last visited set
@@ -355,6 +363,9 @@ const AppSidebar = ({ className, onCollapse }: { className?: string; onCollapse?
             </Tooltip>
           )}
         </span>
+      </div>
+      <div className={SIDEBAR_RAIL_CLASSES}>
+        <SearchButton onOpen={() => setMobileOpen(false)} />
       </div>
       <div className="mx-3 mt-2 border-t border-border/70" />
       <div
@@ -396,7 +407,10 @@ export const MobileAppHeader = () => {
         <MenuIcon className="size-[18px]" />
       </Button>
       <SetSwitcher currentSet={params.set ?? lastVisitedSet ?? undefined} className="max-w-[12rem]" />
-      <MobileActivityIndicator className="ms-auto" />
+      <span className="ms-auto flex items-center gap-1">
+        <SearchButton compact />
+        <MobileActivityIndicator />
+      </span>
     </header>
   );
 };

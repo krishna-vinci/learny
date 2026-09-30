@@ -31,7 +31,11 @@ function ChatDock() {
   // `display: contents` otherwise, so the layout is exactly as if it weren't there.
   return (
     <div className={immersive ? "hidden" : "contents"}>
-      {set ? <ChatDockWithSet set={set} /> : <div className="hidden w-9 shrink-0 border-s border-border/70 lg:block" />}
+      {set ? (
+        <ChatDockWithSet key={set} set={set} />
+      ) : (
+        <div className="hidden w-9 shrink-0 border-s border-border/70 lg:block" />
+      )}
     </div>
   );
 }

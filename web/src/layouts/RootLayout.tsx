@@ -22,6 +22,7 @@ import AppSidebar, {
   useSidebarWidth,
 } from "@/components/AppSidebar";
 import ChatDock from "@/components/ChatDock";
+import { SearchPalette } from "@/components/Search/SearchPalette";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useImmersive, useImmersiveEffects } from "@/lib/immersive-store";
@@ -71,6 +72,7 @@ const RootLayoutContent = () => {
       className="min-h-full w-full bg-background"
       style={{ [SIDEBAR_WIDTH_VAR]: `${effectiveSidebarWidth}px` } as CSSProperties}
     >
+      <SearchPalette />
       <JobToasts />
       <JobTitleBadge />
       {!immersive && (

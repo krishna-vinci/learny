@@ -3,11 +3,12 @@
 // the selected chat or an in-flight stream. Extracted from what used to be ChatDockPanel's
 // own body; the two shells only render around this.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type KeyboardEvent, useEffect, useMemo, useReducer, useState } from "react";
+import { type KeyboardEvent, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { ApiError, api } from "@/api/client";
 import { useStudiumEvents } from "@/api/events";
 import { showJobStartedToast } from "@/components/Activity/job-start-toast";
+import { type ChatDockRequest, OPEN_CHAT_DOCK_EVENT, takeChatDockRequest } from "./openChatDock";
 import { type ChatDockState, chatDockReducer, initialChatDockState } from "./reducer";
 import { useOpenNote } from "./useOpenNote";
 
@@ -72,8 +73,17 @@ export function useChatDock(set: string) {
   });
 
   const sendMessage = useMutation({
-    mutationFn: ({ id, text }: { id: string; text: string }) =>
-      api.chats.sendMessage(set, id, text, anchor ?? undefined),
+    mutationFn: ({
+      id,
+      text,
+      quote,
+      messageAnchor,
+    }: {
+      id: string;
+      text: string;
+      quote?: string;
+      messageAnchor?: string;
+    }) => api.chats.sendMessage(set, id, text, messageAnchor ?? anchor ?? undefined, quote),
     onError: (error) => {
       if (error instanceof ApiError && error.status === 409) {
         toast.error("Chat is busy — wait for it to finish.");
@@ -106,9 +116,13 @@ export function useChatDock(set: string) {
   };
 
   // With no chat open, the first message starts one, so the composer is never a dead end.
-  const handleSend = async () => {
-    const text = draft.trim();
-    if (!text || state.running || createChat.isPending) return;
+  const handleSend = async (request?: ChatDockRequest) => {
+    const text = (request?.text ?? draft).trim();
+    if (!text) return;
+    if (state.running || createChat.isPending || sendMessage.isPending) {
+      toast.error("Chat is busy — wait for it to finish.");
+      return;
+    }
     setDraft("");
     let id = chatId;
     if (id === null) {
@@ -120,8 +134,26 @@ export function useChatDock(set: string) {
         return;
       }
     }
-    sendMessage.mutate({ id, text });
+    sendMessage.mutate({ id, text, quote: request?.quote, messageAnchor: request?.anchor });
   };
+
+  const requestHandler = useRef<(request: ChatDockRequest) => void>(() => {});
+  requestHandler.current = (request) => {
+    if (request.chatId) setChatId(request.chatId);
+    if (request.text) void handleSend(request);
+  };
+  useEffect(() => {
+    const consume = () => {
+      const request = takeChatDockRequest(set);
+      if (!request) return;
+      requestHandler.current(request);
+      // Shell listeners may have mounted after the original navigation request.
+      window.dispatchEvent(new Event(OPEN_CHAT_DOCK_EVENT));
+    };
+    window.addEventListener(OPEN_CHAT_DOCK_EVENT, consume);
+    consume();
+    return () => window.removeEventListener(OPEN_CHAT_DOCK_EVENT, consume);
+  }, [set]);
 
   const handleComposerKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter" && !event.shiftKey) {

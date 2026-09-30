@@ -7,14 +7,20 @@ import type {
   ChatSummary,
   CommitInfo,
   FileView,
+  Highlight,
+  HighlightColor,
+  HighlightPatch,
   InboxItem,
   JobKind,
   JobView,
   NoteSummary,
   ParsedFileView,
+  SearchKind,
+  SearchResponse,
   SetSummary,
   SettingsView,
   SourceSummary,
+  TodayView,
 } from "@studium/shared";
 
 export type UserRole = "ADMIN" | "USER";
@@ -277,6 +283,34 @@ function qs(params: Record<string, string | number | undefined>): string {
 }
 
 export const api = {
+  today(): Promise<TodayView> {
+    return request("/api/today");
+  },
+  search(q: string, options?: { set?: string; kind?: SearchKind; limit?: number }): Promise<SearchResponse> {
+    return request(`/api/search${qs({ q, ...options })}`);
+  },
+  highlights: {
+    list(set: string, note: string): Promise<{ highlights: Highlight[] }> {
+      return request(`/api/sets/${encodeURIComponent(set)}/highlights${qs({ note })}`);
+    },
+    create(
+      set: string,
+      body: { note: string; quote: string; prefix: string; suffix: string; color: HighlightColor },
+    ): Promise<{ highlight: Highlight }> {
+      return request(`/api/sets/${encodeURIComponent(set)}/highlights`, { method: "POST", body: JSON.stringify(body) });
+    },
+    update(set: string, id: string, body: HighlightPatch): Promise<{ highlight: Highlight }> {
+      return request(`/api/sets/${encodeURIComponent(set)}/highlights/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      });
+    },
+    delete(set: string, id: string, note: string): Promise<void> {
+      return request(`/api/sets/${encodeURIComponent(set)}/highlights/${encodeURIComponent(id)}${qs({ note })}`, {
+        method: "DELETE",
+      });
+    },
+  },
   auth: {
     status(): Promise<AuthStatus> {
       return request("/api/auth/status");
@@ -510,10 +544,10 @@ export const api = {
     get(set: string, id: string): Promise<{ id: string; messages: ChatMessage[]; running: boolean }> {
       return request(`/api/sets/${encodeURIComponent(set)}/chats/${encodeURIComponent(id)}`);
     },
-    sendMessage(set: string, id: string, text: string, anchor?: string): Promise<void> {
+    sendMessage(set: string, id: string, text: string, anchor?: string, quote?: string): Promise<void> {
       return request(`/api/sets/${encodeURIComponent(set)}/chats/${encodeURIComponent(id)}/messages`, {
         method: "POST",
-        body: JSON.stringify({ text, ...(anchor ? { anchor } : {}) }),
+        body: JSON.stringify({ text, ...(anchor ? { anchor } : {}), ...(quote ? { quote } : {}) }),
       });
     },
     abort(set: string, id: string): Promise<void> {

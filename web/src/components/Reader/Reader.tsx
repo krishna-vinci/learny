@@ -1,10 +1,10 @@
 import type { FileView } from "@studium/shared";
-import { HistoryIcon, LayersIcon, Maximize2Icon, Minimize2Icon, PencilIcon } from "lucide-react";
+import { HighlighterIcon, HistoryIcon, LayersIcon, Maximize2Icon, Minimize2Icon, PencilIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useSearchParams } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
-import { useSaveFile } from "@/api/queries";
+import { useHighlights, useSaveFile } from "@/api/queries";
 import { showJobStartedToast } from "@/components/Activity/job-start-toast";
 import { NoteHistory } from "@/components/NoteHistory";
 import { Button } from "@/components/ui/button";
@@ -14,8 +14,10 @@ import { readingPrefsVars, useReadingPrefs } from "@/lib/reading-prefs";
 import { readScrollPosition, saveScrollPosition } from "@/lib/scroll-memory";
 import { cn } from "@/lib/utils";
 import { ImmersiveExitButton } from "./ImmersiveExitButton";
-import { MarkdownView } from "./MarkdownView";
+import { ReaderPassages } from "./ReaderPassages";
 import { ReadingSettingsControl } from "./ReadingSettings";
+
+const EMPTY_HIGHLIGHTS: import("@studium/shared").Highlight[] = [];
 
 export interface ReaderProps {
   set: string;
@@ -86,7 +88,7 @@ function NoteEditor({ set, path, file, onDone }: { set: string; path: string; fi
   // anchored regardless of ancestors, and — as a side effect — cleanly covers the chat FAB
   // while editing instead of needing separate padding to dodge it.
   return (
-    <div className="fixed inset-0 z-50 flex h-[100dvh] w-full flex-col bg-background">
+    <div data-note-editor className="fixed inset-0 z-50 flex h-[100dvh] w-full flex-col bg-background">
       <div
         className="flex shrink-0 items-center justify-between gap-2 border-b border-border/70 px-4 py-2"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.5rem)" }}
@@ -134,6 +136,9 @@ export function Reader({ set, path, file, className }: ReaderProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const commitParam = searchParams.get("commit") ?? undefined;
   const [historyOpen, setHistoryOpen] = useState(!!commitParam);
+  const [highlightsOpen, setHighlightsOpen] = useState(false);
+  const highlightsQuery = useHighlights(set, path);
+  const highlights = highlightsQuery.data?.highlights ?? EMPTY_HIGHLIGHTS;
   const [makingCards, setMakingCards] = useState(false);
   // `?edit=1` (from NewNoteDialog, so a freshly created blank note opens straight into
   // the editor) starts editing immediately; otherwise the reader starts read-only.
@@ -214,7 +219,7 @@ export function Reader({ set, path, file, className }: ReaderProps) {
     restoredNote.current = noteKey;
     const target = readScrollPosition(set, path);
     // An in-note anchor (footnote/citation link) takes precedence over the restore.
-    if (target === null || window.location.hash) return;
+    if (target === null || window.location.hash || new URLSearchParams(window.location.search).has("q")) return;
 
     const maxScroll = () => Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
     restoring.current = true;
@@ -302,7 +307,7 @@ export function Reader({ set, path, file, className }: ReaderProps) {
             )}
           >
             {!bodyHasTitle && <h1 className="text-2xl font-semibold text-foreground">{titleFromFrontmatter(file)}</h1>}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
                 <PencilIcon />
                 Edit
@@ -320,6 +325,10 @@ export function Reader({ set, path, file, className }: ReaderProps) {
                 <HistoryIcon />
                 History
               </Button>
+              <Button variant="outline" size="sm" onClick={() => setHighlightsOpen(true)}>
+                <HighlighterIcon />
+                Highlights ({highlights.length})
+              </Button>
               <ReadingSettingsControl />
               <Button
                 variant={immersive ? "secondary" : "outline"}
@@ -334,7 +343,24 @@ export function Reader({ set, path, file, className }: ReaderProps) {
               </Button>
             </div>
           </div>
-          <MarkdownView content={file.body} />
+          {highlightsQuery.isError && (
+            <p role="alert" className="mb-3 text-sm text-destructive">
+              Could not load highlights.{" "}
+              <Button variant="quiet" onClick={() => void highlightsQuery.refetch()}>
+                Try again
+              </Button>
+            </p>
+          )}
+          <ReaderPassages
+            key={`${set}/${path}/${file.body}`}
+            set={set}
+            path={path}
+            content={file.body}
+            highlights={highlights}
+            listOpen={highlightsOpen}
+            onListClose={() => setHighlightsOpen(false)}
+            query={searchParams.get("q") ?? ""}
+          />
         </div>
       </article>
       {immersive && <ImmersiveExitButton />}

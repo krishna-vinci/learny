@@ -813,3 +813,41 @@
   color: var(--destructive);
   background-color: color-mix(in oklch, var(--destructive) 15%, transparent);
 }
+
+/* Passage colours blend existing semantic tokens with the current surface, keeping
+   annotations readable in Light, Dark, System, Sepia and Black. */
+:root {
+  --highlight-yellow: color-mix(in oklab, var(--warning) 25%, var(--background));
+  --highlight-green: color-mix(in oklab, var(--success) 25%, var(--background));
+  --highlight-blue: color-mix(in oklab, var(--dark-primary) 25%, var(--background));
+  --highlight-pink: color-mix(in oklab, var(--accent-rose-primary-dark) 25%, var(--background));
+}
+.highlight-yellow {
+  background-color: var(--highlight-yellow);
+  color: var(--foreground);
+}
+.highlight-green {
+  background-color: var(--highlight-green);
+  color: var(--foreground);
+}
+.highlight-blue {
+  background-color: var(--highlight-blue);
+  color: var(--foreground);
+}
+.highlight-pink {
+  background-color: var(--highlight-pink);
+  color: var(--foreground);
+}
+.reader-highlight {
+  border-radius: 0.15em;
+  cursor: pointer;
+}
+.reader-highlight:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.reader-search-match {
+  background-color: var(--highlight-yellow);
+  outline: 2px solid var(--warning);
+  border-radius: var(--radius);
+}

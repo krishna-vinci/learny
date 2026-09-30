@@ -39,6 +39,9 @@ export const queryKeys = {
   adminBackups: ["admin", "backups"] as const,
   adminBackupStatus: ["admin", "backups", "status"] as const,
   adminBackupSnapshots: ["admin", "backups", "snapshots"] as const,
+  today: ["today"] as const,
+  search: ["search"] as const,
+  highlights: (set: string, note?: string) => ["highlights", set, ...(note ? [note] : [])] as const,
   sets: ["sets"] as const,
   notes: (set: string) => ["sets", set, "notes"] as const,
   file: (set: string, path: string) => ["sets", set, "file", path] as const,
@@ -55,6 +58,14 @@ export const queryKeys = {
   cardFiles: (set: string) => ["sets", set, "cards"] as const,
   cardFile: (set: string, path: string) => ["sets", set, "cards", path] as const,
 };
+
+export function useToday() {
+  return useQuery({ queryKey: queryKeys.today, queryFn: () => api.today() });
+}
+
+export function useHighlights(set: string, note: string) {
+  return useQuery({ queryKey: queryKeys.highlights(set, note), queryFn: () => api.highlights.list(set, note) });
+}
 
 // Public: powers the setup/sign-in/AuthGate flows before a session exists.
 export function useAuthStatus() {
@@ -456,6 +467,13 @@ export function useLiveStudiumUpdates() {
   const queryClient = useQueryClient();
 
   useStudiumEvents((event) => {
+    if (["file", "commit", "job"].includes(event.type) || (event.type === "chat" && event.event.kind === "settled")) {
+      queryClient.invalidateQueries({ queryKey: queryKeys.today });
+      queryClient.invalidateQueries({ queryKey: queryKeys.search });
+    }
+    if (event.type === "commit" || event.type === "file") {
+      queryClient.invalidateQueries({ queryKey: ["highlights"] });
+    }
     if (event.type === "file") {
       if (event.set) {
         queryClient.invalidateQueries({ queryKey: ["sets", event.set, "notes"] });

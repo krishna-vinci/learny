@@ -18,7 +18,7 @@ import SetsPage from "@/pages/SetsPage";
 import SettingsPage from "@/pages/SettingsPage";
 import Setup from "@/pages/Setup";
 import SignIn from "@/pages/SignIn";
-import { useLastVisitedSet } from "@/pages/useLastVisitedSet";
+import TodayPage from "@/pages/TodayPage";
 
 /** Redirects `/login[?redirect=]` (the pre-M3a route) to `/auth`, preserving the query. */
 function LegacyLoginRedirect() {
@@ -42,7 +42,6 @@ function AuthGate({ children }: { children: ReactNode }) {
 
 function HomeRedirect() {
   const { data: sets, isLoading } = useSets();
-  const lastVisitedSet = useLastVisitedSet();
   const [newSetOpen, setNewSetOpen] = useState(false);
   if (isLoading) return null;
   if (!sets || sets.length === 0) {
@@ -59,13 +58,7 @@ function HomeRedirect() {
       </div>
     );
   }
-  // "/" goes to the last-visited set if it still exists, else the only set, else the
-  // "All study sets" page — never a hardcoded first set that may not be the one the
-  // person meant to land on.
-  const remembered = lastVisitedSet && sets.some((set) => set.slug === lastVisitedSet) ? lastVisitedSet : null;
-  if (remembered) return <Navigate to={`/s/${remembered}`} replace />;
-  if (sets.length === 1) return <Navigate to={`/s/${sets[0]?.slug}`} replace />;
-  return <Navigate to="/sets" replace />;
+  return <Navigate to="/today" replace />;
 }
 
 export const router = createBrowserRouter([
@@ -83,6 +76,7 @@ export const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <HomeRedirect /> },
+      { path: "today", element: <TodayPage /> },
       { path: "sets", element: <SetsPage /> },
       { path: "settings", element: <SettingsPage /> },
       { path: "settings/:section", element: <SettingsPage /> },

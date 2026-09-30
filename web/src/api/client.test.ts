@@ -24,6 +24,28 @@ describe("api client", () => {
     expect(JSON.parse(init.body as string)).toEqual({ username: "alice", password: "hunter2" });
   });
 
+  it("sends a selected passage alongside the question and note anchor", async () => {
+    const fetchMock = fetch as unknown as ReturnType<typeof vi.fn>;
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+    await api.chats.sendMessage("algebra", "chat-1", "Why?", "notes/03-svd.md", "A selected passage");
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/sets/algebra/chats/chat-1/messages");
+    expect(JSON.parse(init.body as string)).toEqual({
+      text: "Why?",
+      anchor: "notes/03-svd.md",
+      quote: "A selected passage",
+    });
+  });
+
+  it("uses note for highlight location and comment for the annotation", async () => {
+    const fetchMock = fetch as unknown as ReturnType<typeof vi.fn>;
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ highlight: { id: "h-12345678" } }), { status: 200 }));
+    await api.highlights.update("algebra", "h-12345678", { note: "notes/03-svd.md", comment: "Remember this" });
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/sets/algebra/highlights/h-12345678");
+    expect(JSON.parse(init.body as string)).toEqual({ note: "notes/03-svd.md", comment: "Remember this" });
+  });
+
   it("status hits the public status endpoint", async () => {
     const fetchMock = fetch as unknown as ReturnType<typeof vi.fn>;
     fetchMock.mockResolvedValue(
