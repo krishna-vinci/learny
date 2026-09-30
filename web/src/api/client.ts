@@ -274,6 +274,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 }
 
+/** Paths outside the set from a revert's 409 "commit touches paths outside this set"; null for any other error. */
+export function outsidePaths(error: unknown): string[] | null {
+  if (!(error instanceof ApiError) || error.status !== 409) return null;
+  const body = error.body as { error?: unknown; paths?: unknown } | undefined;
+  if (body?.error !== "commit touches paths outside this set" || !Array.isArray(body.paths)) return null;
+  return body.paths.filter((path): path is string => typeof path === "string");
+}
+
 function qs(params: Record<string, string | number | undefined>): string {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -530,8 +538,12 @@ export const api = {
     diff(set: string, sha: string, path?: string): Promise<{ diff: string }> {
       return request(`/api/sets/${encodeURIComponent(set)}/diff${qs({ sha, path })}`);
     },
-    revert(set: string, sha: string): Promise<{ sha: string }> {
-      return request(`/api/sets/${encodeURIComponent(set)}/revert`, { method: "POST", body: JSON.stringify({ sha }) });
+    /** A commit touching other sets answers 409 `{ paths }` (see `outsidePaths`); retry with `scope: "set"`. */
+    revert(set: string, sha: string, scope?: "set"): Promise<{ sha: string }> {
+      return request(`/api/sets/${encodeURIComponent(set)}/revert`, {
+        method: "POST",
+        body: JSON.stringify({ sha, ...(scope ? { scope } : {}) }),
+      });
     },
   },
 

@@ -2,7 +2,7 @@
 // Generic confirm dialog used for reversible destructive actions (revoke session, delete
 // token, archive a member). For the one irreversible action (purge a user's data), pass
 // `typedConfirmValue` to require the admin to type it back before the confirm button enables.
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { Button, type ButtonVariant } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,6 +20,8 @@ export interface ConfirmDialogProps {
   onOpenChange: (open: boolean) => void;
   title: string;
   description?: string;
+  /** Extra content shown under the description (e.g. a list of affected paths). */
+  children?: ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
   confirmVariant?: ButtonVariant;
@@ -33,6 +35,7 @@ function ConfirmDialog({
   onOpenChange,
   title,
   description,
+  children,
   confirmLabel = "Confirm",
   cancelLabel = "Cancel",
   confirmVariant = "default",
@@ -65,6 +68,7 @@ function ConfirmDialog({
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
+        {children}
         {typedConfirmValue !== undefined && (
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="confirm-typed-value">
