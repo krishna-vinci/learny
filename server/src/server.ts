@@ -71,10 +71,11 @@ function validInstanceUrl(value: string): boolean {
   }
 }
 
-function aiRouteDisabled(method: string, pathname: string): boolean {
+function aiRouteDisabled(method: string, pathname: string, kind?: unknown): boolean {
   if (method !== "POST") return false;
   const path = pathname.endsWith("/") && pathname.length > 1 ? pathname.slice(0, -1) : pathname;
-  if (path === "/api/jobs" || path === "/api/library" || path === "/api/library/site-import") return true;
+  if (path === "/api/jobs") return kind !== "compile-book";
+  if (path === "/api/library" || path === "/api/library/site-import") return true;
   const chatMatch = /^\/api\/sets\/[^/]+\/chats(\/.*)?$/.exec(path);
   return chatMatch !== null && chatMatch[1] !== undefined;
 }
@@ -311,8 +312,19 @@ export function createServer(deps: ServerDeps): Hono {
   app.route("/api/admin", adminRoutes(deps.db, deps.workspaces));
   if (deps.backups !== undefined) app.route("/api/admin/backups", backupRoutes(deps.backups));
   app.use("/api/*", async (c, next) => {
-    if (!c.get("user").aiEnabled && aiRouteDisabled(c.req.method, c.req.path)) {
-      return c.json({ error: "AI features are disabled for this account" }, 403);
+    if (!c.get("user").aiEnabled) {
+      let kind: unknown;
+      if (c.req.method === "POST" && c.req.path.replace(/\/$/, "") === "/api/jobs") {
+        const body: unknown = await c.req.raw
+          .clone()
+          .json()
+          .catch(() => null);
+        // A proposal can still launch an AI job: only direct book requests are exempt.
+        if (typeof body === "object" && body !== null && "kind" in body && !("proposalId" in body)) kind = body.kind;
+      }
+      if (aiRouteDisabled(c.req.method, c.req.path, kind)) {
+        return c.json({ error: "AI features are disabled for this account" }, 403);
+      }
     }
     await next();
   });

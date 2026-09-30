@@ -26,6 +26,29 @@ afterEach(async () => {
 });
 
 describe("jobs routes", () => {
+  it("starts compile-book with only a set and rejects traversal and missing sets", async () => {
+    await fs.mkdir(path.join(root, "alpha"));
+    await fs.writeFile(path.join(root, "alpha/PLAN.md"), "# Alpha");
+    const rooted = new Hono();
+    rooted.route("/api/jobs", jobsRoutes({ runner, root }));
+    const handler = vi.fn(async (_input: unknown) => undefined);
+    runner.register("compile-book", handler);
+    const post = (set: string) =>
+      rooted.request("/api/jobs", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ kind: "compile-book", set }),
+      });
+    expect((await post("../outside")).status).toBe(400);
+    expect((await post("missing")).status).toBe(404);
+    const response = await post("alpha");
+    expect(response.status).toBe(202);
+    const { jobId } = (await response.json()) as { jobId: string };
+    await vi.waitFor(() => expect(runner.get(jobId)?.status).toBe("done"));
+    expect(handler.mock.calls[0]?.[0]).toEqual({ set: "alpha" });
+    expect(runner.get(jobId)?.kind).toBe("compile-book");
+  });
+
   it("rejects make-cards for a note that does not exist (404) when the root is known", async () => {
     const rooted = new Hono();
     rooted.route("/api/jobs", jobsRoutes({ runner, proposals, root }));

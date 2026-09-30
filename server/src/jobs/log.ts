@@ -57,7 +57,7 @@ export async function appendJobLog(root: string, job: JobView): Promise<string> 
 export type ParsedJobLogLine = Omit<JobView, "id">;
 
 const JOB_LINE =
-  /^- (\S+) · (ingest|draft-chapter|make-cards) · "(.*)" · (done|failed|cancelled) · ([0-9]+(?:\.[0-9]+)?k?) in \/ ([0-9]+(?:\.[0-9]+)?k?) out · \$([0-9]+(?:\.[0-9]+)?)(?: · commit ([0-9a-f]+))?$/;
+  /^- (\S+) · (ingest|draft-chapter|make-cards|compile-book) · "(.*)" · (done|failed|cancelled) · ([0-9]+(?:\.[0-9]+)?k?) in \/ ([0-9]+(?:\.[0-9]+)?k?) out · \$([0-9]+(?:\.[0-9]+)?)(?: · commit ([0-9a-f]+))?$/;
 
 function parseTokens(raw: string): number {
   return Math.round(Number.parseFloat(raw) * (raw.endsWith("k") ? 1000 : 1));

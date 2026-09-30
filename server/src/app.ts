@@ -5,6 +5,7 @@ import type { EventHub } from "./events.js";
 import { jobsRoutes } from "./jobs/routes.js";
 import type { JobRunner } from "./jobs/runner.js";
 import { ankiRoutes } from "./routes/anki.js";
+import { bookRoutes } from "./routes/book.js";
 import { cardsRoutes } from "./routes/cards.js";
 import { eventsRoutes } from "./routes/events.js";
 import { exportRoutes } from "./routes/export.js";
@@ -41,6 +42,7 @@ export function createApp(deps: AppDeps | LegacyAppDeps): Hono {
   app.route("/api/sets/:set/anki", ankiRoutes({ root: deps.root, locks: deps.locks, hub: deps.hub }));
   app.route("/api/sets/:set/highlights", highlightsRoutes({ root: deps.root, locks: deps.locks, hub: deps.hub }));
   app.route("/api/sets/:set", exportRoutes({ root: deps.root, locks: deps.locks, hub: deps.hub }));
+  app.route("/api/sets/:set", bookRoutes({ root: deps.root }));
   app.route("/api/events", eventsRoutes(deps.hub));
   app.route("/api/today", todayRoutes({ root: deps.root, jobs: deps.jobs }));
 

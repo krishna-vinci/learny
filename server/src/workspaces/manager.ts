@@ -8,6 +8,7 @@ import { ChatService } from "../agent/chat-service.js";
 import { createApp } from "../app.js";
 import { EventHub } from "../events.js";
 import { startInboxWatcher } from "../ingest/inbox-watcher.js";
+import { createBookJob } from "../jobs/book-job.js";
 import { createCardsJob } from "../jobs/cards-job.js";
 import { createDraftJob } from "../jobs/draft-job.js";
 import { createIngestJob } from "../jobs/ingest-job.js";
@@ -168,6 +169,7 @@ export class WorkspaceManager {
     jobs.register("draft-chapter", createDraftJob({ root, locks, mcp, runtime: this.#runtime, hub }));
     jobs.register("make-cards", createCardsJob({ root, locks, mcp, runtime: this.#runtime, hub }));
     jobs.register("ingest", createIngestJob({ root, locks, mcp, runtime: this.#runtime, hub }));
+    jobs.register("compile-book", createBookJob({ root, locks }));
     jobs.seedHistory(await loadJobHistory(root));
 
     const chats = new ChatService({ root, hub, locks, mcp, runtime: this.#runtime, jobs });

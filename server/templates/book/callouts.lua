@@ -1,0 +1,38 @@
+local callouts = { definition = "Definition", theorem = "Theorem", example = "Example", deeper = "Deeper" }
+
+function Pandoc(doc)
+  -- User-authored raw code and images never reach the compiler or trigger fetches.
+  doc = doc:walk({
+    RawBlock = function() return {} end,
+    RawInline = function() return {} end,
+    Image = function(image) return pandoc.Emph(image.caption) end,
+    Div = function(div)
+      if div.classes:includes("book-chapter") then
+        local chapter = div.content[1]
+        if not chapter or chapter.t ~= "Header" then return nil end
+        table.remove(div.content, 1)
+        -- Notes commonly repeat their frontmatter title as the first heading.
+        if div.content[1] and div.content[1].t == "Header" and
+          pandoc.utils.stringify(div.content[1].content) == pandoc.utils.stringify(chapter.content) then
+          table.remove(div.content, 1)
+        end
+        -- The shallowest remaining heading starts directly beneath the chapter.
+        local shallowest = 6
+        div:walk({ Header = function(h) shallowest = math.min(shallowest, h.level) end })
+        div = div:walk({ Header = function(h) h.level = h.level + 2 - shallowest; return h end })
+        table.insert(div.content, 1, chapter)
+        return div.content
+      end
+    end,
+  })
+  return doc:walk({
+    Div = function(div)
+      for class, label in pairs(callouts) do
+        if div.classes:includes(class) then
+          local body = pandoc.write(pandoc.Pandoc(div.content), "typst")
+          return pandoc.RawBlock("typst", '#book-callout("' .. label .. '")[\n' .. body .. '\n]')
+        end
+      end
+    end,
+  })
+end

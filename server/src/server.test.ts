@@ -201,6 +201,28 @@ describe("top-level server", () => {
     expect(response.status).not.toBe(403);
   });
 
+  it("lets AI-disabled users compile books while blocking AI jobs and disguised proposals", async () => {
+    const user = await createUser(db, { username: "learner", role: "USER", aiEnabled: false });
+    const session = createSession(db, user.id, { userAgent: "", ip: "" });
+    const app = server();
+    const headers = { ...cookie(session.token), "content-type": "application/json" };
+    const bodies = [
+      { kind: "compile-book", set: "sample" },
+      { kind: "draft-chapter", set: "sample", title: "AI chapter" },
+      { kind: "compile-book", set: "sample", proposalId: "ai-proposal" },
+    ];
+    workspace = new Hono();
+    workspace.post("/api/jobs/", async (c) => c.json(await c.req.json(), 202));
+    const allowed = await app.request("/api/jobs/", { method: "POST", headers, body: JSON.stringify(bodies[0]) });
+    expect(allowed.status).toBe(202);
+    await expect(allowed.json()).resolves.toEqual(bodies[0]);
+    for (const body of bodies.slice(1)) {
+      expect((await app.request("/api/jobs", { method: "POST", headers, body: JSON.stringify(body) })).status).toBe(
+        403,
+      );
+    }
+  });
+
   it("changes a password and revokes every other session", async () => {
     const user = await createUser(db, { username: "learner", password: "old-password", role: "USER" });
     const current = createSession(db, user.id, { userAgent: "current", ip: "" });

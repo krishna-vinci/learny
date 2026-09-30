@@ -20,6 +20,22 @@ services:
   `FIRECRAWL_API_URL` + `FIRECRAWL_API_KEY`). Never shipped.
 - `mcp.json` supports stdio (run inside the container) and HTTP MCP servers.
 
+Book export requires **Pandoc 3.12** and **Typst 0.15.1** on the service PATH
+(native installs may use `~/.local/bin`). Docker installs the official release
+tarballs with pinned SHA-256 checksums for amd64 and arm64. Templates live in
+`server/templates/book/`; the book uses A5 pages for phone/tablet reading and
+Typst's bundled Libertinus Serif font. Mermaid diagrams are replaced by a short
+"diagram in the app" note because Mermaid CLI is not a dependency.
+Other images render as italic alt text; raw embedded markup is discarded so
+compilation cannot fetch remote assets or execute note-authored Typst code.
+The title page uses the PLAN title and goal, plus its `date` when present or the
+build date otherwise.
+`compile-book` runs locally without AI or model costs. PDFs are written atomically
+to `<set>/.cache/book/<set>.pdf` (gitignored); intermediate files under the
+workspace `.cache` are removed after success or failure. `GET` and `HEAD` at
+`/api/sets/:set/book.pdf` serve the last successful build and its `Last-Modified`
+time; both return 404 before the first successful build.
+
 `STUDIUM_DATA_DIR` (container `/data`, host `./data`) holds everything stateful:
 `studium.db` (accounts, sessions, tokens, encrypted secrets), `.secret`,
 `users/<username>/` (one study tree each), `trash/`, and `.backup/`. The legacy

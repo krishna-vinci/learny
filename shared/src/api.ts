@@ -127,7 +127,7 @@ export interface SiteImportResponse {
   skipped: { url: string; reason: string }[];
 }
 
-export type JobKind = "ingest" | "draft-chapter" | "make-cards";
+export type JobKind = "ingest" | "draft-chapter" | "make-cards" | "compile-book";
 export type JobStatus = "queued" | "running" | "done" | "failed" | "cancelled";
 /** How a job's model usage is billed: flat subscription, metered list price, or both. */
 export type JobBilling = "subscription" | "metered" | "mixed";

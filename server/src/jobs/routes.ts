@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { Hono } from "hono";
 import { resolveInRoot } from "../tree/paths.js";
+import { parseCompileBookInput } from "./book-paths.js";
 import { parseMakeCardsInput } from "./cards-job.js";
 import { parseDraftChapterInput } from "./draft-job.js";
 import { jobProposals, type ProposalStore } from "./proposals.js";
@@ -35,10 +36,10 @@ export function jobsRoutes(deps: JobsRoutesDeps): Hono {
           typeof body === "object" &&
           body !== null &&
           "kind" in body &&
-          (body.kind === "draft-chapter" || body.kind === "make-cards")
+          (body.kind === "draft-chapter" || body.kind === "make-cards" || body.kind === "compile-book")
         )
       ) {
-        throw new Error('kind must be "draft-chapter" or "make-cards"');
+        throw new Error('kind must be "draft-chapter", "make-cards" or "compile-book"');
       }
       if (typeof input === "object" && input !== null && "kind" in input && input.kind === "make-cards") {
         const parsed = parseMakeCardsInput(input);
@@ -49,6 +50,14 @@ export function jobsRoutes(deps: JobsRoutesDeps): Hono {
           set: parsed.set,
           title: `Cards for ${parsed.note}`,
         });
+        return c.json({ jobId: job.id }, 202);
+      }
+      if (typeof input === "object" && input !== null && "kind" in input && input.kind === "compile-book") {
+        const parsed = parseCompileBookInput(input);
+        if (deps.root !== undefined && !existsSync(resolveInRoot(deps.root, `${parsed.set}/PLAN.md`))) {
+          return c.json({ error: "set not found" }, 404);
+        }
+        const job = deps.runner.enqueue("compile-book", parsed, { set: parsed.set, title: `Book for ${parsed.set}` });
         return c.json({ jobId: job.id }, 202);
       }
       const parsed = parseDraftChapterInput(input);
