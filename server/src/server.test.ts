@@ -177,6 +177,8 @@ describe("top-level server", () => {
     for (const target of [
       "/api/jobs",
       "/api/library",
+      "/api/library/site-import",
+      "/api/library/site-import/",
       "/api/sets/sample/chats/chat-1/messages",
       "/api/sets/sample/chats/chat-1/abort",
     ]) {
@@ -187,6 +189,8 @@ describe("top-level server", () => {
     const allowed = await app.request("/api/sets/sample/chats", { method: "POST", headers, body: "{}" });
     expect(allowed.status).toBe(202);
     await expect(allowed.json()).resolves.toEqual({ ok: true });
+    const map = await app.request("/api/library/site-map", { method: "POST", headers, body: "{}" });
+    expect(map.status).toBe(202);
   });
 
   it("lets an AI-enabled user reach AI routes", async () => {

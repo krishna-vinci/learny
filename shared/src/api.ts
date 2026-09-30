@@ -98,6 +98,35 @@ export interface ParsedFileView {
   markdown: string;
 }
 
+/** `POST /api/library/site-map`; limit defaults to 100 and may be at most 500. */
+export interface SiteMapRequest {
+  url: string;
+  search?: string;
+  limit?: number;
+}
+
+export interface SiteMapPage {
+  url: string;
+  title?: string;
+  description?: string;
+}
+
+export interface SiteMapResponse {
+  pages: SiteMapPage[];
+}
+
+/** `POST /api/library/site-import`; 1–100 selected public URLs. */
+export interface SiteImportRequest {
+  urls: string[];
+  set?: string;
+}
+
+export interface SiteImportResponse {
+  /** Accepted pages, including pages waiting for one of this import's three slots. */
+  queued: number;
+  skipped: { url: string; reason: string }[];
+}
+
 export type JobKind = "ingest" | "draft-chapter" | "make-cards";
 export type JobStatus = "queued" | "running" | "done" | "failed" | "cancelled";
 /** How a job's model usage is billed: flat subscription, metered list price, or both. */

@@ -53,7 +53,7 @@ export function createApp(deps: AppDeps | LegacyAppDeps): Hono {
 
   if (deps.jobs !== undefined) {
     app.route("/api/jobs", jobsRoutes({ runner: deps.jobs, root: deps.root }));
-    app.route("/api/library", libraryRoutes({ root: deps.root, jobs: deps.jobs }));
+    app.route("/api/library", libraryRoutes({ root: deps.root, jobs: deps.jobs, hub: deps.hub }));
   }
 
   if (deps.settings !== undefined) {

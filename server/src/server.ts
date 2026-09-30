@@ -74,7 +74,7 @@ function validInstanceUrl(value: string): boolean {
 function aiRouteDisabled(method: string, pathname: string): boolean {
   if (method !== "POST") return false;
   const path = pathname.endsWith("/") && pathname.length > 1 ? pathname.slice(0, -1) : pathname;
-  if (path === "/api/jobs" || path === "/api/library") return true;
+  if (path === "/api/jobs" || path === "/api/library" || path === "/api/library/site-import") return true;
   const chatMatch = /^\/api\/sets\/[^/]+\/chats(\/.*)?$/.exec(path);
   return chatMatch !== null && chatMatch[1] !== undefined;
 }

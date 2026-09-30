@@ -1,9 +1,11 @@
 import { promises as fs } from "node:fs";
-import type { ParsedFileView } from "@studium/shared";
+import type { ParsedFileView, SiteImportResponse, SiteMapResponse } from "@studium/shared";
 import type { Context } from "hono";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
-import { dedupeKeyFromUrl, sha256Hex } from "../ingest/ids.js";
+import type { EventHub } from "../events.js";
+import { FirecrawlError, firecrawlMap } from "../ingest/firecrawl.js";
+import { type DedupeKey, dedupeKeyFromUrl, keysMatch, sha256Hex } from "../ingest/ids.js";
 import {
   findDuplicate,
   type IngestJobInput,
@@ -12,6 +14,7 @@ import {
   readParsedFile,
   readSource,
 } from "../ingest/library.js";
+import { assertPublicUrl, SafeFetchError } from "../ingest/safe-fetch.js";
 import type { JobRunner } from "../jobs/runner.js";
 import { resolveInRoot } from "../tree/paths.js";
 import { isSetSlug } from "../tree/read.js";
@@ -24,6 +27,7 @@ const MULTIPART_OVERHEAD_BYTES = 1024 * 1024;
 export interface LibraryRoutesDeps {
   root: string;
   jobs: JobRunner;
+  hub: EventHub;
   /** Overridable for tests; defaults to {@link MAX_UPLOAD_BYTES}. */
   maxUploadBytes?: number;
   /** Overridable for tests; defaults to the upload cap plus multipart overhead. */
@@ -101,7 +105,119 @@ export function libraryRoutes(deps: LibraryRoutesDeps): Hono {
     },
   );
 
+  app.post(
+    "/site-map",
+    bodyLimit({ maxSize: 64 * 1024, onError: (c) => c.json({ error: "request too large" }, 413) }),
+    (c) => mapSite(c),
+  );
+  app.post(
+    "/site-import",
+    bodyLimit({ maxSize: 1024 * 1024, onError: (c) => c.json({ error: "request too large" }, 413) }),
+    (c) => importSite(c, deps),
+  );
+
   return app;
+}
+
+async function mapSite(c: Context): Promise<Response> {
+  const baseUrl = process.env.FIRECRAWL_API_URL?.trim();
+  if (!baseUrl) return c.json({ error: "Site mapping requires Firecrawl. Configure FIRECRAWL_API_URL." }, 400);
+  const body = await readJson(c);
+  if (body === null || typeof body.url !== "string" || body.url.trim() === "") {
+    return c.json({ error: "url is required" }, 400);
+  }
+  if (body.search !== undefined && typeof body.search !== "string") {
+    return c.json({ error: "search must be a string" }, 400);
+  }
+  const limit = body.limit === undefined ? 100 : body.limit;
+  if (typeof limit !== "number" || !Number.isInteger(limit) || limit < 1 || limit > 500) {
+    return c.json({ error: "limit must be an integer from 1 to 500" }, 400);
+  }
+  try {
+    const pages = await firecrawlMap(body.url.trim(), {
+      baseUrl,
+      apiKey: process.env.FIRECRAWL_API_KEY,
+      ...(typeof body.search === "string" ? { search: body.search } : {}),
+      limit,
+      signal: c.req.raw.signal,
+    });
+    return c.json({ pages } satisfies SiteMapResponse);
+  } catch (error) {
+    if (error instanceof SafeFetchError) return c.json({ error: error.message }, 400);
+    if (error instanceof FirecrawlError) return c.json({ error: error.message }, 502);
+    throw error;
+  }
+}
+
+async function importSite(c: Context, deps: LibraryRoutesDeps): Promise<Response> {
+  const body = await readJson(c);
+  if (
+    body === null ||
+    !Array.isArray(body.urls) ||
+    body.urls.length < 1 ||
+    body.urls.length > 100 ||
+    body.urls.some((url) => typeof url !== "string" || url.trim() === "")
+  ) {
+    return c.json({ error: "urls must contain 1 to 100 non-empty URL strings" }, 400);
+  }
+  const set = await resolveSet(deps.root, body.set);
+  if (set === false) return c.json({ error: "unknown set" }, 400);
+
+  const urls: string[] = [];
+  const keys: DedupeKey[] = [];
+  const skipped: SiteImportResponse["skipped"] = [];
+  for (const rawUrl of body.urls as string[]) {
+    const url = rawUrl.trim();
+    try {
+      // Recheck selected pages even if they already passed the map filter.
+      await assertPublicUrl(url);
+    } catch (error) {
+      if (!(error instanceof SafeFetchError)) throw error;
+      skipped.push({ url, reason: error.message });
+      continue;
+    }
+    const key = dedupeKeyFromUrl(url);
+    if (keys.some((accepted) => keysMatch(accepted, key))) {
+      skipped.push({ url, reason: "duplicate URL in this import" });
+      continue;
+    }
+    const existing = await findDuplicate(deps.root, key);
+    if (existing !== null) {
+      skipped.push({ url, reason: `already in library: ${existing}` });
+      continue;
+    }
+    keys.push(key);
+    urls.push(url);
+  }
+
+  queueSiteImport(deps, urls, set);
+  return c.json({ queued: urls.length, skipped } satisfies SiteImportResponse, 202);
+}
+
+/**
+ * Keep at most three outstanding ingest jobs for this import. The remaining URLs
+ * stay in this in-memory queue; a workspace job event releases each slot. A running
+ * cancellation releases its slot only after the handler exits (finishedAt is set).
+ */
+function queueSiteImport(deps: LibraryRoutesDeps, urls: string[], set: string | null): void {
+  if (urls.length === 0) return;
+  const active = new Set<string>();
+  let next = 0;
+  const stop = deps.hub.subscribe((event) => {
+    if (event.type !== "job" || event.job.finishedAt === null || !active.delete(event.job.id)) return;
+    pump();
+  });
+  function pump(): void {
+    while (active.size < 3 && next < urls.length) {
+      const url = urls[next++];
+      if (url === undefined) break;
+      const input: IngestJobInput = { url, set };
+      const job = deps.jobs.enqueue("ingest", input, { set, title: jobTitle(url) });
+      active.add(job.id);
+    }
+    if (next === urls.length && active.size === 0) stop();
+  }
+  pump();
 }
 
 async function addUrl(c: Context, deps: LibraryRoutesDeps): Promise<Response> {

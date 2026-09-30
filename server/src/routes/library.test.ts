@@ -2,7 +2,7 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { Hono } from "hono";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EventHub } from "../events.js";
 import { type IngestJobInput, writeSource } from "../ingest/library.js";
 import type { Extracted } from "../ingest/types.js";
@@ -10,6 +10,8 @@ import { JobRunner } from "../jobs/runner.js";
 import { ensureRepo } from "../tree/git.js";
 import { initStudyTree } from "../tree/init.js";
 import { libraryRoutes } from "./library.js";
+
+vi.mock("node:dns", () => ({ promises: { lookup: vi.fn(async () => [{ address: "93.184.216.34", family: 4 }]) } }));
 
 function makeExtracted(overrides: Partial<Extracted> = {}): Extracted {
   return {
@@ -29,27 +31,42 @@ let root: string;
 let jobs: JobRunner;
 let received: IngestJobInput[];
 let app: Hono;
+let hub: EventHub;
 
 beforeEach(async () => {
   root = await fs.mkdtemp(path.join(os.tmpdir(), "studium-library-routes-"));
   await initStudyTree(root);
   await ensureRepo(root);
   received = [];
-  jobs = new JobRunner({ root, hub: new EventHub(), maxParallel: 2 });
+  vi.stubEnv("FIRECRAWL_API_URL", "");
+  vi.stubEnv("FIRECRAWL_API_KEY", "");
+  hub = new EventHub();
+  jobs = new JobRunner({ root, hub, maxParallel: 2 });
   jobs.register("ingest", async (input) => {
     received.push(input as IngestJobInput);
     return { sourceId: "lib-stub" };
   });
   app = new Hono();
-  app.route("/api/library", libraryRoutes({ root, jobs, maxUploadBytes: 1024 }));
+  app.route("/api/library", libraryRoutes({ root, jobs, hub, maxUploadBytes: 1024 }));
 });
 
 afterEach(async () => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   await fs.rm(root, { recursive: true, force: true });
 });
 
 function postJson(body: unknown) {
   return app.request("/api/library", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+function postSite(target: "site-map" | "site-import", body: unknown) {
+  return app.request(`/api/library/${target}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
@@ -197,5 +214,190 @@ describe("POST /api/library", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ sourceId: id, deduped: true });
+  });
+});
+
+describe("POST /api/library/site-map", () => {
+  it("returns a clear 400 when Firecrawl is not configured", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const response = await postSite("site-map", { url: "https://example.com" });
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "Site mapping requires Firecrawl. Configure FIRECRAWL_API_URL." });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("returns filtered pages and forwards search, limit and the configured key", async () => {
+    vi.stubEnv("FIRECRAWL_API_URL", "http://127.0.0.1:3002/v2");
+    vi.stubEnv("FIRECRAWL_API_KEY", "test-key");
+    const fetchMock = vi.fn(async (_input: unknown, _init?: RequestInit) =>
+      Response.json({
+        success: true,
+        links: [
+          { url: "https://docs.example.com/guide", title: "Guide", description: "Getting started" },
+          "https://example.com/start",
+          "https://another.org/",
+          "http://127.0.0.1/",
+        ],
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const response = await postSite("site-map", { url: "https://example.com", search: "guide", limit: 20 });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      pages: [
+        { url: "https://docs.example.com/guide", title: "Guide", description: "Getting started" },
+        { url: "https://example.com/start" },
+      ],
+    });
+    const [endpoint, init] = fetchMock.mock.calls[0] ?? [];
+    expect(endpoint).toBe("http://127.0.0.1:3002/v2/map");
+    expect(init?.headers).toMatchObject({ authorization: "Bearer test-key" });
+    expect(JSON.parse(String(init?.body))).toMatchObject({ search: "guide", limit: 20 });
+    expect(jobs.list()).toHaveLength(0);
+  });
+
+  it("rejects invalid requests, private URLs, and limits outside 1–500 before fetching", async () => {
+    vi.stubEnv("FIRECRAWL_API_URL", "http://127.0.0.1:3002");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    for (const body of [
+      {},
+      { url: "bad" },
+      { url: "http://127.0.0.1/" },
+      { url: "https://example.com", search: 1 },
+      ...[0, 501, 1.5, "20"].map((limit) => ({ url: "https://example.com", limit })),
+    ]) {
+      expect((await postSite("site-map", body)).status).toBe(400);
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("returns a 502 when Firecrawl fails", async () => {
+    vi.stubEnv("FIRECRAWL_API_URL", "http://127.0.0.1:3002");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ success: false, error: "map unavailable" })),
+    );
+    const response = await postSite("site-map", { url: "https://example.com" });
+    expect(response.status).toBe(502);
+    expect(await response.json()).toEqual({ error: "Firecrawl map failed: map unavailable" });
+  });
+});
+
+describe("POST /api/library/site-import", () => {
+  it("rejects 101 URLs, invalid arrays and unknown sets without enqueueing", async () => {
+    for (const body of [
+      { urls: Array.from({ length: 101 }, (_, i) => `https://example.com/${i}`) },
+      {},
+      { urls: [] },
+      { urls: "https://example.com" },
+      { urls: [1] },
+      { urls: [""] },
+      { urls: ["https://example.com"], set: "missing" },
+    ]) {
+      expect((await postSite("site-import", body)).status).toBe(400);
+    }
+    expect(jobs.list()).toHaveLength(0);
+  });
+
+  it("skips existing sources and repeated selections, then uses the existing ingest input with the set", async () => {
+    await fs.mkdir(path.join(root, "linear-algebra"));
+    const stored = await writeSource(root, makeExtracted({ url: "https://example.com/stored" }));
+    await markSummarized(stored.id);
+    const pending = await writeSource(root, makeExtracted({ url: "https://example.com/pending" }));
+    const response = await postSite("site-import", {
+      urls: [
+        "https://example.com/stored#section",
+        "https://example.com/pending",
+        "https://example.com/new",
+        "https://example.com/new#section",
+      ],
+      set: "linear-algebra",
+    });
+    expect(response.status).toBe(202);
+    expect(await response.json()).toEqual({
+      queued: 1,
+      skipped: [
+        { url: "https://example.com/stored#section", reason: `already in library: ${stored.id}` },
+        { url: "https://example.com/pending", reason: `already in library: ${pending.id}` },
+        { url: "https://example.com/new#section", reason: "duplicate URL in this import" },
+      ],
+    });
+    await vi.waitFor(() => expect(received).toEqual([{ url: "https://example.com/new", set: "linear-algebra" }]));
+    expect(jobs.list()[0]).toMatchObject({ kind: "ingest", set: "linear-algebra", title: "new" });
+  });
+
+  it("rechecks selected URLs and reports unsafe or malformed URLs as skipped", async () => {
+    const urls = ["http://127.0.0.1/admin", "http://192.168.1.1/admin", "file:///etc/passwd", "bad URL"];
+    const response = await postSite("site-import", { urls });
+    expect(response.status).toBe(202);
+    const body = (await response.json()) as { queued: number; skipped: { url: string; reason: string }[] };
+    expect(body.queued).toBe(0);
+    expect(body.skipped.map((item) => item.url)).toEqual(urls);
+    expect(body.skipped.every((item) => item.reason.length > 0)).toBe(true);
+    expect(jobs.list()).toHaveLength(0);
+  });
+
+  it("runs at most three ingests, waits for cancelled handlers to exit, and continues after failure", async () => {
+    jobs = new JobRunner({ root, hub, maxParallel: 10 });
+    app = new Hono();
+    app.route("/api/library", libraryRoutes({ root, jobs, hub }));
+    const holds = new Map<string, { resolve: () => void; reject: (error: Error) => void }>();
+    let running = 0;
+    let peak = 0;
+    jobs.register("ingest", async (input) => {
+      const page = input as IngestJobInput;
+      const url = page.url as string;
+      received.push(page);
+      running++;
+      peak = Math.max(peak, running);
+      try {
+        await new Promise<void>((resolve, reject) => holds.set(url, { resolve, reject }));
+        return { sourceId: "lib-stub" };
+      } finally {
+        running--;
+      }
+    });
+    const originalSubscribe = hub.subscribe.bind(hub);
+    const unsubscribed = vi.fn();
+    vi.spyOn(hub, "subscribe").mockImplementation((listener) => {
+      const stop = originalSubscribe(listener);
+      return () => {
+        unsubscribed();
+        stop();
+      };
+    });
+    const urls = Array.from({ length: 7 }, (_, i) => `https://example.com/${i}`);
+    const response = await postSite("site-import", { urls });
+    expect(response.status).toBe(202);
+    expect(await response.json()).toEqual({ queued: 7, skipped: [] });
+    await vi.waitFor(() => expect(received).toHaveLength(3));
+    expect(jobs.list()).toHaveLength(3);
+
+    const first = jobs.list().find((job) => job.title === "0");
+    expect(first).toBeDefined();
+    expect(jobs.cancel(first?.id ?? "")).toBe(true);
+    await flush();
+    expect(received).toHaveLength(3);
+    expect(running).toBe(3);
+    holds.get(urls[0] ?? "")?.resolve();
+    await vi.waitFor(() => expect(received).toHaveLength(4));
+    expect(running).toBe(3);
+
+    holds.get(urls[1] ?? "")?.reject(new Error("stub ingest failed"));
+    await vi.waitFor(() => expect(received).toHaveLength(5));
+    expect(jobs.list().find((job) => job.title === "1")?.status).toBe("failed");
+    for (let i = 2; i < urls.length; i++) {
+      await vi.waitFor(() => expect(holds.has(urls[i] ?? "")).toBe(true));
+      holds.get(urls[i] ?? "")?.resolve();
+    }
+    await vi.waitFor(() => expect(jobs.list().every((job) => job.finishedAt !== null)).toBe(true));
+    expect(received.map((input) => input.url)).toEqual(urls);
+    expect(peak).toBe(3);
+    expect(running).toBe(0);
+    // The queue unsubscribes when the final page finishes.
+    expect(unsubscribed).toHaveBeenCalledTimes(1);
+    await flush();
   });
 });
