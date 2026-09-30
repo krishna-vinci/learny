@@ -29,7 +29,7 @@ learny/                     # pnpm workspaces
 | M3b | Comfort | background jobs UX (global activity indicator, "drafting…" placeholders, done/failed notifications, no forced navigation), reader settings (font size, width, serif/sans), full-screen reading, themes (light/dark/sepia/black + accents) | draft 3 chapters while reading another; adjust text on phone |
 | M4 | Study loop | Today page, search (⌘K: notes, sources, cards, chats), selection actions (ask / explain simpler / make card / highlight), set intake + Outliner (outline → approve → queue drafts), book PDF (Pandoc → Typst), MinerU | app says what to do today; a set compiles to a PDF book |
 | M5 | Practice | quizzes + weak-spot log, teach-back (tutor grades your explanation), problem sets with worked solutions; weak spots feed Today | a weak topic from a quiz shows up on Today |
-| M6 | Polish | full shadcn/ui (Base UI) migration (`docs/prompts/m3b-slice-d.md`, D1–D5), Scout (find new sources), offline reading, M0–M2 follow-ups, code-splitting, i18n, public release | |
+| M6 | Simple & polished | beginner-first UX (audit → `docs/UX.md`, phone bottom tabs, plain-language copy, first-run flow, teaching empty states, calm notifications, undo over confirm), shadcn/ui D1–D2 + `docs/DESIGN.md`, code-splitting + offline reading, book layout and persistence gaps, install guide (`docs/plans/2026-10-01-m6-simple-and-polished.md`) | a first-timer on a phone gets from sign-in to a planned set, a note, cards and practice without confusion |
 
 ## M0 follow-ups (deferred, 2026-09-28)
 
