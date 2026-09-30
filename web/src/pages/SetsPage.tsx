@@ -60,7 +60,7 @@ export default function SetsPage() {
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-semibold text-foreground">All study sets</h1>
-        <Button className="h-10" onClick={() => setNewSetOpen(true)}>
+        <Button className="h-11 md:h-9" onClick={() => setNewSetOpen(true)}>
           <PlusIcon /> New study set
         </Button>
       </div>

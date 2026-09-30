@@ -63,7 +63,7 @@ function SegmentedGroup<T extends string | number>({
             title={option.title}
             onClick={() => onChange(option.value)}
             className={cn(
-              "min-w-9 flex-1 rounded-md px-1.5 py-2 text-sm font-medium transition-colors md:py-1",
+              "min-h-11 min-w-11 flex-1 rounded-md px-1.5 py-2 text-sm font-medium transition-colors md:min-h-0 md:min-w-9 md:py-1",
               selected
                 ? "bg-card text-foreground shadow-xs"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -260,6 +260,7 @@ export function ReadingSettingsControl() {
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-label="Reading settings"
+        className="h-11 min-w-11 md:h-7 md:min-w-0"
         onClick={() => setOpen((value) => !value)}
       >
         Aa

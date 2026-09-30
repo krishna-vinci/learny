@@ -66,6 +66,7 @@ export default function TodayPage() {
         <Button
           variant="quiet"
           size="icon"
+          className="size-11 md:size-8"
           aria-label="Refresh Today"
           disabled={isFetching}
           onClick={() => void refetch()}

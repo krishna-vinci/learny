@@ -337,7 +337,13 @@ export function Reader({ set, path, file, className }: ReaderProps) {
           >
             {!bodyHasTitle && <h1 className="text-2xl font-semibold text-foreground">{titleFromFrontmatter(file)}</h1>}
             <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => void makeCards()} disabled={makingCards}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-11 md:h-7"
+                onClick={() => void makeCards()}
+                disabled={makingCards}
+              >
                 <LayersIcon />
                 {makingCards ? "Starting…" : "Make cards"}
               </Button>
@@ -345,7 +351,7 @@ export function Reader({ set, path, file, className }: ReaderProps) {
               <DropdownMenu>
                 <DropdownMenuTrigger
                   aria-label="More note actions"
-                  className={buttonVariants({ variant: "outline", size: "sm" })}
+                  className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-11 min-w-11 md:h-7 md:min-w-0")}
                 >
                   <MoreHorizontalIcon />
                 </DropdownMenuTrigger>

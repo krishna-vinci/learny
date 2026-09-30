@@ -17,7 +17,7 @@ export const sidebarSurfaceVariants = cva("min-w-0 items-center", {
   variants: {
     role: {
       row: "flex h-7 w-full gap-1 rounded-md px-2 text-ui",
-      headerBrand: "flex h-9 max-w-full gap-2 rounded-md px-2",
+      headerBrand: "flex h-9 max-w-full gap-2 rounded-md px-2 max-md:h-11",
       account: "flex h-9 w-full gap-1 rounded-none px-5",
     },
   },

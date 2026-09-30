@@ -170,7 +170,7 @@ const AppearanceSection = () => {
       {(prefs.theme !== DEFAULT_READING_PREFS.theme || prefs.accent !== DEFAULT_READING_PREFS.accent) && (
         <button
           type="button"
-          className="self-start text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          className="min-h-11 self-start text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline md:min-h-0"
           onClick={() => setReadingPrefs({ theme: DEFAULT_READING_PREFS.theme, accent: DEFAULT_READING_PREFS.accent })}
         >
           Reset theme and accent to defaults
