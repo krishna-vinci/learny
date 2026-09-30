@@ -24,6 +24,8 @@ Create an outline with:
 
 Stop and report a scope problem if the brief requires material outside the plan or requires an unsupported central claim.
 
+When registered sources do not cover part of the brief, return a gap report listing the missing concepts and specific proposed sources using the `find-sources` playbook. If that skill or its research tools are unavailable, report the gap to the owner for research and registration. Do not fill it with thin or uncited prose.
+
 ## Draft the file
 
 Create the next `<set>/notes/NN-slug.md` with:
@@ -53,6 +55,8 @@ Use `$...$` and `$$...$$` math, and Mermaid only when a relationship genuinely b
 - Cite central definitions, theorems, numerical claims, historical claims, and anything the checker cannot verify from ordinary reasoning.
 - Do not cite common algebraic manipulation that you performed yourself.
 - Use only short quotations if needed; summarize in the learner's context rather than pasting long passages.
+- Never derive a central claim from model memory; require support in a registered source.
+- Check code examples with `mcp_context7_*`: resolve the library id, then retrieve version-matched docs. State the library version checked. A docs lookup becomes citation support only after registration; if checking or registration is unavailable, report the gap before including the example.
 
 ## Handle uncertainty explicitly
 

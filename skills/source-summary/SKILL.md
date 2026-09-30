@@ -9,8 +9,8 @@ description: Produce a concise, useful source registry summary, table of content
 
 1. Read the extracted `parsed.md` or every file under `parsed/`. Skim top-level headings and opening paragraphs first; read closely where heading order is unclear.
 2. Preserve the extractor's structure and page markers. Never rewrite the parsed text while writing the summary.
-3. Identify the work's subject, intended audience, structure, and any parsing warning.
-4. If parsed content is empty or obviously garbled, say so in `source.md`; do not invent content from title or URL.
+3. Identify the work's subject, intended audience, structure, `parse_tier` in `source.md`, and any parsing warning. Check the text quality, including broken words, missing sections, and damaged formulas; a successful parse alone is not evidence of readable text.
+4. If parsed content is empty or obviously garbled, say so in `source.md`, lower the credibility tier to reflect the unusable evidence (unless the user has overridden it), and flag the source for re-ingest. Do not summarize junk or invent content from title or URL; write a quality warning instead.
 
 ## Write the summary
 

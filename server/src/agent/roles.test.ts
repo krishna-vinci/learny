@@ -7,6 +7,7 @@ import { fauxAssistantMessage, fauxProvider, fauxText } from "@earendil-works/pi
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { McpManager } from "../mcp/bridge.js";
 import { createFakeMcpServer, type FakeMcpServer } from "../mcp/fake-server.test-helper.js";
+import { initStudyTree } from "../tree/init.js";
 import { FileLocks } from "../tree/lock.js";
 import { createModelRuntime } from "./models.js";
 import { ROLES, type RoleName } from "./roles.js";
@@ -26,6 +27,7 @@ beforeEach(async () => {
   previousAgentDir = process.env.PI_CODING_AGENT_DIR;
   process.env.PI_CODING_AGENT_DIR = agentDir;
   await fs.cp(SAMPLE_SET, root, { recursive: true });
+  await initStudyTree(root);
 
   fakeServers = [createFakeMcpServer("searxng"), createFakeMcpServer("papers"), createFakeMcpServer("context7")];
   mcp = new McpManager(

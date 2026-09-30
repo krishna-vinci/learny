@@ -23,6 +23,7 @@ Make each card test one clear retrieval. The question must make sense when seen 
 - Keep the answer as short as accuracy permits. Put explanation or a worked check in `extra`, not in the required recall target.
 - Preserve the note's notation and level. Do not test a prerequisite that the learner has not yet learned.
 - Use a context cue when a term is ambiguous: “Linear algebra — rank:” is better than bare “Rank?”.
+- Do not make a card on version-specific API details unless the prompt or cloze states the library version. If the note or source does not establish the version, report the gap and skip the card.
 - Compare the proposed prompt with every approved or exported card in the set. If it would retrieve the same answer from nearly the same cue, skip it or choose a genuinely different direction.
 
 Bad:

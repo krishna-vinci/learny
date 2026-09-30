@@ -12,6 +12,8 @@ description: Verify chapter claims against cited sources and produce a severity-
 3. List claims that lack a citation separately from claims whose citation does not clearly support them.
 4. Do not assume the author intended correctly: classify what the sentence actually asserts.
 
+Check each web source's `parse_tier` and warnings in `source.md`. If it used the fallback extractor (`parse_tier: basic`, including a Firecrawl failure warning), re-read its URL with `web_fetch` before accepting a claim. If fetching is unavailable or still yields unreadable text, mark the claim unverifiable and request re-ingest.
+
 ## Verify each claim
 
 For each claim, record:
@@ -28,13 +30,20 @@ Check calculations independently. Recompute every step; do not merely inspect wh
 
 - **Blocker:** a central definition/equation is false, a calculation is wrong, a quotation is fabricated, a required source is absent, or continuing would teach a misconception.
 - **Major:** a supporting claim or scope condition is wrong, a citation points to the wrong passage, or a central claim lacks A/B support.
+- **Major:** code or API usage is outdated for the stated library version.
 - **Minor:** wording ambiguity, notation drift, an unnecessary citation, a broken nonessential anchor, or a small presentation issue.
 
 If no severity is obvious, ask which error a learner would actually inherit.
 
 ## Cross-check when warranted
 
-Use Wikipedia or a paper-search tool for an independent check when:
+Choose an independent check by claim type:
+
+- **Code/API:** use `mcp_context7_*` to resolve the library id, then retrieve docs for the stated version. Record the version checked.
+- **"Paper X shows Y":** use `mcp_papers_*` search/read tools to inspect the actual paper and its scope, not just a search snippet.
+- **Other claims:** use `wiki_search` and `wiki_read` when appropriate. Use `mcp_searxng_*` last and mark that discovery trail lower trust; read candidate pages with `web_fetch` before treating them as evidence.
+
+Cross-check when:
 
 - a central theorem is unusual or high impact;
 - the cited source is tier C/D;
@@ -42,6 +51,8 @@ Use Wikipedia or a paper-search tool for an independent check when:
 - the note has no primary support.
 
 Record the cross-check source separately. Never replace the required library support for a central chapter claim with only an encyclopedia or search result.
+
+Never cite an unregistered cross-check source. If the role lacks `add_source`, report its URL to the owner for registration and leave acceptance pending. If a research tool is unavailable, state the check that remains undone rather than accepting a claim from memory.
 
 ## Write the report
 

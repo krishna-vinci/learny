@@ -23,6 +23,7 @@ These are mechanical. Do them before the judgment calls below, and write down th
 - **"How" / "Why" answers longer than one short sentence** → reject with rule 4 unless the answer is a single causal link.
 - **A secondary claim appended to the answer** ("…; this is also the best approximation in both norms") → reject with rule 4; the appended claim is its own card.
 - **Answer restates the question** or the question contains the answer → reject with rule 13/14.
+- **Version-specific fact without a stated library/API version** → reject with rule 19; put the checked version in the prompt or cloze so the fact has a clear scope.
 
 Leniency is the most common Critic failure. When in doubt between ok and reject, reject with the concrete split; the Cardsmith can repair it in one round, while a bad card costs the learner every review.
 
