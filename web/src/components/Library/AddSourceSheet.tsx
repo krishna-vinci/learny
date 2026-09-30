@@ -1,11 +1,11 @@
 // Add-source flow (T9a): full-screen on phones, a centered dialog on desktop, following
-// the same overlay pattern as `MobileChatDock`'s full-screen sheet. Two tabs — a URL for
-// web pages/Wikipedia/YouTube/arXiv, or a local file upload — submit to the same
+// the same overlay pattern as `MobileChatDock`'s full-screen sheet. Three tabs — a URL for
+// web pages/Wikipedia/YouTube/arXiv, a local file upload, or a whole docs site (`DocsSiteTab`) — submit to the same
 // `POST /api/library`, then this shows the returned ingest job's live progress (via SSE
 // `{type:"job"}` events) or, on a dedupe hit, a link straight to the existing source.
 import type { JobView } from "@studium/shared";
 import { useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2Icon, FileIcon, LinkIcon, Loader2Icon, TriangleAlertIcon, XIcon } from "lucide-react";
+import { CheckCircle2Icon, FileIcon, GlobeIcon, LinkIcon, Loader2Icon, TriangleAlertIcon, XIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { Link } from "react-router-dom";
@@ -16,12 +16,13 @@ import { showJobStartedToast } from "@/components/Activity/job-start-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { DocsSiteTab } from "./DocsSiteTab";
 
 /** Client-side mirror of the server's hard cap (`server/src/routes/library.ts`). */
 const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 const FILE_ACCEPT = ".pdf,.epub,.docx,.md,.txt,.html";
 
-type Tab = "link" | "file";
+type Tab = "link" | "file" | "site";
 
 type SubmitResult = { kind: "job"; jobId: string } | { kind: "deduped"; sourceId: string };
 
@@ -123,7 +124,12 @@ export function AddSourceSheet({ open, onOpenChange, defaultSet }: AddSourceShee
         className="absolute inset-0"
         onClick={() => !submitting && onOpenChange(false)}
       />
-      <div className="relative flex h-[100dvh] w-full flex-col bg-background sm:h-auto sm:max-h-[85vh] sm:w-[26rem] sm:rounded-lg sm:border sm:border-border sm:shadow-xl">
+      <div
+        className={cn(
+          "relative flex h-[100dvh] w-full flex-col bg-background sm:h-auto sm:max-h-[85vh] sm:rounded-lg sm:border sm:border-border sm:shadow-xl",
+          tab === "site" ? "sm:w-[36rem]" : "sm:w-[26rem]",
+        )}
+      >
         <div className="flex h-12 shrink-0 items-center justify-between border-b border-border/70 px-4">
           <h2 className="text-sm font-semibold">Add source</h2>
           <Button variant="quiet" size="icon-compact" onClick={() => onOpenChange(false)} aria-label="Close">
@@ -157,9 +163,21 @@ export function AddSourceSheet({ open, onOpenChange, defaultSet }: AddSourceShee
                 >
                   <FileIcon className="size-3.5" /> File
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setTab("site")}
+                  className={cn(
+                    "flex min-h-[36px] flex-1 items-center justify-center gap-1.5 rounded px-3 text-sm font-medium",
+                    tab === "site" ? "bg-background shadow-xs" : "text-muted-foreground",
+                  )}
+                >
+                  <GlobeIcon className="size-3.5" /> Docs site
+                </button>
               </div>
 
-              {tab === "link" ? (
+              {tab === "site" ? (
+                <DocsSiteTab defaultSet={defaultSet} onClose={() => onOpenChange(false)} />
+              ) : tab === "link" ? (
                 <div className="flex flex-col gap-2">
                   <Input
                     autoFocus
@@ -188,7 +206,7 @@ export function AddSourceSheet({ open, onOpenChange, defaultSet }: AddSourceShee
                 </div>
               )}
 
-              {defaultSet && (
+              {defaultSet && tab !== "site" && (
                 <label className="mt-4 flex min-h-[44px] cursor-pointer items-center gap-2 text-sm">
                   <input
                     type="checkbox"
@@ -200,9 +218,11 @@ export function AddSourceSheet({ open, onOpenChange, defaultSet }: AddSourceShee
                 </label>
               )}
 
-              <Button className="mt-4 w-full" disabled={!canSubmit} onClick={submit}>
-                {submitting ? "Adding…" : "Add source"}
-              </Button>
+              {tab !== "site" && (
+                <Button className="mt-4 w-full" disabled={!canSubmit} onClick={submit}>
+                  {submitting ? "Adding…" : "Add source"}
+                </Button>
+              )}
             </>
           )}
         </div>

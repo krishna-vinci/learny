@@ -20,6 +20,10 @@ import type {
   SearchResponse,
   SetSummary,
   SettingsView,
+  SiteImportRequest,
+  SiteImportResponse,
+  SiteMapRequest,
+  SiteMapResponse,
   SourceSummary,
   TodayView,
 } from "@studium/shared";
@@ -596,6 +600,13 @@ export const api = {
       form.append("file", file);
       if (set) form.append("set", set);
       return request("/api/library", { method: "POST", body: form });
+    },
+    /** 400 when Firecrawl isn't configured on the server. */
+    siteMap(body: SiteMapRequest): Promise<SiteMapResponse> {
+      return request("/api/library/site-map", { method: "POST", body: JSON.stringify(body) });
+    },
+    siteImport(body: SiteImportRequest): Promise<SiteImportResponse> {
+      return request("/api/library/site-import", { method: "POST", body: JSON.stringify(body) });
     },
     parsed(id: string, file: string): Promise<ParsedFileView> {
       return request(`/api/library/${encodeURIComponent(id)}/parsed${qs({ file })}`);
