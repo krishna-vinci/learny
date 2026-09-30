@@ -80,7 +80,7 @@ The orchestrator keeps the rest of this file current. When something listed unde
   - M0 skeleton, M1 sources→notes, M2 cards
   - M3a platform: accounts and SSO, per-user trees, backups, notifications, export, service
   - M3b slices A (background jobs UX), B (reading comfort), C (themes)
-- **In progress:** M4 study loop (`docs/plans/2026-09-30-m4-study-loop.md`). Merged: M4-0 through M4-6 and M4-7a (Today, ⌘K search, selection + highlights). Next: M4-7b remaining screens (Claude cloud, `docs/plans/2026-10-01-m4-7b-cloud.md`), the search-snippet plain-text fix, then M4-8 review.
+- **In progress:** M4 is implemented (M4-0 through M4-7b merged); M4-8 review is left. **M5 practice** goes to Sol 6.1 locally (plan `docs/plans/2026-10-01-m5-practice.md`; local prompts `docs/prompts/m5-*.md`). **M6** will go to the Claude cloud (scope being decided).
 
 ## Open gaps
 - **Book PDF layout:** callout boxes can split across pages, leaving an orphaned header (e.g. "Deeper" at the bottom of p5, its body on p6, and a mostly blank page). Keep a callout's header with its first lines (`block(breakable: …)` or `sticky` in `server/templates/book/book.typ` / `callouts.lua`). Mermaid appears as "(diagram in the app)".
@@ -93,11 +93,11 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - **M4 items:** Firecrawl map/crawl ("add a whole docs site"), Today page, search, selection actions, Outliner, book PDF (Pandoc → Typst; not installed), MinerU.
 - **ROADMAP follow-ups left:**
   - code-splitting (the bundle is over 500 kB)
-  - the web half of chat proposals: on chat load, GET `/api/sets/:set/chats/:id/proposals`, render the cards, and dismiss via DELETE (goes with the next chat UI task)
-  - the revert UI doesn't send `{"scope":"set"}` yet
+  - phone: the Inbox chapter-review action bar sits under the chat button; the set-home action grid has an orphan card
 - **Backups:** not configured yet on the live instance. The owner does this in Settings → Backups.
 
 ## Recently done
+- PR #2 M4-7b screens (3a9626f): plan a set, plan review, book card, docs-site import, chat proposals after reload, set-only revert, toasts
 - M4-2b search indexes plain text
 - M4-7a Today page, ⌘K search, selection actions + highlights (003723f)
 - M4-4 Outliner + plan-set + plan approval + curriculum fix (38d4722)
@@ -122,3 +122,4 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - 2026-09-30 · M4-4 (Sol 6.1) · Outliner role (writes only `<set>/plan-proposals/`), `jobs/plan-job.ts`, `inbox/plans.ts`, plan GET/approve/discard in `routes/inbox.ts`, `tree/curriculum.ts`, `skills/plan-set`; `tree/edit.ts` `writeTextLocked` (requires the held lock) · approve returns `{sha, jobIds}`; draft jobs tick curriculum lines · UI in M4-7b.
 - 2026-10-01 · M4-7a (Sol 6.1) · `pages/TodayPage.tsx` (landing), `components/Search/*`, `Reader/ReaderPassages.tsx` + `highlight-{dom,text}.ts`, chat quote plumbing · 93 real-click checks at 390/1440 in light and dark · snippets show raw markdown (open gap).
 - 2026-10-01 · M4-2b (DeepSeek) · `search/plaintext.ts` strips frontmatter, code/mermaid, footnotes, directives and markup from indexed bodies · a restart rebuilds the index (`rebuildAll` at workspace start) · image alt text kept.
+- 2026-10-01 · PR #2 M4-7b (cloud Sonnet) · `NewSetDialog`/`PlanSetSheet`/`PlanOptions`/`SourcePicker`, `pages/InboxPlanReview.tsx` + `plan-proposal.ts`, set-home `BookCard` (HEAD `book.pdf`), `Library/DocsSiteTab.tsx`, ChatDock `proposals_loaded` + DELETE, NoteHistory 409 → `scope:"set"` · new sets are created via `POST /api/sets` before `plan-set` so the title is kept · verified live: book card downloads.
