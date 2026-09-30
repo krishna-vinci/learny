@@ -77,6 +77,16 @@ export class ProposalStore {
     return cloneInput(stored.input);
   }
 
+  /** True while the proposal is unexpired and has not been taken or discarded. */
+  has(proposalId: string): boolean {
+    this.#prune();
+    return this.#items.has(proposalId);
+  }
+
+  discard(proposalId: string): void {
+    this.#items.delete(proposalId);
+  }
+
   #prune(): void {
     const now = this.#now();
     for (const [id, proposal] of this.#items) {

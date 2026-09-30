@@ -190,18 +190,27 @@ export async function commitPaths(
     return null;
   }
 
-  return withRepoLock(root, async () => {
-    await git(root, ["add", "-A", "--", ...paths]);
-    const staged = await git(root, ["diff", "--cached", "--name-only", "--", ...paths]);
-    if (staged.trim() === "") {
-      return null;
-    }
-    // A pathspec makes git commit only those paths, leaving unrelated staged
-    // or unstaged changes out of the commit.
-    await git(root, ["commit", "-m", message, "--", ...paths], AUTHOR_ENV[author]);
-    const sha = await git(root, ["rev-parse", "HEAD"]);
-    return sha.trim();
-  });
+  return withRepoLock(root, () => commitPathsUnlocked(root, paths, message, author));
+}
+
+async function commitPathsUnlocked(
+  root: string,
+  paths: string[],
+  message: string,
+  author: Author,
+  alreadyStaged = false,
+): Promise<string | null> {
+  // A path staged as deleted no longer exists on disk, so `git add` would reject its pathspec.
+  if (!alreadyStaged) await git(root, ["add", "-A", "--", ...paths]);
+  const staged = await git(root, ["diff", "--cached", "--name-only", "--", ...paths]);
+  if (staged.trim() === "") {
+    return null;
+  }
+  // A pathspec makes git commit only those paths, leaving unrelated staged
+  // or unstaged changes out of the commit.
+  await git(root, ["commit", "-m", message, "--", ...paths], AUTHOR_ENV[author]);
+  const sha = await git(root, ["rev-parse", "HEAD"]);
+  return sha.trim();
 }
 
 /**
@@ -268,5 +277,66 @@ export async function revert(root: string, sha: string, author: Author): Promise
     }
     const newSha = await git(root, ["rev-parse", "HEAD"]);
     return newSha.trim();
+  });
+}
+
+/**
+ * Root-relative paths a commit changed. Renames are split into the old and
+ * new path so callers can scope-check both sides.
+ */
+export async function changedPaths(root: string, sha: string): Promise<string[]> {
+  if (!SHA_PATTERN.test(sha)) {
+    throw new Error(`Invalid commit sha: ${sha}`);
+  }
+  const output = await git(root, ["show", "--name-only", "--no-renames", "-z", "--format=", sha]);
+  return output.split("\0").filter((entry) => entry !== "");
+}
+
+/**
+ * Undo a commit for just `paths`: restore each path to its content in the
+ * commit's parent (a path the parent did not have is removed), then commit
+ * only those paths. Later edits to those paths are overwritten. Returns null
+ * when the working tree already matches.
+ */
+export async function revertPaths(
+  root: string,
+  sha: string,
+  paths: string[],
+  message: string,
+  author: Author,
+): Promise<string | null> {
+  if (!SHA_PATTERN.test(sha)) {
+    throw new Error(`Invalid commit sha: ${sha}`);
+  }
+  for (const rel of paths) {
+    resolveInRoot(root, rel);
+  }
+  if (paths.length === 0) {
+    return null;
+  }
+  return withRepoLock(root, async () => {
+    // Resolve every path's parent state before touching the tree.
+    const inParent = new Map<string, boolean>();
+    for (const rel of paths) {
+      inParent.set(
+        rel,
+        await git(root, ["cat-file", "-e", `${sha}^:${rel}`]).then(
+          () => true,
+          async () => {
+            // Missing path vs. missing parent commit: only the former is fine.
+            await git(root, ["rev-parse", "--verify", `${sha}^`]);
+            return false;
+          },
+        ),
+      );
+    }
+    for (const rel of paths) {
+      if (inParent.get(rel)) {
+        await git(root, ["checkout", `${sha}^`, "--", rel]);
+      } else {
+        await git(root, ["rm", "-r", "-f", "--ignore-unmatch", "--quiet", "--", rel]);
+      }
+    }
+    return commitPathsUnlocked(root, paths, message, author, true);
   });
 }

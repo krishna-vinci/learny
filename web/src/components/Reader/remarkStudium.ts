@@ -17,7 +17,18 @@ const CITATION_PATTERN = /^src:([^#]+)#p(\d+)$/;
 interface DirectiveNode extends MinimalNode {
   type: "containerDirective" | "leafDirective" | "textDirective";
   name: string;
+  attributes?: Record<string, string | null | undefined> | null;
   data?: { hName?: string; hProperties?: Record<string, unknown> };
+}
+
+const MAX_TITLE_CHARS = 200;
+
+/** `{title="Rank"}` on a directive; plain text only (the reader renders it as a React text node). */
+function directiveTitle(directive: DirectiveNode): string | undefined {
+  const title = directive.attributes?.title;
+  if (typeof title !== "string") return undefined;
+  const trimmed = title.trim().slice(0, MAX_TITLE_CHARS);
+  return trimmed === "" ? undefined : trimmed;
 }
 
 /**
@@ -34,12 +45,14 @@ export function remarkStudiumDirectives() {
       }
       const directive = node as DirectiveNode;
       directive.data ??= {};
+      const title = directiveTitle(directive);
+      const titleProps = title === undefined ? {} : { "data-title": title };
       if (CALLOUT_DIRECTIVES.has(directive.name)) {
         directive.data.hName = "div";
-        directive.data.hProperties = { "data-callout": directive.name };
+        directive.data.hProperties = { "data-callout": directive.name, ...titleProps };
       } else if (directive.name === "deeper") {
         directive.data.hName = "div";
-        directive.data.hProperties = { "data-deeper": "true" };
+        directive.data.hProperties = { "data-deeper": "true", ...titleProps };
       }
     });
   };

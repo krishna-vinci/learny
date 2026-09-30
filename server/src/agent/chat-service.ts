@@ -15,7 +15,13 @@ import type { ChatMessage, ChatStreamEvent, ChatSummary, ToolCallView } from "@s
 import { ConfigYaml } from "@studium/shared";
 import { parse as parseYaml } from "yaml";
 import type { EventHub } from "../events.js";
-import { jobProposals, proposalFromToolResult, startJobTool } from "../jobs/proposals.js";
+import {
+  type JobProposalEvent,
+  jobProposals,
+  type ProposalStore,
+  proposalFromToolResult,
+  startJobTool,
+} from "../jobs/proposals.js";
 import type { JobRunner } from "../jobs/runner.js";
 import type { McpManager } from "../mcp/bridge.js";
 import { readText } from "../tree/edit.js";
@@ -129,6 +135,7 @@ interface ChatServiceDeps {
   runtime: ModelRuntime;
   jobs: Pick<JobRunner, "enqueue">;
   modelOverride?: Model<Api>;
+  proposals?: ProposalStore;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -264,6 +271,8 @@ export class ChatService {
   readonly #runtime: ModelRuntime;
   readonly #jobs: Pick<JobRunner, "enqueue">;
   readonly #modelOverride?: Model<Api>;
+  readonly #proposals: ProposalStore;
+  readonly #proposalWrites = new Map<string, Promise<void>>();
   readonly #live = new Map<string, LiveChat>();
   readonly #starting = new Set<string>();
 
@@ -275,6 +284,7 @@ export class ChatService {
     this.#runtime = deps.runtime;
     this.#jobs = deps.jobs;
     this.#modelOverride = deps.modelOverride;
+    this.#proposals = deps.proposals ?? jobProposals;
   }
 
   async #setDir(set: string): Promise<string> {
@@ -323,6 +333,69 @@ export class ChatService {
     this.#hub.publish({ type: "chat", set, chatId: id, event });
   }
 
+  // Pending proposals live in a sidecar next to the Pi session (`.json`, so Pi's session listing skips it);
+  // chats/ is gitignored. Whether a proposal can still be started is decided by the in-memory store.
+  #proposalFile(chatDir: string, id: string): string {
+    return path.join(chatDir, `${id}.proposals.json`);
+  }
+
+  async #readProposals(file: string): Promise<JobProposalEvent[]> {
+    try {
+      const parsed: unknown = JSON.parse(await fs.readFile(file, "utf8"));
+      return Array.isArray(parsed)
+        ? parsed.flatMap((entry) => proposalFromToolResult({ details: { proposal: entry } }) ?? [])
+        : [];
+    } catch {
+      return [];
+    }
+  }
+
+  /** Serialise read-modify-write cycles on one chat's sidecar. */
+  #updateProposals(
+    set: string,
+    id: string,
+    change: (current: JobProposalEvent[]) => JobProposalEvent[],
+  ): Promise<JobProposalEvent[]> {
+    const key = this.#key(set, id);
+    let result: JobProposalEvent[] = [];
+    const run = (this.#proposalWrites.get(key) ?? Promise.resolve()).then(async () => {
+      const file = this.#proposalFile(await this.#chatDir(set), id);
+      const current = await this.#readProposals(file);
+      result = change(current);
+      if (result.length === current.length && result.every((entry, index) => entry === current[index])) return;
+      if (result.length === 0) await fs.rm(file, { force: true });
+      else await fs.writeFile(file, `${JSON.stringify(result)}\n`);
+    });
+    const tail = run.catch(() => undefined);
+    this.#proposalWrites.set(key, tail);
+    void tail.then(() => {
+      if (this.#proposalWrites.get(key) === tail) this.#proposalWrites.delete(key);
+    });
+    return run.then(() => result);
+  }
+
+  #saveProposal(set: string, id: string, proposal: JobProposalEvent): void {
+    this.#updateProposals(set, id, (current) => [
+      ...current.filter((entry) => this.#proposals.has(entry.proposalId)),
+      proposal,
+    ]).catch(() => undefined);
+  }
+
+  /** Proposals the learner can still act on; started, dismissed and expired ones are dropped. */
+  async proposals(set: string, id: string): Promise<JobProposalEvent[]> {
+    await this.#manager(set, id);
+    return this.#updateProposals(set, id, (current) => {
+      const live = current.filter((entry) => this.#proposals.has(entry.proposalId));
+      return live.length === current.length ? current : live;
+    });
+  }
+
+  async dismissProposal(set: string, id: string, proposalId: string): Promise<void> {
+    await this.#manager(set, id);
+    this.#proposals.discard(proposalId);
+    await this.#updateProposals(set, id, (current) => current.filter((entry) => entry.proposalId !== proposalId));
+  }
+
   #flushPending(set: string, id: string, live: LiveChat): void {
     const remaining: PendingAssistant[] = [];
     for (const pending of live.pendingAssistants) {
@@ -365,7 +438,10 @@ export class ChatService {
           summary: outcome.summary,
         });
         const proposal = proposalFromToolResult(event.result);
-        if (proposal !== null) this.#publish(set, id, proposal);
+        if (proposal !== null) {
+          this.#publish(set, id, proposal);
+          this.#saveProposal(set, id, proposal);
+        }
         this.#flushPending(set, id, live);
         return;
       }
@@ -404,7 +480,7 @@ export class ChatService {
       },
       quizResults: true,
       extraTools: [
-        startJobTool({ root: this.#root, set, runtime: this.#runtime, store: jobProposals }),
+        startJobTool({ root: this.#root, set, runtime: this.#runtime, store: this.#proposals }),
         addSourceTool({ set, jobs: this.#jobs }),
       ],
     });

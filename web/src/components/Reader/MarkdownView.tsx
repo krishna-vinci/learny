@@ -36,11 +36,17 @@ const markdownComponents: Components = {
   div: ({ children, node: _node, ...rest }) => {
     const props = asProps(rest);
     const callout = props["data-callout"];
+    const rawTitle = props["data-title"];
+    const title = typeof rawTitle === "string" ? rawTitle : undefined;
     if (typeof callout === "string") {
-      return <Callout name={callout}>{children}</Callout>;
+      return (
+        <Callout name={callout} title={title}>
+          {children}
+        </Callout>
+      );
     }
     if (props["data-deeper"] !== undefined) {
-      return <Deeper>{children}</Deeper>;
+      return <Deeper title={title}>{children}</Deeper>;
     }
     return <div {...rest}>{children}</div>;
   },

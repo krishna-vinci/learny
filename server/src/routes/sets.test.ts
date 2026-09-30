@@ -5,7 +5,7 @@ import type { StudiumEvent } from "@studium/shared";
 import { Hono } from "hono";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { EventHub } from "../events.js";
-import { ensureRepo, log } from "../tree/git.js";
+import { commitAll, ensureRepo, log } from "../tree/git.js";
 import { FileLocks } from "../tree/lock.js";
 import { setsRoutes } from "./sets.js";
 
@@ -189,5 +189,56 @@ describe("sets authoring routes", () => {
     });
     expect(escaped.status).toBe(400);
     await expect(fs.readFile(path.join(outside, "escape.md"), "utf8")).resolves.toBe("secret\n");
+  });
+
+  describe("revert scope", () => {
+    async function twoSets(): Promise<void> {
+      await fs.mkdir(path.join(root, "beta/notes"), { recursive: true });
+      await fs.writeFile(path.join(root, "beta/PLAN.md"), "---\ntitle: Beta\nstatus: active\n---\n");
+      await fs.writeFile(path.join(root, "beta/notes/b.md"), "beta one\n");
+      await commitAll(root, "user: add beta", "user");
+    }
+
+    it("reverts a commit that only touches the set", async () => {
+      await fs.writeFile(path.join(root, "alpha/notes/03-vectors.md"), "changed\n");
+      const sha = await commitAll(root, "user: edit alpha", "user");
+
+      const response = await json("/api/sets/alpha/revert", "POST", { sha });
+      expect(response.status).toBe(200);
+      await expect(fs.readFile(path.join(root, "alpha/notes/03-vectors.md"), "utf8")).resolves.toContain("# Vectors");
+    });
+
+    it("returns 409 with the outside paths for a mixed commit unless scope is set", async () => {
+      await twoSets();
+      await fs.writeFile(path.join(root, "alpha/notes/03-vectors.md"), "alpha two\n");
+      await fs.writeFile(path.join(root, "beta/notes/b.md"), "beta two\n");
+      const sha = await commitAll(root, "user: edit both", "user");
+
+      const response = await json("/api/sets/alpha/revert", "POST", { sha });
+      expect(response.status).toBe(409);
+      await expect(response.json()).resolves.toEqual({
+        error: "commit touches paths outside this set",
+        paths: ["beta/notes/b.md"],
+      });
+      await expect(fs.readFile(path.join(root, "beta/notes/b.md"), "utf8")).resolves.toBe("beta two\n");
+      await expect(fs.readFile(path.join(root, "alpha/notes/03-vectors.md"), "utf8")).resolves.toBe("alpha two\n");
+    });
+
+    it("reverts only the set's paths with scope=set, including removing added files", async () => {
+      await twoSets();
+      await fs.writeFile(path.join(root, "alpha/notes/03-vectors.md"), "alpha two\n");
+      await fs.writeFile(path.join(root, "alpha/notes/new.md"), "added\n");
+      await fs.writeFile(path.join(root, "beta/notes/b.md"), "beta two\n");
+      const sha = await commitAll(root, "user: edit both", "user");
+
+      const response = await json("/api/sets/alpha/revert", "POST", { sha, scope: "set" });
+      expect(response.status).toBe(200);
+      await expect(fs.readFile(path.join(root, "alpha/notes/03-vectors.md"), "utf8")).resolves.toContain("# Vectors");
+      await expect(fs.stat(path.join(root, "alpha/notes/new.md"))).rejects.toThrow();
+      await expect(fs.readFile(path.join(root, "beta/notes/b.md"), "utf8")).resolves.toBe("beta two\n");
+      const [head] = await log(root, { limit: 1 });
+      expect(head).toMatchObject({ author: "user", subject: `user: revert ${sha?.slice(0, 7)} (set alpha only)` });
+      expect(commitEvents().at(-1)).toMatchObject({ sha: head?.sha });
+    });
   });
 });

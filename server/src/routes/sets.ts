@@ -4,7 +4,7 @@ import { Hono } from "hono";
 import type { EventHub } from "../events.js";
 import { createNote, createSet, writeNoteAsUser } from "../tree/authoring.js";
 import { EditError } from "../tree/edit.js";
-import { diff, log, RevertConflictError, revert } from "../tree/git.js";
+import { changedPaths, diff, log, RevertConflictError, revert, revertPaths } from "../tree/git.js";
 import type { FileLocks } from "../tree/lock.js";
 import { PathError, resolveInRoot } from "../tree/paths.js";
 import { isSetSlug, listNotes, listSets, readSetFile } from "../tree/read.js";
@@ -211,7 +211,20 @@ export function setsRoutes(deps: SetsDeps): Hono {
     if (sha === null) return c.json({ error: "sha is required" }, 400);
 
     try {
-      const newSha = await revert(root, sha, "user");
+      // A commit may also touch other sets or library/; reverting it whole would change them too.
+      const changed = await changedPaths(root, sha);
+      const inside = changed.filter((rel) => rel.startsWith(`${set}/`));
+      const outside = changed.filter((rel) => !rel.startsWith(`${set}/`));
+      let newSha: string | null;
+      if (outside.length === 0) {
+        newSha = await revert(root, sha, "user");
+      } else if (body.scope !== "set") {
+        return c.json({ error: "commit touches paths outside this set", paths: outside }, 409);
+      } else {
+        if (inside.length === 0) return c.json({ error: "commit does not touch this set" }, 400);
+        newSha = await revertPaths(root, sha, inside, `user: revert ${sha.slice(0, 7)} (set ${set} only)`, "user");
+        if (newSha === null) return c.json({ error: "nothing to revert" }, 409);
+      }
       const head = (await log(root, { limit: 1 }))[0];
       if (head !== undefined) {
         hub.publish({ type: "commit", sha: head.sha, subject: head.subject, author: head.author });
