@@ -1,6 +1,6 @@
 import type { FileView } from "@studium/shared";
-import { HistoryIcon, LayersIcon, PencilIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { HistoryIcon, LayersIcon, Maximize2Icon, Minimize2Icon, PencilIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useSearchParams } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
@@ -8,8 +8,14 @@ import { useSaveFile } from "@/api/queries";
 import { showJobStartedToast } from "@/components/Activity/job-start-toast";
 import { NoteHistory } from "@/components/NoteHistory";
 import { Button } from "@/components/ui/button";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { exitImmersive, isImmersive, toggleImmersive, useImmersive } from "@/lib/immersive-store";
+import { readingPrefsVars, useReadingPrefs } from "@/lib/reading-prefs";
+import { readScrollPosition, saveScrollPosition } from "@/lib/scroll-memory";
 import { cn } from "@/lib/utils";
+import { ImmersiveExitButton } from "./ImmersiveExitButton";
 import { MarkdownView } from "./MarkdownView";
+import { ReadingSettingsControl } from "./ReadingSettings";
 
 export interface ReaderProps {
   set: string;
@@ -122,7 +128,8 @@ function NoteEditor({ set, path, file, onDone }: { set: string; path: string; fi
 }
 
 /** The note reader: title + rendered body, with a history panel toggled from the note header
- * (`GET /history`, `GET /diff`, `POST /revert` — see `NoteHistory`). */
+ * (`GET /history`, `GET /diff`, `POST /revert` — see `NoteHistory`), the reading-comfort
+ * settings (B1), immersive full screen (B2) and per-note scroll restore (B3). */
 export function Reader({ set, path, file, className }: ReaderProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const commitParam = searchParams.get("commit") ?? undefined;
@@ -131,6 +138,9 @@ export function Reader({ set, path, file, className }: ReaderProps) {
   // `?edit=1` (from NewNoteDialog, so a freshly created blank note opens straight into
   // the editor) starts editing immediately; otherwise the reader starts read-only.
   const [editing, setEditing] = useState(() => searchParams.get("edit") === "1");
+  const prefs = useReadingPrefs();
+  const immersive = useImmersive();
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   async function makeCards() {
     setMakingCards(true);
@@ -148,6 +158,92 @@ export function Reader({ set, path, file, className }: ReaderProps) {
   useEffect(() => {
     if (commitParam) setHistoryOpen(true);
   }, [commitParam]);
+
+  // B2: `f` toggles immersive on desktop; Esc exits when the browser doesn't own the
+  // fullscreen (the CSS-only fallback). Typing targets keep their keys.
+  useEffect(() => {
+    if (!isDesktop) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
+      if (event.key === "f") {
+        event.preventDefault();
+        toggleImmersive();
+      } else if (event.key === "Escape" && isImmersive()) {
+        exitImmersive();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isDesktop]);
+
+  // Immersive is a reading mode: leave it when the reader goes away (navigating off the
+  // note) or when the note opens into the editor.
+  useEffect(() => {
+    if (editing) exitImmersive();
+  }, [editing]);
+  useEffect(() => () => exitImmersive(), []);
+
+  // B3: save the scroll position under this note's key, debounced so scrolling writes
+  // at most once per 150ms pause. Saving pauses while a restore is in flight (the
+  // clamped intermediate scrolls must not clobber the stored position), and cleanup
+  // cancels the pending save without flushing: when a SPA navigation swaps to a shorter
+  // note, the browser clamps scrollY to 0 before this listener detaches, and saving
+  // that would erase the position we are about to restore.
+  const restoring = useRef(false);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const onScroll = () => {
+      if (restoring.current || timer !== null) return;
+      timer = setTimeout(() => {
+        timer = null;
+        saveScrollPosition(set, path, window.scrollY);
+      }, 150);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (timer !== null) clearTimeout(timer);
+    };
+  }, [set, path]);
+  const restoredNote = useRef<string | null>(null);
+  useEffect(() => {
+    const noteKey = `${set}/${path}`;
+    if (restoredNote.current === noteKey) return;
+    restoredNote.current = noteKey;
+    const target = readScrollPosition(set, path);
+    // An in-note anchor (footnote/citation link) takes precedence over the restore.
+    if (target === null || window.location.hash) return;
+
+    const maxScroll = () => Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+    restoring.current = true;
+    let lastSet = window.scrollY;
+    window.scrollTo(0, Math.min(target, maxScroll()));
+    lastSet = window.scrollY;
+    // Content keeps growing for a moment (web fonts, mermaid, images); top the scroll
+    // back up as it does — for at most 2s, and never past what the reader scrolled to.
+    const deadline = performance.now() + 2000;
+    let frame = requestAnimationFrame(function tick() {
+      if (Math.abs(window.scrollY - lastSet) >= 4) {
+        restoring.current = false; // the reader scrolled somewhere else; leave them there
+        return;
+      }
+      const clamped = Math.min(target, maxScroll());
+      window.scrollTo(0, clamped);
+      lastSet = clamped;
+      if (clamped < target && performance.now() < deadline) {
+        frame = requestAnimationFrame(tick);
+        return;
+      }
+      restoring.current = false;
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      restoring.current = false;
+    };
+  }, [set, path]);
+
   // Notes usually open with their own `# Title`; only show the frontmatter title when they don't.
   const bodyHasTitle = /^\s*#\s/.test(file.body);
 
@@ -184,9 +280,20 @@ export function Reader({ set, path, file, className }: ReaderProps) {
   }
 
   return (
-    <div className={cn("flex min-h-full w-full items-stretch", className)}>
-      <article className="min-w-0 flex-1 px-4 py-4 md:px-6 md:py-6">
-        <div className="mx-auto w-full max-w-3xl">
+    <div
+      className={cn("flex min-h-full w-full items-stretch", className)}
+      // B1: the reader root carries the reading prefs as `--reader-*` variables.
+      style={readingPrefsVars(prefs)}
+    >
+      <article
+        className={cn(
+          "min-w-0 flex-1 px-4 py-4 md:px-6 md:py-6",
+          // Immersive hides the mobile header, so the article picks up the safe-area top
+          // inset itself; desktop gets extra breathing room over the toolbar.
+          immersive && "pt-[calc(env(safe-area-inset-top,0px)+1rem)] md:pt-16",
+        )}
+      >
+        <div className="mx-auto w-full" style={{ maxWidth: "calc(var(--reader-measure, 72ch) + 4rem)" }}>
           {/* Phone: the toolbar gets its own row, since floating it beside the title clips it. */}
           <div
             className={cn(
@@ -213,11 +320,24 @@ export function Reader({ set, path, file, className }: ReaderProps) {
                 <HistoryIcon />
                 History
               </Button>
+              <ReadingSettingsControl />
+              <Button
+                variant={immersive ? "secondary" : "outline"}
+                size="sm"
+                aria-pressed={immersive}
+                aria-label={immersive ? "Exit full screen" : "Full screen"}
+                title={immersive ? "Exit full screen (f)" : "Full screen (f)"}
+                onClick={toggleImmersive}
+              >
+                {immersive ? <Minimize2Icon /> : <Maximize2Icon />}
+                <span className="hidden md:inline">{immersive ? "Exit full screen" : "Full screen"}</span>
+              </Button>
             </div>
           </div>
           <MarkdownView content={file.body} />
         </div>
       </article>
+      {immersive && <ImmersiveExitButton />}
       {historyOpen && (
         <NoteHistory
           set={set}
