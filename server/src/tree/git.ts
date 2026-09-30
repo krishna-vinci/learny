@@ -220,9 +220,17 @@ export async function trackedFiles(root: string, ignorePattern: string): Promise
   return output.split("\n").filter((line) => line !== "");
 }
 
-export async function log(root: string, opts?: { path?: string; limit?: number }): Promise<CommitInfo[]> {
+export async function log(
+  root: string,
+  opts?: { path?: string; limit?: number; author?: Author },
+): Promise<CommitInfo[]> {
   const limit = opts?.limit ?? 50;
   const args = ["log", `--format=${LOG_FORMAT}`, "-n", String(limit)];
+  if (opts?.author) {
+    // Exact author name, anchored so "Studium User" never matches a longer name.
+    const name = AUTHOR_ENV[opts.author].GIT_AUTHOR_NAME;
+    args.push(`--author=^${name} <`);
+  }
   if (opts?.path) {
     args.push("--", opts.path);
   }
