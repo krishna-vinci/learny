@@ -55,6 +55,7 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - The study tree git repo auto-commits per role author (tutor/librarian/drafter/checker/cardsmith/critic/user/system).
 
 ## Gotchas learned the hard way
+- **Claude cloud tasks:** a self-contained plan in `docs/plans/` → the cloud session works on a `claude/<task>` branch → PR → the orchestrator fetches it into a review worktree, merges main in, reruns tests and merges with `gh pr merge`. The cloud can't see local data or services.
 - **Default skills:** edit `skills/*` in the repo, then run `node scripts/skill-history.mjs` so `skills/.defaults-history.json` records the new hashes. On boot, `syncDefaultSkills` updates tree copies that match a known earlier default, keeps user-edited ones, and commits `system: update default skills`.
 - **Tools on the host:** `pandoc` 3.12 and `typst` 0.15.1 are in `~/.local/bin` (the service PATH includes it). MinerU isn't deployed yet (`MINERU_URL` unset).
 - **Never stop processes broadly** (`pkill node`, `pkill tsx`, `killall`). Stop only the PID of the test server you started (save `$!`). The live app is the `studium.service` user unit on port 3000; a broad kill took the site down on 2026-09-30. The unit now uses `Restart=always`, but still don't do it.
@@ -88,16 +89,14 @@ The orchestrator keeps the rest of this file current. When something listed unde
   - a server change that syncs default skills into existing trees without overwriting skills the user edited
 - **Reading width default:** 72ch (the plan's number); the old look was 68ch. The owner may prefer 68.
 - **M4 items:** Firecrawl map/crawl ("add a whole docs site"), Today page, search, selection actions, Outliner, book PDF (Pandoc → Typst; not installed), MinerU.
-- **ROADMAP follow-ups:**
-  - revert scope
-  - persist chat proposals across reloads
-  - resumed-ingest title
-  - per-field frontmatter fallback
-  - directive attributes
+- **ROADMAP follow-ups left:**
   - code-splitting (the bundle is over 500 kB)
+  - the web half of chat proposals: on chat load, GET `/api/sets/:set/chats/:id/proposals`, render the cards, and dismiss via DELETE (goes with the next chat UI task)
+  - the revert UI doesn't send `{"scope":"set"}` yet
 - **Backups:** not configured yet on the live instance. The owner does this in Settings → Backups.
 
 ## Recently done
+- PR #1 M0–M2 follow-ups (51f8bfe): revert scope, persisted chat proposals (server), resumed-ingest title, directive titles · M4-6 site import (40c34cd)
 - M4-2 search (11cbdeb) · M4-3 quotes + highlights (62b6e78), M4-1 Today API (e173784), M4-0 research skills + skill sync (718fbba)
 - M3b slice C themes (merge of codex/m3b, 2026-09-30)
 - 499eb3a M3b slice B · 0265a62 M3b slice A · 8b12aca Context7 MCP · Firecrawl v2 + LAN endpoint
@@ -111,3 +110,5 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - 2026-09-30 · M4-1 (Sol 6.1) · `GET /api/today` (`server/src/today/build.ts`, `routes/today.ts`, `inbox/read.ts`); git `log` gained an `author` filter (orchestrator fix: reads one commit, not the full history) · Today UI is Sonnet's.
 - 2026-09-30 · M4-3 (DeepSeek) · chat `quote` field (`chat-service.ts` `learnerTurn`); highlights API `routes/highlights.ts` at `<set>/highlights/<note>.json`; body key `comment` = annotation · the transcript keeps the full quote.
 - 2026-09-30 · M4-2 (Sol 6.1) · `server/src/search/index.ts` (FTS5 per workspace at `.cache/search.db`), `routes/search.ts`, workspace lifecycle hooks · chats matched at query time; last term is a prefix; result paths are root-relative, cards use `#card-id` · none open.
+- 2026-09-30 · M4-6 (Sol 6.1) · `ingest/firecrawl.ts` firecrawlMap; `routes/library.ts` site-map/site-import (host or subdomain only, 100 cap, 3 concurrent, dedupe); AI-gated · the pending queue is in memory (lost on restart) · UI later.
+- 2026-09-30 · PR #1 (Claude cloud, Sonnet) · revert scope (`git.ts` changedPaths/revertPaths, 409 or `scope:"set"`); chat proposals sidecar `<set>/chats/<id>.proposals.json` + GET/DELETE routes; resumed-ingest title; directive `{title=}` · the web proposals UI is still open.
