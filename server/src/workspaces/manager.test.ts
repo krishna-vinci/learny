@@ -5,7 +5,7 @@ import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import { promisify } from "node:util";
 import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createUser, type User, updateUser } from "../accounts/users.js";
 import { migrate, openDb } from "../db/db.js";
 import type { Notifier } from "../notify/notifier.js";
@@ -53,6 +53,33 @@ async function createNormalUser(input: Parameters<typeof createUser>[1]): Promis
 }
 
 describe("WorkspaceManager", () => {
+  it("rebuilds private search caches at startup and subscribes to file updates", async () => {
+    const alice = await createUser(db, { username: "alice", role: "USER" });
+    const bob = await createUser(db, { username: "bob", role: "USER" });
+    const aliceRoot = await manager.provision("alice");
+    await fs.mkdir(path.join(aliceRoot, "private/notes"), { recursive: true });
+    await fs.writeFile(path.join(aliceRoot, "private/PLAN.md"), "---\ntitle: Private\n---\n");
+    const rel = "private/notes/01.md";
+    await fs.writeFile(path.join(aliceRoot, rel), "# Privatequasar\n");
+    const first = await manager.for(alice);
+    const second = await manager.for(bob);
+    await vi.waitFor(() => expect(first.search.query({ q: "privatequasar", limit: 50 })).toHaveLength(1));
+    await expect((await first.app.request("/api/search?q=privatequasar")).json()).resolves.toMatchObject({
+      results: [expect.objectContaining({ path: rel })],
+    });
+    await expect((await second.app.request("/api/search?q=privatequasar")).json()).resolves.toEqual({ results: [] });
+    await fs.writeFile(path.join(aliceRoot, rel), "# Updatedquasar\n");
+    first.hub.publish({ type: "file", set: "private", path: rel, change: "change" });
+    await vi.waitFor(() => expect(first.search.query({ q: "updatedquasar", limit: 50 })).toHaveLength(1));
+    expect(first.search.query({ q: "privatequasar", limit: 50 })).toEqual([]);
+    await fs.rm(path.join(aliceRoot, rel));
+    first.hub.publish({ type: "file", set: "private", path: rel, change: "unlink" });
+    await vi.waitFor(() => expect(first.search.query({ q: "updatedquasar", limit: 50 })).toEqual([]));
+    await manager.stop("alice");
+    first.hub.publish({ type: "file", set: "private", path: rel, change: "change" });
+    expect(() => first.search.query({ q: "quasar", limit: 50 })).toThrow();
+  });
+
   it("isolates each user's study tree", async () => {
     const first = await createNormalUser({ username: "alice", role: "USER" });
     const second = await createUser(db, { username: "bob", role: "USER" });

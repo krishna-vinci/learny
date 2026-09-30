@@ -185,6 +185,23 @@ export type StudiumEvent =
   | { type: "chat"; set: string; chatId: string; event: ChatStreamEvent }
   | { type: "job"; job: JobView };
 
+export type SearchKind = "note" | "source" | "card" | "chat";
+
+/** Search paths are root-relative; cards include a #card-id fragment, chats use their session id. */
+export interface SearchResult {
+  kind: SearchKind;
+  set: string | null;
+  path: string;
+  title: string;
+  snippet: string;
+  /** Higher scores rank first. FTS scores are negated bm25 values. */
+  score: number;
+}
+
+export interface SearchResponse {
+  results: SearchResult[];
+}
+
 export type CardType = "basic" | "cloze";
 export type CardStatus = "draft" | "approved" | "rejected" | "exported";
 /** Statuses the learner may set from the review UI (never `exported` directly). */

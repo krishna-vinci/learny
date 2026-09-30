@@ -16,6 +16,7 @@ import { JobRunner } from "../jobs/runner.js";
 import { McpManager } from "../mcp/bridge.js";
 import { loadMcpConfig } from "../mcp/config.js";
 import type { Notifier } from "../notify/notifier.js";
+import { openSearchIndex, type SearchIndex } from "../search/index.js";
 import { commitAll, ensureRepo } from "../tree/git.js";
 import { initStudyTree } from "../tree/init.js";
 import { FileLocks } from "../tree/lock.js";
@@ -39,6 +40,7 @@ export interface Workspace {
   mcp: McpManager;
   jobs: JobRunner;
   chats: ChatService;
+  search: SearchIndex;
   app: Hono;
   stop(): Promise<void>;
 }
@@ -169,12 +171,22 @@ export class WorkspaceManager {
     jobs.seedHistory(await loadJobHistory(root));
 
     const chats = new ChatService({ root, hub, locks, mcp, runtime: this.#runtime, jobs });
+    const search = openSearchIndex(root);
+    const reportSearchError = (error: unknown) => console.warn(`studium: search index for ${username}`, error);
+    void search.rebuildAll().catch(reportSearchError);
+    const stopSearchUpdates = hub.subscribe((event) => {
+      if (event.type !== "file") return;
+      void Promise.resolve()
+        .then(() => (event.change === "unlink" ? search.removePath(event.path) : search.upsertPath(event.path)))
+        .catch(reportSearchError);
+    });
     const app = createApp({
       root,
       hub,
       locks,
       chats,
       jobs,
+      search,
       settings: { runtime: this.#runtime, mcp, env: process.env },
     });
 
@@ -191,12 +203,15 @@ export class WorkspaceManager {
       mcp,
       jobs,
       chats,
+      search,
       app,
       async stop(): Promise<void> {
         if (stopped) return;
         stopped = true;
         stopNotifications();
+        stopSearchUpdates();
         await stopWatcher().catch(() => undefined);
+        await search.close();
         if (stopInboxWatcher !== null) await stopInboxWatcher().catch(() => undefined);
         await mcp.stop().catch(() => undefined);
       },

@@ -11,9 +11,11 @@ import { exportRoutes } from "./routes/export.js";
 import { highlightsRoutes } from "./routes/highlights.js";
 import { inboxRoutes } from "./routes/inbox.js";
 import { libraryRoutes } from "./routes/library.js";
+import { searchRoutes } from "./routes/search.js";
 import { setsRoutes } from "./routes/sets.js";
 import { type SettingsRouteDeps, settingsRoutes } from "./routes/settings.js";
 import { todayRoutes } from "./routes/today.js";
+import type { SearchIndex } from "./search/index.js";
 import type { FileLocks } from "./tree/lock.js";
 
 export interface AppDeps {
@@ -22,6 +24,7 @@ export interface AppDeps {
   locks: FileLocks;
   chats: ChatService;
   jobs?: JobRunner;
+  search?: SearchIndex;
   settings?: SettingsRouteDeps;
 }
 
@@ -40,6 +43,13 @@ export function createApp(deps: AppDeps | LegacyAppDeps): Hono {
   app.route("/api/sets/:set", exportRoutes({ root: deps.root, locks: deps.locks, hub: deps.hub }));
   app.route("/api/events", eventsRoutes(deps.hub));
   app.route("/api/today", todayRoutes({ root: deps.root, jobs: deps.jobs }));
+
+  if (deps.search !== undefined) {
+    app.route(
+      "/api/search",
+      searchRoutes({ root: deps.root, index: deps.search, chats: "chats" in deps ? deps.chats : undefined }),
+    );
+  }
 
   if (deps.jobs !== undefined) {
     app.route("/api/jobs", jobsRoutes({ runner: deps.jobs, root: deps.root }));
