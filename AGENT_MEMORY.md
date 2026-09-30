@@ -20,11 +20,12 @@ Keep the rest of this file current. When you fix something listed under "Open ga
   - Never load orchestration skills. Never spawn workers. Never commit or push.
   - Never touch `.env*`, `data/`, or `.claude/`.
 - **Model routing** (`.claude/skills/codex-orchestrate/dispatch.sh` aliases):
-  - `precise` (GLM 5.3 Flash) is the default for careful work. Full `glm` hit its quota; use it only if asked.
-  - `fast` (DeepSeek 4.1 Flash) for simple, broad work.
-  - `sol` (GPT-5.6 Sol) and `sol61` (GPT-6.1 Sol) for hard or security work.
-  - Frontend work goes to GLM Flash or Claude Sonnet, with the `ui-ux-pro-max` skill.
-  - Only one GLM run at a time (429s).
+  - `sol61` (GPT-6.1 Sol, the most intelligent) for backend and high-scope tasks.
+  - `fast` (DeepSeek 4.1 Flash) for fast, simple fixes and quick exploration before a Sonnet prompt.
+  - `precise` (GLM 5.3 Flash) for light fixes with a tight scope only; it's slow.
+  - `luna` (GPT-6 Luna, xhigh) for dead-simple fixes.
+  - **Sonnet** for high-stack frontend. It needs a precise prompt (exact files, APIs with file:line, expected behavior) and does the last pass when other agents did frontend work. Reuse ONE Sonnet session per milestone.
+  - `glm` (full GLM 5.3) and `sol` (5.6) only when asked. Only one GLM run at a time (429s). Frontend prompts use the `ui-ux-pro-max` skill.
 - Specs: `docs/PRINCIPLES.md`, `docs/decisions/LOG.md` (D1–D28; it overrides `docs/PROPOSAL.md`), `docs/ROADMAP.md`, `AGENTS.md` (testing policy, high-risk areas).
 
 ## System map
