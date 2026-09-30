@@ -1,6 +1,6 @@
 # M4-7a — Today page, ⌘K search palette, reader selection menu + highlights (web only)
 
-You are the frontend implementer for Studium, the persistent Sonnet session for M4. You work in the worktree `/home/krishna/learny-worktrees/m4-7` (branch `codex/m4-7`). Use absolute paths or `cd` into it for every command, and never edit `/home/krishna/learny` itself.
+You are the frontend IMPLEMENTER for Studium (GPT-6.1 Sol via Codex; do not load orchestration skills or spawn sub-agents). You work in the worktree `/home/krishna/learny-worktrees/m4-7` (branch `codex/m4-7`). Use absolute paths or `cd` into it for every command, and never edit `/home/krishna/learny` itself.
 - Only change `web/`. Don't commit. Don't edit `AGENT_MEMORY.md`: put your log entry in the report.
 - Never pkill or killall; stop only the server PID you started.
 - Read `AGENT_MEMORY.md` (in the worktree) and `docs/plans/2026-09-30-m4-study-loop.md` (M4-7 and the Decisions table).
