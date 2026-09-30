@@ -64,6 +64,8 @@ export function plaintext(raw: string): string {
   let text = raw.replace(FRONTMATTER, "");
   text = dropFences(text);
   text = dropFootnoteDefinitions(text);
+  // HTML comments, e.g. parser page markers like `<!-- p:4 -->`, are never content.
+  text = text.replace(/<!--[\s\S]*?-->/g, " ");
   text = text
     .replace(FOOTNOTE_REFERENCE, "")
     .replace(DIRECTIVE_FENCE, "")

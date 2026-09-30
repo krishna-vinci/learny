@@ -78,4 +78,8 @@ describe("plaintext", () => {
     expect(result).toBe("Every matrix $A = U\\Sigma V^\\top$ factors. $$ A = U \\Sigma V^\\top $$");
     expect(result).not.toMatch(/\s{2,}/);
   });
+
+  it("drops HTML comments such as page markers", () => {
+    expect(plaintext("Tokenizer <!-- p:4 --> compression")).toBe("Tokenizer compression");
+  });
 });
