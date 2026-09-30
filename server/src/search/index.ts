@@ -4,6 +4,7 @@ import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { parseCardFile, parseFrontmatter, type SearchKind, type SearchResult } from "@studium/shared";
 import { PathError, resolveInRoot } from "../tree/paths.js";
 import { isSetSlug } from "../tree/read.js";
+import { plaintext } from "./plaintext.js";
 
 export interface SearchQuery {
   q: string;
@@ -150,7 +151,7 @@ export class SearchIndex {
           set: null,
           path: source,
           title: titleOf(parsed, dir.split("/")[1] ?? dir),
-          body: bodies.join("\n\n"),
+          body: plaintext(bodies.join("\n\n")),
           file: source,
         },
       ];
@@ -171,7 +172,14 @@ export class SearchIndex {
     if (kind === "notes") {
       const parsed = markdown(raw);
       return [
-        { kind: "note", set, path: rel, title: titleOf(parsed, filename.slice(0, -3)), body: parsed.body, file: rel },
+        {
+          kind: "note",
+          set,
+          path: rel,
+          title: titleOf(parsed, filename.slice(0, -3)),
+          body: plaintext(parsed.body),
+          file: rel,
+        },
       ];
     }
     let cards: ReturnType<typeof parseCardFile>;
@@ -185,7 +193,7 @@ export class SearchIndex {
       set,
       path: `${rel}#${card.id}`,
       title: card.q ?? card.text ?? card.id,
-      body: [card.q, card.a, card.text, card.extra].filter((text) => text !== null).join("\n"),
+      body: plaintext([card.q, card.a, card.text, card.extra].filter((text) => text !== null).join("\n")),
       file: rel,
     }));
   }

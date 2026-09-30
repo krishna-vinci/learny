@@ -70,6 +70,38 @@ describe("SearchIndex", () => {
     }
   });
 
+  it("indexes a plain-text note body without mermaid, footnotes or heading markers", async () => {
+    await write(
+      NOTE,
+      `---
+title: Singular value decomposition
+sources: [lib-strang-la]
+---
+
+# Why it matters for ML
+
+The SVD underpins PCA and low-rank compression.
+
+\`\`\`mermaid
+graph LR
+  U["U"] --> Ax["A x"]
+\`\`\`
+
+Footnote reference.[^src:lib-strang-la#p364]
+
+[^src:lib-strang-la#p364]: Strang, *Introduction to Linear Algebra*, ch. 7.
+`,
+    );
+    await index.upsertPath(NOTE);
+    const [result] = index.query({ q: "low-rank compression", limit: 50 });
+    const snippet = (result?.snippet ?? "").replace(/\[\[|\]\]/g, "");
+    expect(snippet).toContain("The SVD underpins PCA and low-rank compression.");
+    for (const forbidden of ["-->", "```", "[^src", "#"]) {
+      expect(snippet).not.toContain(forbidden);
+    }
+    expect(index.query({ q: "graph LR", kinds: ["note"], limit: 50 }).map((hit) => hit.path)).not.toContain(NOTE);
+  });
+
   it("prefix-matches the last word and treats explicit prefix syntax safely", () => {
     for (const q of ["decompos", "singular value decompos", "decompos*"]) {
       expect(index.query({ q, limit: 50 }).map((result) => result.path)).toContain(NOTE);
