@@ -57,8 +57,31 @@ export function parsePlanProposal(text: string): PlanProposal {
     chapters.some((chapter, index) => chapter.number !== index + 1 || !chapter.scope || !chapter.prerequisites)
   )
     throw new Error("curriculum must have 6–14 numbered chapters with scope and prerequisites");
+  const numbers = new Set(chapters.map((chapter) => chapter.number));
+  for (const chapter of chapters) {
+    if (chapter.prerequisites === "none") continue;
+    if (!/^\d{2,}(?:\s*,\s*\d{2,})*$/.test(chapter.prerequisites))
+      throw new Error("prerequisites must be none or distinct earlier chapter numbers separated by commas");
+    const references = chapter.prerequisites.split(",").map((value) => Number(value.trim()));
+    if (
+      new Set(references).size !== references.length ||
+      references.some((number) => !numbers.has(number) || chapter.number === null || number >= chapter.number)
+    )
+      throw new Error("prerequisites must reference distinct existing earlier chapters");
+  }
   const sourceSection = /^## Sources to add\s*\r?\n([\s\S]*?)(?=^## |$(?![\s\S]))/gm.exec(text)?.[1] ?? "";
   const sourcesToAdd = [...sourceSection.matchAll(/https?:\/\/[^\s<>\])]+/g)].map((match) => match[0]);
   for (const url of sourcesToAdd) new URL(url);
-  return { plan, curriculum, sourcesToAdd: [...new Set(sourcesToAdd)] };
+  return {
+    plan,
+    curriculum,
+    sourcesToAdd: [...new Set(sourcesToAdd)],
+    chapters: chapters.map((chapter) => ({
+      number: chapter.number as number,
+      title: chapter.title,
+      scope: chapter.scope,
+      prerequisites: chapter.prerequisites,
+      ticked: chapter.checked,
+    })),
+  };
 }

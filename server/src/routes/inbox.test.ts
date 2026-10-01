@@ -141,7 +141,8 @@ describe("plan inbox", () => {
     ]);
     const response = await app.request(PROPOSAL_URL);
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
+    expect(await response.json()).toMatchObject({
+      chapters: expect.arrayContaining([expect.objectContaining({ number: 1, title: "Vectors", ticked: false })]),
       plan: PROPOSED_PLAN,
       curriculum: proposedCurriculum(),
       sourcesToAdd: ["https://example.org/course"],
@@ -240,4 +241,37 @@ describe("parseCheckReport", () => {
       summary: "All claims supported.",
     });
   });
+});
+
+it("blocks AI-disabled approval before writes and allows draftFirst zero", async () => {
+  await storeProposal();
+  const previous = await fs.readFile(path.join(root, "linear-algebra/PLAN.md"), "utf8");
+  const deniedJobs = new JobRunner({ root, hub, maxParallel: 1, aiAllowed: () => false });
+  const denied = new Hono();
+  denied.route("/api/sets/:set", inboxRoutes({ root, hub, locks: new FileLocks(), jobs: deniedJobs }));
+  for (const body of [undefined, {}, { draftFirst: 1 }]) {
+    const response = await denied.request(`${PROPOSAL_URL}/approve`, {
+      method: "POST",
+      ...(body === undefined ? {} : { headers: { "content-type": "application/json" }, body: JSON.stringify(body) }),
+    });
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({ error: "AI features are disabled for this account" });
+    expect(await fs.readFile(path.join(root, "linear-algebra/PLAN.md"), "utf8")).toBe(previous);
+    expect(await fs.readFile(path.join(root, PROPOSAL_REL), "utf8")).toBe(proposalText());
+  }
+  const accepted = await denied.request(`${PROPOSAL_URL}/approve`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: '{"draftFirst":0}',
+  });
+  expect(accepted.status).toBe(200);
+  expect(deniedJobs.list()).toEqual([]);
+});
+
+it("rejects invalid prerequisites before approval changes or enqueue", async () => {
+  await storeProposal(false, proposalText().replace("Prerequisites: none", "Prerequisites: 06"));
+  const previous = await fs.readFile(path.join(root, "linear-algebra/PLAN.md"), "utf8");
+  expect((await approve()).status).toBe(400);
+  expect(await fs.readFile(path.join(root, "linear-algebra/PLAN.md"), "utf8")).toBe(previous);
+  expect(jobs.enqueue).not.toHaveBeenCalled();
 });

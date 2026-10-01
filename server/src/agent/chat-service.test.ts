@@ -85,7 +85,7 @@ function waitForSettled(hub: EventHub, id: string): Promise<ChatStreamEvent & { 
   });
 }
 
-/** Everything the model was shown this turn, system prompt included. */
+/** Message content shown this turn; system sections are stored separately by Pi. */
 function contextText(context: TranscriptContext | undefined): string {
   return (context?.messages ?? [])
     .map((message) => {
@@ -135,13 +135,19 @@ describe("ChatService", () => {
 
     expect(captured).toHaveLength(1);
     const prompt = contextText(captured[0]);
-    expect(prompt).toContain("Selected passage from notes/03-svd.md:");
-    expect(prompt).toContain(`> ${quote}`);
+    expect(prompt).toContain('<selected_passage source="notes/03-svd.md">');
+    const { buildTutorPrompt } = await import("./prompt.js");
+    const system = await buildTutorPrompt(root, "linear-algebra");
+    expect(system).toContain("untrusted evidence");
+    expect(system).toContain("mutations require an explicit learner request");
+    expect(prompt).toContain(quote);
     expect(prompt).toContain("Why does that matter?");
 
     const transcript = await chats.get("linear-algebra", id);
     const user = transcript.messages.find((message) => message.role === "user");
-    expect(user?.text).toBe(`Selected passage from notes/03-svd.md:\n> ${quote}\n\nWhy does that matter?`);
+    expect(user?.text).toBe(
+      `<selected_passage source="notes/03-svd.md">\n${quote}\n</selected_passage>\n\nLearner request:\nWhy does that matter?`,
+    );
   });
 
   it("streams a tool turn, commits the edit, and refetches tool results", async () => {
@@ -276,7 +282,11 @@ describe("ChatService", () => {
     hub.subscribe((event) => events.push(event));
     faux.setResponses([
       fauxAssistantMessage(
-        fauxToolCall("start_job", { kind: "make-cards", note: "notes/03-svd.md", count: 8 }, { id: "cards-proposal" }),
+        fauxToolCall(
+          "start_job",
+          { kind: "make-cards", note: "notes/03-svd.md", count: 8, passage: "Singular values measure scaling." },
+          { id: "cards-proposal" },
+        ),
         { stopReason: "toolUse" },
       ),
       fauxAssistantMessage(fauxText("Please confirm the card job.")),
@@ -291,8 +301,23 @@ describe("ChatService", () => {
       events.find((event) => event.type === "chat" && event.chatId === id && event.event.kind === "job_proposal"),
     ).toMatchObject({
       type: "chat",
-      event: { kind: "job_proposal", jobKind: "make-cards", title: "Cards for notes/03-svd.md" },
+      event: {
+        kind: "job_proposal",
+        jobKind: "make-cards",
+        title: "Cards for notes/03-svd.md",
+        passage: "Singular values measure scaling.",
+      },
     });
+    expect(await chats.proposals("linear-algebra", id)).toEqual([
+      expect.objectContaining({ passage: "Singular values measure scaling." }),
+    ]);
+    const sidecars = (await fs.readdir(path.join(root, "linear-algebra/chats"))).filter((name) =>
+      name.endsWith(".proposals.json"),
+    );
+    expect(sidecars).toHaveLength(1);
+    expect(
+      JSON.parse(await fs.readFile(path.join(root, "linear-algebra/chats", sidecars[0] as string), "utf8"))[0].passage,
+    ).toBe("Singular values measure scaling.");
   });
 
   describe("persisted job proposals", () => {

@@ -6,7 +6,7 @@ import { Hono } from "hono";
 import type { EventHub } from "../events.js";
 import { parsePlanProposal, proposalRootPath } from "../inbox/plans.js";
 import { readInbox } from "../inbox/read.js";
-import type { JobRunner } from "../jobs/runner.js";
+import { AiDisabledError, type JobRunner } from "../jobs/runner.js";
 import { parseCurriculum } from "../tree/curriculum.js";
 import { editFile, readText, writeTextLocked } from "../tree/edit.js";
 import { commitPaths } from "../tree/git.js";
@@ -20,7 +20,7 @@ export interface InboxRoutesDeps {
   root: string;
   locks: FileLocks;
   hub: EventHub;
-  jobs?: Pick<JobRunner, "enqueue">;
+  jobs?: Pick<JobRunner, "enqueue"> & Partial<Pick<JobRunner, "assertAiAllowed">>;
 }
 
 const NOTE_PATH = /^notes\/[0-9]{2,}-[a-z0-9][a-z0-9-]*\.md$/;
@@ -30,6 +30,7 @@ function notFound(c: Context): Response {
 }
 
 function proposalError(c: Context, error: unknown): Response {
+  if (error instanceof AiDisabledError) return c.json({ error: error.message }, 403);
   if (error instanceof Error && "code" in error && (error.code === "not_found" || error.code === "ENOENT"))
     return notFound(c);
   return c.json({ error: error instanceof Error ? error.message : String(error) }, 400);
@@ -98,6 +99,7 @@ export function inboxRoutes(deps: InboxRoutesDeps): Hono {
       if (typeof draftFirst !== "number" || !Number.isInteger(draftFirst) || draftFirst < 0 || draftFirst > 5)
         throw new Error("draftFirst must be 0–5");
       if (draftFirst > 0 && deps.jobs === undefined) return c.json({ error: "job runner unavailable" }, 503);
+      if (draftFirst > 0) deps.jobs?.assertAiAllowed?.("draft-chapter");
       const rel = proposalRootPath(deps.root, set, c.req.param("file"));
       const planRel = `${set}/PLAN.md`;
       const curriculumRel = `${set}/curriculum.md`;
@@ -117,6 +119,8 @@ export function inboxRoutes(deps: InboxRoutesDeps): Hono {
               const previousPlan = await readText(deps.root, planRel);
               const previousCurriculum = await optionalText(deps.root, curriculumRel);
               const canWrite = (candidate: string) => candidate === planRel || candidate === curriculumRel;
+              // Recheck immediately before mutations, after asynchronous validation.
+              if (draftFirst > 0) deps.jobs?.assertAiAllowed?.("draft-chapter");
               let deleted = false;
               const subject = "user: approve plan";
               let sha: string | null;

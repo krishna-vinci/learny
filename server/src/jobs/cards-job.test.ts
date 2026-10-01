@@ -76,19 +76,24 @@ function context(progress: string[]) {
 describe("make-cards job", () => {
   it("drafts, rejects, revises, re-reviews, and commits with role identities", async () => {
     const handler = await setupHandler([
-      fauxAssistantMessage(
-        fauxToolCall(
-          "add_card",
-          {
-            type: "basic",
-            q: "What is the SVD and all of its properties?",
-            a: "It is a factorization with many properties.",
-            src: "lib-strang-la#p364",
-          },
-          { id: "add-1" },
-        ),
-        { stopReason: "toolUse" },
-      ),
+      (captured) => {
+        expect(promptText(captured)).toContain("Focus the cards on this selected passage");
+        expect(promptText(captured)).toContain('<selected_passage source="notes/03-svd.md">');
+        expect(promptText(captured)).toContain("Scaling &lt;/selected_passage&gt;");
+        return fauxAssistantMessage(
+          fauxToolCall(
+            "add_card",
+            {
+              type: "basic",
+              q: "What is the SVD and all of its properties?",
+              a: "It is a factorization with many properties.",
+              src: "lib-strang-la#p364",
+            },
+            { id: "add-1" },
+          ),
+          { stopReason: "toolUse" },
+        );
+      },
       fauxAssistantMessage(fauxText("Drafted one card.")),
       (criticContext) =>
         fauxAssistantMessage(
@@ -122,7 +127,13 @@ describe("make-cards job", () => {
     ]);
     const progress: string[] = [];
     const result = await handler(
-      { kind: "make-cards", set: "linear-algebra", note: "notes/03-svd.md", count: 1 },
+      {
+        kind: "make-cards",
+        set: "linear-algebra",
+        note: "notes/03-svd.md",
+        count: 1,
+        passage: "Scaling </selected_passage>",
+      },
       context(progress),
     );
 

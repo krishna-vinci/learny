@@ -270,3 +270,54 @@ describe("usageFromPiMessages", () => {
     });
   });
 });
+
+it("checks current AI permission at every enqueue, defaulting future kinds to AI", async () => {
+  let allowed = true;
+  const runner = new JobRunner({ root, hub: new EventHub(), maxParallel: 1, aiAllowed: () => allowed });
+  runner.register("draft-chapter", async () => undefined);
+  const job = runner.enqueue("draft-chapter", {}, { set: null, title: "allowed" });
+  await vi.waitFor(() => expect(runner.get(job.id)?.status).toBe("done"));
+  allowed = false;
+  for (const kind of [
+    "draft-chapter",
+    "ingest",
+    "plan-set",
+    "make-cards",
+    "make-quiz",
+    "make-problems",
+    "grade-answer",
+  ] as const) {
+    expect(() => runner.enqueue(kind, {}, { set: null, title: "denied" })).toThrow(
+      "AI features are disabled for this account",
+    );
+  }
+  runner.register("compile-book", async () => undefined);
+  const book = runner.enqueue("compile-book", {}, { set: null, title: "book" });
+  await vi.waitFor(() => expect(runner.get(book.id)?.status).toBe("done"));
+});
+
+it("coalesces queued and running books per set, then allows a new completed build", async () => {
+  const { runner } = makeRunner({ maxParallel: 1 });
+  let finish!: () => void;
+  runner.register(
+    "compile-book",
+    () =>
+      new Promise<undefined>((resolve) => {
+        finish = () => resolve(undefined);
+      }),
+  );
+  const meta = { set: "alpha", title: "Book" };
+  const first = runner.enqueue("compile-book", {}, meta);
+  expect(runner.enqueue("compile-book", {}, meta).id).toBe(first.id);
+  await vi.waitFor(() => expect(runner.get(first.id)?.status).toBe("running"));
+  expect(runner.enqueue("compile-book", {}, meta).id).toBe(first.id);
+  const other = runner.enqueue("compile-book", {}, { ...meta, set: "beta" });
+  expect(other.id).not.toBe(first.id);
+  runner.cancel(other.id);
+  finish();
+  await vi.waitFor(() => expect(runner.get(first.id)?.status).toBe("done"));
+  runner.register("compile-book", async () => undefined);
+  const next = runner.enqueue("compile-book", {}, meta);
+  expect(next.id).not.toBe(first.id);
+  await vi.waitFor(() => expect(runner.get(next.id)?.status).toBe("done"));
+});

@@ -9,7 +9,7 @@ import { parseDraftChapterInput } from "./draft-job.js";
 import { parsePlanSetInput } from "./plan-job.js";
 import { parseMakeProblemsInput, parseMakeQuizInput } from "./practice-job.js";
 import { jobProposals, type ProposalStore } from "./proposals.js";
-import type { JobRunner } from "./runner.js";
+import { AiDisabledError, type JobRunner } from "./runner.js";
 
 export interface JobsRoutesDeps {
   runner: JobRunner;
@@ -78,6 +78,7 @@ export function jobsRoutes(deps: JobsRoutesDeps): Hono {
       }
       if (typeof input === "object" && input !== null && "kind" in input && input.kind === "plan-set") {
         const parsed = parsePlanSetInput(input);
+        deps.runner.assertAiAllowed("plan-set");
         if (deps.root === undefined) throw new Error("study root is required for plan-set");
         for (const source of parsed.sources ?? []) {
           if (!existsSync(resolveInRoot(deps.root, `library/${source}/source.md`)))
@@ -115,7 +116,10 @@ export function jobsRoutes(deps: JobsRoutesDeps): Hono {
       const job = deps.runner.enqueue("draft-chapter", parsed, { set: parsed.set, title: parsed.title });
       return c.json({ jobId: job.id }, 202);
     } catch (error) {
-      return c.json({ error: error instanceof Error ? error.message : String(error) }, 400);
+      return c.json(
+        { error: error instanceof Error ? error.message : String(error) },
+        error instanceof AiDisabledError ? 403 : 400,
+      );
     }
   });
 

@@ -299,3 +299,46 @@ it("passes a trusted account AI binding to the workspace practice gate", async (
   expect(response.status).toBe(202);
   expect(await response.json()).toEqual({ aiEnabled: false, existing: "preserved" });
 });
+
+it("gates default and positive plan drafts using the real approval route, while allowing zero", async () => {
+  const { EventHub } = await import("./events.js");
+  const { JobRunner } = await import("./jobs/runner.js");
+  const { FileLocks } = await import("./tree/lock.js");
+  const { ensureRepo } = await import("./tree/git.js");
+  const { inboxRoutes } = await import("./routes/inbox.js");
+  const { proposalText } = await import("./inbox/plan.test-helper.js");
+  const root = path.join(tempDir, "study");
+  await fs.mkdir(path.join(root, "sample/plan-proposals"), { recursive: true });
+  await fs.mkdir(path.join(root, "library/lib-strang-la"), { recursive: true });
+  await fs.writeFile(path.join(root, "library/lib-strang-la/source.md"), "# Source");
+  await fs.writeFile(path.join(root, "sample/PLAN.md"), "# Old plan");
+  await fs.writeFile(path.join(root, "sample/plan-proposals/plan.md"), proposalText());
+  await ensureRepo(root);
+  const user = await createUser(db, { username: "learner", role: "USER", aiEnabled: false });
+  const session = createSession(db, user.id, { userAgent: "", ip: "" });
+  const hub = new EventHub();
+  const jobs = new JobRunner({ root, hub, maxParallel: 1, aiAllowed: () => false });
+  workspace = new Hono();
+  workspace.route("/api/sets/:set", inboxRoutes({ root, hub, locks: new FileLocks(), jobs }));
+  const app = server();
+  for (const [body, suffix] of [
+    [undefined, ""],
+    [{}, "/"],
+    [{ draftFirst: 2 }, ""],
+  ] as const) {
+    const response = await app.request(`/api/sets/sample/plan-proposals/plan.md/approve${suffix}`, {
+      method: "POST",
+      headers: { ...cookie(session.token), "content-type": "application/json" },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
+    expect(response.status).toBe(403);
+    expect(await fs.readFile(path.join(root, "sample/PLAN.md"), "utf8")).toBe("# Old plan");
+  }
+  const response = await app.request("/api/sets/sample/plan-proposals/plan.md/approve", {
+    method: "POST",
+    headers: { ...cookie(session.token), "content-type": "application/json" },
+    body: '{"draftFirst":0}',
+  });
+  expect(response.status).toBe(200);
+  expect(jobs.list()).toEqual([]);
+});

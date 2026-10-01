@@ -70,6 +70,8 @@ export function buildToday(inputs: TodaySetInput[], now: Date): TodayView {
     nextAction: input.nextAction,
     daysLeft: daysUntil(input.deadline, now),
     inboxCount: input.inbox.length,
+    chaptersToReview: input.inbox.filter((item) => item.kind !== "plan").length,
+    plansToReview: input.inbox.filter((item) => item.kind === "plan").length,
     draftCards: input.cardFiles.reduce((total, file) => total + file.counts.draft, 0),
     staleCardFiles: input.cardFiles.filter((file) => file.stale).length,
     runningJobs: input.jobs.filter((job) => job.status === "queued" || job.status === "running"),
@@ -81,8 +83,22 @@ export function buildToday(inputs: TodaySetInput[], now: Date): TodayView {
   }));
   const ordered = [...sets].sort(dueOrder);
   const doNext: TodayItem[] = [];
-  const add = (set: TodaySet, kind: TodayItem["kind"], title: string, detail: string, suffix = "") => {
-    doNext.push({ kind, set: set.slug, title, detail, href: `/s/${set.slug}${suffix}` });
+  const add = (
+    set: TodaySet,
+    kind: TodayItem["kind"],
+    title: string,
+    detail: string,
+    suffix = "",
+    reviewKind?: TodayItem["reviewKind"],
+  ) => {
+    doNext.push({
+      ...(reviewKind === undefined ? {} : { reviewKind }),
+      kind,
+      set: set.slug,
+      title,
+      detail,
+      href: `/s/${set.slug}${suffix}`,
+    });
   };
 
   // One suggestion per category per set keeps large inboxes from filling the list.
@@ -92,14 +108,31 @@ export function buildToday(inputs: TodaySetInput[], now: Date): TodayView {
         set,
         "overdue",
         set.title,
-        `${Math.abs(set.daysLeft)} day(s) overdue · ${set.nextAction || `${set.inboxCount} chapter(s) awaiting review`}`,
+        `${Math.abs(set.daysLeft)} day(s) overdue · ${set.nextAction || `${set.chaptersToReview} chapter(s) and ${set.plansToReview} plan(s) awaiting review`}`,
         set.inboxCount > 0 ? "/inbox" : "",
       );
     }
   }
   for (const set of ordered) {
-    if (set.inboxCount > 0) {
-      add(set, "inbox", "Review chapters", `${set.title} · ${set.inboxCount} chapter(s) awaiting review`, "/inbox");
+    if ((set.plansToReview ?? 0) > 0) {
+      add(
+        set,
+        "inbox",
+        "Review your study plan",
+        `${set.title} · ${set.plansToReview} plan(s) awaiting review`,
+        "/inbox",
+        "plan",
+      );
+    }
+    if ((set.chaptersToReview ?? 0) > 0) {
+      add(
+        set,
+        "inbox",
+        "Review chapters",
+        `${set.title} · ${set.chaptersToReview} chapter(s) awaiting review`,
+        "/inbox",
+        "chapter",
+      );
     }
   }
   for (const set of ordered) {

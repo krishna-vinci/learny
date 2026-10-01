@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { createPracticeGrader } from "../agent/practice-grader.js";
 import type { DraftJobDeps } from "../jobs/draft-job.js";
-import type { JobRunner } from "../jobs/runner.js";
+import { AiDisabledError, type JobRunner } from "../jobs/runner.js";
 import { type AnswerTarget, answerAndRecord, type PracticeGrader, teachbackAndRecord } from "../practice/grade.js";
 import { deterministicScore } from "../practice/grading.js";
 import { PracticeError, PracticeStore, type PracticeStoreDeps } from "../practice/store.js";
@@ -28,6 +28,7 @@ type PracticeEnv = { Bindings: { practiceAiEnabled?: boolean } };
 export function practiceRoutes(deps: PracticeRoutesDeps): Hono<PracticeEnv> {
   const app = new Hono<PracticeEnv>();
   app.onError((error, c) => {
+    if (error instanceof AiDisabledError) return c.json({ error: error.message }, 403);
     const status =
       error instanceof PracticeError && error.code === "not_found"
         ? 404

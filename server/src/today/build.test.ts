@@ -217,3 +217,18 @@ it("surfaces three weak/due topics after reviews and before drafting", () => {
   ]);
   expect(view.doNext[3]).toMatchObject({ title: "Practise rank", href: "/s/algebra/practice?topic=rank" });
 });
+
+it("separates plan and chapter reviews and uses accurate overdue details", () => {
+  const plan = { ...(inbox[0] as InboxItem), kind: "plan" as const, path: "plan-proposals/plan.md" };
+  const view = buildToday(
+    [set("plan-only", { deadline: "2026-09-29", inbox: [plan] }), set("mixed", { inbox: [plan, ...inbox] })],
+    NOW,
+  );
+  expect(view.sets[0]).toMatchObject({ inboxCount: 1, chaptersToReview: 0, plansToReview: 1 });
+  expect(view.sets[1]).toMatchObject({ inboxCount: 2, chaptersToReview: 1, plansToReview: 1 });
+  expect(view.doNext).toContainEqual(
+    expect.objectContaining({ set: "plan-only", kind: "inbox", reviewKind: "plan", title: "Review your study plan" }),
+  );
+  expect(view.doNext.some((item) => item.set === "plan-only" && item.title === "Review chapters")).toBe(false);
+  expect(view.doNext.find((item) => item.kind === "overdue")?.detail).toContain("0 chapter(s) and 1 plan(s)");
+});

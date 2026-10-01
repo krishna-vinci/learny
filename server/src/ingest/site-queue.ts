@@ -5,6 +5,7 @@ import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node
 import path from "node:path";
 import type { EventHub } from "../events.js";
 import type { JobRunner } from "../jobs/runner.js";
+import { AiDisabledError } from "../jobs/runner.js";
 import { dedupeKeyFromUrl } from "./ids.js";
 import { findDuplicate, type IngestJobInput } from "./library.js";
 
@@ -112,8 +113,16 @@ export class SiteImportQueue {
       const item = this.#waiting.shift();
       if (item === undefined) break;
       const input: IngestJobInput = { url: item.url, set: item.set };
-      const job = this.#deps.jobs.enqueue("ingest", input, { set: item.set, title: jobTitleFor(item.url) });
-      this.#active.set(job.id, item);
+      try {
+        const job = this.#deps.jobs.enqueue("ingest", input, { set: item.set, title: jobTitleFor(item.url) });
+        this.#active.set(job.id, item);
+      } catch (error) {
+        if (!(error instanceof AiDisabledError)) throw error;
+        // AI was turned off for this account while pages waited: drop the rest of the import.
+        console.warn(`studium: AI disabled, dropping ${this.#waiting.length + 1} queued site import page(s)`);
+        this.#waiting.length = 0;
+        break;
+      }
     }
     this.#save();
     if (this.pending === 0) this.dispose(); // idle: stop listening until the next import

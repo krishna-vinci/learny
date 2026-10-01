@@ -11,6 +11,9 @@ export interface TodaySet extends SetSummary {
   /** UTC calendar days until the deadline; negative means overdue. */
   daysLeft: number | null;
   inboxCount: number;
+  /** Always returned by the server; optional for older clients and fixtures. */
+  chaptersToReview?: number;
+  plansToReview?: number;
   draftCards: number;
   staleCardFiles: number;
   runningJobs: JobView[];
@@ -23,6 +26,8 @@ export interface TodaySet extends SetSummary {
 }
 
 export interface TodayItem {
+  /** Distinguishes plan and chapter suggestions without changing legacy item kinds. */
+  reviewKind?: "plan" | "chapter";
   kind: "overdue" | "inbox" | "draft-cards" | "stale-cards" | "practice" | "next-chapter" | "inactive";
   set: string;
   title: string;
@@ -193,7 +198,17 @@ export interface InboxItem {
   updatedAt: string;
 }
 
+export interface PlanProposalChapter {
+  number: number;
+  title: string;
+  scope: string;
+  prerequisites: string;
+  ticked: boolean;
+}
+
 export interface PlanProposal {
+  /** The same fence-aware chapters used by approval; always present in new responses. */
+  chapters?: PlanProposalChapter[];
   plan: string;
   curriculum: string;
   sourcesToAdd: string[];
@@ -226,6 +241,8 @@ export type ChatStreamEvent =
   | {
       kind: "job_proposal";
       proposalId: string;
+      /** Selected note passage retained with card proposal sidecars. */
+      passage?: string;
       jobKind: JobKind;
       title: string;
       estimate: { tokens: number; costUsd: number | null; billing?: JobBilling };

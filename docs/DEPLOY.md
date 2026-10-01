@@ -129,3 +129,91 @@ committing before and after. Upgrade: `docker compose pull && docker compose up 
 ## Logs
 
 stdout for the app; per-job logs in `.cache/jobs/<id>.log`; summaries in `<set>/log/jobs.md`.
+
+## Firecrawl target egress (required)
+
+The configured Firecrawl endpoint may be on localhost or the LAN. Its **target
+fetches must have public-only egress**, including redirects, DNS changes, sitemap
+fetches and browser subresources. Studium checks requested and returned URLs;
+checking a returned URL cannot undo a private fetch already made by Firecrawl.
+Do not rely on Studium's `redirect: "error"`: that governs the service request.
+
+A concrete Linux/Docker Compose recipe is to put **all containers that fetch
+pages** (API/queue workers and the Playwright/browser service) on a dedicated
+bridge, then enforce destination rules in each container's network namespace.
+This also covers loopback and host destinations, which a host FORWARD-only rule
+misses. Keep Docker's firewall enabled; use its
+[documented firewall hooks](https://docs.docker.com/engine/network/firewall-iptables/)
+when implementing the equivalent on the host. This example uses host-installed
+`nsenter`, `iptables` and `ip6tables`; it does not install packages in containers.
+
+1. In the **external Firecrawl Compose stack**, disable IPv6 on the fetching
+   services (`sysctls: { net.ipv6.conf.all.disable_ipv6: "1" }`), drop `NET_ADMIN`
+   and `NET_RAW`, and give required Redis/Postgres/controller peers fixed IPs.
+   Do not use host networking or privileged containers.
+2. Before exposing the API or accepting jobs, apply the following to every page
+   fetching container. Replace service names and dependency IPs/ports with that
+   stack's values. Only API/queue workers need dependency exceptions; browser
+   containers need no outbound dependency exceptions because controllers connect
+   inbound. Never allow an entire private subnet as an exception.
+
+   ```bash
+   # Run on an isolated deployment; repeat for every API/worker/browser container.
+   fc_container=$(docker compose ps -q playwright-service)
+   fc_pid=$(docker inspect -f '{{.State.Pid}}' "$fc_container")
+   sudo nsenter -t "$fc_pid" -n iptables -N STUDIUM_EGRESS
+   sudo nsenter -t "$fc_pid" -n iptables -I OUTPUT 1 -j STUDIUM_EGRESS
+   # Replies to the controller and to previously allowed service connections.
+   sudo nsenter -t "$fc_pid" -n iptables -A STUDIUM_EGRESS \
+     -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+   # Docker's embedded DNS only; no other loopback access.
+   sudo nsenter -t "$fc_pid" -n iptables -A STUDIUM_EGRESS \
+     -d 127.0.0.11 -p udp --dport 53 -j ACCEPT
+   sudo nsenter -t "$fc_pid" -n iptables -A STUDIUM_EGRESS \
+     -d 127.0.0.11 -p tcp --dport 53 -j ACCEPT
+   # API/worker only, if needed: exact dependency IP and protocol/port.
+   # sudo nsenter -t "$fc_pid" -n iptables -A STUDIUM_EGRESS \
+   #   -d 172.30.0.10 -p tcp --dport 6379 -j ACCEPT
+   # sudo nsenter -t "$fc_pid" -n iptables -A STUDIUM_EGRESS \
+   #   -d 172.30.0.11 -p tcp --dport 5432 -j ACCEPT
+   for fc_destination in 0.0.0.0/8 10.0.0.0/8 100.64.0.0/10 127.0.0.0/8 \
+     169.254.0.0/16 172.16.0.0/12 192.168.0.0/16 192.0.0.0/24 \
+     192.0.2.0/24 198.18.0.0/15 198.51.100.0/24 203.0.113.0/24 \
+     224.0.0.0/4 240.0.0.0/4; do
+     sudo nsenter -t "$fc_pid" -n iptables -A STUDIUM_EGRESS \
+       -d "$fc_destination" -j REJECT
+   done
+   # Defense against IPv6, mapped addresses or an overlooked IPv6 route.
+   sudo nsenter -t "$fc_pid" -n ip6tables -I OUTPUT 1 -j REJECT
+   ```
+
+   Link-local blocking includes `169.254.169.254` (cloud metadata). Add the
+   host's own public IPs and any organization-internal ranges to the deny list.
+   Required internal service exceptions are for stack protocols only: configure
+   Firecrawl's target policy to reject those IPs too, so they cannot become scrape
+   URLs. Add exact controller port exceptions to API workers only if the stack
+   needs them; never grant those to the browser. If page requests and required
+   service traffic cannot be separated reliably, route page HTTP(S) through a
+   dedicated egress proxy whose own network namespace has **no** private service
+   exceptions, and prohibit direct outbound page connections.
+3. Persist/reapply the policy on **every** container recreation, before enabling
+   job intake. Verify public scrape/map success and denial of loopback, RFC1918,
+   metadata, private redirects, private sitemap/subresource fetches, and DNS
+   rebinding in an isolated stack. A policy check on API alone is insufficient.
+
+These are operator deployment steps; Studium never changes the running Firecrawl
+stack. Its current egress policy must be verified separately.
+
+## Book compilation limits
+
+A book accepts at most **200 chapters**, **5 MB (5,000,000 bytes) of assembled
+Markdown**, and **50 MB (50,000,000 bytes) of PDF**. As an early input bound, total
+note-file bytes (including frontmatter) must also fit within 5 MB. Assembly checks
+cancellation between chapter reads. Oversized PDFs are rejected before atomic
+publication, preserving the previous PDF and removing temporary files. A second
+`compile-book` request for a set with a queued/running build returns that existing
+job ID. Once it finishes, a new build may be requested.
+
+The compiler timeout is 120 seconds per executable. These input/output limits do
+not impose a compiler memory or intermediate scratch-disk quota; use container
+resource/disk quotas when running a shared host with untrusted accounts.

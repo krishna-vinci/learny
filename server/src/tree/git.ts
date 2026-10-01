@@ -3,9 +3,12 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
 import type { CommitInfo } from "@studium/shared";
+import { concurrencyLimit } from "../concurrency.js";
 import { resolveInRoot } from "./paths.js";
 
 const execFileAsync = promisify(execFile);
+// Shared across workspaces, including card staleness and Today activity queries.
+const limitGit = concurrencyLimit(4);
 
 export type Author =
   | "tutor"
@@ -118,13 +121,11 @@ function withRepoLock<T>(root: string, operation: () => Promise<T>): Promise<T> 
 async function git(root: string, args: string[], env: Record<string, string> = {}): Promise<string> {
   // Never let the caller's environment redirect git to another repo or run the user's global hooks.
   const { GIT_DIR: _dir, GIT_WORK_TREE: _tree, GIT_INDEX_FILE: _index, ...baseEnv } = process.env;
-  const { stdout } = await execFileAsync(
-    "git",
-    ["-C", root, "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null", ...args],
-    {
+  const { stdout } = await limitGit(() =>
+    execFileAsync("git", ["-C", root, "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null", ...args], {
       env: { ...baseEnv, ...env },
       maxBuffer: 16 * 1024 * 1024,
-    },
+    }),
   );
   return stdout;
 }

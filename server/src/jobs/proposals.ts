@@ -74,7 +74,14 @@ export class ProposalStore {
       expiresAt: this.#now() + PROPOSAL_TTL_MS,
     });
     this.#save();
-    return { kind: "job_proposal", proposalId, jobKind, title, estimate };
+    return {
+      kind: "job_proposal",
+      proposalId,
+      jobKind,
+      title,
+      estimate,
+      ...("note" in input && input.passage !== undefined ? { passage: input.passage } : {}),
+    };
   }
 
   take(proposalId: string): ProposalInput | null {
@@ -235,7 +242,10 @@ export async function estimateCardsJob(
     optionalText(root, `${input.set}/${cardPath}`),
     readText(root, "_global/config.yaml"),
   ]);
-  const baseInput = Math.max(1, Math.ceil((note.length + cards.length) / CHARS_PER_TOKEN));
+  const baseInput = Math.max(
+    1,
+    Math.ceil((note.length + cards.length + (input.passage?.length ?? 0)) / CHARS_PER_TOKEN),
+  );
   const cardOutput = Math.max(400, input.count * 120);
   const criticOutput = Math.max(400, (input.count === 0 ? 12 : input.count) * 80);
   const config = ConfigYaml.parse(parseYaml(configText));
@@ -274,7 +284,8 @@ export function startJobTool(opts: {
   return defineTool({
     name: "start_job",
     label: "Propose a background job",
-    description: "Propose a chapter-drafting or card-making job for learner confirmation. This does not start the job.",
+    description:
+      "Propose a chapter-drafting or card-making job for learner confirmation. This does not start the job. For cards from a selection, pass passage with the selected text and note with its source note.",
     parameters: Type.Union([
       Type.Object({
         kind: Type.Literal("draft-chapter"),
@@ -286,6 +297,7 @@ export function startJobTool(opts: {
         kind: Type.Literal("make-cards"),
         note: Type.String({ pattern: "^notes/[0-9]{2,}-[a-z0-9][a-z0-9-]*\\.md$" }),
         count: Type.Optional(Type.Integer({ minimum: 0, maximum: 40 })),
+        passage: Type.Optional(Type.String({ maxLength: 2000 })),
       }),
     ]),
     async execute(_toolCallId, params) {
@@ -342,6 +354,7 @@ export function proposalFromToolResult(result: unknown): JobProposalEvent | null
   ) {
     return null;
   }
+  if ("passage" in proposal && (typeof proposal.passage !== "string" || proposal.passage.length > 2000)) return null;
   const estimate = proposal.estimate;
   if (
     !("tokens" in estimate) ||

@@ -32,6 +32,7 @@ import { isSetSlug } from "../tree/read.js";
 import { addSourceTool } from "./builtins/add-source.js";
 import { listSkills } from "./builtins/skills.js";
 import { resolveRoleModel } from "./models.js";
+import { selectedPassage } from "./passage.js";
 import { ROLES } from "./roles.js";
 import { roleToolset } from "./run-role.js";
 
@@ -255,12 +256,7 @@ function sameModel(left: Model<Api> | undefined, right: Model<Api>): boolean {
 function learnerTurn(text: string, anchor: string | undefined, quote: string | undefined): string {
   const passage = quote?.trim() ?? "";
   if (passage === "") return text;
-  const heading = anchor === undefined ? "Selected passage:" : `Selected passage from ${anchor}:`;
-  const block = passage
-    .split(/\r?\n/)
-    .map((line) => `> ${line}`)
-    .join("\n");
-  return `${heading}\n${block}\n\n${text}`;
+  return `${selectedPassage(passage, anchor)}\n\nLearner request:\n${text}`;
 }
 
 export class ChatService {

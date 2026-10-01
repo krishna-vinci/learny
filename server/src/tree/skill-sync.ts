@@ -4,7 +4,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { commitPaths } from "./git.js";
 import { FileLocks } from "./lock.js";
-import { resolveInRoot } from "./paths.js";
 
 const DEFAULT_SKILLS = fileURLToPath(new URL("../../../skills/", import.meta.url));
 const locks = new FileLocks();
@@ -22,16 +21,45 @@ async function* defaultFiles(directory: string): AsyncGenerator<string> {
   }
 }
 
+class SkillAliasError extends Error {}
+
+async function skillDestination(root: string, rel: string): Promise<string> {
+  const parts = rel.split("/");
+  const skillRoot = path.join(root, ...parts.slice(0, 3));
+  let current = root;
+  for (const part of parts) {
+    current = path.join(current, part);
+    try {
+      if ((await fs.lstat(current)).isSymbolicLink())
+        throw new SkillAliasError(`skill symlinks are not allowed: ${rel}`);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+  }
+  const parent = path.dirname(current);
+  try {
+    const canonical = await fs.realpath(parent);
+    if (canonical !== parent || (canonical !== skillRoot && !canonical.startsWith(`${skillRoot}${path.sep}`)))
+      throw new SkillAliasError(`skill parent is outside its canonical directory: ${rel}`);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+  return current;
+}
+
 async function atomicWrite(root: string, rel: string, content: Buffer): Promise<void> {
-  const abs = resolveInRoot(root, rel);
+  const abs = await skillDestination(root, rel);
   await fs.mkdir(path.dirname(abs), { recursive: true });
   const temporary = path.posix.join(path.posix.dirname(rel), `.${path.posix.basename(rel)}.tmp-${randomUUID()}`);
-  const tmp = resolveInRoot(root, temporary);
+  const tmp = await skillDestination(root, temporary);
   try {
     await fs.writeFile(tmp, content, { flag: "wx" });
-    await fs.rename(tmp, resolveInRoot(root, rel));
+    await skillDestination(root, temporary);
+    await fs.rename(tmp, await skillDestination(root, rel));
   } finally {
-    await fs.unlink(tmp).catch(() => undefined);
+    await skillDestination(root, temporary)
+      .then((safe) => fs.unlink(safe))
+      .catch(() => undefined);
   }
 }
 
@@ -49,28 +77,33 @@ export async function syncDefaultSkills(root: string): Promise<void> {
       for await (const file of defaultFiles(skill.name)) {
         const rel = `_global/skills/${file}`;
         const next = await fs.readFile(path.join(DEFAULT_SKILLS, file));
-        const abs = resolveInRoot(root, rel);
-        let current: Buffer | null = null;
         try {
-          const stat = await fs.lstat(abs);
-          if (!stat.isFile()) {
-            console.log(`studium: kept user-edited skill ${rel}`);
-            continue;
+          const abs = await skillDestination(realRoot, rel);
+          let current: Buffer | null = null;
+          try {
+            const stat = await fs.lstat(abs);
+            if (!stat.isFile()) {
+              console.log(`studium: kept user-edited skill ${rel}`);
+              continue;
+            }
+            current = await fs.readFile(abs);
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
           }
-          current = await fs.readFile(abs);
-        } catch (error) {
-          if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-        }
 
-        if (current !== null) {
-          if (current.equals(next)) continue;
-          if (!history[file]?.includes(sha256(current))) {
-            console.log(`studium: kept user-edited skill ${rel}`);
-            continue;
+          if (current !== null) {
+            if (current.equals(next)) continue;
+            if (!history[file]?.includes(sha256(current))) {
+              console.log(`studium: kept user-edited skill ${rel}`);
+              continue;
+            }
           }
+          await atomicWrite(realRoot, rel, next);
+          updated.push(rel);
+        } catch (error) {
+          if (!(error instanceof SkillAliasError)) throw error;
+          console.log(`studium: skipped unsafe skill ${rel}: ${error.message}`);
         }
-        await atomicWrite(root, rel, next);
-        updated.push(rel);
       }
     }
 

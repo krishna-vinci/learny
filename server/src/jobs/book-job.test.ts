@@ -202,3 +202,44 @@ describe("compile-book", () => {
     expect(pdf.length).toBeGreaterThan(10_000);
   });
 });
+
+it("rejects excessive chapters and Markdown before launching a compiler", async () => {
+  const notes = path.join(root, "linear-algebra/notes");
+  for (let i = 0; i < 198; i++) await fs.writeFile(path.join(notes, `extra-${i}.md`), "# Extra");
+  await expect(assembleBook(root, "linear-algebra")).rejects.toThrow("at most 200 chapters");
+  for (let i = 0; i < 198; i++) await fs.unlink(path.join(notes, `extra-${i}.md`));
+  await fs.writeFile(path.join(notes, "01-vectors.md"), "x".repeat(5_000_001));
+  await expect(assembleBook(root, "linear-algebra")).rejects.toThrow("at most 5 MB");
+});
+
+it("checks cancellation between chapter input reads", async () => {
+  const controller = new AbortController();
+  const original = fs.stat;
+  const stat = vi.spyOn(fs, "stat").mockImplementation(async (...args: Parameters<typeof fs.stat>) => {
+    const result = await original(...args);
+    if (String(args[0]).endsWith("01-vectors.md")) controller.abort();
+    return result;
+  });
+  try {
+    await expect(assembleBook(root, "linear-algebra", new Date(), controller.signal)).rejects.toThrow();
+    expect(stat).toHaveBeenCalledTimes(1);
+  } finally {
+    stat.mockRestore();
+  }
+});
+
+it("rejects oversized PDFs and preserves the previous book with scratch cleanup", async () => {
+  const bin = path.join(root, "bin");
+  await fs.mkdir(bin);
+  await fs.writeFile(path.join(bin, "pandoc"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+  await fs.writeFile(path.join(bin, "typst"), "#!/bin/sh\n/usr/bin/truncate -s 50000001 out.pdf\n", { mode: 0o755 });
+  vi.stubEnv("PATH", bin);
+  const output = await bookPdfPath(root, "linear-algebra");
+  await fs.mkdir(path.dirname(output), { recursive: true });
+  await fs.writeFile(output, "previous PDF");
+  await expect(createBookJob({ root, locks: new FileLocks() })({ set: "linear-algebra" }, context())).rejects.toThrow(
+    "at most 50 MB",
+  );
+  expect(await fs.readFile(output, "utf8")).toBe("previous PDF");
+  expect((await fs.readdir(path.join(root, ".cache"))).filter((name) => name.startsWith("book-"))).toEqual([]);
+});

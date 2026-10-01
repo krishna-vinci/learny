@@ -83,3 +83,8 @@ describe("plaintext", () => {
     expect(plaintext("Tokenizer <!-- p:4 --> compression")).toBe("Tokenizer compression");
   });
 });
+
+it("keeps shorter and info-bearing markers inside a longer code fence", () => {
+  expect(plaintext("Public text\n\n````md\n```\nnot-indexable code\n````\nAfterward")).toBe("Public text Afterward");
+  expect(plaintext("Public\n~~~~md\n~~~\nhidden\n~~~~info\nstill hidden\n~~~~~\nAfter")).toBe("Public After");
+});

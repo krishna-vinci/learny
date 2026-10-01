@@ -33,7 +33,7 @@ export function createBookJob(deps: { root: string; locks: FileLocks }): JobHand
       const temp = await fs.mkdtemp(path.join(cache, "book-"));
       try {
         ctx.progress("Assembling chapters and sources");
-        const book = await assembleBook(deps.root, set);
+        const book = await assembleBook(deps.root, set, new Date(), ctx.signal);
         await fs.writeFile(path.join(temp, "book.md"), book.markdown);
         // JSON is valid YAML; Pandoc safely renders the metadata as content.
         await fs.writeFile(path.join(temp, "metadata.yaml"), JSON.stringify(book.metadata));
@@ -72,6 +72,8 @@ export function createBookJob(deps: { root: string; locks: FileLocks }): JobHand
         ctx.progress("Compiling PDF with Typst");
         await run("typst", ["compile", "--root", temp, "book.typ", "out.pdf"]);
         ctx.signal.throwIfAborted();
+        if ((await fs.stat(path.join(temp, "out.pdf"))).size > 50_000_000)
+          throw new Error("Book limit exceeded: PDF must be at most 50 MB");
         await fs.mkdir(path.dirname(output), { recursive: true });
         // Rename within the workspace filesystem atomically preserves the last good book.
         await fs.rename(path.join(temp, "out.pdf"), await bookPdfPath(deps.root, set));

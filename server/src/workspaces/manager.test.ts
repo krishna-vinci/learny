@@ -149,3 +149,16 @@ describe("WorkspaceManager", () => {
     });
   });
 });
+
+it("reads AI authorization from the DB at enqueue time for an existing workspace", async () => {
+  const user = await createUser(db, { username: "learner", role: "USER" });
+  const workspace = await manager.for(user);
+  workspace.jobs.register("draft-chapter", async () => undefined);
+  updateUser(db, user.id, { aiEnabled: false });
+  expect(() => workspace.jobs.enqueue("draft-chapter", {}, { set: null, title: "denied" })).toThrow(
+    "AI features are disabled for this account",
+  );
+  updateUser(db, user.id, { aiEnabled: true });
+  const job = workspace.jobs.enqueue("draft-chapter", {}, { set: null, title: "allowed" });
+  await vi.waitFor(() => expect(workspace.jobs.get(job.id)?.status).toBe("done"));
+});

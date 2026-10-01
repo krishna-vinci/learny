@@ -242,3 +242,45 @@ describe("jobs routes", () => {
     expect((await app.request(`/api/jobs/${job.id}/cancel`, { method: "POST" })).status).toBe(409);
   });
 });
+
+it("returns 403 from the enqueue boundary and retains card passages", async () => {
+  const denied = new JobRunner({ root, hub: new EventHub(), maxParallel: 1, aiAllowed: () => false });
+  const deniedApp = new Hono();
+  deniedApp.route("/api/jobs", jobsRoutes({ runner: denied }));
+  const response = await deniedApp.request("/api/jobs", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      kind: "make-cards",
+      set: "alpha",
+      note: "notes/01-vectors.md",
+      passage: "Selected sentence",
+      count: 1,
+    }),
+  });
+  expect(response.status).toBe(403);
+  expect(denied.list()).toEqual([]);
+  const received: unknown[] = [];
+  runner.register("make-cards", async (input) => {
+    received.push(input);
+    return undefined;
+  });
+  const proposal = proposals.createCards(
+    { kind: "make-cards", set: "alpha", note: "notes/01-vectors.md", passage: "Selected sentence", count: 1 },
+    { tokens: 1, costUsd: null },
+  );
+  const accepted = await app.request("/api/jobs", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ proposalId: proposal.proposalId }),
+  });
+  expect(accepted.status).toBe(202);
+  await vi.waitFor(() => expect(received).toHaveLength(1));
+  expect(received[0]).toMatchObject({ passage: "Selected sentence", note: "notes/01-vectors.md" });
+  const tooLong = await app.request("/api/jobs", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ kind: "make-cards", set: "alpha", note: "notes/01-vectors.md", passage: "x".repeat(2001) }),
+  });
+  expect(tooLong.status).toBe(400);
+});

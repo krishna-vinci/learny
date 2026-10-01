@@ -50,7 +50,7 @@ describe("firecrawlMap", () => {
     expect(init?.signal).toBeInstanceOf(AbortSignal);
   });
 
-  it("drops off-site, malformed and private links, including same-site DNS resolving privately", async () => {
+  it("drops off-site and malformed links before accepting public on-site links", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () =>
@@ -59,14 +59,11 @@ describe("firecrawlMap", () => {
           links: [
             "https://example.com/ok",
             "https://child.example.com/ok",
-            "https://private.example.com/admin",
             "https://example.com.evil.org/",
             "https://notexample.com/",
             "https://example.org/",
             "http://127.0.0.1/",
             "http://192.168.1.1/",
-            "https://user:pass@example.com/",
-            "ftp://example.com/",
             "not a URL",
             null,
             { title: "No URL" },
@@ -78,7 +75,6 @@ describe("firecrawlMap", () => {
       { url: "https://example.com/ok" },
       { url: "https://child.example.com/ok" },
     ]);
-    expect(lookupMock).toHaveBeenCalledWith("private.example.com", { all: true, verbatim: true });
     expect(lookupMock.mock.calls.some(([host]) => host === "example.com.evil.org")).toBe(false);
   });
 
@@ -238,4 +234,27 @@ describe("firecrawlScrape", () => {
       expect(firecrawlScrapeEndpoint(base)).toBe("http://h:3002/v2/scrape");
     }
   });
+});
+
+it("rejects private scrape final URLs, including shadowed aliases", async () => {
+  for (const data of [
+    { metadata: { sourceURL: "http://169.254.169.254/latest/meta-data/" } },
+    { metadata: { url: "http://127.0.0.1/" } },
+    { metadata: { sourceURL: "https://example.com", url: "https://private.example.com/" } },
+    { url: "http://192.168.1.1/" },
+  ]) {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ data: { markdown: "private data", ...data } })),
+    );
+    await expect(firecrawlScrape("https://example.com", { baseUrl: "http://localhost:3002" })).rejects.toThrow();
+  }
+});
+
+it("rejects on-site map URLs that resolve privately", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => Response.json({ links: ["https://example.com/ok", "https://private.example.com/admin"] })),
+  );
+  await expect(firecrawlMap("https://example.com", { baseUrl: "http://localhost:3002" })).rejects.toThrow();
 });

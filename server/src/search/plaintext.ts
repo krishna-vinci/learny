@@ -24,10 +24,12 @@ const EMPHASIS_EM_UNDERSCORE = /(?<![A-Za-z0-9_])_([^_\n]+)_(?![A-Za-z0-9_])/g;
 function dropFences(text: string): string {
   const kept: string[] = [];
   let open: "`" | "~" | null = null;
+  let length = 0;
   for (const line of text.split("\n")) {
     const fence = FENCE_LINE.exec(line);
     if (open === null) {
       if (fence !== null) {
+        length = (fence[1] ?? "").length;
         open = (fence[1] ?? "").startsWith("`") ? "`" : "~";
         continue;
       }
@@ -35,7 +37,13 @@ function dropFences(text: string): string {
       continue;
     }
     // Only a bare closing marker with the same character ends the block.
-    if (fence !== null && (fence[1] ?? "").startsWith(open) && (fence[2] ?? "").trim() === "") open = null;
+    if (
+      fence !== null &&
+      (fence[1] ?? "").startsWith(open) &&
+      (fence[1] ?? "").length >= length &&
+      (fence[2] ?? "").trim() === ""
+    )
+      open = null;
   }
   return kept.join("\n");
 }

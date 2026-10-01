@@ -119,6 +119,7 @@ it("aggregates Today through the workspace app using only that workspace's sets"
   );
 
   await fs.unlink(chat);
+  hub.publish({ type: "file", set: "linear-algebra", path: "linear-algebra/chats/session.jsonl", change: "unlink" });
   const withoutChat = (await (await app.request("/api/today")).json()) as TodayView;
   expect(withoutChat.sets[1]?.lastStudiedAt).toBe(new Date(userCommit?.date ?? "").toISOString());
   expect(withoutChat.sets[0]).toMatchObject({
@@ -142,8 +143,58 @@ it("aggregates Today through the workspace app using only that workspace's sets"
   await fs.symlink(path.join(otherRoot, "private-plan.md"), path.join(root, "linked-set/PLAN.md"));
   const onError = vi.fn((_error: Error) => new Response("Internal Server Error", { status: 500 }));
   app.onError(onError);
+  hub.publish({ type: "file", set: "linked-set", path: "linked-set/PLAN.md", change: "add" });
   const confined = await app.request("/api/today");
   expect(confined.status).toBe(500);
   expect(onError.mock.calls[0]?.[0]).toMatchObject({ name: "PathError" });
   expect(await confined.text()).not.toContain("Other user's private goal");
+});
+
+it("shares cached refreshes, coalesces changes for two seconds, and ignores progress", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "studium-today-cache-"));
+  tempDirs.push(root);
+  await fs.mkdir(path.join(root, "alpha"));
+  await fs.writeFile(path.join(root, "alpha/PLAN.md"), "---\ntitle: Alpha\n---\n");
+  const hub = new EventHub();
+  const jobs = new JobRunner({ root, hub, maxParallel: 1 });
+  const list = vi.spyOn(jobs, "list");
+  const app = createApp({ root, hub, jobs, locks: new FileLocks() });
+  await Promise.all(Array.from({ length: 8 }, () => app.request("/api/today")));
+  expect(list).toHaveBeenCalledTimes(1);
+  const job: JobView = {
+    id: "job",
+    kind: "draft-chapter",
+    set: "alpha",
+    title: "Draft",
+    status: "running",
+    progress: "",
+    startedAt: null,
+    finishedAt: null,
+    billing: "metered",
+    usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, costUsd: 0 },
+  };
+  hub.publish({ type: "job", job });
+  const started = Date.now();
+  await Promise.all([app.request("/api/today"), app.request("/api/today")]);
+  expect(Date.now() - started).toBeGreaterThanOrEqual(1500);
+  expect(list).toHaveBeenCalledTimes(2);
+  hub.publish({ type: "job", job: { ...job, progress: "tick", usage: { ...job.usage, input: 10 } } });
+  await app.request("/api/today");
+  expect(list).toHaveBeenCalledTimes(2);
+  // Move the clock past the coalescing window without sleeping for each change.
+  const now = Date.now();
+  vi.spyOn(Date, "now").mockReturnValue(now + 3000);
+  hub.publish({ type: "file", set: "alpha", path: "alpha/PLAN.md", change: "change" });
+  await fs.writeFile(path.join(root, "alpha/PLAN.md"), "---\ntitle: Updated\n---\n");
+  const response = await app.request("/api/today");
+  expect(((await response.json()) as TodayView).sets[0]?.title).toBe("Updated");
+  expect(list).toHaveBeenCalledTimes(3);
+  vi.mocked(Date.now).mockReturnValue(now + 6000);
+  hub.publish({ type: "commit", sha: "a".repeat(40), author: "user", subject: "update" });
+  await app.request("/api/today");
+  expect(list).toHaveBeenCalledTimes(4);
+  vi.mocked(Date.now).mockReturnValue(now + 9000);
+  hub.publish({ type: "job", job: { ...job, status: "done" } });
+  await app.request("/api/today");
+  expect(list).toHaveBeenCalledTimes(5);
 });

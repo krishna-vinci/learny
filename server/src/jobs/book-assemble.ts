@@ -47,8 +47,17 @@ export interface AssembledBook {
   metadata: { title: string; goal: string; date: string };
 }
 
-export async function assembleBook(root: string, set: string, date = new Date()): Promise<AssembledBook> {
+export const BOOK_MAX_CHAPTERS = 200;
+export const BOOK_MAX_MARKDOWN_BYTES = 5_000_000;
+
+export async function assembleBook(
+  root: string,
+  set: string,
+  date = new Date(),
+  signal?: AbortSignal,
+): Promise<AssembledBook> {
   parseCompileBookInput({ set });
+  signal?.throwIfAborted();
   const plan = parseFrontmatter(await fs.readFile(resolveInRoot(root, `${set}/PLAN.md`), "utf8"));
   const goal =
     plain(plan.frontmatter.goal) ||
@@ -72,8 +81,27 @@ export async function assembleBook(root: string, set: string, date = new Date())
     return citations.get(key) as string;
   };
   const chapters: string[] = [];
+  const entries = await fs
+    .readdir(resolveInRoot(root, `${set}/notes`), { withFileTypes: true })
+    .catch((error: NodeJS.ErrnoException) => {
+      if (error.code === "ENOENT") return [];
+      throw error;
+    });
+  const files = entries.filter((entry) => entry.isFile() && entry.name.endsWith(".md"));
+  if (files.length > BOOK_MAX_CHAPTERS) throw new Error("Book limit exceeded: at most 200 chapters");
+  let inputBytes = 0;
+  for (const file of files) {
+    signal?.throwIfAborted();
+    inputBytes += (await fs.stat(resolveInRoot(root, `${set}/notes/${file.name}`))).size;
+    if (inputBytes > BOOK_MAX_MARKDOWN_BYTES) throw new Error("Book limit exceeded: at most 5 MB of Markdown");
+  }
+  let assembledBytes = 0;
   for (const note of await listNotes(root, set)) {
+    signal?.throwIfAborted();
     let { body } = parseFrontmatter(await fs.readFile(resolveInRoot(root, `${set}/${note.path}`), "utf8"));
+    signal?.throwIfAborted();
+    if (Buffer.byteLength(body) > BOOK_MAX_MARKDOWN_BYTES)
+      throw new Error("Book limit exceeded: at most 5 MB of Markdown");
     body = prose(body, (line) => {
       // Existing source definitions are replaced by a single generated definition.
       const definition = /^ {0,3}\[\^src:([a-z0-9][a-z0-9-]*)(#[^\]\s]+)?\]:.*$/.exec(line);
@@ -89,10 +117,15 @@ export async function assembleBook(root: string, set: string, date = new Date())
         .replace(/^([ \t]*):::(definition|theorem|example|deeper)\s*$/, "$1::: {.$2}");
     });
     // The filter demotes parsed headings, including Setext, without touching code.
-    chapters.push(`::: {.book-chapter}\n\n# ${escapeMarkdown(note.title)}\n\n${body.trim()}\n\n:::`);
+    const chapter = `::: {.book-chapter}\n\n# ${escapeMarkdown(note.title)}\n\n${body.trim()}\n\n:::`;
+    assembledBytes += Buffer.byteLength(chapter) + 2;
+    if (assembledBytes > BOOK_MAX_MARKDOWN_BYTES)
+      throw new Error("Book limit exceeded: at most 5 MB of assembled Markdown");
+    chapters.push(chapter);
   }
   const sources = new Map<string, { title: string; description: string }>();
   for (const id of sourceIds) {
+    signal?.throwIfAborted();
     let fm: Record<string, unknown> = {};
     try {
       fm = parseFrontmatter(await fs.readFile(resolveInRoot(root, `library/${id}/source.md`), "utf8")).frontmatter;
@@ -122,5 +155,9 @@ export async function assembleBook(root: string, set: string, date = new Date())
   const bibliography = sources.size
     ? `# Bibliography\n\n${[...sources.values()].map((source) => `- ${source.description}`).join("\n\n")}`
     : "# Bibliography\n\nNo sources cited.";
-  return { metadata, markdown: `${[...chapters, bibliography, ...footnotes].join("\n\n")}\n` };
+  const markdown = `${[...chapters, bibliography, ...footnotes].join("\n\n")}\n`;
+  if (Buffer.byteLength(markdown) > BOOK_MAX_MARKDOWN_BYTES)
+    throw new Error("Book limit exceeded: at most 5 MB of assembled Markdown");
+  signal?.throwIfAborted();
+  return { metadata, markdown };
 }

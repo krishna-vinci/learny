@@ -25,6 +25,7 @@ import { type BackupRouteDeps, backupRoutes } from "./backups/routes.js";
 import { deriveKey } from "./db/secret.js";
 import { exportRoutes } from "./export/routes.js";
 import { requestGuard } from "./http/guard.js";
+import { NON_AI_JOB_KINDS } from "./jobs/runner.js";
 import { Notifier } from "./notify/notifier.js";
 import { notificationRoutes } from "./notify/routes.js";
 import { identityProviderAdminRoutes, identityRoutes, ssoAuthRoutes } from "./sso/routes.js";
@@ -71,10 +72,11 @@ function validInstanceUrl(value: string): boolean {
   }
 }
 
-function aiRouteDisabled(method: string, pathname: string, kind?: unknown): boolean {
+function aiRouteDisabled(method: string, pathname: string, kind?: unknown, draftFirst?: unknown): boolean {
   if (method !== "POST") return false;
   const path = pathname.endsWith("/") && pathname.length > 1 ? pathname.slice(0, -1) : pathname;
-  if (path === "/api/jobs") return kind !== "compile-book";
+  if (/^\/api\/sets\/[^/]+\/plan-proposals\/[^/]+\/approve$/.test(path)) return draftFirst !== 0;
+  if (path === "/api/jobs") return !NON_AI_JOB_KINDS.some((nonAiKind) => nonAiKind === kind);
   if (path === "/api/library" || path === "/api/library/site-import") return true;
   if (/^\/api\/sets\/[^/]+\/practice\/teachback$/.test(path)) return true;
   const chatMatch = /^\/api\/sets\/[^/]+\/chats(\/.*)?$/.exec(path);
@@ -315,6 +317,14 @@ export function createServer(deps: ServerDeps): Hono {
   app.use("/api/*", async (c, next) => {
     if (!c.get("user").aiEnabled) {
       let kind: unknown;
+      let draftFirst: unknown;
+      if (c.req.method === "POST" && /\/plan-proposals\/[^/]+\/approve\/?$/.test(c.req.path)) {
+        const body: unknown = await c.req.raw
+          .clone()
+          .json()
+          .catch(() => null);
+        if (typeof body === "object" && body !== null && "draftFirst" in body) draftFirst = body.draftFirst;
+      }
       if (c.req.method === "POST" && c.req.path.replace(/\/$/, "") === "/api/jobs") {
         const body: unknown = await c.req.raw
           .clone()
@@ -323,7 +333,7 @@ export function createServer(deps: ServerDeps): Hono {
         // A proposal can still launch an AI job: only direct book requests are exempt.
         if (typeof body === "object" && body !== null && "kind" in body && !("proposalId" in body)) kind = body.kind;
       }
-      if (aiRouteDisabled(c.req.method, c.req.path, kind)) {
+      if (aiRouteDisabled(c.req.method, c.req.path, kind, draftFirst)) {
         return c.json({ error: "AI features are disabled for this account" }, 403);
       }
     }

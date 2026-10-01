@@ -77,6 +77,12 @@ export async function firecrawlScrape(url: string, options: FirecrawlOptions): P
   const metadata = root.data?.metadata;
   const finalUrl = [metadata?.sourceURL, metadata?.url, root.data?.url].find((value) => typeof value === "string");
 
+  // Check every supplied final URL, including aliases hidden by sourceURL precedence.
+  for (const value of [metadata?.sourceURL, metadata?.url, root.data?.url]) {
+    if (value === undefined || value === null) continue;
+    if (typeof value !== "string") throw new FirecrawlError("Firecrawl returned an invalid final URL");
+    await assertPublicUrl(value);
+  }
   return {
     markdown,
     title: typeof metadata?.title === "string" ? metadata.title : null,
@@ -116,10 +122,11 @@ export async function firecrawlMap(url: string, options: FirecrawlMapOptions): P
       const candidateHost = normalizedHostname(candidate);
       // Off-site links are dropped before any DNS lookup.
       if (candidateHost !== host && !candidateHost.endsWith(`.${host}`)) continue;
-      await assertPublicUrl(page.url);
     } catch {
       continue;
     }
+    // A returned on-site destination that fails the public-URL boundary rejects the response.
+    await assertPublicUrl(page.url);
     pages.push({
       url: page.url,
       ...(typeof page.title === "string" ? { title: page.title } : {}),

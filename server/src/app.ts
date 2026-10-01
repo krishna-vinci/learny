@@ -1,11 +1,12 @@
 import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
 import type { ChatService } from "./agent/chat-service.js";
 import { chatRoutes } from "./agent/routes.js";
 import type { EventHub } from "./events.js";
 import type { SiteImportQueue } from "./ingest/site-queue.js";
 import type { ProposalStore } from "./jobs/proposals.js";
 import { jobsRoutes } from "./jobs/routes.js";
-import type { JobRunner } from "./jobs/runner.js";
+import { AiDisabledError, type JobRunner } from "./jobs/runner.js";
 import { ankiRoutes } from "./routes/anki.js";
 import { bookRoutes } from "./routes/book.js";
 import { cardsRoutes } from "./routes/cards.js";
@@ -44,6 +45,12 @@ export function createApp(deps: AppDeps): Hono;
 export function createApp(deps: LegacyAppDeps): Hono;
 export function createApp(deps: AppDeps | LegacyAppDeps): Hono {
   const app = new Hono();
+  app.onError((error, c) => {
+    if (error instanceof AiDisabledError) return c.json({ error: error.message }, 403);
+    if (error instanceof HTTPException) return error.getResponse();
+    console.error(error);
+    return c.text("Internal Server Error", 500);
+  });
 
   // Raw file/history APIs must not bypass the practice API's answer projections.
   const privatePracticePath = (rel: string) => /^[^/]+\/practice\/(quizzes|problems)(?:\/|$)/.test(rel);
@@ -84,7 +91,7 @@ export function createApp(deps: AppDeps | LegacyAppDeps): Hono {
     practiceRoutes({ root: deps.root, locks: deps.locks, hub: deps.hub, jobs: deps.jobs, ...deps.practice }),
   );
   app.route("/api/events", eventsRoutes(deps.hub));
-  app.route("/api/today", todayRoutes({ root: deps.root, jobs: deps.jobs }));
+  app.route("/api/today", todayRoutes({ root: deps.root, jobs: deps.jobs, hub: deps.hub }));
 
   if (deps.search !== undefined) {
     app.route(

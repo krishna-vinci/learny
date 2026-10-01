@@ -401,3 +401,26 @@ describe("POST /api/library/site-import", () => {
     await flush();
   });
 });
+
+it("stops the pending import tail when AI permission is revoked without breaking job completion", async () => {
+  let allowed = true;
+  jobs = new JobRunner({ root, hub, maxParallel: 3, aiAllowed: () => allowed });
+  const holds: (() => void)[] = [];
+  jobs.register("ingest", async (input) => {
+    received.push(input as IngestJobInput);
+    await new Promise<void>((resolve) => holds.push(resolve));
+    return undefined;
+  });
+  app = new Hono();
+  app.route("/api/library", libraryRoutes({ root, jobs, hub }));
+  const response = await postSite("site-import", {
+    urls: Array.from({ length: 5 }, (_, i) => `https://example.com/${i}`),
+  });
+  expect(response.status).toBe(202);
+  await vi.waitFor(() => expect(holds).toHaveLength(3));
+  allowed = false;
+  for (const release of holds) release();
+  await vi.waitFor(() => expect(jobs.list().every((job) => job.finishedAt !== null)).toBe(true));
+  expect(received).toHaveLength(3);
+  expect(jobs.list()).toHaveLength(3);
+});

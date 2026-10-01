@@ -23,3 +23,27 @@ describe("parsePlanProposal", () => {
       expect(() => parsePlanProposal(text)).toThrow();
   });
 });
+
+it("rejects impossible prerequisites and returns fence-aware preview chapters", () => {
+  for (const value of ["99", "01", "06", "1", "01, 01", "none, 01", "01 and 02"]) {
+    expect(() => parsePlanProposal(proposalText().replace("Prerequisites: none", `Prerequisites: ${value}`))).toThrow(
+      "prerequisites",
+    );
+  }
+  const text = proposalText(true).replace("# Curriculum\n", "# Curriculum\n\n~~~markdown\n- [ ] 00 — Decoy\n~~~\n");
+  const proposal = parsePlanProposal(text);
+  expect(proposal.chapters).toHaveLength(6);
+  expect(proposal.chapters?.[0]).toEqual({
+    number: 1,
+    title: "Vectors",
+    scope: "Learn vectors.",
+    prerequisites: "none",
+    ticked: true,
+  });
+  expect(
+    proposal.chapters
+      ?.filter((chapter) => !chapter.ticked)
+      .slice(0, 1)
+      .map((chapter) => chapter.title),
+  ).toEqual(["Matrices"]);
+});

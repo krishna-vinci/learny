@@ -18,7 +18,17 @@ export interface JobContext {
 
 export type JobHandler = (input: unknown, ctx: JobContext) => Promise<JobResult | undefined>;
 
+export const NON_AI_JOB_KINDS: readonly JobKind[] = ["compile-book"];
+
+export class AiDisabledError extends Error {
+  constructor() {
+    super("AI features are disabled for this account");
+    this.name = "AiDisabledError";
+  }
+}
+
 export interface JobRunnerDeps {
+  aiAllowed?: () => boolean;
   root: string;
   hub: EventHub;
   maxParallel: number;
@@ -105,6 +115,7 @@ export function usageFromPiMessages(messages: unknown[]): JobUsage {
 }
 
 export class JobRunner {
+  readonly #aiAllowed: () => boolean;
   readonly #root: string;
   readonly #hub: EventHub;
   readonly #maxParallel: number;
@@ -115,6 +126,7 @@ export class JobRunner {
   #running = 0;
 
   constructor(deps: JobRunnerDeps) {
+    this.#aiAllowed = deps.aiAllowed ?? (() => true);
     this.#root = deps.root;
     this.#hub = deps.hub;
     this.#maxParallel = deps.maxParallel > 0 ? deps.maxParallel : 1;
@@ -151,7 +163,18 @@ export class JobRunner {
     this.#pruneFinished();
   }
 
+  assertAiAllowed(kind: JobKind): void {
+    if (!NON_AI_JOB_KINDS.includes(kind) && !this.#aiAllowed()) throw new AiDisabledError();
+  }
+
   enqueue(kind: JobKind, input: unknown, meta: { set: string | null; title: string }): JobView {
+    this.assertAiAllowed(kind);
+    if (kind === "compile-book") {
+      const existing = [...this.#jobs.values()].find(
+        (job) => job.kind === kind && job.set === meta.set && (job.status === "queued" || job.status === "running"),
+      );
+      if (existing !== undefined) return this.#view(existing);
+    }
     const record: JobRecord = {
       id: randomUUID(),
       kind,

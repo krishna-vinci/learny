@@ -3,7 +3,7 @@ import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
 import type { Hono } from "hono";
-import { listUsers, USERNAME_PATTERN, type User } from "../accounts/users.js";
+import { getUserById, listUsers, USERNAME_PATTERN, type User } from "../accounts/users.js";
 import { ChatService } from "../agent/chat-service.js";
 import { createApp } from "../app.js";
 import { EventHub } from "../events.js";
@@ -169,6 +169,7 @@ export class WorkspaceManager {
       root,
       hub,
       maxParallel: this.#maxParallelJobs,
+      aiAllowed: () => getUserById(this.#db, user.id)?.aiEnabled === true,
       subscriptionProviders: await this.#subscriptionProvidersFor(root),
     });
     jobs.register("draft-chapter", createDraftJob({ root, locks, mcp, runtime: this.#runtime, hub }));

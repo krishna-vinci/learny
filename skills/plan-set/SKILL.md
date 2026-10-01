@@ -15,8 +15,10 @@ description: Propose a study plan and prerequisite-ordered curriculum for learne
    candidate URLs unverified.
 3. Propose 6–14 chapters, ordered so prerequisites precede dependent chapters.
    Each chapter should cover one manageable learning unit at the requested level.
-   State its one-line scope and prerequisites, using earlier chapter numbers or
-   `none`. Distinguish what the goal includes from what it deliberately excludes.
+   State its one-line scope and prerequisites: `none`, or a comma-separated list
+   of distinct existing two-digit chapter numbers strictly lower than the current
+   chapter. Reject self, forward, unknown, duplicate and malformed references.
+   Distinguish what the goal includes from what it deliberately excludes.
 4. Create the assigned `plan-proposals/<timestamp>.md` with `study_create`. If the
    harness supplies a precise filename, use it exactly. Write only this proposal;
    never edit `PLAN.md`, `curriculum.md`, notes, or the library. If file tools are

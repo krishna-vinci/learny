@@ -104,7 +104,22 @@ describe("syncDefaultSkills", () => {
     await fs.writeFile(path.join(outside, "SKILL.md"), "outside user file\n");
     await fs.symlink(outside, path.join(root, "_global/skills/explain"));
 
-    await expect(syncDefaultSkills(root)).rejects.toThrow("Path escapes study root");
+    await expect(syncDefaultSkills(root)).resolves.toBeUndefined();
     expect(await fs.readFile(path.join(outside, "SKILL.md"), "utf8")).toBe("outside user file\n");
   });
+});
+
+it("skips internal directory aliases without populating or overwriting notes", async () => {
+  const notes = path.join(root, "alpha/notes");
+  await fs.mkdir(notes, { recursive: true });
+  await fs.rm(path.join(root, "_global/skills/explain"), { recursive: true });
+  await fs.symlink("../../alpha/notes", path.join(root, "_global/skills/explain"));
+  const logged = vi.spyOn(console, "log").mockImplementation(() => undefined);
+  await syncDefaultSkills(root);
+  await expect(fs.access(path.join(notes, "SKILL.md"))).rejects.toThrow();
+  const previous = await fs.readFile(new URL("./fixtures/explain-v1.md", import.meta.url));
+  await fs.writeFile(path.join(notes, "SKILL.md"), previous);
+  await syncDefaultSkills(root);
+  expect(await fs.readFile(path.join(notes, "SKILL.md"))).toEqual(previous);
+  expect(logged).toHaveBeenCalledWith(expect.stringContaining("skipped unsafe skill"));
 });

@@ -10,6 +10,7 @@ import {
   setCardCommentField,
   toCardView,
 } from "@studium/shared";
+import { mapConcurrent } from "../concurrency.js";
 import { editFile } from "../tree/edit.js";
 import { commitPaths, log } from "../tree/git.js";
 import type { FileLocks } from "../tree/lock.js";
@@ -105,37 +106,35 @@ function malformedError(heading: string, reason: string): string {
 /** One `CardFileView` per card file, with derived stale info and status counts. */
 export async function listCardFiles(root: string, set: string): Promise<CardFileView[]> {
   const names = await cardFileNames(root, set);
-  return Promise.all(
-    names.map(async (name) => {
-      const text = await readCardText(root, set, name);
-      let parsed: ReturnType<typeof parseCardFile>;
-      try {
-        parsed = parseCardFile(text);
-      } catch (error) {
-        if (!(error instanceof FrontmatterError)) throw error;
-        return {
-          path: `cards/${name}`,
-          note: null,
-          deck: null,
-          stale: false,
-          noteCommitsSince: 0,
-          counts: countCardStatuses([]),
-          error: error.message,
-        };
-      }
-      const { stale, noteCommitsSince } = await staleInfo(root, set, parsed.note, parsed.noteSha);
-      const malformed = parsed.malformed[0];
+  return mapConcurrent(names, 4, async (name) => {
+    const text = await readCardText(root, set, name);
+    let parsed: ReturnType<typeof parseCardFile>;
+    try {
+      parsed = parseCardFile(text);
+    } catch (error) {
+      if (!(error instanceof FrontmatterError)) throw error;
       return {
         path: `cards/${name}`,
-        note: parsed.note,
-        deck: parsed.deck,
-        stale,
-        noteCommitsSince,
-        counts: countCardStatuses(parsed.cards),
-        ...(malformed === undefined ? {} : { error: malformedError(malformed.heading, malformed.reason) }),
+        note: null,
+        deck: null,
+        stale: false,
+        noteCommitsSince: 0,
+        counts: countCardStatuses([]),
+        error: error.message,
       };
-    }),
-  );
+    }
+    const { stale, noteCommitsSince } = await staleInfo(root, set, parsed.note, parsed.noteSha);
+    const malformed = parsed.malformed[0];
+    return {
+      path: `cards/${name}`,
+      note: parsed.note,
+      deck: parsed.deck,
+      stale,
+      noteCommitsSince,
+      counts: countCardStatuses(parsed.cards),
+      ...(malformed === undefined ? {} : { error: malformedError(malformed.heading, malformed.reason) }),
+    };
+  });
 }
 
 /** `GET /api/sets/:set/cards/file?path=cards/NN-slug.md`, or null when absent. */
