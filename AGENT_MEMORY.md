@@ -55,6 +55,7 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - The study tree git repo auto-commits per role author (tutor/librarian/drafter/checker/cardsmith/critic/user/system).
 
 ## Gotchas learned the hard way
+- Media in notes (D29): paths are relative to the note file (`../assets/x.svg`); browser imports of media helpers use `@studium/shared/media` (not the barrel, which pulls YAML). Artifacts render only after a tap with a CSP meta prepended; the book copies media into `<temp>/media/` and the Lua filter keeps only `media/` images.
 - **iPhone/WebKit:** rehype-katex's MathML output crashed WebKit (Chrome and jsdom were fine). KaTeX is set to `output: "html"` and wrapped crash-safe in `web/src/lib/katex-loader.ts`; content sits inside `RenderBoundary`. Chrome-only browser tests can miss Safari bugs, and WebKit can't run on this host (missing system libs, no sudo), so ask the owner to check on the phone.
 - **AI permission is enforced in `JobRunner.enqueue`** (it reads the owner's `aiEnabled` from SQLite and throws `AiDisabledError` for AI kinds; `compile-book` is exempt). Any code that enqueues in the background (e.g. the site-import queue) must catch it.
 - **Selected passages and source text are untrusted:** pass them through `server/src/agent/passage.ts` (escaped, delimited data blocks), never inline as instructions.
@@ -92,6 +93,7 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - **Done:** M0–M6. M6 (PRs #3–#9 from the Claude cloud) is merged with M5. **Open:** the M4-8 review fixes (server-only run on Sol 6.1; web parts afterwards).
 
 ## Open gaps
+- M7 media: old YouTube sources lack `<!-- t: -->` markers and thumbnails (no re-ingest action yet); Mermaid stays a placeholder in the book (mmdc deferred); no media in Anki cards or chat embeds.
 - **Book PDF layout:** callout boxes can split across pages, leaving an orphaned header (e.g. "Deeper" at the bottom of p5, its body on p6, and a mostly blank page). Keep a callout's header with its first lines (`block(breakable: …)` or `sticky` in `server/templates/book/book.typ` / `callouts.lua`). Mermaid appears as "(diagram in the app)".
 - **shadcn migration (deferred to M6):** batches D1–D5 in `docs/prompts/m3b-slice-d.md`, with the map in `docs/prompts/m3b-d-uimap.md` (the map will go stale; refresh it before running). New UI should still prefer the existing `components/ui` kit.
 - **Skills update** (awaiting the owner's go):
@@ -142,3 +144,4 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - 2026-10-01 · M6 (cloud Sonnet, 7 stacked PRs) · `docs/UX.md`, `docs/DESIGN.md`, `docs/INSTALL.md`; `components/Navigation/*`, onboarding, friendly errors, offline caching, lazy routes · the orchestrator merged M5 in: Practice routes to the M5 page, Cards gets `cardsHref`, plain names for Examiner/Grader · 604 server + 127 web tests pass; landing JS 120 kB gzip.
 - 2026-10-01 · M4-8 fixes (Sol 6.1, server-only) · enqueue-time AI gate, Firecrawl final-URL checks, skill-sync canonical confinement, passage trust blocks, prerequisite validation, Today cache plus bounded git, book limits and coalescing, fence length, card passages · the orchestrator ported the AI-revocation handling to M6's persisted `SiteImportQueue` · the web half goes to Luna.
 - 2026-10-01 · M4-8 web (Luna) · `api/queries.ts` status-change Today invalidation (100-entry cache), `InboxPlanReview` uses API chapters, TodayPage split counts and hidden zeros · 131 web tests pass.
+- 2026-10-01 · M7 media (Sol 6.1) · SVG figures/assets + asset route, Firecrawl-first `images.json` + `save_asset`, click-to-load YouTube with `#t` citations and thumbnails, lazy AST Vega-Lite charts (server SVG for the book), CSP-sandboxed `::artifact`, `media-authoring` skill, D29. 283 scoped tests, browser 390/1440 light/dark, real PDF.
