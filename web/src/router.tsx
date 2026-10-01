@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import RootLayout from "@/layouts/RootLayout";
 import { setSkipped, wasSkipped } from "@/lib/onboarding";
+import RouteError from "@/pages/RouteError";
 import TodayPage from "@/pages/TodayPage";
 
 /** Redirects `/login[?redirect=]` (the pre-M3a route) to `/auth`, preserving the query. */
@@ -107,6 +108,7 @@ export const router = createBrowserRouter([
         <RootLayout />
       </AuthGate>
     ),
+    errorElement: <RouteError />,
     children: [
       { index: true, element: <HomeRedirect /> },
       { path: "today", element: <TodayPage /> },

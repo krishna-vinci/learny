@@ -12,6 +12,7 @@ import rehypeSanitize from "rehype-sanitize";
 import remarkDirective from "remark-directive";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
+import { RenderBoundary } from "@/components/RenderBoundary";
 import { hasMath, useKatex } from "@/lib/katex-loader";
 import { cn } from "@/lib/utils";
 import { Citation } from "./Citation";
@@ -79,17 +80,19 @@ function MarkdownViewComponent({ content, className }: MarkdownViewProps) {
   // KaTeX loads only for notes that contain math; others never pay for it.
   const math = hasMath(content);
   const katex = useKatex(math);
-  const katexPlugins: MarkdownRehypePlugins = katex ? [[katex, { throwOnError: false, strict: false }]] : [];
+  const katexPlugins: MarkdownRehypePlugins = katex ? [katex] : [];
   if (math && !katex) return <div className={cn("studium-prose h-24 w-full", className)} aria-busy="true" />;
   return (
     <div className={cn("studium-prose w-full break-words text-foreground", className)}>
-      <ReactMarkdown
-        remarkPlugins={[remarkMath, remarkGfm, remarkDirective, remarkStudiumDirectives, remarkStudiumCitations]}
-        rehypePlugins={[[rehypeSanitize, SANITIZE_SCHEMA], ...katexPlugins]}
-        components={markdownComponents}
-      >
-        {content}
-      </ReactMarkdown>
+      <RenderBoundary fallbackText={content} resetKey={content}>
+        <ReactMarkdown
+          remarkPlugins={[remarkMath, remarkGfm, remarkDirective, remarkStudiumDirectives, remarkStudiumCitations]}
+          rehypePlugins={[[rehypeSanitize, SANITIZE_SCHEMA], ...katexPlugins]}
+          components={markdownComponents}
+        >
+          {content}
+        </ReactMarkdown>
+      </RenderBoundary>
     </div>
   );
 }

@@ -4,6 +4,7 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
+import { RenderBoundary } from "@/components/RenderBoundary";
 import { hasMath, useKatex } from "@/lib/katex-loader";
 
 interface MessageMarkdownProps {
@@ -15,9 +16,11 @@ function MessageMarkdown({ text }: MessageMarkdownProps) {
   const katex = useKatex(math);
   return (
     <div className="studium-prose studium-prose-compact min-w-0 break-words">
-      <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={katex ? [katex] : []}>
-        {text}
-      </ReactMarkdown>
+      <RenderBoundary fallbackText={text} resetKey={text}>
+        <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={katex ? [katex] : []}>
+          {text}
+        </ReactMarkdown>
+      </RenderBoundary>
     </div>
   );
 }
