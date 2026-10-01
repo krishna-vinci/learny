@@ -179,3 +179,17 @@ async function readFileOrNull(file: string): Promise<string | null> {
     return null;
   }
 }
+
+describe("agent frontmatter repair", () => {
+  it("quotes an unquoted title containing a colon and refuses unrepairable YAML", async () => {
+    const { repairFrontmatter } = await import("./frontmatter-repair.js");
+    const bad = "---\ntitle: Before Hyderabad: Deccan and Golconda\norder: 2\n---\n# Body: kept\n";
+    expect(repairFrontmatter("s/notes/02.md", bad)).toBe(
+      '---\ntitle: "Before Hyderabad: Deccan and Golconda"\norder: 2\n---\n# Body: kept\n',
+    );
+    const good = '---\ntitle: "A: B"\n---\n';
+    expect(repairFrontmatter("s/notes/a.md", good)).toBe(good);
+    expect(repairFrontmatter("s/notes/a.md", bad, false)).toBe(bad);
+    expect(() => repairFrontmatter("s/notes/a.md", "---\ntitle: [unclosed\n---\n")).toThrow(/Quote values/);
+  });
+});

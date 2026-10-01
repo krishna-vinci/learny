@@ -25,6 +25,8 @@ sources: [lib-strang-la]
 ---
 ```
 
+Quote a title that contains `: ` or ` #`, e.g. `title: "Before Hyderabad: Deccan and Golconda"`.
+
 Keep `NN` sequential, use a short kebab-case slug, and never change a note filename without recording why in `log/decisions.md`.
 
 ## Body conventions

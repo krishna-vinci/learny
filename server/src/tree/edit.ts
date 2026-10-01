@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { lstat, mkdir, open, readFile, rename, unlink } from "node:fs/promises";
 import path from "node:path";
+import { repairFrontmatter } from "./frontmatter-repair.js";
 import type { FileLocks } from "./lock";
 import { validateMediaWrite } from "./media.js";
 import { canonicalRel, isWritableByAgent, PathError, resolveInRoot } from "./paths";
@@ -110,8 +111,9 @@ export async function writeTextLocked(
   canWrite: (rootRelativePath: string) => boolean,
 ): Promise<void> {
   if (locks.holderOf(rel) !== holder) throw new Error(`File lock is required: ${rel}`);
-  await validateMediaWrite(root, rel, content);
-  await atomicWrite(writableAbsolutePath(root, rel, canWrite), content);
+  const text = repairFrontmatter(rel, content, holder !== "user");
+  await validateMediaWrite(root, rel, text);
+  await atomicWrite(writableAbsolutePath(root, rel, canWrite), text);
 }
 
 export async function editFile(
@@ -148,6 +150,7 @@ export async function editFile(
       const index = content.indexOf(oldString);
       updated = content.slice(0, index) + newString + content.slice(index + oldString.length);
     }
+    updated = repairFrontmatter(rel, updated, holder !== "user");
     await validateMediaWrite(root, rel, updated);
     await atomicWrite(abs, updated);
     return { replacements: opts?.replaceAll === true ? matches : 1 };
@@ -170,8 +173,9 @@ export async function replaceFile(
     if (current !== expected) {
       throw new EditError("conflict", `File changed since it was read: ${rel}`, current);
     }
-    await validateMediaWrite(root, rel, content);
-    await atomicWrite(abs, content);
+    const text = repairFrontmatter(rel, content, holder !== "user");
+    await validateMediaWrite(root, rel, text);
+    await atomicWrite(abs, text);
   });
 }
 
@@ -190,9 +194,10 @@ export async function createFile(
       await lstat(abs);
     } catch (error) {
       if (isErrnoError(error, "ENOENT")) {
+        const text = repairFrontmatter(rel, content, holder !== "user");
         await mkdir(path.dirname(abs), { recursive: true });
-        await validateMediaWrite(root, rel, content);
-        await atomicWrite(abs, content);
+        await validateMediaWrite(root, rel, text);
+        await atomicWrite(abs, text);
         return;
       }
       throw error;
