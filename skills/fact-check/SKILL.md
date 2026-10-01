@@ -54,6 +54,25 @@ Record the cross-check source separately. Never replace the required library sup
 
 Never cite an unregistered cross-check source. If the role lacks `add_source`, report its URL to the owner for registration and leave acceptance pending. If a research tool is unavailable, state the check that remains undone rather than accepting a claim from memory.
 
+## Teaching quality
+
+Add a “Teaching quality” section to every report. Treat these as **blockers**,
+using the same `### N. Blocker — ...` format as factual issues:
+
+- Brief echoes, including “this chapter asks”, or copied planning instructions.
+- Internal paths, file names, parsed line numbers or tool names in prose/footnotes.
+- Text addressed to an AI or operator, including AI self-reference.
+- Missing “Check yourself” or “Key takeaways”.
+- Walls of text: more than six sentences in a paragraph.
+
+Remaining server teaching-lint warnings are blockers even when the facts are
+correct. Read the current note; a clean report cannot waive a remaining hit.
+Check for 3–5 retrieval questions with answers in a collapsed
+`:::deeper{title="Answers"}` and 3–6 takeaway bullets. Note weaker voice issues
+(concrete-first, familiar analogies, warmth, short paragraphs) as non-blocking
+suggestions unless they impair understanding. Put internal evidence locators in
+the report only; learner footnotes name author/organisation, title and section/page.
+
 ## Write the report
 
 Create `<set>/log/checks/<note-filename>.md`:

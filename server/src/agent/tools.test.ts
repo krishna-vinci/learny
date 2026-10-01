@@ -171,3 +171,23 @@ it("refuses SVG writes that exceed the entire set assets quota", async () => {
   const result = await execute("study_create", { path: "assets/new.svg", content: '<svg viewBox="0 0 1 1"/>' });
   expect(result.details).toMatchObject({ isError: true, summary: expect.stringContaining("quota") });
 });
+
+it("returns teaching warnings on creation and editing without failing writes", async () => {
+  const created = await execute("study_create", {
+    path: "notes/98-voice.md",
+    content: "This chapter asks about the brief.",
+  });
+  expect(created.details).toMatchObject({
+    isError: false,
+    warnings: expect.arrayContaining([expect.stringContaining("Teaching quality")]),
+  });
+  const edited = await execute("study_edit", {
+    path: "notes/98-voice.md",
+    old_string: "This chapter asks about the brief.",
+    new_string: "[^src:lib-city]: parsed.md, lines 4–8.",
+  });
+  expect(edited.details).toMatchObject({
+    isError: false,
+    warnings: expect.arrayContaining([expect.stringContaining("internal files")]),
+  });
+});

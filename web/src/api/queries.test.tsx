@@ -49,7 +49,11 @@ describe("useLiveStudiumUpdates", () => {
 
     emit({ type: "job", job: job("running", "Starting") });
     expect(todayInvalidationCount()).toBe(1);
+    const courseInvalidations = () =>
+      invalidate.mock.calls.filter(([filters]) => filters?.queryKey?.[2] === "course").length;
+    expect(courseInvalidations()).toBe(1);
     emit({ type: "job", job: job("running", "Reading source") });
+    expect(courseInvalidations()).toBe(1);
     expect(todayInvalidationCount()).toBe(1);
     emit({ type: "job", job: job("done", "Finished") });
     expect(todayInvalidationCount()).toBe(2);

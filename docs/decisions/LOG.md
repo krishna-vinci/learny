@@ -276,3 +276,14 @@ YouTube player explicitly tapped by the learner.
 Charts use inline `data.values`, the AST expression interpreter and rejecting
 loaders in web and book. No URL data. Deferred: Mermaid SVG book rendering via mmdc,
 Anki media, chat embeds, and server-side artifact poster rendering.
+
+## D30 — Teaching voice · locked · 2026-10-01
+
+- V1: warm, precise teacher; concrete first, natural we/you, short paragraphs, no internal/operator prose.
+- V2: flexible hook → relevance → concepts/examples → subject blocks → Check yourself with collapsed answers → Key takeaways → bridge.
+- V3: optional PLAN subject: math, science, technology, history, finance, language, practical, general; unknown/missing uses general.
+- V4: stable citations, human footnotes (author/organisation, title, section/page); no internal paths or line numbers.
+- V5: learner-requested rewrite-chapter keeps facts, citations, figures, frontmatter/path and uses draft/check/revision and History.
+- V6: course states derive from matching notes and active jobs; tick at draft commit and repair stale ticks on the next draft, never a read.
+
+Teaching commitments and the 20-rule mapping: `docs/TEACHING.md`.

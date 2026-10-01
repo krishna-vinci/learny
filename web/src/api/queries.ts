@@ -45,6 +45,7 @@ export const queryKeys = {
   search: ["search"] as const,
   highlights: (set: string, note?: string) => ["highlights", set, ...(note ? [note] : [])] as const,
   sets: ["sets"] as const,
+  course: (set: string) => ["sets", set, "course"] as const,
   notes: (set: string) => ["sets", set, "notes"] as const,
   file: (set: string, path: string) => ["sets", set, "file", path] as const,
   book: (set: string) => ["sets", set, "book"] as const,
@@ -61,6 +62,10 @@ export const queryKeys = {
   cardFiles: (set: string) => ["sets", set, "cards"] as const,
   cardFile: (set: string, path: string) => ["sets", set, "cards", path] as const,
 };
+
+export function useCourse(set: string) {
+  return useQuery({ queryKey: queryKeys.course(set), queryFn: () => api.sets.course(set) });
+}
 
 export function useToday() {
   return useQuery({ queryKey: queryKeys.today, queryFn: () => api.today() });
@@ -561,6 +566,7 @@ export function useLiveStudiumUpdates() {
     }
     if (event.type === "file") {
       if (event.set) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.course(event.set) });
         queryClient.invalidateQueries({ queryKey: ["sets", event.set, "notes"] });
         queryClient.invalidateQueries({ queryKey: ["sets", event.set, "file"] });
         queryClient.invalidateQueries({ queryKey: ["sets", event.set, "history"] });
@@ -572,6 +578,9 @@ export function useLiveStudiumUpdates() {
       return;
     }
     if (event.type === "commit") {
+      queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] === "sets" && query.queryKey[2] === "course",
+      });
       queryClient.invalidateQueries({ predicate: (query) => query.queryKey.includes("history") });
       // A user commit (card patch, approve-clean, exported) doesn't carry a `set`, so
       // refresh every set's cards rather than trying to guess which one changed.
@@ -583,9 +592,12 @@ export function useLiveStudiumUpdates() {
     if (event.type === "job") {
       queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === "jobs" });
       const { job } = event;
+      if (jobStatusChanged && job.set && (job.kind === "draft-chapter" || job.kind === "rewrite-chapter")) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.course(job.set) });
+      }
       const finished = job.status === "done" || job.status === "failed" || job.status === "cancelled";
       // A finished draft-chapter job changes that set's Inbox and notes.
-      if (job.kind === "draft-chapter" && job.set && finished) {
+      if ((job.kind === "draft-chapter" || job.kind === "rewrite-chapter") && job.set && finished) {
         queryClient.invalidateQueries({ queryKey: queryKeys.inbox(job.set) });
         queryClient.invalidateQueries({ queryKey: queryKeys.notes(job.set) });
       }

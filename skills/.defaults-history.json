@@ -7,7 +7,31 @@
   "draft-chapter/SKILL.md": [
     "9694a8a5ed73f6b1fa0d5585604158567d0fd5367bbb0c6679f7678b5292f0e4",
     "37a5b9f57ff4c73b18ee4873d86b4924fa0c2c67db9cbf7713af618970aa8366",
-    "a0fb0401d7905f532c8effee9911c24fe083b565460e923dc196ce34ddf9a7c7"
+    "a0fb0401d7905f532c8effee9911c24fe083b565460e923dc196ce34ddf9a7c7",
+    "f0a5a6a8eae56e50c73239aed1752c8cf0d4c7259d71a4cbfc5f75bef3e95d13"
+  ],
+  "draft-chapter/references/subject-finance.md": [
+    "9bf7176302cb4479ea4cdc06cc009fe84633391401024c1b1e9a5ff8c9fac010",
+    "5bb8ae92243899b42a9640c7aff7c9edaa2b5ea7221503f23dea7ef681cf01b7"
+  ],
+  "draft-chapter/references/subject-general.md": ["d279b84f44374fe039616134740fab165c0a40aff964630232130c1c106e6739"],
+  "draft-chapter/references/subject-history.md": [
+    "4d1b60b1fa64f53682853045f7f9a258709f33c67c8ea051ab5aaa92e13d4c79",
+    "8441fe557ba927223fa58608abfdfacc4f291ec18f275cf9301651c438207842"
+  ],
+  "draft-chapter/references/subject-language.md": ["9f08c53d9e9972234ec4c4461c09e1d37ab4800db736044518d374ee0718e3e6"],
+  "draft-chapter/references/subject-math.md": [
+    "db22d0378b01dbdca3c1730b03b230e546fc76d327dbf872c92641ececdd6008",
+    "6ff784d551e624363ad93ee9d0675c432879cd5526b733afbf1c776bcf5d05a1"
+  ],
+  "draft-chapter/references/subject-practical.md": ["554aba76b883b24511ae7ec83a80740f9e2ab9f4ec98b4785a9c41b0e8eaeca8"],
+  "draft-chapter/references/subject-science.md": [
+    "75ee82add2e2752c2f4c3c66d86ade501c07b62975980bea066b604426cb2657",
+    "b4cbb4222fcd5f357a7bd17b3a6205d3ba1e861f49777d189a9a9060ce5d5d83"
+  ],
+  "draft-chapter/references/subject-technology.md": [
+    "a9dce1f4a49c129d3c80d43529f4e965264b9211bca99c9df5753c30d78c468e",
+    "7e948991bcf885c4f53f121993a1318d5c9ad751b4337b4e7daca4f0506e2c56"
   ],
   "evolve-note/SKILL.md": [
     "cb552d20db1198980c5793456fbc897ff89088905e7bf48f3c28b29b96650fcf",
@@ -20,7 +44,8 @@
   ],
   "fact-check/SKILL.md": [
     "82a5037bf50a2ba5591b7e5ac9cf03db64b767c3c08ae2ea53c9364d8d90cd16",
-    "4963041abde872f94fc52ff30b6207c49a6bc5432142657bd749c44a6bf94bf7"
+    "4963041abde872f94fc52ff30b6207c49a6bc5432142657bd749c44a6bf94bf7",
+    "9f06b181bd845cb87cdabdea3a4a1527c42820100bccbd92a39586ab3831783d"
   ],
   "find-sources/SKILL.md": ["a923c7d84ca4839d0057c00fd7cb5b99405748bca5d8ea7626108edd1bd90e82"],
   "grade-answer/SKILL.md": ["5395938677a5061ea9a5e630aa29f9809fd5984118582dcc874e8161ab2ce04d"],
@@ -36,11 +61,14 @@
     "4bccffccff0f9472577c0b17f50a92bcbdd4ecb3272ea04cba69a88ae60262a7",
     "77466d73ffd48d74c9504c8f86141d442ee0377e72ce950a8373bc12aeb0ff9d",
     "512f53f353de2124b1956e55b1532057e0d697f7b1d04ffb8db320a019799e02",
-    "c45df4485a7544a2f2b5a6458c8037c6d917c8110c163b958de2180736d0fbd0"
+    "c45df4485a7544a2f2b5a6458c8037c6d917c8110c163b958de2180736d0fbd0",
+    "97260d8bb3ca0c7a3c3b3dbe3c1b15741df1bc16eb795ddb18ad366277d68827"
   ],
+  "note-authoring/references/teaching.md": ["0d3b6c9096e0dff6c1ca75924ff3994ab75ccf04e561048386036c930c5ed4a1"],
   "plan-set/SKILL.md": [
     "f9035723c57c915062eebe5881087659f14239863ea48768935c2a66838cd304",
-    "4d555e0809ce616afa7cb94ccc04e354df9b0e1b749633bd8fdb013ae48e8604"
+    "4d555e0809ce616afa7cb94ccc04e354df9b0e1b749633bd8fdb013ae48e8604",
+    "723c845261513925dc20cd36748379d13f3478347f24da4531abc705d4c2ecee"
   ],
   "quiz-me/SKILL.md": [
     "75fcc33d3149570a91d3216fa42f8ad7ba9d035624ebc1208e588f1d176bf6ef",

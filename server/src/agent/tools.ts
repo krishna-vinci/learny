@@ -5,6 +5,7 @@ import { createFile, editFile, readText } from "../tree/edit.js";
 import type { FileLocks } from "../tree/lock.js";
 import { canonicalRel, isWritableByAgent, resolveInRoot } from "../tree/paths.js";
 import { mediaWarnings } from "./media-warnings.js";
+import { noteLint } from "./note-lint.js";
 
 interface ToolDetails {
   isError: boolean;
@@ -167,7 +168,8 @@ export function studyTools(ctx: StudyToolContext): ToolDefinition[] {
         const added = countLines(params.new_string);
         const removed = countLines(params.old_string);
         const summary = `edited ${params.path} (+${added} −${removed} lines)`;
-        const warnings = await mediaWarnings(ctx.root, combined, await readText(ctx.root, combined));
+        const text = await readText(ctx.root, combined);
+        const warnings = [...(await mediaWarnings(ctx.root, combined, text)), ...noteLint(combined, text)];
         return result(summary, [summary, ...warnings.map((warning) => `Warning: ${warning}`)].join("\n"), {
           path: params.path,
           ...(warnings.length ? { warnings } : {}),
@@ -190,7 +192,8 @@ export function studyTools(ctx: StudyToolContext): ToolDefinition[] {
         await createFile(ctx.root, ctx.locks, ctx.holder, combined, params.content, { canWrite: ctx.write });
         ctx.onWrite?.(combined);
         const summary = `created ${params.path}`;
-        const warnings = await mediaWarnings(ctx.root, combined, await readText(ctx.root, combined));
+        const text = await readText(ctx.root, combined);
+        const warnings = [...(await mediaWarnings(ctx.root, combined, text)), ...noteLint(combined, text)];
         return result(summary, [summary, ...warnings.map((warning) => `Warning: ${warning}`)].join("\n"), {
           path: params.path,
           ...(warnings.length ? { warnings } : {}),

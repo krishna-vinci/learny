@@ -61,7 +61,9 @@ function RunningJobRow({ job, onCancel, cancelling }: { job: JobView; onCancel: 
           <span className="truncate font-medium text-foreground">{job.title}</span>
           <StatusChip status={job.status} />
         </div>
-        <p className="mt-0.5 truncate text-sm text-muted-foreground">{job.progress || "Working…"}</p>
+        <p className="mt-0.5 truncate text-sm text-muted-foreground">
+          {job.progress || (job.kind === "rewrite-chapter" ? "Rewriting chapter" : "Working…")}
+        </p>
       </div>
       <Button variant="outline" size="sm" className="h-11 shrink-0 sm:h-7" onClick={onCancel} disabled={cancelling}>
         {cancelling ? "Cancelling…" : "Cancel"}
@@ -78,6 +80,7 @@ function RecentJobRow({ job }: { job: JobView }) {
         <StatusChip status={job.status} />
       </div>
       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-muted-foreground">
+        {job.kind === "rewrite-chapter" && <span>Rewriting chapter</span>}
         <span>{formatDuration(job.startedAt, job.finishedAt)}</span>
         <span aria-hidden="true">·</span>
         <span className="tabular-nums">{formatTokenUsage(job.usage)}</span>

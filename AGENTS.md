@@ -11,6 +11,7 @@ your final report; the orchestrator adds them to AGENT_MEMORY.md.
 Read before planning or claiming behaviour:
 
 - `docs/PRINCIPLES.md` — non-negotiable constraints.
+- `docs/TEACHING.md` — teaching voice, chapter shape, and learning principles.
 - `docs/decisions/LOG.md` — locked decisions (override `docs/PROPOSAL.md`).
 - Specs: `docs/STUDY_TREE.md` (data contract), `docs/AGENT_ROLES.md`, `docs/INGEST.md`,
   `docs/REVIEW_LOOP.md`, `docs/UI.md`, `docs/DEPLOY.md`, `docs/ROADMAP.md`.

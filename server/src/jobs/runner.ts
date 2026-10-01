@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { JobBilling, JobKind, JobResult, JobStatus, JobUsage, JobView } from "@studium/shared";
+import type { ActiveChapterJob } from "../course/build.js";
 import type { EventHub } from "../events.js";
 import { appendJobLog } from "./log.js";
 
@@ -210,6 +211,28 @@ export class JobRunner {
       if (view.status === "running") keep.add(view.id);
     }
     return views.filter((view) => keep.has(view.id));
+  }
+
+  /** Complete active chapter list for course state, without exposing job inputs to the browser. */
+  chapterJobs(set: string): ActiveChapterJob[] {
+    return [...this.#jobs.values()].flatMap((job) => {
+      if (
+        job.set !== set ||
+        (job.status !== "queued" && job.status !== "running") ||
+        (job.kind !== "draft-chapter" && job.kind !== "rewrite-chapter")
+      )
+        return [];
+      return [
+        {
+          id: job.id,
+          kind: job.kind,
+          title: job.title,
+          ...(job.kind === "rewrite-chapter" && isRecord(job.input) && typeof job.input.path === "string"
+            ? { path: job.input.path }
+            : {}),
+        },
+      ];
+    });
   }
 
   get(id: string): JobView | undefined {

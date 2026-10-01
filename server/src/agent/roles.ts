@@ -1,3 +1,4 @@
+import type { ActiveChapterJob } from "../course/build.js";
 import { isWritableByAgent } from "../tree/paths.js";
 import type { SkillSummary } from "./builtins/skills.js";
 import { buildBatchRolePrompt, buildTutorPrompt } from "./prompt.js";
@@ -18,6 +19,7 @@ export interface RolePromptContext {
   set: string | null;
   skills: readonly SkillSummary[];
   anchor?: string;
+  chapterJobs?: readonly ActiveChapterJob[];
 }
 
 export interface RoleSpec {
@@ -76,9 +78,9 @@ export const ROLES: Record<RoleName, RoleSpec> = {
     requiresSet: true,
     scope: (set) => ({ set, library: true }),
     write: (_set, rel) => isWritableByAgent(rel),
-    promptBuilder: ({ root, set, skills, anchor }) => {
+    promptBuilder: ({ root, set, skills, anchor, chapterJobs }) => {
       if (set === null) throw new Error("The tutor role requires a study set");
-      return buildTutorPrompt(root, set, anchor, skills);
+      return buildTutorPrompt(root, set, anchor, skills, chapterJobs);
     },
   },
   librarian: {

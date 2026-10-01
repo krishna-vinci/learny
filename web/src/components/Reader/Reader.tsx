@@ -7,6 +7,7 @@ import {
   Minimize2Icon,
   MoreHorizontalIcon,
   PencilIcon,
+  RefreshCwIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -16,10 +17,12 @@ import { showJobStartedToast } from "@/components/Activity/job-start-toast";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { FirstUseHint } from "@/components/FirstUseHint";
 import { NoteHistory } from "@/components/NoteHistory";
+import { RewriteChapterDialog } from "@/components/RewriteChapterDialog";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -168,6 +171,7 @@ export function Reader({ set, path, file, className }: ReaderProps) {
   const [highlightsOpen, setHighlightsOpen] = useState(false);
   const highlightsQuery = useHighlights(set, path);
   const highlights = highlightsQuery.data?.highlights ?? EMPTY_HIGHLIGHTS;
+  const [rewriteOpen, setRewriteOpen] = useState(false);
   const [makingCards, setMakingCards] = useState(false);
   // `?edit=1` (from NewNoteDialog, so a freshly created blank note opens straight into
   // the editor) starts editing immediately; otherwise the reader starts read-only.
@@ -356,25 +360,31 @@ export function Reader({ set, path, file, className }: ReaderProps) {
                   <MoreHorizontalIcon />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="min-w-44">
-                  <DropdownMenuItem className="min-h-11 md:min-h-0" onClick={() => setEditing(true)}>
-                    <PencilIcon />
-                    Edit
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="min-h-11 md:min-h-0"
-                    onClick={() => (historyOpen ? closeHistory() : setHistoryOpen(true))}
-                  >
-                    <HistoryIcon />
-                    {historyOpen ? "Hide history" : "History"}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="min-h-11 md:min-h-0" onClick={() => setHighlightsOpen(true)}>
-                    <HighlighterIcon />
-                    Highlights ({highlights.length})
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="min-h-11 md:min-h-0" onClick={toggleImmersive}>
-                    {immersive ? <Minimize2Icon /> : <Maximize2Icon />}
-                    {immersive ? "Exit full screen" : "Full screen"}
-                  </DropdownMenuItem>
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem className="min-h-11 md:min-h-0" onClick={() => setRewriteOpen(true)}>
+                      <RefreshCwIcon />
+                      Rewrite in teaching voice
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="min-h-11 md:min-h-0" onClick={() => setEditing(true)}>
+                      <PencilIcon />
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="min-h-11 md:min-h-0"
+                      onClick={() => (historyOpen ? closeHistory() : setHistoryOpen(true))}
+                    >
+                      <HistoryIcon />
+                      {historyOpen ? "Hide history" : "History"}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="min-h-11 md:min-h-0" onClick={() => setHighlightsOpen(true)}>
+                      <HighlighterIcon />
+                      Highlights ({highlights.length})
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="min-h-11 md:min-h-0" onClick={toggleImmersive}>
+                      {immersive ? <Minimize2Icon /> : <Maximize2Icon />}
+                      {immersive ? "Exit full screen" : "Full screen"}
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -402,6 +412,7 @@ export function Reader({ set, path, file, className }: ReaderProps) {
           />
         </div>
       </article>
+      <RewriteChapterDialog set={set} path={path} open={rewriteOpen} onOpenChange={setRewriteOpen} />
       {immersive && <ImmersiveExitButton />}
       {historyOpen && (
         <NoteHistory

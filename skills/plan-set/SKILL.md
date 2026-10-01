@@ -15,6 +15,10 @@ description: Propose a study plan and prerequisite-ordered curriculum for learne
    candidate URLs unverified.
 3. Propose 6–14 chapters, ordered so prerequisites precede dependent chapters.
    Each chapter should cover one manageable learning unit at the requested level.
+   Choose `subject:` from math, science, technology, history, finance, language,
+   practical, general and include it in the proposed PLAN.md frontmatter. History
+   includes humanities/social sciences; use general when no closer subject fits.
+   Scopes describe content for the learner, never instructions to an AI/operator.
    State its one-line scope and prerequisites: `none`, or a comma-separated list
    of distinct existing two-digit chapter numbers strictly lower than the current
    chapter. Reject self, forward, unknown, duplicate and malformed references.
@@ -30,7 +34,7 @@ description: Propose a study plan and prerequisite-ordered curriculum for learne
 
 Use exactly these headings and two Markdown fences. The `PLAN.md` fence contains
 the complete plan with the existing frontmatter schema: `title`, `status`, `level`,
-`deadline`, `sources`, and `next_action`. Use `null` for an absent deadline; sources
+`deadline`, `sources`, `subject`, and `next_action`. Use `null` for an absent deadline; sources
 contain only chosen, registered library ids. The plan can be `active` because this
 content is installed only after approval. Use `- [ ] NN — Title` curriculum lines
 numbered consecutively from 01. Keep Scope and Prerequisites on separate indented
@@ -45,6 +49,7 @@ lines. The example below has six chapters; replace their content for the actual 
 title: "Linear algebra for ML"
 status: active
 level: 2
+subject: math
 deadline: null
 sources: [lib-strang-la]
 next_action: Review the first drafted chapter

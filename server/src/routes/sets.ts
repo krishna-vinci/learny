@@ -1,7 +1,9 @@
 import { promises as fs } from "node:fs";
 import type { Context } from "hono";
 import { Hono } from "hono";
+import { buildCourse } from "../course/build.js";
 import type { EventHub } from "../events.js";
+import type { JobRunner } from "../jobs/runner.js";
 import { createNote, createSet, writeNoteAsUser } from "../tree/authoring.js";
 import { EditError } from "../tree/edit.js";
 import { changedPaths, diff, log, RevertConflictError, revert, revertPaths } from "../tree/git.js";
@@ -14,6 +16,7 @@ export interface SetsDeps {
   root: string;
   hub: EventHub;
   locks: FileLocks;
+  jobs?: Pick<JobRunner, "chapterJobs">;
 }
 
 const DEFAULT_HISTORY_LIMIT = 50;
@@ -94,6 +97,18 @@ export function setsRoutes(deps: SetsDeps): Hono {
       hub.publish({ type: "commit", sha: result.sha, subject: result.subject, author: "user" });
     }
     return c.json({ slug: result.slug }, 201);
+  });
+
+  app.get("/:set/course", async (c) => {
+    const set = c.req.param("set");
+    if (!(await setExists(root, set))) return notFound(c);
+    try {
+      return c.json(await buildCourse(root, set, deps.jobs?.chapterJobs(set)));
+    } catch (error) {
+      if (error instanceof PathError) return invalidPath(c);
+      if (error instanceof EditError && error.code === "not_found") return notFound(c);
+      throw error;
+    }
   });
 
   app.get("/:set/notes", async (c) => {

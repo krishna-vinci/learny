@@ -1,5 +1,7 @@
 # Principles
 
+Teaching commitments: [Teaching in Studium](TEACHING.md).
+
 The project's constitution. Non-negotiable design constraints; challenge them via a
 decision-log entry, not by accident. Settled 2026-09-28 (see `docs/decisions/LOG.md`).
 

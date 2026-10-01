@@ -5,7 +5,7 @@ import { createSet } from "../tree/authoring.js";
 import { resolveInRoot } from "../tree/paths.js";
 import { parseCompileBookInput } from "./book-paths.js";
 import { parseMakeCardsInput } from "./cards-job.js";
-import { parseDraftChapterInput } from "./draft-job.js";
+import { parseDraftChapterInput, parseRewriteChapterInput } from "./draft-job.js";
 import { parsePlanSetInput } from "./plan-job.js";
 import { parseMakeProblemsInput, parseMakeQuizInput } from "./practice-job.js";
 import { jobProposals, type ProposalStore } from "./proposals.js";
@@ -42,6 +42,7 @@ export function jobsRoutes(deps: JobsRoutesDeps): Hono {
           body !== null &&
           "kind" in body &&
           (body.kind === "draft-chapter" ||
+            body.kind === "rewrite-chapter" ||
             body.kind === "make-cards" ||
             body.kind === "compile-book" ||
             body.kind === "plan-set" ||
@@ -50,7 +51,7 @@ export function jobsRoutes(deps: JobsRoutesDeps): Hono {
         )
       ) {
         throw new Error(
-          'kind must be "draft-chapter", "make-cards", "compile-book", "plan-set", "make-quiz" or "make-problems"',
+          'kind must be "draft-chapter", "rewrite-chapter", "make-cards", "compile-book", "plan-set", "make-quiz" or "make-problems"',
         );
       }
       if (
@@ -110,6 +111,14 @@ export function jobsRoutes(deps: JobsRoutesDeps): Hono {
           return c.json({ error: "set not found" }, 404);
         }
         const job = deps.runner.enqueue("compile-book", parsed, { set: parsed.set, title: `Book for ${parsed.set}` });
+        return c.json({ jobId: job.id }, 202);
+      }
+      if (typeof input === "object" && input !== null && "kind" in input && input.kind === "rewrite-chapter") {
+        const parsed = parseRewriteChapterInput(input);
+        if (deps.root === undefined) throw new Error("study root is required for rewrite-chapter");
+        if (!existsSync(resolveInRoot(deps.root, `${parsed.set}/${parsed.path}`)))
+          return c.json({ error: "note not found" }, 404);
+        const job = deps.runner.enqueue("rewrite-chapter", parsed, { set: parsed.set, title: "Rewriting chapter" });
         return c.json({ jobId: job.id }, 202);
       }
       const parsed = parseDraftChapterInput(input);

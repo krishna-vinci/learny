@@ -52,6 +52,33 @@ describe("sets authoring routes", () => {
     });
   }
 
+  it("serves a read-only course with active jobs and rejects missing sets or escaped notes", async () => {
+    await fs.writeFile(path.join(root, "alpha/curriculum.md"), "- [ ] 03 — Vectors\n- [ ] 04 — Matrices\n");
+    const courseApp = new Hono();
+    courseApp.route(
+      "/api/sets",
+      setsRoutes({
+        root,
+        hub,
+        locks: new FileLocks(),
+        jobs: { chapterJobs: () => [{ id: "draft", kind: "draft-chapter", title: "Matrices" }] },
+      }),
+    );
+    const response = await courseApp.request("/api/sets/alpha/course");
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      subject: "general",
+      chapters: [
+        { state: "drafted", path: "notes/03-vectors.md" },
+        { state: "drafting", jobId: "draft" },
+      ],
+    });
+    expect((await courseApp.request("/api/sets/missing/course")).status).toBe(404);
+    await fs.rename(path.join(root, "alpha/notes"), path.join(root, "alpha/old-notes"));
+    await fs.symlink(outside, path.join(root, "alpha/notes"));
+    expect((await courseApp.request("/api/sets/alpha/course")).status).toBe(400);
+  });
+
   function commitEvents() {
     return events.filter((event) => event.type === "commit");
   }

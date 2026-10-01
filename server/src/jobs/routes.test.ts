@@ -284,3 +284,45 @@ it("returns 403 from the enqueue boundary and retains card passages", async () =
   });
   expect(tooLong.status).toBe(400);
 });
+
+it("validates rewrite paths and missing notes and enforces the enqueue AI gate", async () => {
+  const rooted = new Hono();
+  rooted.route("/api/jobs", jobsRoutes({ runner, root }));
+  await fs.mkdir(path.join(root, "alpha/notes"), { recursive: true });
+  await fs.writeFile(path.join(root, "alpha/notes/01-a.md"), "# A");
+  runner.register("rewrite-chapter", async () => undefined);
+  const post = (app: Hono, path: string) =>
+    app.request("/api/jobs", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ kind: "rewrite-chapter", set: "alpha", path }),
+    });
+  expect((await post(rooted, "../outside.md")).status).toBe(400);
+  expect((await post(rooted, "notes/99-missing.md")).status).toBe(404);
+  expect((await post(rooted, "notes/01-a.md")).status).toBe(202);
+  expect(runner.list()[0]?.kind).toBe("rewrite-chapter");
+  const denied = new JobRunner({ root, hub: new EventHub(), maxParallel: 1, aiAllowed: () => false });
+  const deniedApp = new Hono();
+  deniedApp.route("/api/jobs", jobsRoutes({ runner: denied, root }));
+  expect((await post(deniedApp, "notes/01-a.md")).status).toBe(403);
+  expect(denied.list()).toEqual([]);
+});
+
+it("accepts a tutor rewrite proposal with its original discriminator and path", async () => {
+  const rooted = new Hono();
+  rooted.route("/api/jobs", jobsRoutes({ runner, root, proposals }));
+  await fs.mkdir(path.join(root, "alpha/notes"), { recursive: true });
+  await fs.writeFile(path.join(root, "alpha/notes/01-a.md"), "# A");
+  runner.register("rewrite-chapter", async () => undefined);
+  const proposal = proposals.createRewrite(
+    { kind: "rewrite-chapter", set: "alpha", path: "notes/01-a.md" },
+    { tokens: 100, costUsd: null },
+  );
+  const response = await rooted.request("/api/jobs", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ proposalId: proposal.proposalId }),
+  });
+  expect(response.status).toBe(202);
+  expect(runner.list()[0]?.kind).toBe("rewrite-chapter");
+});

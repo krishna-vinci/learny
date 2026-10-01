@@ -10,7 +10,7 @@ import { EventHub } from "../events.js";
 import { McpManager } from "../mcp/bridge.js";
 import { diff, ensureRepo, log } from "../tree/git.js";
 import { FileLocks } from "../tree/lock.js";
-import { createDraftJob, hasBlockingIssues, setNoteStatusTool, tickCurriculum } from "./draft-job.js";
+import { createDraftJob, createRewriteJob, hasBlockingIssues, setNoteStatusTool, tickCurriculum } from "./draft-job.js";
 
 const SAMPLE_SET = fileURLToPath(new URL("../../../examples/sample-set", import.meta.url));
 
@@ -187,7 +187,7 @@ describe("draft chapter job", () => {
     expect(await diff(root, checkerCommit?.sha ?? "", "linear-algebra/log/checks/04-eigenvalues.md")).toContain(
       "No issues found",
     );
-    expect(await diff(root, checkerCommit?.sha ?? "", "linear-algebra/curriculum.md")).toContain("+- [x]");
+    expect(await diff(root, drafterCommit?.sha ?? "", "linear-algebra/curriculum.md")).toContain("+- [x]");
   });
 
   it("ticks by title when note numbering differs, preserving CRLF and fenced examples", async () => {
@@ -199,7 +199,7 @@ describe("draft chapter job", () => {
     const deps = { root, locks: new FileLocks() };
     expect(await tickCurriculum(deps, "linear-algebra", "notes/09-matrices.md", "Matrices")).toBe(rel);
     expect(await fs.readFile(path.join(root, rel), "utf8")).toBe(
-      "```md\r\n- [ ] 01 — Matrices\r\n```\r\n- [ ] 01 — Vectors\r\n- [x] 02 — Matrices\r\n",
+      "```md\r\n- [ ] 01 — Matrices\r\n```\r\n- [x] 01 — Vectors\r\n- [x] 02 — Matrices\r\n",
     );
     expect(await tickCurriculum(deps, "linear-algebra", "notes/09-matrices.md", "Matrices")).toBeNull();
     await fs.unlink(path.join(root, rel));
@@ -443,4 +443,162 @@ describe("draft chapter job", () => {
     expect(calls).toEqual(["echo", "echo", "glm"]);
     expect(progress).not.toContain("Checker model rate-limited; using faux/echo");
   });
+});
+
+describe("rewrite chapter job", () => {
+  it("pins the existing path, preserves citations/figures/metadata and runs the draft checker loop", async () => {
+    const notePath = "notes/03-svd.md";
+    const rel = `linear-algebra/${notePath}`;
+    const original =
+      "---\ntitle: SVD\norder: 3\nstatus: accepted\nsources: [lib-strang-la]\ncustom: keep\n---\nA matrix has singular values.[^src:lib-strang-la#p1]\n![Figure](../assets/svd.svg)\n[^src:lib-strang-la#p1]: parsed.md, lines 1–3.\n";
+    await fs.writeFile(path.join(root, rel), original);
+    const rewritten = original
+      .replace("status: accepted", "status: draft")
+      .replace("A matrix has singular values.", "We can describe a matrix using singular values.")
+      .replace("parsed.md, lines 1–3.", "Strang, *Linear Algebra*, p. 1.");
+    const runRole = vi.spyOn(roleRunner, "runRole").mockImplementation(async (role, opts) => {
+      if (role === "drafter") {
+        expect(opts.task).toContain(`Rewrite ${notePath} in place`);
+        expect(opts.canWrite?.(rel)).toBe(true);
+        expect(opts.canWrite?.("linear-algebra/notes/99-other.md")).toBe(false);
+        expect(opts.canWrite?.("linear-algebra/assets/svd.svg")).toBe(true);
+        expect(opts.canWrite?.("other/assets/svd.svg")).toBe(false);
+        await fs.writeFile(path.join(root, rel), rewritten);
+        return { text: "Rewritten", written: [rel], messages: [] };
+      }
+      expect(role).toBe("checker");
+      expect(opts.task).toContain("verify no facts, citations or figures were lost");
+      await fs.mkdir(path.join(root, "linear-algebra/log/checks"), { recursive: true });
+      await fs.writeFile(path.join(root, "linear-algebra/log/checks/03-svd.md"), "## No issues found\n");
+      return { text: "Checked", written: ["linear-algebra/log/checks/03-svd.md"], messages: [] };
+    });
+    const handler = createRewriteJob({
+      root,
+      locks: new FileLocks(),
+      mcp: new McpManager([]),
+      runtime: await createModelRuntime(),
+      hub: new EventHub(),
+    });
+    const result = await handler(
+      { set: "linear-algebra", path: notePath },
+      { signal: new AbortController().signal, progress: vi.fn(), addUsage: vi.fn() },
+    );
+    expect(result?.notePath).toBe(notePath);
+    expect(runRole.mock.calls.map(([role]) => role)).toEqual(["drafter", "checker"]);
+    expect(await fs.readFile(path.join(root, rel), "utf8")).toBe(rewritten.replace("status: draft", "status: checked"));
+    expect((await log(root, { limit: 2 })).map((c) => c.author)).toEqual(["checker", "drafter"]);
+  });
+  it("fails before a model call if the existing note is absent or the path is invalid", async () => {
+    const runRole = vi.spyOn(roleRunner, "runRole");
+    const handler = createRewriteJob({
+      root,
+      locks: new FileLocks(),
+      mcp: new McpManager([]),
+      runtime: await createModelRuntime(),
+      hub: new EventHub(),
+    });
+    const ctx = { signal: new AbortController().signal, progress: vi.fn(), addUsage: vi.fn() };
+    await expect(handler({ set: "linear-algebra", path: "notes/99-missing.md" }, ctx)).rejects.toThrow();
+    await expect(handler({ set: "linear-algebra", path: "../other/notes/01-x.md" }, ctx)).rejects.toThrow(
+      "chapter note path",
+    );
+    expect(runRole).not.toHaveBeenCalled();
+  });
+  it("rejects removal of citations before committing or checking", async () => {
+    const rel = "linear-algebra/notes/03-svd.md";
+    await fs.writeFile(
+      path.join(root, rel),
+      "---\ntitle: SVD\nstatus: draft\nsources: [lib-strang-la]\n---\nFact.[^src:lib-strang-la]\n",
+    );
+    const runRole = vi.spyOn(roleRunner, "runRole").mockImplementation(async () => {
+      await fs.writeFile(
+        path.join(root, rel),
+        "---\ntitle: SVD\nstatus: draft\nsources: [lib-strang-la]\n---\nFact.\n",
+      );
+      return { text: "Done", written: [rel], messages: [] };
+    });
+    const handler = createRewriteJob({
+      root,
+      locks: new FileLocks(),
+      mcp: new McpManager([]),
+      runtime: await createModelRuntime(),
+      hub: new EventHub(),
+    });
+    await expect(
+      handler(
+        { set: "linear-algebra", path: "notes/03-svd.md" },
+        { signal: new AbortController().signal, progress: vi.fn(), addUsage: vi.fn() },
+      ),
+    ).rejects.toThrow("preserve citations");
+    expect(runRole).toHaveBeenCalledTimes(1);
+    expect(await fs.readFile(path.join(root, rel), "utf8")).toContain("[^src:lib-strang-la]");
+  });
+});
+
+it("commits course ticks and repairs older drafts before a checker failure, reserving a missing planned number", async () => {
+  await fs.writeFile(
+    path.join(root, "linear-algebra/curriculum.md"),
+    "- [ ] 03 — SVD\n- [ ] 04 — Eigenvalues\n- [ ] 06 — Later topic\n- [x] 07 — Missing\n",
+  );
+  await fs.writeFile(path.join(root, "linear-algebra/notes/06-later-topic.md"), "---\nstatus: draft\n---\n");
+  vi.spyOn(roleRunner, "runRole").mockImplementation(async (role, opts) => {
+    if (role === "checker") {
+      expect(await fs.readFile(path.join(root, "linear-algebra/curriculum.md"), "utf8")).toContain(
+        "- [x] 04 — Eigenvalues",
+      );
+      throw new Error("checker unavailable");
+    }
+    expect(opts.task).toContain("Create exactly notes/04-eigenvalues.md");
+    await fs.writeFile(
+      path.join(root, "linear-algebra/notes/04-eigenvalues.md"),
+      "---\ntitle: Eigenvalues\nstatus: draft\nsources: [lib-strang-la]\n---\nWe can follow a direction.\n",
+    );
+    return { text: "Done", written: ["linear-algebra/notes/04-eigenvalues.md"], messages: [] };
+  });
+  const handler = createDraftJob({
+    root,
+    locks: new FileLocks(),
+    mcp: new McpManager([]),
+    runtime: await createModelRuntime(),
+    hub: new EventHub(),
+  });
+  await expect(
+    handler(
+      { set: "linear-algebra", title: "Eigenvalues" },
+      { signal: new AbortController().signal, progress: vi.fn(), addUsage: vi.fn() },
+    ),
+  ).rejects.toThrow("checker unavailable");
+  const [commit] = await log(root, { limit: 1 });
+  expect(commit?.author).toBe("drafter");
+  const curriculum = await fs.readFile(path.join(root, "linear-algebra/curriculum.md"), "utf8");
+  expect(curriculum).toContain("- [x] 06 — Later topic");
+  expect(curriculum).toContain("- [ ] 07 — Missing");
+  expect(await diff(root, commit?.sha ?? "", "linear-algebra/curriculum.md")).toContain("+- [x] 04");
+});
+it("does not allow a clean report to waive remaining teaching lint", async () => {
+  const note = "linear-algebra/notes/04-eigenvalues.md";
+  const report = "linear-algebra/log/checks/04-eigenvalues.md";
+  await fs.mkdir(path.dirname(path.join(root, report)), { recursive: true });
+  await fs.writeFile(path.join(root, note), "---\nstatus: draft\n---\nThis chapter asks about the brief.\n");
+  await fs.writeFile(path.join(root, report), "## No issues found\n");
+  const tool = setNoteStatusTool({
+    root,
+    locks: new FileLocks(),
+    set: "linear-algebra",
+    notePath: "notes/04-eigenvalues.md",
+    reportPath: "log/checks/04-eigenvalues.md",
+    holder: "lint",
+    onWrite: () => {},
+  });
+  expect(
+    (
+      await tool.execute(
+        "lint",
+        { path: "notes/04-eigenvalues.md", status: "checked" },
+        undefined,
+        undefined,
+        undefined as never,
+      )
+    ).details,
+  ).toMatchObject({ isError: true, summary: expect.stringContaining("teaching lint") });
 });

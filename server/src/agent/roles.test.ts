@@ -267,3 +267,24 @@ it("confines Examiner writes and leaves the Grader read-only", () => {
   expect(ROLES.grader.tools).not.toContain("study_edit");
   expect(ROLES.grader.tools).not.toContain("study_create");
 });
+
+it("gives the tutor a bounded course summary and chapter/rewrite proposal instructions", async () => {
+  await fs.writeFile(
+    path.join(root, "linear-algebra/curriculum.md"),
+    Array.from({ length: 35 }, (_, i) => `- [ ] ${String(i + 1).padStart(2, "0")} — Topic ${i + 1}`).join("\n"),
+  );
+  const prompt = await ROLES.tutor.promptBuilder({
+    root,
+    set: "linear-algebra",
+    skills: [],
+    chapterJobs: [{ id: "draft", kind: "draft-chapter", title: "Topic 5" }],
+  });
+  const summary = prompt.split("## Course summary\n")[1]?.split("\n\n## Curriculum")[0] ?? "";
+  expect(summary.trim().split("\n")).toHaveLength(30);
+  expect(summary).toContain("01 — Topic 1: checked");
+  expect(summary).toContain("05 — Topic 5: drafting");
+  expect(summary).toContain("… 6 more chapters");
+  expect(prompt).toContain("start_job kind draft-chapter");
+  expect(prompt).toContain("start_job kind rewrite-chapter");
+  expect(prompt).toContain("Proposals await learner confirmation");
+});

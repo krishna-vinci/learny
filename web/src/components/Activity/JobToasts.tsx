@@ -54,7 +54,7 @@ function completionToastFor(job: JobView, navigate: (to: string) => void): Compl
         : { label: "Details", onClick: () => openActivityPanel(job.id) },
     };
   }
-  if (job.kind === "draft-chapter" && set && notePath) {
+  if ((job.kind === "draft-chapter" || job.kind === "rewrite-chapter") && set && notePath) {
     return {
       kind: "success",
       message: `Chapter "${job.title}" drafted`,

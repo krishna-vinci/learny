@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { fauxProvider } from "@earendil-works/pi-ai/providers/faux";
 import { describe, expect, it } from "vitest";
 import { createModelRuntime } from "../agent/models.js";
-import { estimateDraftJob, ProposalStore } from "./proposals.js";
+import { estimateDraftJob, ProposalStore, proposalFromToolResult, startJobTool } from "./proposals.js";
 
 const SAMPLE_SET = fileURLToPath(new URL("../../../examples/sample-set", import.meta.url));
 
@@ -145,4 +145,44 @@ describe("estimateDraftJob billing", () => {
       await fs.rm(root, { recursive: true, force: true });
     }
   });
+});
+
+it("proposes and persists a rewrite with its exact path without starting a model", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "studium-rewrite-proposal-"));
+  try {
+    await fs.cp(SAMPLE_SET, root, { recursive: true });
+    const runtime = await createModelRuntime();
+    const faux = fauxProvider({ provider: "faux", models: [{ id: "echo" }] });
+    runtime.registerNativeProvider(faux.provider);
+    const file = path.join(root, ".cache/proposals.json");
+    const store = new ProposalStore(Date.now, file);
+    const tool = startJobTool({ root, set: "linear-algebra", runtime, store });
+    const result = await tool.execute(
+      "rewrite",
+      { kind: "rewrite-chapter", path: "notes/03-svd.md" },
+      undefined,
+      undefined,
+      undefined as never,
+    );
+    const proposal = proposalFromToolResult(result);
+    expect(proposal?.jobKind).toBe("rewrite-chapter");
+    expect(new ProposalStore(Date.now, file).take(proposal?.proposalId ?? "")).toEqual({
+      kind: "rewrite-chapter",
+      set: "linear-algebra",
+      path: "notes/03-svd.md",
+    });
+    expect(
+      (
+        await tool.execute(
+          "escape",
+          { kind: "rewrite-chapter", path: "../other.md" },
+          undefined,
+          undefined,
+          undefined as never,
+        )
+      ).details,
+    ).toMatchObject({ isError: true });
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
 });

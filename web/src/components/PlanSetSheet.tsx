@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { api } from "@/api/client";
 import { showJobStartedToast } from "@/components/Activity/job-start-toast";
-import { EMPTY_PLAN_OPTIONS, PlanOptions, planOptionsBody } from "@/components/PlanOptions";
+import { EMPTY_PLAN_OPTIONS, PlanOptions, type PlanOptionsValue, planOptionsBody } from "@/components/PlanOptions";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -14,12 +14,13 @@ export interface PlanSetSheetProps {
   set: string;
   title: string;
   initialGoal: string;
+  initialOptions?: PlanOptionsValue;
   onClose: () => void;
 }
 
-export function PlanSetSheet({ set, title, initialGoal, onClose }: PlanSetSheetProps) {
+export function PlanSetSheet({ set, title, initialGoal, initialOptions, onClose }: PlanSetSheetProps) {
   const [goal, setGoal] = useState(initialGoal);
-  const [options, setOptions] = useState(EMPTY_PLAN_OPTIONS);
+  const [options, setOptions] = useState(initialOptions ?? EMPTY_PLAN_OPTIONS);
   const [submitting, setSubmitting] = useState(false);
 
   async function submit() {

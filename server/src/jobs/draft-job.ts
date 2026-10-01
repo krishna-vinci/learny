@@ -1,8 +1,10 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { isDeepStrictEqual } from "node:util";
 import { defineTool, type ModelRuntime, type ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { parseFrontmatter } from "@studium/shared";
 import { Type } from "typebox";
+import { noteLint } from "../agent/note-lint.js";
 import { rethrowRoleModelError, runRole } from "../agent/run-role.js";
 import type { EventHub } from "../events.js";
 import { resolveDraftSources } from "../inbox/plan-sources.js";
@@ -58,6 +60,40 @@ export function parseDraftChapterInput(value: unknown): DraftChapterInput {
   };
 }
 
+export interface RewriteChapterInput {
+  kind: "rewrite-chapter";
+  set: string;
+  path: string;
+}
+
+export function parseRewriteChapterInput(value: unknown): RewriteChapterInput {
+  if (!isRecord(value) || !isSetSlug(typeof value.set === "string" ? value.set : "")) throw new Error("invalid set");
+  if (typeof value.path !== "string" || !NOTE_PATH.test(value.path))
+    throw new Error("path must be a chapter note path");
+  return { kind: "rewrite-chapter", set: value.set as string, path: value.path };
+}
+
+/** A rewrite may change prose, not source identifiers, metadata or embedded figures. */
+function validateRewrite(before: string, after: string): void {
+  const metadata = (text: string) => {
+    const { status: _status, ...fields } = parseFrontmatter(text).frontmatter;
+    return fields;
+  };
+  if (!isDeepStrictEqual(metadata(before), metadata(after)))
+    throw new Error("rewrite must preserve frontmatter fields");
+  const preserved = [
+    ...before.matchAll(/\[\^src:[^\]]+\]/g),
+    ...before.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g),
+    ...before.matchAll(/^::(?:youtube|artifact)\{[^\n]+\}/gm),
+    ...before.matchAll(/^(`{3,}|~{3,})(?:mermaid|vega-lite)\b[^\n]*\n[\s\S]*?^\1\s*$/gm),
+  ];
+  for (const match of preserved) {
+    const value = match[1] && match[0].startsWith("![") ? match[1] : match[0];
+    if (!after.includes(value)) throw new Error("rewrite must preserve citations and figures");
+  }
+  if (noteStatus(after) !== "draft") throw new Error("rewritten note must have status draft");
+}
+
 async function optionalText(root: string, rel: string): Promise<string> {
   try {
     return await readText(root, rel);
@@ -101,6 +137,8 @@ async function setChecked(
   const report = await readText(deps.root, reportRootPath);
   if (hasBlockingIssues(report)) throw new Error("cannot mark a note checked while blocker issues remain");
   const note = await readText(deps.root, noteRootPath);
+  if (noteLint(noteRootPath, note).length > 0)
+    throw new Error("cannot mark a note checked while teaching lint hits remain");
   if (noteStatus(note) === "checked") return;
   if (noteStatus(note) !== "draft") throw new Error("only a draft note can be marked checked");
   const oldLine = frontmatterStatusLine(note);
@@ -156,6 +194,7 @@ async function reserveNotePath(
   root: string,
   set: string,
   title: string,
+  curriculum: string,
 ): Promise<{ notePath: string; release: () => void }> {
   const notesAbs = resolveInRoot(root, `${set}/notes`);
   let existing: string[] = [];
@@ -175,6 +214,13 @@ async function reserveNotePath(
   }
   let order = 1;
   for (const number of used) if (number >= order) order = number + 1;
+  const chapter = parseCurriculum(curriculum).find((item) => slugify(item.title, 40) === slugify(title, 40));
+  if (chapter !== undefined && chapterExists(chapter, existing))
+    throw new Error("This chapter already has a note. Use rewrite-chapter to revise it.");
+  if (chapter?.number !== null && chapter?.number !== undefined) {
+    if (used.has(chapter.number)) throw new Error("This chapter is already being drafted.");
+    order = chapter.number;
+  }
   reserved.add(order);
 
   const slug = slugify(title, 40) || "note";
@@ -215,6 +261,7 @@ function checkerTask(notePath: string, reportPath: string, sources: string[], re
     recheck
       ? "Replace resolved findings in the existing report and list every remaining issue."
       : "Create the report using the skill's severity-ranked format.",
+    "Check teaching quality as well as facts. All remaining teaching-lint hits are blockers. For rewrites, verify no facts, citations or figures were lost.",
     "If and only if no blocker remains, call set_note_status for the target note with status checked.",
   ].join("\n");
 }
@@ -233,17 +280,42 @@ export async function tickCurriculum(
     const chapter =
       chapters.find((item) => slugify(item.title, 40) === slugify(title, 40)) ??
       chapters.find((item) => chapterExists(item, [notePath]));
-    if (chapter === undefined || chapter.checked) return null;
+    const notes = (await fs.readdir(resolveInRoot(deps.root, `${set}/notes`), { withFileTypes: true }))
+      .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
+      .map((entry) => `notes/${entry.name}`);
+    const drafted = (item: (typeof chapters)[number]) => item === chapter || chapterExists(item, notes);
+    const mismatches = chapters.filter((item) => item.checked !== drafted(item));
+    if (mismatches.length === 0) return null;
     const lines = text.split("\n");
-    lines[chapter.line] = (lines[chapter.line] ?? "").replace("[ ]", "[x]");
+    for (const item of mismatches) {
+      lines[item.line] = (lines[item.line] ?? "").replace(/\[[ xX]\]/, drafted(item) ? "[x]" : "[ ]");
+    }
     await writeTextLocked(deps.root, deps.locks, holder, rel, lines.join("\n"), (candidate) => candidate === rel);
     return rel;
   });
 }
 
 export function createDraftJob(deps: DraftJobDeps): JobHandler {
+  return createChapterJob(deps, false);
+}
+
+export function createRewriteJob(deps: DraftJobDeps): JobHandler {
+  return createChapterJob(deps, true);
+}
+
+function createChapterJob(deps: DraftJobDeps, rewriting: boolean): JobHandler {
   return async (rawInput: unknown, ctx: JobContext) => {
-    const input = parseDraftChapterInput(rawInput);
+    const rewrite = rewriting ? parseRewriteChapterInput(rawInput) : null;
+    const original = rewrite ? await readText(deps.root, `${rewrite.set}/${rewrite.path}`) : null;
+    const frontmatter = original === null ? null : parseFrontmatter(original).frontmatter;
+    const input: DraftChapterInput = rewrite
+      ? {
+          set: rewrite.set,
+          title: typeof frontmatter?.title === "string" ? frontmatter.title : path.basename(rewrite.path, ".md"),
+          sources: noteSources(original ?? ""),
+        }
+      : parseDraftChapterInput(rawInput);
+    if (rewrite) ctx.setTitle?.(input.title);
     const [plan, curriculum] = await Promise.all([
       readText(deps.root, `${input.set}/PLAN.md`),
       optionalText(deps.root, `${input.set}/curriculum.md`),
@@ -257,7 +329,9 @@ export function createDraftJob(deps: DraftJobDeps): JobHandler {
 
     // Reserve the target path before the model runs so its write policy can be
     // pinned to exactly that file (create and, in revision, edit).
-    const reserved = await reserveNotePath(deps.root, input.set, input.title);
+    const reserved = rewrite
+      ? { notePath: rewrite.path, release: () => {} }
+      : await reserveNotePath(deps.root, input.set, input.title, curriculum);
     const notePath = reserved.notePath;
     if (!NOTE_PATH.test(notePath)) throw new Error(`invalid reserved note path: ${notePath}`);
     const noteRootPath = `${input.set}/${notePath}`;
@@ -267,13 +341,47 @@ export function createDraftJob(deps: DraftJobDeps): JobHandler {
     const reportPath = `log/checks/${path.basename(notePath)}`;
     const reportRootPath = `${input.set}/${reportPath}`;
 
+    const validateCurrentRewrite = async () => {
+      if (original === null) return;
+      const current = await readText(deps.root, noteRootPath);
+      try {
+        validateRewrite(original, current);
+      } catch (error) {
+        // Restore only this rejected output using exact-string conflict protection.
+        await editFile(
+          deps.root,
+          deps.locks,
+          `drafter:restore:${crypto.randomUUID()}`,
+          noteRootPath,
+          current,
+          original,
+          { canWrite: canWriteNote },
+        );
+        throw error;
+      }
+    };
     try {
       ctx.signal.throwIfAborted();
-      ctx.progress("Drafting chapter");
+      ctx.progress(rewriting ? "Rewriting chapter" : "Drafting chapter");
       const draft = await runRole("drafter", {
         root: deps.root,
         set: input.set,
-        task: draftTask(input, notePath, plan, curriculum, sources),
+        task: rewriting
+          ? [
+              "Load the draft-chapter, note-authoring and media-authoring skills and the plan subject guide.",
+              `Rewrite ${notePath} in place in the warm teaching voice. Read the existing note first.`,
+              "Keep all facts, citation identifiers, figures and frontmatter fields; reset status to draft.",
+              "Fix footnote text to author/organisation, title, section/page; remove internal paths and line numbers.",
+              "Use the flexible chapter shape, including Check yourself with collapsed Answers and Key takeaways.",
+              `Only ${notePath}, assets/ and artifacts/ are writable. Do not create another chapter.`,
+              `Allowed source ids: ${sources.join(", ")}`,
+              "Verify retained claims against their registered library sources.",
+              "## PLAN.md",
+              plan,
+              "## curriculum.md",
+              curriculum,
+            ].join("\n")
+          : draftTask(input, notePath, plan, curriculum, sources),
         locks: deps.locks,
         mcp: deps.mcp,
         runtime: deps.runtime,
@@ -292,10 +400,18 @@ export function createDraftJob(deps: DraftJobDeps): JobHandler {
         throw new Error(`drafter must create exactly ${notePath}`);
       }
 
+      await validateCurrentRewrite();
+
       // Commit the draft as the drafter before the checker edits its status, so the
       // checker's commit below carries the report and the `status: checked` edit.
       ctx.signal.throwIfAborted();
-      const drafterSha = await commitPaths(deps.root, draft.written, `drafter: ${input.title}`, "drafter");
+      const curriculumPath = await tickCurriculum(deps, input.set, notePath, input.title);
+      const drafterSha = await commitPaths(
+        deps.root,
+        [...draft.written, ...(curriculumPath ? [curriculumPath] : [])],
+        `drafter: ${input.title}`,
+        "drafter",
+      );
       if (drafterSha === null) throw new Error("draft job produced no changes to commit");
       deps.hub.publish({ type: "commit", sha: drafterSha, subject: `drafter: ${input.title}`, author: "drafter" });
 
@@ -330,7 +446,15 @@ export function createDraftJob(deps: DraftJobDeps): JobHandler {
           extraTools: [statusTool],
         }).catch(rethrowRoleModelError);
         ctx.addUsage(usageFromPiMessages(result.messages));
-        const report = await readText(deps.root, reportRootPath);
+        let report = await readText(deps.root, reportRootPath);
+        const lint = noteLint(noteRootPath, await readText(deps.root, noteRootPath));
+        if (lint.length > 0 && !hasBlockingIssues(report)) {
+          report += `\n## Teaching quality\n\n${lint.map((warning, i) => `### ${i + 1}. Blocker — ${warning}`).join("\n\n")}\n`;
+          const holder = `checker:lint:${crypto.randomUUID()}`;
+          await deps.locks.withLock(reportRootPath, holder, () =>
+            writeTextLocked(deps.root, deps.locks, holder, reportRootPath, report, (rel) => rel === reportRootPath),
+          );
+        }
         const blocked = hasBlockingIssues(report);
         if (!blocked) {
           ctx.signal.throwIfAborted();
@@ -367,15 +491,15 @@ export function createDraftJob(deps: DraftJobDeps): JobHandler {
         if (revision.written.some((file) => !canWriteNote(file))) {
           throw new Error("revision must only edit the reserved note");
         }
+        await validateCurrentRewrite();
         blocked = await check(true);
       }
 
       ctx.progress(blocked ? "Finished with open blocker issues" : "Chapter checked");
       ctx.signal.throwIfAborted();
-      const curriculumPath = await tickCurriculum(deps, input.set, notePath, input.title);
       const checkerSha = await commitPaths(
         deps.root,
-        [noteRootPath, reportRootPath, ...mediaWritten, ...(curriculumPath === null ? [] : [curriculumPath])],
+        [noteRootPath, reportRootPath, ...mediaWritten],
         `checker: ${input.title}`,
         "checker",
       );

@@ -7,6 +7,7 @@ import type {
   ChatStreamEvent,
   ChatSummary,
   CommitInfo,
+  CourseView,
   FileView,
   Highlight,
   HighlightColor,
@@ -532,6 +533,9 @@ export const api = {
   },
 
   sets: {
+    course(set: string): Promise<CourseView> {
+      return request(`/api/sets/${encodeURIComponent(set)}/course`);
+    },
     list(): Promise<SetSummary[]> {
       return request("/api/sets");
     },
@@ -653,6 +657,7 @@ export const api = {
     },
     create(
       body:
+        | { kind: "rewrite-chapter"; set: string; path: string }
         | { kind: Extract<JobKind, "draft-chapter">; set: string; title: string; brief?: string; sources?: string[] }
         | { kind: Extract<JobKind, "make-cards">; set: string; note: string; count?: number }
         | {

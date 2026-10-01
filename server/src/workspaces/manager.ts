@@ -12,7 +12,7 @@ import { startInboxWatcher } from "../ingest/inbox-watcher.js";
 import { defaultSiteQueueFile, SiteImportQueue } from "../ingest/site-queue.js";
 import { createBookJob } from "../jobs/book-job.js";
 import { createCardsJob } from "../jobs/cards-job.js";
-import { createDraftJob } from "../jobs/draft-job.js";
+import { createDraftJob, createRewriteJob } from "../jobs/draft-job.js";
 import { createGradeJob } from "../jobs/grade-job.js";
 import { createIngestJob } from "../jobs/ingest-job.js";
 import { loadJobHistory } from "../jobs/log.js";
@@ -174,6 +174,7 @@ export class WorkspaceManager {
       subscriptionProviders: await this.#subscriptionProvidersFor(root),
     });
     jobs.register("draft-chapter", createDraftJob({ root, locks, mcp, runtime: this.#runtime, hub }));
+    jobs.register("rewrite-chapter", createRewriteJob({ root, locks, mcp, runtime: this.#runtime, hub }));
     jobs.register("plan-set", createPlanJob({ root, locks, mcp, runtime: this.#runtime, hub }));
     jobs.register("make-cards", createCardsJob({ root, locks, mcp, runtime: this.#runtime, hub }));
     jobs.register("ingest", createIngestJob({ root, locks, mcp, runtime: this.#runtime, hub }));

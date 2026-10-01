@@ -137,12 +137,28 @@ export interface SiteImportResponse {
 export type JobKind =
   | "ingest"
   | "draft-chapter"
+  | "rewrite-chapter"
   | "make-cards"
   | "compile-book"
   | "plan-set"
   | "make-quiz"
   | "make-problems"
   | "grade-answer";
+export interface CourseChapter {
+  order: number;
+  title: string;
+  scope: string;
+  prerequisites: string;
+  state: "planned" | "drafting" | "drafted" | "checked";
+  path?: string;
+  jobId?: string;
+}
+
+export interface CourseView {
+  subject: import("./schemas.js").PlanSubject;
+  chapters: CourseChapter[];
+}
+
 export type JobStatus = "queued" | "running" | "done" | "failed" | "cancelled";
 /** How a job's model usage is billed: flat subscription, metered list price, or both. */
 export type JobBilling = "subscription" | "metered" | "mixed";

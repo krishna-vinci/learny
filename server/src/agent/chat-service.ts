@@ -134,7 +134,7 @@ interface ChatServiceDeps {
   locks: FileLocks;
   mcp: McpManager;
   runtime: ModelRuntime;
-  jobs: Pick<JobRunner, "enqueue">;
+  jobs: Pick<JobRunner, "enqueue"> & Partial<Pick<JobRunner, "chapterJobs">>;
   modelOverride?: Model<Api>;
   proposals?: ProposalStore;
 }
@@ -265,7 +265,7 @@ export class ChatService {
   readonly #locks: FileLocks;
   readonly #mcp: McpManager;
   readonly #runtime: ModelRuntime;
-  readonly #jobs: Pick<JobRunner, "enqueue">;
+  readonly #jobs: Pick<JobRunner, "enqueue"> & Partial<Pick<JobRunner, "chapterJobs">>;
   readonly #modelOverride?: Model<Api>;
   readonly #proposals: ProposalStore;
   readonly #proposalWrites = new Map<string, Promise<void>>();
@@ -322,7 +322,13 @@ export class ChatService {
 
   async #prompt(set: string, anchor?: string): Promise<string> {
     const skills = await listSkills(this.#root, [...ROLES.tutor.skills]);
-    return ROLES.tutor.promptBuilder({ root: this.#root, set, skills, anchor });
+    return ROLES.tutor.promptBuilder({
+      root: this.#root,
+      set,
+      skills,
+      anchor,
+      chapterJobs: this.#jobs.chapterJobs?.(set),
+    });
   }
 
   #publish(set: string, id: string, event: ChatStreamEvent): void {

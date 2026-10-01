@@ -9,6 +9,7 @@ import { resolveRoleModel } from "../agent/models.js";
 import { readText } from "../tree/edit.js";
 import { resolveInRoot } from "../tree/paths.js";
 import { type MakeCardsInput, parseMakeCardsInput } from "./cards-job.js";
+import { parseRewriteChapterInput, type RewriteChapterInput } from "./draft-job.js";
 import { classifyBilling } from "./runner.js";
 
 const PROPOSAL_TTL_MS = 30 * 60 * 1000;
@@ -23,7 +24,7 @@ export interface DraftChapterInput {
 
 export type JobProposalEvent = Extract<ChatStreamEvent, { kind: "job_proposal" }>;
 
-type ProposalInput = DraftChapterInput | MakeCardsInput;
+type ProposalInput = DraftChapterInput | MakeCardsInput | RewriteChapterInput;
 
 interface StoredProposal {
   input: ProposalInput;
@@ -31,7 +32,7 @@ interface StoredProposal {
 }
 
 function cloneInput(input: ProposalInput): ProposalInput {
-  if ("note" in input) return { ...input };
+  if ("note" in input || "path" in input) return { ...input };
   return {
     ...input,
     ...(input.sources === undefined ? {} : { sources: [...input.sources] }),
@@ -61,8 +62,12 @@ export class ProposalStore {
     return this.#create("make-cards", `Cards for ${input.note}`, input, estimate);
   }
 
+  createRewrite(input: RewriteChapterInput, estimate: JobProposalEvent["estimate"]): JobProposalEvent {
+    return this.#create("rewrite-chapter", "Rewriting chapter", input, estimate);
+  }
+
   #create(
-    jobKind: "draft-chapter" | "make-cards",
+    jobKind: "draft-chapter" | "make-cards" | "rewrite-chapter",
     title: string,
     input: ProposalInput,
     estimate: JobProposalEvent["estimate"],
@@ -285,8 +290,12 @@ export function startJobTool(opts: {
     name: "start_job",
     label: "Propose a background job",
     description:
-      "Propose a chapter-drafting or card-making job for learner confirmation. This does not start the job. For cards from a selection, pass passage with the selected text and note with its source note.",
+      "Propose a chapter-drafting, chapter-rewriting or card-making job for learner confirmation. This does not start the job. For cards from a selection, pass passage with the selected text and note with its source note.",
     parameters: Type.Union([
+      Type.Object({
+        kind: Type.Literal("rewrite-chapter"),
+        path: Type.String({ pattern: "^notes/[0-9]{2,}-[a-z0-9][a-z0-9-]*\\.md$" }),
+      }),
       Type.Object({
         kind: Type.Literal("draft-chapter"),
         title: Type.String({ minLength: 1 }),
@@ -310,6 +319,28 @@ export function startJobTool(opts: {
           return {
             content: [{ type: "text" as const, text: summary }],
             details: { isError: false, summary, proposal },
+          };
+        }
+        if (params.kind === "rewrite-chapter") {
+          const input = parseRewriteChapterInput({ ...params, set: opts.set });
+          const note = await readText(opts.root, `${input.set}/${input.path}`);
+          const frontmatter = parseFrontmatter(note).frontmatter;
+          const estimate = await estimateDraftJob(
+            opts.root,
+            {
+              set: input.set,
+              title: typeof frontmatter.title === "string" ? frontmatter.title : input.path,
+              brief: note,
+              ...(Array.isArray(frontmatter.sources) && frontmatter.sources.every((id) => typeof id === "string")
+                ? { sources: frontmatter.sources as string[] }
+                : {}),
+            },
+            opts.runtime,
+          );
+          const proposal = (opts.store ?? jobProposals).createRewrite(input, estimate);
+          return {
+            content: [{ type: "text" as const, text: "awaiting learner confirmation" }],
+            details: { isError: false, summary: "awaiting learner confirmation", proposal },
           };
         }
         const input: DraftChapterInput = {
@@ -345,7 +376,9 @@ export function proposalFromToolResult(result: unknown): JobProposalEvent | null
     !("proposalId" in proposal) ||
     typeof proposal.proposalId !== "string" ||
     !("jobKind" in proposal) ||
-    (proposal.jobKind !== "draft-chapter" && proposal.jobKind !== "make-cards") ||
+    (proposal.jobKind !== "draft-chapter" &&
+      proposal.jobKind !== "make-cards" &&
+      proposal.jobKind !== "rewrite-chapter") ||
     !("title" in proposal) ||
     typeof proposal.title !== "string" ||
     !("estimate" in proposal) ||

@@ -10,7 +10,8 @@ description: Draft a cited, learner-shaped chapter from registered library sourc
 1. Read `PLAN.md`, `curriculum.md`, `_global/profile.md`, and the adjacent note that precedes this chapter.
 2. Treat the plan's `level` as the main-path depth and the profile as tone/prerequisite guidance.
 3. Use only source IDs registered under `library/`. If an operator names an unregistered source, stop and report it rather than adding an ad hoc citation.
-4. Read each cited `source.md` summary and the relevant parsed section. Record useful page markers before drafting.
+4. Load `references/subject-<subject>.md` for the `PLAN.md` subject; use `general` if missing or unknown. Load note-authoring and its `references/teaching.md`.
+5. Read each cited `source.md` summary and the relevant parsed section. Record useful page markers before drafting.
 
 ## Outline before prose
 
@@ -18,7 +19,7 @@ Create an outline with:
 
 - the chapter question;
 - three to six concept sections;
-- one worked example;
+- an example for each concept and a subject-appropriate worked/faded example;
 - a short connection to prior and next material;
 - which claims need each source.
 
@@ -39,14 +40,21 @@ sources: [<ids used>]
 ---
 ```
 
-Write an orientation of two to four sentences, then one concept per `##` section. Use:
+Use a flexible teacher's path: a hook (question, story or real situation, 2–4
+sentences) → why it matters → one concept per `##` section, each with an example
+→ subject-specific blocks → “Check yourself” (3–5 retrieval questions, answers
+in a collapsed `:::deeper{title="Answers"}`) → “Key takeaways” (3–6 bullets)
+→ one-line bridge to the next chapter. Keep paragraphs to ≤ 4 sentences.
 
-- `:::definition` for precise statements;
-- `:::theorem` for results and assumptions;
-- `:::example` for fully worked calculations;
-- `:::deeper` for optional advanced material.
+Choose callouts from the subject guide, not a universal math template. Use
+`:::definition`, `:::theorem`, `:::example` when appropriate and `:::deeper` for
+optional depth. Use `$...$` and `$$...$$` math, and Mermaid only when a relationship
+benefits from a diagram. Write footnotes for people: author/organisation,
+italicised title, section or page; never paths, line numbers or tool names.
 
-Use `$...$` and `$$...$$` math, and Mermaid only when a relationship genuinely benefits from a diagram.
+For a requested rewrite, edit the pinned existing path in place. Preserve facts,
+citation identifiers, figures and frontmatter fields; fix footnote text, voice
+and structure and reset only status to draft. Never create a replacement chapter.
 
 ## Ground and cite claims
 

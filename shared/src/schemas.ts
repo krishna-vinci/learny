@@ -1,5 +1,17 @@
 import { z } from "zod";
 
+export const PlanSubject = z.enum([
+  "math",
+  "science",
+  "technology",
+  "history",
+  "finance",
+  "language",
+  "practical",
+  "general",
+]);
+export type PlanSubject = z.infer<typeof PlanSubject>;
+
 const SetStatus = z.enum(["draft", "active", "paused", "done"]);
 const NoteStatus = z.enum(["draft", "checked", "accepted"]);
 const SourceType = z.enum(["book", "paper", "article", "video", "notes", "other"]);
@@ -8,6 +20,7 @@ const ParseTier = z.enum(["basic", "mineru", "firecrawl", "transcript"]);
 // `<set>/PLAN.md`. Unknown keys pass through; fields are optional so a user-edited
 // file still yields the parts that parse.
 export const PlanFrontmatter = z.looseObject({
+  subject: PlanSubject.catch("general").optional(),
   title: z.string().optional(),
   status: SetStatus.optional(),
   level: z.number().int().nullable().optional(),

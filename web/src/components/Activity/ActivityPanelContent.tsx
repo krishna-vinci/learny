@@ -29,6 +29,7 @@ const STATUS_VARIANTS: Record<JobStatus, BadgeVariant> = {
 const KIND_ICONS: Record<JobKind, typeof LinkIcon> = {
   ingest: LinkIcon,
   "draft-chapter": NotebookTextIcon,
+  "rewrite-chapter": NotebookTextIcon,
   "make-cards": LayersIcon,
   "compile-book": BookOpenIcon,
   "plan-set": ListTreeIcon,
@@ -87,7 +88,9 @@ function JobRow({
             <span aria-hidden="true">·</span>
             <span className="tabular-nums">{formatDuration(job.startedAt, job.finishedAt)}</span>
           </p>
-          <p className="mt-0.5 truncate text-sm text-muted-foreground">{job.progress || (active ? "Working…" : "")}</p>
+          <p className="mt-0.5 truncate text-sm text-muted-foreground">
+            {job.progress || (job.kind === "rewrite-chapter" ? "Rewriting chapter" : active ? "Working…" : "")}
+          </p>
           {job.status === "failed" && job.error && (
             <p className="mt-1 line-clamp-2 text-xs text-destructive" title={job.error}>
               {job.error}

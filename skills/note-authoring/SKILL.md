@@ -29,9 +29,21 @@ Quote a title that contains `: ` or ` #`, e.g. `title: "Before Hyderabad: Deccan
 
 Keep `NN` sequential, use a short kebab-case slug, and never change a note filename without recording why in `log/decisions.md`.
 
+## Voice
+
+Write as a warm teacher: natural “we” and “you”, concrete before abstract, a
+story or real situation first, ≤ 4 sentences per paragraph and one idea per
+`##` section. Use familiar analogies and examples; cut filler and hype.
+Never echo the brief (“this chapter asks”), refer to prompts, tools, internal
+files or the AI, or address an operator. Load `references/teaching.md` for the
+chapter shape and learning principles.
+Footnotes name people and publications: `<Author/Org>, *<Title>*, <section or page>`.
+Correct: `[^src:lib-strang-la#p132]: Strang, *Introduction to Linear Algebra*, p. 132.`
+Incorrect: `[^src:lib-strang-la#p132]: parsed.md, lines 47–59.`
+
 ## Body conventions
 
-- Begin with a two- to four-sentence orientation: what question this note answers and why it matters to the learner's stated goal.
+- Begin with a two- to four-sentence hook: a question, story or situation, then why it matters to the learner.
 - Give each concept its own `##` section. Do not mix a definition, proof, worked example, and caveats in one undifferentiated block.
 - Use `$...$` for inline mathematics and `$$...$$` for display mathematics. Never paste an equation image when LaTeX can represent it.
 - Use the supported directives semantically:

@@ -20,6 +20,7 @@ import { api, bookUrl } from "@/api/client";
 import { useBook, useJobs, useLibrary, useNoteFile, useNotes, useSets, useToday } from "@/api/queries";
 import { openActivityPanel } from "@/components/Activity/activity-store";
 import { openChatDock } from "@/components/ChatDock/openChatDock";
+import { CoursePlan } from "@/components/CoursePlan";
 import { AddSourceSheet } from "@/components/Library/AddSourceSheet";
 import { RowsSkeleton } from "@/components/ListSkeleton";
 import { NewChapterSheet } from "@/components/NewChapterSheet";
@@ -278,6 +279,8 @@ export default function SetHomePage() {
         </p>
       )}
 
+      <CoursePlan key={set} set={set} jobs={jobs} onReplan={() => setPlanOpen(true)} />
+
       <div className="mt-4 flex flex-wrap gap-2">
         {step.kind !== "add-source" && (
           <Button variant="outline" size="sm" className="h-11 md:h-8" onClick={() => setAddSourceOpen(true)}>
@@ -356,6 +359,13 @@ export default function SetHomePage() {
           set={set}
           title={summary?.title ?? set}
           initialGoal={plan?.body ? goalText(plan.body) : ""}
+          initialOptions={{
+            level: typeof plan?.frontmatter.level === "number" ? plan.frontmatter.level : null,
+            deadline: typeof plan?.frontmatter.deadline === "string" ? plan.frontmatter.deadline : "",
+            sources: Array.isArray(plan?.frontmatter.sources)
+              ? plan.frontmatter.sources.filter((s): s is string => typeof s === "string")
+              : [],
+          }}
           onClose={() => setPlanOpen(false)}
         />
       )}

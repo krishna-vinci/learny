@@ -81,7 +81,7 @@ export function createApp(deps: AppDeps | LegacyAppDeps): Hono {
     });
   }
 
-  app.route("/api/sets", setsRoutes({ root: deps.root, hub: deps.hub, locks: deps.locks }));
+  app.route("/api/sets", setsRoutes({ root: deps.root, hub: deps.hub, locks: deps.locks, jobs: deps.jobs }));
   app.route(
     "/api/sets/:set",
     inboxRoutes({
