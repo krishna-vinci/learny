@@ -55,6 +55,7 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - The study tree git repo auto-commits per role author (tutor/librarian/drafter/checker/cardsmith/critic/user/system).
 
 ## Gotchas learned the hard way
+- Pi re-parses streamed tool-call JSON on every chunk (quadratic); a long chapter/HTML write froze the server at 100% CPU. Fixed by `patches/@earendil-works__pi-ai@0.87.1.patch` (pnpm patch). **Re-check or re-create this patch whenever Pi is upgraded.** To diagnose a hung server: `kill -USR1 <node pid>`, then pause via the inspector on 127.0.0.1:9229 and read the stack.
 - Teaching voice (D30): `docs/TEACHING.md` is shipped as a copy in `skills/note-authoring/references/` (keep both in sync); subject guides live in `skills/draft-chapter/references/subject-*.md` and are picked by `PLAN.md` `subject:` (unknown → general). Model excerpts are style only.
 - Plan approval with suggested sources runs a persisted kickoff (`server/src/inbox/plan-kickoffs.ts`, `.cache/plan-kickoffs.json`): ingests first, drafts only after they settle (never wait inside a runner slot). Drafts resolve sources at run time and refuse to run with none.
 - Media in notes (D29): paths are relative to the note file (`../assets/x.svg`); browser imports of media helpers use `@studium/shared/media` (not the barrel, which pulls YAML). Artifacts render only after a tap with a CSP meta prepended; the book copies media into `<temp>/media/` and the Lua filter keeps only `media/` images.
