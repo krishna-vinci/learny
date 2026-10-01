@@ -45,6 +45,14 @@ const RULES: Rule[] = [
     result: { message: "Ask your admin to enable AI for your account.", retryable: false },
   },
   {
+    test: (text) => /This set has no sources yet|Couldn't add any of the plan's sources/i.test(text),
+    result: {
+      message: "This set needs a source before chapters can be drafted. Add one in the Library, then retry.",
+      action: { label: "Add a source", to: "/library" },
+      retryable: false,
+    },
+  },
+  {
     test: (text) => /firecrawl/i.test(text),
     result: {
       message: "Adding whole sites isn't set up on this server. You can still add single pages.",

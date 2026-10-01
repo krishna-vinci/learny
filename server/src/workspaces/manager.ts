@@ -7,6 +7,7 @@ import { getUserById, listUsers, USERNAME_PATTERN, type User } from "../accounts
 import { ChatService } from "../agent/chat-service.js";
 import { createApp } from "../app.js";
 import { EventHub } from "../events.js";
+import { defaultPlanKickoffsFile, PlanKickoffs } from "../inbox/plan-kickoffs.js";
 import { startInboxWatcher } from "../ingest/inbox-watcher.js";
 import { defaultSiteQueueFile, SiteImportQueue } from "../ingest/site-queue.js";
 import { createBookJob } from "../jobs/book-job.js";
@@ -190,6 +191,8 @@ export class WorkspaceManager {
     const proposals = new ProposalStore(Date.now, path.join(root, ".cache", "proposals.json"));
     const siteQueue = new SiteImportQueue({ root, hub, jobs, file: defaultSiteQueueFile(root) });
     void siteQueue.resume().catch((error) => console.warn(`studium: resuming site imports for ${username}`, error));
+    const planKickoffs = new PlanKickoffs({ root, hub, jobs, file: defaultPlanKickoffsFile(root) });
+    await planKickoffs.resume();
     const chats = new ChatService({ root, hub, locks, mcp, runtime: this.#runtime, jobs, proposals });
     const search = openSearchIndex(root);
     const reportSearchError = (error: unknown) => console.warn(`studium: search index for ${username}`, error);
@@ -209,6 +212,7 @@ export class WorkspaceManager {
       search,
       proposals,
       siteQueue,
+      planKickoffs,
       practice: { agent: { root, locks, mcp, runtime: this.#runtime, hub } },
       settings: { runtime: this.#runtime, mcp, env: process.env },
     });
@@ -234,6 +238,7 @@ export class WorkspaceManager {
         stopNotifications();
         stopSearchUpdates();
         siteQueue.dispose();
+        planKickoffs.dispose();
         await stopWatcher().catch(() => undefined);
         await search.close();
         if (stopInboxWatcher !== null) await stopInboxWatcher().catch(() => undefined);

@@ -1,10 +1,11 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { defineTool, type ModelRuntime, type ToolDefinition } from "@earendil-works/pi-coding-agent";
-import { PlanFrontmatter, parseFrontmatter } from "@studium/shared";
+import { parseFrontmatter } from "@studium/shared";
 import { Type } from "typebox";
 import { rethrowRoleModelError, runRole } from "../agent/run-role.js";
 import type { EventHub } from "../events.js";
+import { resolveDraftSources } from "../inbox/plan-sources.js";
 import { slugify } from "../ingest/ids.js";
 import type { McpManager } from "../mcp/bridge.js";
 import { chapterExists, parseCurriculum } from "../tree/curriculum.js";
@@ -64,12 +65,6 @@ async function optionalText(root: string, rel: string): Promise<string> {
     if (error instanceof Error && "code" in error && error.code === "not_found") return "";
     throw error;
   }
-}
-
-function planSources(plan: string): string[] {
-  const parsed = PlanFrontmatter.safeParse(parseFrontmatter(plan).frontmatter);
-  if (!parsed.success) throw new Error("PLAN.md frontmatter is invalid");
-  return parsed.data.sources ?? [];
 }
 
 function noteSources(note: string): string[] {
@@ -253,9 +248,12 @@ export function createDraftJob(deps: DraftJobDeps): JobHandler {
       readText(deps.root, `${input.set}/PLAN.md`),
       optionalText(deps.root, `${input.set}/curriculum.md`),
     ]);
-    const sources = input.sources ?? planSources(plan);
-    if (sources.some((source) => !SOURCE_ID.test(source))) throw new Error("PLAN.md contains an invalid source id");
-    for (const source of sources) await readText(deps.root, `library/${source}/source.md`);
+    const sources = await resolveDraftSources(deps.root, plan, input.sources);
+    if (sources.length === 0) {
+      throw new Error(
+        "This set has no sources yet. Add a source in the Library (or ask the tutor to find some), then retry.",
+      );
+    }
 
     // Reserve the target path before the model runs so its write policy can be
     // pinned to exactly that file (create and, in revision, edit).
@@ -287,6 +285,9 @@ export function createDraftJob(deps: DraftJobDeps): JobHandler {
         onWrite: () => {},
       }).catch(rethrowRoleModelError);
       ctx.addUsage(usageFromPiMessages(draft.messages));
+      if (draft.written.length === 0) {
+        throw new Error(`The drafter stopped without writing the chapter: ${draft.text.trim().slice(0, 300)}`);
+      }
       if (!draft.written.includes(noteRootPath) || draft.written.some((rel) => !canWriteNote(rel))) {
         throw new Error(`drafter must create exactly ${notePath}`);
       }

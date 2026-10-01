@@ -16,6 +16,7 @@ import type {
   JobView,
   NoteSummary,
   ParsedFileView,
+  PlanApprovalResponse,
   PlanProposal,
   QuestionType,
   SearchKind,
@@ -691,10 +692,10 @@ export const api = {
     planProposal(set: string, file: string): Promise<PlanProposal> {
       return request(`/api/sets/${encodeURIComponent(set)}/plan-proposals/${encodeURIComponent(file)}`);
     },
-    approvePlan(set: string, file: string, draftFirst: number): Promise<{ sha: string; jobIds: string[] }> {
+    approvePlan(set: string, file: string, draftFirst: number, addSources?: boolean): Promise<PlanApprovalResponse> {
       return request(`/api/sets/${encodeURIComponent(set)}/plan-proposals/${encodeURIComponent(file)}/approve`, {
         method: "POST",
-        body: JSON.stringify({ draftFirst }),
+        body: JSON.stringify({ draftFirst, ...(addSources === undefined ? {} : { addSources }) }),
       });
     },
     discardPlan(set: string, file: string): Promise<{ sha: string | null }> {

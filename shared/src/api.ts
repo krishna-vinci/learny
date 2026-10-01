@@ -206,6 +206,12 @@ export interface PlanProposalChapter {
   ticked: boolean;
 }
 
+export interface PlanApprovalResponse {
+  sha: string;
+  jobIds: string[];
+  ingestJobIds: string[];
+}
+
 export interface PlanProposal {
   /** The same fence-aware chapters used by approval; always present in new responses. */
   chapters?: PlanProposalChapter[];

@@ -4,6 +4,7 @@ import { PlanFrontmatter, parseFrontmatter } from "@studium/shared";
 import type { Context } from "hono";
 import { Hono } from "hono";
 import type { EventHub } from "../events.js";
+import { defaultPlanKickoffsFile, PlanKickoffs } from "../inbox/plan-kickoffs.js";
 import { parsePlanProposal, proposalRootPath } from "../inbox/plans.js";
 import { readInbox } from "../inbox/read.js";
 import { AiDisabledError, type JobRunner } from "../jobs/runner.js";
@@ -20,7 +21,8 @@ export interface InboxRoutesDeps {
   root: string;
   locks: FileLocks;
   hub: EventHub;
-  jobs?: Pick<JobRunner, "enqueue"> & Partial<Pick<JobRunner, "assertAiAllowed">>;
+  planKickoffs?: PlanKickoffs;
+  jobs?: Pick<JobRunner, "enqueue"> & Partial<Pick<JobRunner, "assertAiAllowed" | "get" | "seedHistory">>;
 }
 
 const NOTE_PATH = /^notes\/[0-9]{2,}-[a-z0-9][a-z0-9-]*\.md$/;
@@ -76,6 +78,16 @@ async function jsonBody(c: Context): Promise<Record<string, unknown>> {
 
 export function inboxRoutes(deps: InboxRoutesDeps): Hono {
   const app = new Hono();
+  const kickoffs =
+    deps.planKickoffs ??
+    (deps.jobs === undefined
+      ? undefined
+      : new PlanKickoffs({
+          root: deps.root,
+          hub: deps.hub,
+          jobs: deps.jobs,
+          file: defaultPlanKickoffsFile(deps.root),
+        }));
 
   app.get("/plan-proposals/:file", async (c) => {
     const set = c.req.param("set");
@@ -95,6 +107,8 @@ export function inboxRoutes(deps: InboxRoutesDeps): Hono {
       const text = await c.req.text();
       const body: unknown = text === "" ? {} : JSON.parse(text);
       if (typeof body !== "object" || body === null || Array.isArray(body)) throw new Error("invalid approval body");
+      const addSources = "addSources" in body ? body.addSources : true;
+      if (typeof addSources !== "boolean") throw new Error("addSources must be a boolean");
       const draftFirst = "draftFirst" in body ? body.draftFirst : 3;
       if (typeof draftFirst !== "number" || !Number.isInteger(draftFirst) || draftFirst < 0 || draftFirst > 5)
         throw new Error("draftFirst must be 0–5");
@@ -110,6 +124,11 @@ export function inboxRoutes(deps: InboxRoutesDeps): Hono {
             deps.locks.withLock(curriculumRel, holder, async () => {
               const proposalText = await readText(deps.root, proposalRootPath(deps.root, set, c.req.param("file")));
               const proposal = parsePlanProposal(proposalText);
+              const needsIngest = addSources && proposal.sourcesToAdd.length > 0;
+              if (needsIngest && (deps.jobs === undefined || kickoffs === undefined))
+                return c.json({ error: "job runner unavailable" }, 503);
+              if (needsIngest) deps.jobs?.assertAiAllowed?.("ingest");
+              kickoffs?.assertAvailable(set);
               const sources = PlanFrontmatter.parse(parseFrontmatter(proposal.plan).frontmatter).sources ?? [];
               for (const source of sources) await readText(deps.root, `library/${source}/source.md`);
               // Check both targets before writing either; forbid aliases into other tree files.
@@ -121,6 +140,7 @@ export function inboxRoutes(deps: InboxRoutesDeps): Hono {
               const canWrite = (candidate: string) => candidate === planRel || candidate === curriculumRel;
               // Recheck immediately before mutations, after asynchronous validation.
               if (draftFirst > 0) deps.jobs?.assertAiAllowed?.("draft-chapter");
+              if (needsIngest) deps.jobs?.assertAiAllowed?.("ingest");
               let deleted = false;
               const subject = "user: approve plan";
               let sha: string | null;
@@ -148,18 +168,19 @@ export function inboxRoutes(deps: InboxRoutesDeps): Hono {
                 throw error;
               }
               deps.hub.publish({ type: "commit", sha, subject, author: "user" });
-              const jobIds = parseCurriculum(proposal.curriculum)
+              const chapters = parseCurriculum(proposal.curriculum)
                 .filter((chapter) => !chapter.checked)
                 .slice(0, draftFirst)
-                .map((chapter) => {
-                  const job = deps.jobs?.enqueue(
-                    "draft-chapter",
-                    { set, title: chapter.title, brief: chapter.scope, sources },
-                    { set, title: chapter.title },
-                  );
-                  return job?.id;
-                });
-              return c.json({ sha, jobIds });
+                .map((chapter) => ({ title: chapter.title, brief: chapter.scope }));
+              if (needsIngest && kickoffs !== undefined) {
+                const ingestJobIds = kickoffs.start(set, proposal.sourcesToAdd, chapters);
+                return c.json({ sha, jobIds: [], ingestJobIds });
+              }
+              const jobIds = chapters.map(
+                (chapter) =>
+                  deps.jobs?.enqueue("draft-chapter", { set, ...chapter, sources }, { set, title: chapter.title }).id,
+              );
+              return c.json({ sha, jobIds, ingestJobIds: [] });
             }),
           ),
         ),

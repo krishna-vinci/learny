@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { bookUrl } from "@/api/client";
 import { useStudiumEvents } from "@/api/events";
 import { Button } from "@/components/ui/button";
-import { friendlyMessage } from "@/lib/friendly-errors";
+import { friendlyError } from "@/lib/friendly-errors";
 import { createJobTransitionTracker } from "@/lib/job-transitions";
 import { toast } from "@/lib/notify";
 import { openActivityPanel } from "./activity-store";
@@ -31,11 +31,6 @@ function _ToastAction({ label, onClick }: { label: string; onClick: () => void }
   );
 }
 
-/** Plain-language reason for a failed job (raw agent/server text never reaches the learner). */
-function shortError(error: string | undefined): string {
-  return friendlyMessage(error ?? "");
-}
-
 interface CompletionToast {
   kind: "success" | "error";
   message: string;
@@ -49,10 +44,14 @@ function completionToastFor(job: JobView, navigate: (to: string) => void): Compl
   const set = job.set;
 
   if (job.status === "failed") {
+    const error = friendlyError(job.error);
+    const fix = error.action;
     return {
       kind: "error",
-      message: `"${job.title}": ${shortError(job.error)}`,
-      action: { label: "Details", onClick: () => openActivityPanel(job.id) },
+      message: `"${job.title}": ${error.message}`,
+      action: fix
+        ? { label: fix.label, onClick: () => navigate(fix.to) }
+        : { label: "Details", onClick: () => openActivityPanel(job.id) },
     };
   }
   if (job.kind === "draft-chapter" && set && notePath) {

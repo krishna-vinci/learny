@@ -4,6 +4,7 @@ import type { Context } from "hono";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import type { EventHub } from "../events.js";
+import { enqueueUrlIngest } from "../ingest/enqueue.js";
 import { FirecrawlError, firecrawlMap } from "../ingest/firecrawl.js";
 import { type DedupeKey, dedupeKeyFromUrl, keysMatch, sha256Hex } from "../ingest/ids.js";
 import {
@@ -15,7 +16,7 @@ import {
   readSource,
 } from "../ingest/library.js";
 import { assertPublicUrl, SafeFetchError } from "../ingest/safe-fetch.js";
-import { jobTitleFor, SiteImportQueue } from "../ingest/site-queue.js";
+import { SiteImportQueue } from "../ingest/site-queue.js";
 import type { JobRunner } from "../jobs/runner.js";
 import { MEDIA_HEADERS } from "../tree/media.js";
 import { canonicalRel, resolveInRoot } from "../tree/paths.js";
@@ -224,8 +225,7 @@ async function addUrl(c: Context, deps: LibraryRoutesDeps): Promise<Response> {
     return c.json({ sourceId: existing, deduped: true }, 200);
   }
 
-  const input: IngestJobInput = { url, set };
-  const job = deps.jobs.enqueue("ingest", input, { set, title: jobTitleFor(url) });
+  const job = enqueueUrlIngest(deps.jobs, url, set);
   return c.json({ jobId: job.id }, 202);
 }
 

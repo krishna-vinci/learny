@@ -4,6 +4,18 @@ import { friendlyError, friendlyMessage } from "./friendly-errors";
 import { OfflineError } from "./offline";
 
 describe("friendlyError", () => {
+  it("offers Add a source when drafting has no sources", () => {
+    expect(
+      friendlyError(
+        "This set has no sources yet. Add a source in the Library (or ask the tutor to find some), then retry.",
+      ),
+    ).toEqual({
+      message: "This set needs a source before chapters can be drafted. Add one in the Library, then retry.",
+      action: { label: "Add a source", to: "/library" },
+      retryable: false,
+    });
+  });
+
   it("explains a missing Firecrawl setup without naming env vars", () => {
     const error = new ApiError(400, "Site mapping requires Firecrawl. Configure FIRECRAWL_API_URL.", undefined);
     expect(friendlyError(error).message).toBe(

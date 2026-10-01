@@ -3,6 +3,7 @@ import { HTTPException } from "hono/http-exception";
 import type { ChatService } from "./agent/chat-service.js";
 import { chatRoutes } from "./agent/routes.js";
 import type { EventHub } from "./events.js";
+import type { PlanKickoffs } from "./inbox/plan-kickoffs.js";
 import type { SiteImportQueue } from "./ingest/site-queue.js";
 import type { ProposalStore } from "./jobs/proposals.js";
 import { jobsRoutes } from "./jobs/routes.js";
@@ -37,6 +38,7 @@ export interface AppDeps {
   /** Per-workspace stores that survive a restart (see workspaces/manager.ts). */
   proposals?: ProposalStore;
   siteQueue?: SiteImportQueue;
+  planKickoffs?: PlanKickoffs;
 }
 
 type LegacyAppDeps = Omit<AppDeps, "chats">;
@@ -80,7 +82,16 @@ export function createApp(deps: AppDeps | LegacyAppDeps): Hono {
   }
 
   app.route("/api/sets", setsRoutes({ root: deps.root, hub: deps.hub, locks: deps.locks }));
-  app.route("/api/sets/:set", inboxRoutes({ root: deps.root, locks: deps.locks, hub: deps.hub, jobs: deps.jobs }));
+  app.route(
+    "/api/sets/:set",
+    inboxRoutes({
+      root: deps.root,
+      locks: deps.locks,
+      hub: deps.hub,
+      jobs: deps.jobs,
+      planKickoffs: deps.planKickoffs,
+    }),
+  );
   app.route("/api/sets/:set/cards", cardsRoutes({ root: deps.root, locks: deps.locks, hub: deps.hub }));
   app.route("/api/sets/:set/anki", ankiRoutes({ root: deps.root, locks: deps.locks, hub: deps.hub }));
   app.route("/api/sets/:set/highlights", highlightsRoutes({ root: deps.root, locks: deps.locks, hub: deps.hub }));

@@ -2,7 +2,7 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { InboxItem, StudiumEvent } from "@studium/shared";
+import type { InboxItem, PlanApprovalResponse, StudiumEvent } from "@studium/shared";
 import { Hono } from "hono";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EventHub } from "../events.js";
@@ -127,6 +127,41 @@ async function approve(body: unknown = {}): Promise<Response> {
 }
 
 describe("plan inbox", () => {
+  it("approves proposed sources as linked ingests without enqueueing drafts", async () => {
+    await storeProposal(
+      false,
+      `${proposalText().replace("sources: [lib-strang-la]", "sources: []")}- https://example.org/history\n`,
+    );
+    const response = await approve({ draftFirst: 2 });
+    expect(response.status).toBe(200);
+    const result = (await response.json()) as PlanApprovalResponse;
+    expect(result).toMatchObject({ jobIds: [], ingestJobIds: [expect.any(String), expect.any(String)] });
+    expect(jobs.enqueue).toHaveBeenCalledTimes(2);
+    expect(jobs.enqueue).toHaveBeenCalledWith(
+      "ingest",
+      { url: "https://example.org/course", set: "linear-algebra" },
+      { set: "linear-algebra", title: "course" },
+    );
+    const records = JSON.parse(await fs.readFile(path.join(root, ".cache/plan-kickoffs.json"), "utf8"));
+    expect(records[0]).toMatchObject({
+      set: "linear-algebra",
+      ingestJobIds: result.ingestJobIds,
+      chapters: [
+        { title: "Vectors", brief: "Learn vectors." },
+        { title: "Matrices", brief: "Learn matrices." },
+      ],
+    });
+  });
+
+  it("can explicitly skip adding proposed sources", async () => {
+    await storeProposal();
+    const response = await approve({ draftFirst: 1, addSources: false });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ jobIds: [expect.any(String)], ingestJobIds: [] });
+    expect(jobs.enqueue).toHaveBeenCalledTimes(1);
+    expect(jobs.enqueue).toHaveBeenCalledWith("draft-chapter", expect.anything(), expect.anything());
+  });
+
   it("lists plans even without notes and returns the parsed fenced contents", async () => {
     await storeProposal();
     await fs.rm(path.join(root, "linear-algebra/notes"), { recursive: true });
@@ -150,7 +185,7 @@ describe("plan inbox", () => {
   });
 
   it("approves under a user commit and queues the first three unticked chapters by default", async () => {
-    await storeProposal(true);
+    await storeProposal(true, proposalText(true).split("## Sources to add")[0]);
     const events: StudiumEvent[] = [];
     hub.subscribe((event) => events.push(event));
     const response = await approve();
@@ -179,7 +214,10 @@ describe("plan inbox", () => {
 
   it("supports draftFirst zero and serializes duplicate approvals", async () => {
     await storeProposal();
-    const responses = await Promise.all([approve({ draftFirst: 0 }), approve({ draftFirst: 0 })]);
+    const responses = await Promise.all([
+      approve({ draftFirst: 0, addSources: false }),
+      approve({ draftFirst: 0, addSources: false }),
+    ]);
     expect(responses.map((response) => response.status).sort()).toEqual([200, 404]);
     expect(jobs.enqueue).not.toHaveBeenCalled();
     expect((await log(root)).filter((commit) => commit.subject === "user: approve plan")).toHaveLength(1);
@@ -188,7 +226,7 @@ describe("plan inbox", () => {
   it("honors the chosen draft count and creates curriculum.md when it was absent", async () => {
     await storeProposal();
     await fs.unlink(path.join(root, "linear-algebra/curriculum.md"));
-    const response = await approve({ draftFirst: 5 });
+    const response = await approve({ draftFirst: 5, addSources: false });
     expect(response.status).toBe(200);
     expect(jobs.enqueue).toHaveBeenCalledTimes(5);
     expect(await fs.readFile(path.join(root, "linear-algebra/curriculum.md"), "utf8")).toBe(proposedCurriculum());
@@ -197,6 +235,7 @@ describe("plan inbox", () => {
   it("rejects invalid counts and malformed proposals without changing the approved plan", async () => {
     await storeProposal();
     const previous = await fs.readFile(path.join(root, "linear-algebra/PLAN.md"), "utf8");
+    expect((await approve({ addSources: "true" })).status).toBe(400);
     for (const draftFirst of [-1, 6, 1.5, "3", null]) expect((await approve({ draftFirst })).status).toBe(400);
     await fs.writeFile(path.join(root, PROPOSAL_REL), "# Not a plan\n");
     expect((await approve()).status).toBe(400);
@@ -212,7 +251,7 @@ describe("plan inbox", () => {
     const destination = path.join(root, "linear-algebra/curriculum.md");
     await fs.unlink(destination);
     await fs.symlink(path.join(root, "linear-algebra/notes/03-svd.md"), destination);
-    expect((await approve({ draftFirst: 0 })).status).toBe(400);
+    expect((await approve({ draftFirst: 0, addSources: false })).status).toBe(400);
     expect(await fs.readFile(path.join(root, "linear-algebra/PLAN.md"), "utf8")).toBe(previous);
     await expect(fs.access(path.join(root, PROPOSAL_REL))).resolves.toBeUndefined();
     await fs.symlink(
@@ -249,7 +288,7 @@ it("blocks AI-disabled approval before writes and allows draftFirst zero", async
   const deniedJobs = new JobRunner({ root, hub, maxParallel: 1, aiAllowed: () => false });
   const denied = new Hono();
   denied.route("/api/sets/:set", inboxRoutes({ root, hub, locks: new FileLocks(), jobs: deniedJobs }));
-  for (const body of [undefined, {}, { draftFirst: 1 }]) {
+  for (const body of [undefined, {}, { draftFirst: 1 }, { draftFirst: 0 }]) {
     const response = await denied.request(`${PROPOSAL_URL}/approve`, {
       method: "POST",
       ...(body === undefined ? {} : { headers: { "content-type": "application/json" }, body: JSON.stringify(body) }),
@@ -262,7 +301,7 @@ it("blocks AI-disabled approval before writes and allows draftFirst zero", async
   const accepted = await denied.request(`${PROPOSAL_URL}/approve`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: '{"draftFirst":0}',
+    body: '{"draftFirst":0,"addSources":false}',
   });
   expect(accepted.status).toBe(200);
   expect(deniedJobs.list()).toEqual([]);

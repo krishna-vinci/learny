@@ -107,12 +107,14 @@ export function PlanReview({ set, item, onBack }: { set: string; item: InboxItem
   async function approve() {
     setApproving(true);
     try {
-      const { jobIds } = await api.inbox.approvePlan(set, file, count);
+      const { jobIds, ingestJobIds } = await api.inbox.approvePlan(set, file, count);
       refresh();
       toast.success(
-        jobIds.length > 0
-          ? `Plan approved — drafting ${jobIds.length} ${jobIds.length === 1 ? "chapter" : "chapters"}`
-          : "Plan approved",
+        ingestJobIds?.length > 0
+          ? `Adding ${ingestJobIds.length} sources — chapters will be drafted after`
+          : jobIds.length > 0
+            ? `Plan approved — drafting ${jobIds.length} ${jobIds.length === 1 ? "chapter" : "chapters"}`
+            : "Plan approved",
       );
       navigate(`/s/${set}`);
     } catch (err) {
@@ -227,7 +229,11 @@ export function PlanReview({ set, item, onBack }: { set: string; item: InboxItem
           ) : null}
 
           <section className="mt-4" aria-live="polite">
-            <h2 className="text-sm font-semibold text-foreground">These chapters will be drafted now</h2>
+            <h2 className="text-sm font-semibold text-foreground">
+              {data.sourcesToAdd.length > 0
+                ? "These chapters will be drafted after sources are added"
+                : "These chapters will be drafted now"}
+            </h2>
             {!data.chapters ? (
               <p className="mt-2 text-sm text-muted-foreground">Draft preview unavailable.</p>
             ) : chaptersToDraft.length > 0 ? (
@@ -300,10 +306,27 @@ export function PlanReview({ set, item, onBack }: { set: string; item: InboxItem
             Discard
           </Button>
           {data && (
-            <Button className="h-11 flex-[2] md:h-9 md:flex-none" disabled={approving} onClick={() => void approve()}>
-              <CheckIcon aria-hidden="true" />
-              {approving ? "Approving…" : count > 0 ? `Approve & draft first ${count}` : "Approve"}
-            </Button>
+            <div className="flex min-w-0 flex-[2] flex-col gap-1 md:flex-none">
+              <Button
+                className="min-h-11 h-auto whitespace-normal py-2 md:min-h-9 md:flex-none"
+                disabled={approving}
+                onClick={() => void approve()}
+              >
+                <CheckIcon aria-hidden="true" />
+                {approving
+                  ? "Approving…"
+                  : data.sourcesToAdd.length > 0
+                    ? count > 0
+                      ? `Add ${data.sourcesToAdd.length} sources & draft first ${count}`
+                      : `Approve & add ${data.sourcesToAdd.length} sources`
+                    : count > 0
+                      ? `Approve & draft first ${count}`
+                      : "Approve"}
+              </Button>
+              {data.sourcesToAdd.length > 0 && count > 0 && (
+                <p className="text-xs text-muted-foreground">Drafting starts after the sources are added.</p>
+              )}
+            </div>
           )}
         </div>
       </ActionBar>

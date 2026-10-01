@@ -3,8 +3,9 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { fauxAssistantMessage, fauxProvider, fauxText, fauxToolCall } from "@earendil-works/pi-ai/providers/faux";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createModelRuntime } from "../agent/models.js";
+import * as roleRunner from "../agent/run-role.js";
 import { EventHub } from "../events.js";
 import { McpManager } from "../mcp/bridge.js";
 import { diff, ensureRepo, log } from "../tree/git.js";
@@ -31,12 +32,75 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   if (previousAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
   else process.env.PI_CODING_AGENT_DIR = previousAgentDir;
   await Promise.all([fs.rm(root, { recursive: true, force: true }), fs.rm(agentDir, { recursive: true, force: true })]);
 });
 
 describe("draft chapter job", () => {
+  it.each([{ sources: [] }, { sources: ["lib-missing"] }])(
+    "fails before any model call with sources %j, then resolves sources on retry",
+    async ({ sources }) => {
+      const planPath = path.join(root, "linear-algebra/PLAN.md");
+      const plan = await fs.readFile(planPath, "utf8");
+      await fs.writeFile(planPath, plan.replace(/sources: \[[^\n]*\]/, "sources: []"));
+      const runRole = vi.spyOn(roleRunner, "runRole");
+      const handler = createDraftJob({
+        root,
+        locks: new FileLocks(),
+        mcp: new McpManager([]),
+        runtime: await createModelRuntime(),
+        hub: new EventHub(),
+      });
+      const ctx = { signal: new AbortController().signal, progress: vi.fn(), addUsage: vi.fn() };
+      const input = { set: "linear-algebra", title: "Eigenvalues", sources };
+      await expect(handler(input, ctx)).rejects.toThrow(
+        "This set has no sources yet. Add a source in the Library (or ask the tutor to find some), then retry.",
+      );
+      expect(runRole).not.toHaveBeenCalled();
+      expect(ctx.addUsage).not.toHaveBeenCalled();
+      await fs.writeFile(planPath, plan);
+      runRole.mockResolvedValue({ text: "I need more evidence.", written: [], messages: [] });
+      await expect(handler(input, ctx)).rejects.toThrow(
+        "The drafter stopped without writing the chapter: I need more evidence.",
+      );
+      expect(runRole).toHaveBeenCalledWith(
+        "drafter",
+        expect.objectContaining({
+          task: expect.stringContaining("Allowed source ids: lib-strang-la"),
+        }),
+      );
+      expect(runRole.mock.calls[0]?.[1].task).not.toContain("Allowed source ids: lib-missing");
+      runRole.mockRestore();
+    },
+  );
+
+  it("reports the drafter's last assistant text, trimmed to 300 characters", async () => {
+    const runtime = await createModelRuntime();
+    const faux = fauxProvider({ provider: "faux", models: [{ id: "echo" }] });
+    runtime.registerNativeProvider(faux.provider);
+    const text = `I cannot draft without evidence. ${"x".repeat(400)}`;
+    faux.setResponses([fauxAssistantMessage(fauxText(`  ${text}  `))]);
+    const handler = createDraftJob({
+      root,
+      locks: new FileLocks(),
+      mcp: new McpManager([]),
+      runtime,
+      hub: new EventHub(),
+    });
+    await expect(
+      handler(
+        { set: "linear-algebra", title: "Eigenvalues" },
+        {
+          signal: new AbortController().signal,
+          progress: () => {},
+          addUsage: () => {},
+        },
+      ),
+    ).rejects.toThrow(`The drafter stopped without writing the chapter: ${text.slice(0, 300)}`);
+  });
+
   it("drafts, checks, marks checked, and commits the note and report", async () => {
     await fs.appendFile(
       path.join(root, "linear-algebra/curriculum.md"),
@@ -170,8 +234,34 @@ describe("draft chapter job", () => {
         { set: "linear-algebra", title: "Eigenvalues" },
         { signal: new AbortController().signal, progress: () => {}, addUsage: () => {} },
       ),
-    ).rejects.toThrow(/drafter must create exactly notes\/04-eigenvalues\.md/);
+    ).rejects.toThrow("The drafter stopped without writing the chapter: Done.");
     await expect(fs.access(path.join(root, "linear-algebra/notes/99-other.md"))).rejects.toThrow();
+  });
+
+  it("keeps the path error when a run reports a forbidden write", async () => {
+    const runRole = vi.spyOn(roleRunner, "runRole").mockResolvedValue({
+      text: "Done.",
+      written: ["linear-algebra/notes/99-other.md"],
+      messages: [],
+    });
+    const handler = createDraftJob({
+      root,
+      locks: new FileLocks(),
+      mcp: new McpManager([]),
+      runtime: await createModelRuntime(),
+      hub: new EventHub(),
+    });
+    await expect(
+      handler(
+        { set: "linear-algebra", title: "Eigenvalues" },
+        {
+          signal: new AbortController().signal,
+          progress: () => {},
+          addUsage: () => {},
+        },
+      ),
+    ).rejects.toThrow("drafter must create exactly notes/04-eigenvalues.md");
+    runRole.mockRestore();
   });
 
   it("does not let the checker mark the bound note checked while a blocker remains", async () => {
