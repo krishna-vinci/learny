@@ -84,7 +84,7 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - **Sessions:** DB-backed cookie `studium_session` (SameSite Strict). Personal access tokens use the `studium_pat_` prefix. There is no public sign-up; the admin adds users.
 
 ## Status (2026-09-30)
-- **Done:** M0–M6, plus the M4-8 review fixes (server). **Running:** the M4-8 web follow-up on Luna (`docs/prompts/m4-8-web-followup.md`).
+- **Done:** M0–M6 and the M4-8 review (server + web follow-up). Next: owner's choice (see Open gaps).
   - M0 skeleton, M1 sources→notes, M2 cards
   - M3a platform: accounts and SSO, per-user trees, backups, notifications, export, service
   - M3b slices A (background jobs UX), B (reading comfort), C (themes)
@@ -105,6 +105,7 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - **Backups:** not configured yet on the live instance. The owner does this in Settings → Backups.
 
 ## Recently done
+- M4-8 web follow-up (Luna): Today refresh on status only, plan preview from server chapters, split review counts, zero counts hidden
 - M4-8 review fixes, server (8fd1152, 0f27db2): all 11 findings
 - M6 simple & polished (PRs #3–#9, merged with M5 at d9932c1): UX audit, shadcn D1–D2, bottom tabs and IA, first-run flow, calm interactions, code-splitting + offline reading, book callouts and restart persistence, install guide
 - M5-B practice screens (quiz, teach-back, problems)
@@ -139,3 +140,4 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - 2026-10-01 · M5-B (Sol 6.1) · `pages/PracticePage.tsx` and practice components (quiz, teach-back, problems), navigation, Today weak topics, toasts, Settings roles · 35 browser checks at 390/1440 in light/dark/sepia · the phone Next bar overlaps content (M6).
 - 2026-10-01 · M6 (cloud Sonnet, 7 stacked PRs) · `docs/UX.md`, `docs/DESIGN.md`, `docs/INSTALL.md`; `components/Navigation/*`, onboarding, friendly errors, offline caching, lazy routes · the orchestrator merged M5 in: Practice routes to the M5 page, Cards gets `cardsHref`, plain names for Examiner/Grader · 604 server + 127 web tests pass; landing JS 120 kB gzip.
 - 2026-10-01 · M4-8 fixes (Sol 6.1, server-only) · enqueue-time AI gate, Firecrawl final-URL checks, skill-sync canonical confinement, passage trust blocks, prerequisite validation, Today cache plus bounded git, book limits and coalescing, fence length, card passages · the orchestrator ported the AI-revocation handling to M6's persisted `SiteImportQueue` · the web half goes to Luna.
+- 2026-10-01 · M4-8 web (Luna) · `api/queries.ts` status-change Today invalidation (100-entry cache), `InboxPlanReview` uses API chapters, TodayPage split counts and hidden zeros · 131 web tests pass.
