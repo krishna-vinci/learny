@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import type { JobView, StudiumEvent } from "@studium/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { EventHub } from "../events.js";
+import { AiDisabledError } from "../jobs/runner.js";
 import { SiteImportQueue } from "./site-queue.js";
 
 const SAMPLE_SET = fileURLToPath(new URL("../../../examples/sample-set", import.meta.url));
@@ -38,6 +39,26 @@ function harness() {
 const urls = (count: number) => Array.from({ length: count }, (_, index) => `https://docs.example.com/page-${index}`);
 
 describe("SiteImportQueue", () => {
+  it("drops the waiting pages when AI is turned off mid-import", () => {
+    const { hub, jobs, enqueued, finish } = harness();
+    let allowed = true;
+    const gated = {
+      enqueue: (kind: string, input: unknown) => {
+        if (!allowed) throw new AiDisabledError();
+        return jobs.enqueue(kind, input);
+      },
+    };
+    const queue = new SiteImportQueue({ root, hub, jobs: gated, file });
+    queue.enqueue(urls(6), "linear-algebra");
+    expect(enqueued).toHaveLength(3);
+    allowed = false;
+    expect(() => finish("job-1")).not.toThrow();
+    finish("job-2");
+    finish("job-3");
+    expect(enqueued).toHaveLength(3);
+    expect(queue.pending).toBe(0);
+  });
+
   it("keeps three ingest jobs outstanding and releases the next as each finishes", () => {
     const { hub, jobs, enqueued, finish } = harness();
     const queue = new SiteImportQueue({ root, hub, jobs });
