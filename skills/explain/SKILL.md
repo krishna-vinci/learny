@@ -53,3 +53,5 @@ If the learner answers incorrectly, identify the precise misconception, correct 
 - When explaining a source-grounded claim, cite it as `[^src:<id>]` in chat or note content.
 - Never rewrite a note during an explanation unless the learner asks for an edit.
 - If the explanation reveals a gap in a note, propose the exact surgical edit and wait for approval.
+
+For purposeful visuals in notes, load `media-authoring` and follow its local-file and static-book rules.

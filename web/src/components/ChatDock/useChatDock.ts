@@ -198,6 +198,7 @@ export function useChatDock(set: string) {
   }, [state.lastCommitSha, anchorRest, set]);
 
   return {
+    notePath: `${set}/${anchor ?? "notes/chat.md"}`,
     chatId,
     setChatId,
     draft,

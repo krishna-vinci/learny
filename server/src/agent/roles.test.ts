@@ -151,6 +151,23 @@ describe("role system", () => {
     expect(result.written).toEqual([]);
   });
 
+  it("lets the tutor read source image lists but never write library files", async () => {
+    await fs.writeFile(path.join(root, "library/lib-strang-la/images.json"), "[]");
+    expect((await execute("tutor", "study_read", { path: "library/lib-strang-la/images.json" })).details).toMatchObject(
+      { isError: false },
+    );
+    expect(
+      (
+        await execute("tutor", "study_edit", {
+          path: "library/lib-strang-la/images.json",
+          old_string: "[]",
+          new_string: "[1]",
+        })
+      ).details,
+    ).toMatchObject({ isError: true });
+    expect(await fs.readFile(path.join(root, "library/lib-strang-la/images.json"), "utf8")).toBe("[]");
+  });
+
   it("prevents the librarian from writing a note but permits source.md edits", async () => {
     const denied = await execute("librarian", "study_edit", {
       path: "linear-algebra/notes/03-svd.md",

@@ -17,6 +17,7 @@ import type { McpManager } from "../mcp/bridge.js";
 import { readText } from "../tree/edit.js";
 import type { FileLocks } from "../tree/lock.js";
 import { addCardTool, recordQuizResultTool, reviewCardTool } from "./builtins/cards.js";
+import { saveAssetTool } from "./builtins/save-asset.js";
 import { listSkills, skillTools } from "./builtins/skills.js";
 import { webFetchTool } from "./builtins/web-fetch.js";
 import { wikiTools } from "./builtins/wiki.js";
@@ -104,6 +105,18 @@ export function roleToolset(role: RoleName, opts: RoleToolsetOptions): { tools: 
       holder: opts.holder,
       ...(opts.onWrite === undefined ? {} : { onWrite: opts.onWrite }),
     }),
+    ...(opts.set === null
+      ? []
+      : [
+          saveAssetTool({
+            root: opts.root,
+            set: opts.set,
+            locks: opts.locks,
+            holder,
+            canWrite: (rel) => (opts.canWrite === undefined ? spec.write(opts.set, rel) : opts.canWrite(rel)),
+            ...(opts.onWrite ? { onWrite: opts.onWrite } : {}),
+          }),
+        ]),
     ...wikiTools(),
     webFetchTool({
       ...(process.env.FIRECRAWL_API_URL === undefined ? {} : { firecrawlUrl: process.env.FIRECRAWL_API_URL }),

@@ -5,7 +5,7 @@
 // Slice C: no longer imports highlight.js/styles/github.css (light-only). The `.hljs-*`
 // token colours are themed via CSS variables in index.css instead (see the "Code
 // highlighting" block there).
-import { type ComponentProps, memo } from "react";
+import { type ComponentProps, lazy, memo, Suspense } from "react";
 import type { Components } from "react-markdown";
 import ReactMarkdown from "react-markdown";
 import rehypeSanitize from "rehype-sanitize";
@@ -15,18 +15,24 @@ import remarkMath from "remark-math";
 import { RenderBoundary } from "@/components/RenderBoundary";
 import { hasMath, useKatex } from "@/lib/katex-loader";
 import { cn } from "@/lib/utils";
-import { Citation } from "./Citation";
-import { CodeBlock } from "./CodeBlock";
+
 import { SANITIZE_SCHEMA } from "./constants";
 import { Callout, Deeper } from "./Directives";
+import { NoteImage } from "./NoteImage";
 import { remarkStudiumCitations, remarkStudiumDirectives } from "./remarkStudium";
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from "./Table";
+
+const Citation = lazy(() => import("./Citation").then((module) => ({ default: module.Citation })));
+const CodeBlock = lazy(() => import("./CodeBlock").then((module) => ({ default: module.CodeBlock })));
+const ArtifactBlock = lazy(() => import("./ArtifactBlock").then((module) => ({ default: module.ArtifactBlock })));
+const YouTubeEmbed = lazy(() => import("./YouTubeEmbed").then((module) => ({ default: module.YouTubeEmbed })));
 
 type MarkdownRehypePlugins = NonNullable<ComponentProps<typeof ReactMarkdown>["rehypePlugins"]>;
 
 export interface MarkdownViewProps {
   content: string;
   className?: string;
+  notePath?: string;
 }
 
 const asProps = (value: object): Record<string, unknown> => value as Record<string, unknown>;
@@ -37,6 +43,35 @@ const markdownComponents: Components = {
   // bodies contain no raw HTML (rehype-raw is not in the pipeline).
   div: ({ children, node: _node, ...rest }) => {
     const props = asProps(rest);
+    const artifact = props["data-artifact"];
+    if (typeof artifact === "string")
+      return (
+        <Suspense fallback={<div className="my-4 aspect-[16/10] bg-muted" aria-busy="true" />}>
+          <ArtifactBlock
+            key={artifact}
+            src={artifact}
+            poster={
+              typeof props["data-artifact-poster"] === "string" ? (props["data-artifact-poster"] as string) : undefined
+            }
+            title={
+              typeof props["data-artifact-title"] === "string" ? (props["data-artifact-title"] as string) : undefined
+            }
+          />
+        </Suspense>
+      );
+    if (props["data-artifact-unavailable"]) return <div className="text-sm text-muted-foreground">{children}</div>;
+    const video = props["data-youtube"];
+    if (typeof video === "string")
+      return (
+        <Suspense fallback={<div className="my-4 aspect-video bg-muted" aria-busy="true" />}>
+          <YouTubeEmbed
+            key={`${video}/${props["data-start"]}/${props["data-end"]}`}
+            id={video}
+            start={Number(props["data-start"] ?? 0)}
+            {...(props["data-end"] === undefined ? {} : { end: Number(props["data-end"]) })}
+          />
+        </Suspense>
+      );
     const callout = props["data-callout"];
     const rawTitle = props["data-title"];
     const title = typeof rawTitle === "string" ? rawTitle : undefined;
@@ -60,14 +95,24 @@ const markdownComponents: Components = {
     const page = props["data-citation-page"];
     if (typeof src === "string" && typeof page === "string") {
       return (
-        <Citation src={src} page={page}>
-          {children}
-        </Citation>
+        <Suspense fallback={<sup>{children}</sup>}>
+          <Citation
+            src={src}
+            page={page}
+            time={typeof props["data-citation-time"] === "string" ? (props["data-citation-time"] as string) : undefined}
+          >
+            {children}
+          </Citation>
+        </Suspense>
       );
     }
     return <sup {...rest}>{children}</sup>;
   },
-  pre: CodeBlock,
+  pre: (props) => (
+    <Suspense fallback={<pre>{props.children}</pre>}>
+      <CodeBlock {...props} />
+    </Suspense>
+  ),
   table: ({ children, node: _node, ...props }) => <Table {...props}>{children}</Table>,
   thead: ({ children, node: _node, ...props }) => <TableHead {...props}>{children}</TableHead>,
   tbody: ({ children, node: _node, ...props }) => <TableBody {...props}>{children}</TableBody>,
@@ -76,7 +121,7 @@ const markdownComponents: Components = {
   td: ({ children, node: _node, ...props }) => <TableCell {...props}>{children}</TableCell>,
 };
 
-function MarkdownViewComponent({ content, className }: MarkdownViewProps) {
+function MarkdownViewComponent({ content, className, notePath }: MarkdownViewProps) {
   // KaTeX loads only for notes that contain math; others never pay for it.
   const math = hasMath(content);
   const katex = useKatex(math);
@@ -86,9 +131,18 @@ function MarkdownViewComponent({ content, className }: MarkdownViewProps) {
     <div className={cn("studium-prose w-full break-words text-foreground", className)}>
       <RenderBoundary fallbackText={content} resetKey={content}>
         <ReactMarkdown
-          remarkPlugins={[remarkMath, remarkGfm, remarkDirective, remarkStudiumDirectives, remarkStudiumCitations]}
+          remarkPlugins={[
+            remarkMath,
+            remarkGfm,
+            remarkDirective,
+            [remarkStudiumDirectives, { notePath }],
+            remarkStudiumCitations,
+          ]}
           rehypePlugins={[[rehypeSanitize, SANITIZE_SCHEMA], ...katexPlugins]}
-          components={markdownComponents}
+          components={{
+            ...markdownComponents,
+            img: ({ node: _node, ...props }) => <NoteImage {...props} notePath={notePath} />,
+          }}
         >
           {content}
         </ReactMarkdown>
@@ -101,5 +155,6 @@ function MarkdownViewComponent({ content, className }: MarkdownViewProps) {
  * assistant messages. */
 export const MarkdownView = memo(
   MarkdownViewComponent,
-  (previous, next) => previous.content === next.content && previous.className === next.className,
+  (previous, next) =>
+    previous.content === next.content && previous.className === next.className && previous.notePath === next.notePath,
 );

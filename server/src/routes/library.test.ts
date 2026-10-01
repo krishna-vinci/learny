@@ -424,3 +424,20 @@ it("stops the pending import tail when AI permission is revoked without breaking
   expect(received).toHaveLength(3);
   expect(jobs.list()).toHaveLength(3);
 });
+
+it("serves only the stored thumbnail with private image headers", async () => {
+  const { id } = await writeSource(
+    root,
+    makeExtracted({
+      url: "https://youtu.be/dQw4w9WgXcQ",
+      parseTier: "transcript",
+      thumb: new Uint8Array([255, 216, 255]),
+    }),
+  );
+  const response = await app.request(`/api/library/${id}/thumb`);
+  expect(response.status).toBe(200);
+  expect(response.headers.get("content-type")).toBe("image/jpeg");
+  expect(response.headers.get("content-security-policy")).toContain("default-src 'none'");
+  expect(new Uint8Array(await response.arrayBuffer())).toEqual(new Uint8Array([255, 216, 255]));
+  expect((await app.request("/api/library/lib-missing/thumb")).status).toBe(404);
+});

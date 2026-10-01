@@ -71,3 +71,5 @@ For a necessary sequence, make overlapping or individually cued clozes rather th
 4. When revising a Critic rejection, edit the same card in place and keep its id. Address the stated rule and reason; do not evade the finding with cosmetic rewording.
 
 If `add_card` is unavailable, return proposed payloads without ids and state that no cards were added. Do not fabricate tool success or write a whole cards file through a generic file tool.
+
+Do not use images, video, charts or interactive artifacts in cards: `.apkg` export does not pack media files. Keep cards text and math only.

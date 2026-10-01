@@ -1,10 +1,12 @@
 // Adapted from Memos (MIT) — https://github.com/usememos/memos
 import { CheckIcon, CopyIcon } from "lucide-react";
-import { isValidElement, type ReactElement, type ReactNode, useEffect, useState } from "react";
+import { isValidElement, lazy, type ReactElement, type ReactNode, Suspense, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { escapeHtml, highlightCode, isPlainTextLanguage } from "./highlight";
 import { MermaidBlock } from "./MermaidBlock";
 import { extractCodeContent, extractLanguage } from "./utils";
+
+const VegaLiteBlock = lazy(() => import("./VegaLiteBlock").then((module) => ({ default: module.VegaLiteBlock })));
 
 interface CodeBlockProps {
   children?: ReactNode;
@@ -17,6 +19,13 @@ export const CodeBlock = ({ children, className, node: _node, ...props }: CodeBl
   const codeClassName = codeElement?.props.className || "";
   const codeContent = extractCodeContent(children);
   const language = extractLanguage(codeClassName);
+
+  if (language === "vega-lite")
+    return (
+      <Suspense fallback={<div className="my-4 h-40" aria-busy="true" />}>
+        <VegaLiteBlock code={codeContent} />
+      </Suspense>
+    );
 
   // If it's a mermaid block, render with MermaidBlock component.
   if (language === "mermaid") {

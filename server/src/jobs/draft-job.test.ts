@@ -49,6 +49,14 @@ describe("draft chapter job", () => {
       fauxAssistantMessage(
         fauxToolCall(
           "study_create",
+          { path: "assets/eigen.svg", content: '<svg viewBox="0 0 10 10"><path d="M0 0"/></svg>' },
+          { id: "draft-figure" },
+        ),
+        { stopReason: "toolUse" },
+      ),
+      fauxAssistantMessage(
+        fauxToolCall(
+          "study_create",
           {
             path: "notes/04-eigenvalues.md",
             content:
@@ -110,6 +118,7 @@ describe("draft chapter job", () => {
     expect(drafterCommit).toMatchObject({ author: "drafter", subject: "drafter: Eigenvalues" });
     const noteRel = "linear-algebra/notes/04-eigenvalues.md";
     expect(await diff(root, drafterCommit?.sha ?? "", noteRel)).toContain("+status: draft");
+    expect(await diff(root, drafterCommit?.sha ?? "", "linear-algebra/assets/eigen.svg")).toContain("+<svg");
     expect(await diff(root, checkerCommit?.sha ?? "", noteRel)).toContain("+status: checked");
     expect(await diff(root, checkerCommit?.sha ?? "", "linear-algebra/log/checks/04-eigenvalues.md")).toContain(
       "No issues found",

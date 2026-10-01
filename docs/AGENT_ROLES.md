@@ -77,3 +77,18 @@ Plan:    Outliner → PLAN.md draft → user approves
 System prompt: `_global/profile.md` + `PLAN.md` + curriculum outline + anchored
 note/source (if any) + skill index. Full notes, cards and sources load on demand via
 tools. Long chats rely on Pi compaction.
+
+## Media tools (M7 / D29)
+
+Tutor and Drafter may use `save_asset` to download a public HTTPS raster image to
+this set's `assets/`, returning a local path and exact Markdown. They can create and
+edit SVG figures in `assets/` and HTML/poster SVGs in `artifacts/`; canonical paths,
+SVG safety, complete-document size limits and the assets quota are enforced.
+Drafter jobs still restrict note writes to their reserved chapter; media writes
+are additionally allowed and included in their commits. Other roles do not gain
+`save_asset` or media write scopes. Cardsmith keeps text/math cards without media.
+Tutor and Drafter can load the default `media-authoring` skill. Missing local media
+or YouTube videos absent from the library produce advisory write warnings.
+
+The tutor can read library source files and image lists; library writes remain librarian-only.
+The drafter also has the optional SearXNG MCP for the source-image search fallback.

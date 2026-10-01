@@ -191,6 +191,30 @@ describe("sets authoring routes", () => {
     await expect(fs.readFile(path.join(outside, "escape.md"), "utf8")).resolves.toBe("secret\n");
   });
 
+  it("serves confined image bytes and raw artifacts with read caps", async () => {
+    await fs.mkdir(path.join(root, "alpha/assets"));
+    await fs.mkdir(path.join(root, "alpha/artifacts"));
+    const bytes = Buffer.from([137, 80, 78, 71]);
+    await fs.writeFile(path.join(root, "alpha/assets/x.png"), bytes);
+    const response = await app.request("/api/sets/alpha/asset?path=assets/x.png");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("image/png");
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(Buffer.from(await response.arrayBuffer())).toEqual(bytes);
+    for (const rel of ["assets/../PLAN.md", "notes/03-vectors.md", "assets/x.avif"])
+      expect((await app.request(`/api/sets/alpha/asset?path=${rel}`)).status).toBe(400);
+    expect((await app.request("/api/sets/alpha/asset?path=assets/missing.png")).status).toBe(404);
+    await fs.symlink(path.join(root, "alpha/notes/03-vectors.md"), path.join(root, "alpha/assets/alias.png"));
+    expect((await app.request("/api/sets/alpha/asset?path=assets/alias.png")).status).toBe(400);
+    await fs.writeFile(path.join(root, "alpha/artifacts/x.html"), "---\n<script>1</script>");
+    expect(await (await app.request("/api/sets/alpha/file?path=artifacts/x.html")).json()).toEqual({
+      path: "artifacts/x.html",
+      raw: "---\n<script>1</script>",
+    });
+    await fs.writeFile(path.join(root, "alpha/notes/large.md"), "x".repeat(1024 * 1024 + 1));
+    expect((await app.request("/api/sets/alpha/file?path=notes/large.md")).status).toBe(413);
+  });
+
   describe("revert scope", () => {
     async function twoSets(): Promise<void> {
       await fs.mkdir(path.join(root, "beta/notes"), { recursive: true });

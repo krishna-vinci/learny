@@ -233,3 +233,46 @@ Migration: existing `data/study` moves into the admin's tree with history intact
 
 M3a Platform · M3b Comfort · M4 Study loop · M5 Practice · M6 Polish (see
 `docs/ROADMAP.md`). Supersedes M3–M5 of D20.
+
+## D29 — Media and visuals in notes · locked · 2026-10-01
+
+Every media kind has a web form and a local static book form. Reading and compiling
+never fetch internet resources, except HTTPS note images retained under F2 and a
+YouTube player explicitly tapped by the learner.
+
+| Kind | Web | Book |
+| --- | --- | --- |
+| Mermaid | Rendered diagram | Diagram-in-the-app caption (existing behavior) |
+| SVG figure / saved image | Image via the asset route | Local image |
+| Unsaved HTTPS web image | Image | Caption + URL text |
+| YouTube | Local thumbnail → tap → nocookie player | Thumbnail + time + link |
+| Vega-Lite | Lazy SVG chart | Server-rendered light SVG |
+| Artifact | Poster → tap → sandboxed iframe | Poster + caption |
+
+- **F1:** remark-directive leaf syntax, no space before attributes:
+  `::youtube{src="https://youtu.be/dQw4w9WgXcQ" start=843 end=900}` and
+  `::artifact{src="../artifacts/x.html" poster="../artifacts/x.svg" title="…"}`.
+  Invalid attributes yield a link or unavailable text; never throw.
+- **F2:** Paths resolve relative to the note, confined to its set. HTTPS images may
+  remain external in the web reader; the book never fetches them.
+- **F3:** `<set>/assets/**` and `<set>/artifacts/**` are git-tracked.
+- **F4:** PNG, JPEG, GIF and WebP; SVG is agent-written only. No AVIF. Typst 0.15.1
+  supports WebP (verified locally); unsupported formats degrade to captions.
+- **F5:** Raw HTML stays blocked in notes; no rehype-raw. HTML lives in artifacts.
+- **F6:** Artifact iframe sandbox is exactly `allow-scripts`. Its srcDoc begins with
+  `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src data:">`.
+  No allow-same-origin; no network or external resources.
+- **F7:** YouTube is click-to-load, with a local thumbnail or neutral placeholder,
+  youtube-nocookie player, start/end, autoplay, strict-origin-when-cross-origin,
+  autoplay/encrypted-media/picture-in-picture/fullscreen permissions, and an always
+  visible Watch on YouTube link with `&t=`. No YouTube requests before the tap.
+- **F8:** Saved image credits are `assets/<name>.json` with
+  `{url, pageUrl?, sourceId?, alt, license?, savedAt}`. Notes still cite sources.
+- **F9:** Downloaded images ≤ 5 MB, ≤ 6000×6000 px; set assets ≤ 50 MB. Artifact
+  HTML and agent SVG each ≤ 300 KB. Saves refuse overflow.
+- **F10:** Chat embeds are plain links; images must resolve within the chat's set.
+- **F11:** Card-writing agents never use media; `.apkg` does not pack files.
+
+Charts use inline `data.values`, the AST expression interpreter and rejecting
+loaders in web and book. No URL data. Deferred: Mermaid SVG book rendering via mmdc,
+Anki media, chat embeds, and server-side artifact poster rendering.

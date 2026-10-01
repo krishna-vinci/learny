@@ -43,7 +43,7 @@ describe("extractWeb", () => {
           JSON.stringify({
             success: true,
             data: {
-              markdown: "# From Firecrawl\n\nClean text.",
+              markdown: "# From Firecrawl\n\nClean text.\n\n![Diagram](https://93.184.216.34/figure.png)",
               metadata: { title: "FC" },
               url: "http://93.184.216.34/post",
             },
@@ -57,6 +57,9 @@ describe("extractWeb", () => {
     expect(extracted.parseTier).toBe("firecrawl");
     expect(extracted.title).toBe("FC");
     expect(extracted.markdown).toContain("From Firecrawl");
+    expect(extracted.images).toEqual([
+      { url: "https://93.184.216.34/figure.png", alt: "Diagram", nearHeading: "From Firecrawl" },
+    ]);
     expect(String(fetchMock.mock.calls[0]?.[0])).toContain("/v2/scrape");
   });
 

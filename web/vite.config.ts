@@ -38,6 +38,8 @@ export default defineConfig({
         // The app shell/build assets only — never intercept the API. SSE at /api/events
         // in particular must pass through untouched (no response buffering, no timeout).
         globPatterns: ["**/*.{js,css,html,svg,png,ico,woff,woff2}"],
+        // Chart libraries download only when a chart is opened, including in the PWA.
+        globIgnores: ["**/vega-loader-*.js"],
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
@@ -55,9 +57,11 @@ export default defineConfig({
                 /^\/api\/sets$/,
                 /^\/api\/sets\/[^/]+\/notes$/,
                 /^\/api\/sets\/[^/]+\/file$/,
+                /^\/api\/sets\/[^/]+\/asset$/,
                 /^\/api\/sets\/[^/]+\/highlights$/,
                 /^\/api\/library$/,
                 /^\/api\/library\/[^/]+$/,
+                /^\/api\/library\/[^/]+\/thumb$/,
               ].some((pattern) => pattern.test(url.pathname)),
             handler: "NetworkFirst",
             options: {

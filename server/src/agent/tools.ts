@@ -4,11 +4,13 @@ import { Type } from "typebox";
 import { createFile, editFile, readText } from "../tree/edit.js";
 import type { FileLocks } from "../tree/lock.js";
 import { canonicalRel, isWritableByAgent, resolveInRoot } from "../tree/paths.js";
+import { mediaWarnings } from "./media-warnings.js";
 
 interface ToolDetails {
   isError: boolean;
   summary: string;
   path?: string;
+  warnings?: string[];
 }
 
 export interface StudyToolContext {
@@ -165,7 +167,11 @@ export function studyTools(ctx: StudyToolContext): ToolDefinition[] {
         const added = countLines(params.new_string);
         const removed = countLines(params.old_string);
         const summary = `edited ${params.path} (+${added} −${removed} lines)`;
-        return result(summary, summary, { path: params.path });
+        const warnings = await mediaWarnings(ctx.root, combined, await readText(ctx.root, combined));
+        return result(summary, [summary, ...warnings.map((warning) => `Warning: ${warning}`)].join("\n"), {
+          path: params.path,
+          ...(warnings.length ? { warnings } : {}),
+        });
       } catch (error) {
         return errorResult(error);
       }
@@ -184,7 +190,11 @@ export function studyTools(ctx: StudyToolContext): ToolDefinition[] {
         await createFile(ctx.root, ctx.locks, ctx.holder, combined, params.content, { canWrite: ctx.write });
         ctx.onWrite?.(combined);
         const summary = `created ${params.path}`;
-        return result(summary, summary, { path: params.path });
+        const warnings = await mediaWarnings(ctx.root, combined, await readText(ctx.root, combined));
+        return result(summary, [summary, ...warnings.map((warning) => `Warning: ${warning}`)].join("\n"), {
+          path: params.path,
+          ...(warnings.length ? { warnings } : {}),
+        });
       } catch (error) {
         return errorResult(error);
       }
@@ -199,7 +209,7 @@ export const STUDY_TOOL_NAMES = ["study_list", "study_read", "study_edit", "stud
 export function tutorTools(ctx: TutorToolContext): ToolDefinition[] {
   return studyTools({
     root: ctx.root,
-    scope: { set: ctx.set, library: false },
+    scope: { set: ctx.set, library: true },
     write: isWritableByAgent,
     locks: ctx.locks,
     holder: ctx.holder,

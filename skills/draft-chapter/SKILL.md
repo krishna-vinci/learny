@@ -77,3 +77,5 @@ Never manufacture a citation, page number, DOI, quotation, or source title.
 2. Verify every listed source ID is used and every used ID is listed.
 3. Reread the worked example line by line.
 4. Keep the note at `status: draft`; approval and acceptance are separate learner actions.
+
+For purposeful visuals in notes, load `media-authoring` and follow its local-file and static-book rules.

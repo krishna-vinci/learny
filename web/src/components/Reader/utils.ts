@@ -15,6 +15,6 @@ export const extractCodeContent = (children: ReactNode): string => {
  * react-markdown uses the format "language-xxx" for code blocks.
  */
 export const extractLanguage = (className: string): string => {
-  const match = /language-(\w+)/.exec(className);
+  const match = /language-([\w-]+)/.exec(className);
   return match?.[1] ?? "";
 };

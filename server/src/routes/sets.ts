@@ -6,7 +6,8 @@ import { createNote, createSet, writeNoteAsUser } from "../tree/authoring.js";
 import { EditError } from "../tree/edit.js";
 import { changedPaths, diff, log, RevertConflictError, revert, revertPaths } from "../tree/git.js";
 import type { FileLocks } from "../tree/lock.js";
-import { PathError, resolveInRoot } from "../tree/paths.js";
+import { IMAGE_MIME, MEDIA_HEADERS } from "../tree/media.js";
+import { canonicalRel, PathError, resolveInRoot } from "../tree/paths.js";
 import { isSetSlug, listNotes, listSets, readSetFile } from "../tree/read.js";
 
 export interface SetsDeps {
@@ -125,6 +126,30 @@ export function setsRoutes(deps: SetsDeps): Hono {
     }
   });
 
+  app.get("/:set/asset", async (c) => {
+    const set = c.req.param("set");
+    const rel = c.req.query("path") ?? "";
+    if (!(await setExists(root, set))) return notFound(c);
+    try {
+      const valid = (value: string) => /^(assets|artifacts)\/.+\.(png|jpe?g|gif|webp|svg)$/i.test(value);
+      if (
+        !valid(rel) ||
+        !valid(canonicalRel(root, `${set}/${rel}`).slice(set.length + 1)) ||
+        !canonicalRel(root, `${set}/${rel}`).startsWith(`${set}/`)
+      )
+        return invalidPath(c);
+      const abs = resolveInRoot(root, `${set}/${rel}`);
+      if ((await fs.stat(abs)).size > 10 * 1024 * 1024) return c.json({ error: "asset too large" }, 413);
+      const bytes = await fs.readFile(abs);
+      const mime = IMAGE_MIME[rel.split(".").pop()?.toLowerCase() ?? ""];
+      return c.body(bytes, 200, { ...MEDIA_HEADERS, "Content-Type": mime ?? "application/octet-stream" });
+    } catch (error) {
+      if (error instanceof PathError) return invalidPath(c);
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return notFound(c);
+      throw error;
+    }
+  });
+
   app.get("/:set/file", async (c) => {
     const set = c.req.param("set");
     const rel = c.req.query("path");
@@ -132,6 +157,14 @@ export function setsRoutes(deps: SetsDeps): Hono {
     if (!(await setExists(root, set))) return notFound(c);
 
     try {
+      const abs = resolveInRoot(root, `${set}/${rel}`);
+      try {
+        if ((await fs.stat(abs)).size > MAX_NOTE_BYTES) return c.json({ error: "file too large" }, 413);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") return notFound(c);
+        throw error;
+      }
+      if (/^artifacts\/.+\.html$/.test(rel)) return c.json({ path: rel, raw: await fs.readFile(abs, "utf8") });
       const view = await readSetFile(root, set, rel);
       if (view === null) return notFound(c);
       return c.json(view);

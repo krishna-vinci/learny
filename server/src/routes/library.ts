@@ -17,7 +17,8 @@ import {
 import { assertPublicUrl, SafeFetchError } from "../ingest/safe-fetch.js";
 import { jobTitleFor, SiteImportQueue } from "../ingest/site-queue.js";
 import type { JobRunner } from "../jobs/runner.js";
-import { resolveInRoot } from "../tree/paths.js";
+import { MEDIA_HEADERS } from "../tree/media.js";
+import { canonicalRel, resolveInRoot } from "../tree/paths.js";
 import { isSetSlug } from "../tree/read.js";
 
 /** Hard cap on a single multipart upload (decision: ≤ 100 MB). */
@@ -70,6 +71,20 @@ export function libraryRoutes(input: LibraryRoutesDeps): Hono {
   const maxUploadBytes = deps.maxUploadBytes ?? MAX_UPLOAD_BYTES;
   const maxBodyBytes = deps.maxBodyBytes ?? maxUploadBytes + MULTIPART_OVERHEAD_BYTES;
   const app = new Hono();
+
+  app.get("/:id/thumb", async (c) => {
+    const id = c.req.param("id");
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) return c.json({ error: "not found" }, 404);
+    try {
+      const rel = `library/${id}/thumb.jpg`;
+      if (canonicalRel(root, rel) !== rel) return c.json({ error: "not found" }, 404);
+      const abs = resolveInRoot(root, rel);
+      if ((await fs.stat(abs)).size > 10 * 1024 * 1024) return c.json({ error: "thumbnail too large" }, 413);
+      return c.body(await fs.readFile(abs), 200, { ...MEDIA_HEADERS, "Content-Type": "image/jpeg" });
+    } catch {
+      return c.json({ error: "not found" }, 404);
+    }
+  });
 
   app.get("/", async (c) => c.json(await listSources(root)));
 

@@ -1,11 +1,14 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { MarkdownView } from "./MarkdownView";
 
 // `vitest.config.ts` runs with `globals: false`, so @testing-library/react's automatic
 // afterEach cleanup (which relies on detecting a global `afterEach`) never registers itself;
 // without this, each `render()` below would stack onto the previous test's DOM.
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 const SAMPLE = `Inline math $x^2$ and a citation [^src:lib-strang-la#p364].
 
@@ -17,6 +20,23 @@ Hidden depth content.
 `;
 
 describe("MarkdownView", () => {
+  it("resolves local images from the note and blocks paths outside the set", () => {
+    render(
+      <MarkdownView
+        notePath="alpha/notes/x.md"
+        content={
+          '![Figure](../assets/fig.svg "Vectors")\n\n![Escape](../../beta/assets/x.png)\n\n![Remote](https://example.org/x.png)'
+        }
+      />,
+    );
+    expect(screen.getByAltText("Figure").getAttribute("src")).toBe("/api/sets/alpha/asset?path=assets%2Ffig.svg");
+    expect(screen.getByAltText("Figure").getAttribute("loading")).toBe("lazy");
+    expect(screen.getByAltText("Figure").className).toContain("bg-white");
+    expect(screen.getByText("Vectors")).toBeTruthy();
+    expect(screen.queryByAltText("Escape")).toBeNull();
+    expect(screen.getByAltText("Remote").getAttribute("src")).toBe("https://example.org/x.png");
+  });
+
   it("renders inline math via KaTeX, loaded on demand", async () => {
     render(<MarkdownView content={SAMPLE} />);
     await waitFor(() => expect(document.querySelector(".katex")).not.toBeNull());
@@ -59,4 +79,102 @@ describe("MarkdownView", () => {
     expect(document.querySelector("img")).toBeNull();
     expect(screen.getByText("Theorem · <img src=x onerror=alert(1)>")).toBeTruthy();
   });
+});
+
+it("loads a YouTube player only after tapping, with a local thumbnail and time bounds", async () => {
+  const fetch = vi.fn(async () => ({
+    ok: true,
+    json: async () => [{ id: "lib-video", type: "video", url: "https://youtu.be/dQw4w9WgXcQ", title: "Lecture" }],
+  }));
+  vi.stubGlobal("fetch", fetch);
+  render(<MarkdownView content={'::youtube{src="https://youtu.be/dQw4w9WgXcQ" start=843 end=900}'} />);
+  expect(document.querySelector("iframe")).toBeNull();
+  expect((await screen.findByAltText("Lecture")).getAttribute("src")).toBe("/api/library/lib-video/thumb");
+  fireEvent.click(screen.getByRole("button", { name: "Play video" }));
+  expect(document.querySelector("iframe")?.getAttribute("src")).toBe(
+    "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?start=843&end=900&autoplay=1",
+  );
+  expect(screen.getByText("Watch on YouTube").getAttribute("href")).toContain("&t=843s");
+  expect(fetch.mock.calls.flat().join(" ")).not.toContain("ytimg");
+});
+it("degrades invalid YouTube directives to links and still drops raw iframes", () => {
+  render(
+    <MarkdownView
+      content={'::youtube{src="https://youtu.be/invalid" start=-1}\n\n<iframe src="https://example.org"></iframe>'}
+    />,
+  );
+  expect(screen.getByRole("link").getAttribute("href")).toBe("https://youtu.be/invalid");
+  expect(document.querySelector("iframe")).toBeNull();
+});
+it("accepts timestamp citations next to page citations", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => ({ ok: false })),
+  );
+  render(<MarkdownView content={"Moment [^src:lib-video#t843].\n\n[^src:lib-video#t843]: Video."} />);
+  expect(await screen.findByTitle("lib-video, at 14:03")).toBeTruthy();
+});
+
+it("renders a lazy inline chart and falls back to readable code on invalid JSON", async () => {
+  vi.doMock("@/lib/vega-loader", () => ({
+    createChartView: (_code: string, _width: number, _colors: unknown, container: HTMLElement) => {
+      JSON.parse(_code);
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      container.append(svg);
+      return { runAsync: async () => {}, finalize: () => {} };
+    },
+  }));
+  const view = render(<MarkdownView content={'```vega-lite\n{"data":{"values":[{"x":1}]},"mark":"point"}\n```'} />);
+  await waitFor(() => expect(document.querySelector('[aria-label="Data chart"] svg')).not.toBeNull());
+  view.rerender(<MarkdownView content={"```vega-lite\n{bad json}\n```"} />);
+  expect(await screen.findByText("Chart couldn't be drawn")).toBeTruthy();
+  expect(screen.getByText("{bad json}")).toBeTruthy();
+  vi.doUnmock("@/lib/vega-loader");
+});
+
+it("runs an artifact only after tapping with an exact sandbox and first-document CSP", async () => {
+  const { ARTIFACT_CSP } = await import("./ArtifactBlock");
+  const fetch = vi.fn(async () => ({
+    ok: true,
+    json: async () => ({ raw: "<!doctype html><script>fetch('https://example.org')</script>" }),
+  }));
+  vi.stubGlobal("fetch", fetch);
+  render(
+    <MarkdownView
+      notePath="alpha/notes/x.md"
+      content={'::artifact{src="../artifacts/demo.html" poster="../artifacts/demo.svg" title="Explore vectors"}'}
+    />,
+  );
+  expect((await screen.findByAltText("Explore vectors")).getAttribute("src")).toBe(
+    "/api/sets/alpha/asset?path=artifacts%2Fdemo.svg",
+  );
+  expect(document.querySelector("iframe")).toBeNull();
+  expect(fetch).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Run" }));
+  await waitFor(() => expect(document.querySelector("iframe")).not.toBeNull());
+  expect(document.querySelector("iframe")?.getAttribute("sandbox")).toBe("allow-scripts");
+  expect(document.querySelector("iframe")?.getAttribute("srcdoc")).toBe(
+    `${ARTIFACT_CSP}<!doctype html><script>fetch('https://example.org')</script>`,
+  );
+  expect(fetch).toHaveBeenCalledWith("/api/sets/alpha/file?path=artifacts%2Fdemo.html");
+});
+it("rejects artifacts outside the set, under notes or with the wrong extension", () => {
+  for (const src of ["../../beta/artifacts/x.html", "../notes/x.html", "../artifacts/x.js"]) {
+    const view = render(<MarkdownView notePath="alpha/notes/x.md" content={`::artifact{src="${src}"}`} />);
+    expect(screen.getByText("(interactive figure unavailable)")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
+    view.unmount();
+  }
+});
+it("shows an artifact fetch failure and allows retry", async () => {
+  const fetch = vi
+    .fn()
+    .mockRejectedValueOnce(new Error("offline"))
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ raw: "<p>Ready</p>" }) });
+  vi.stubGlobal("fetch", fetch);
+  render(<MarkdownView notePath="alpha/notes/x.md" content={'::artifact{src="../artifacts/demo.html"}'} />);
+  fireEvent.click(screen.getByRole("button", { name: "Run" }));
+  expect(await screen.findByRole("alert")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+  await waitFor(() => expect(document.querySelector("iframe")).not.toBeNull());
 });

@@ -300,7 +300,7 @@ export function ReaderPassages({
           }
         }}
       >
-        <MarkdownView content={content} />
+        <MarkdownView content={content} notePath={`${set}/${path}`} />
       </div>
       {unplacedHighlights.length > 0 && (
         <section className="mt-6 border-t border-border pt-4">

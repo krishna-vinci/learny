@@ -243,3 +243,99 @@ it("rejects oversized PDFs and preserves the previous book with scratch cleanup"
   expect(await fs.readFile(output, "utf8")).toBe("previous PDF");
   expect((await fs.readdir(path.join(root, ".cache"))).filter((name) => name.startsWith("book-"))).toEqual([]);
 });
+
+it("copies confined SVG and PNG references before compiling, preserving remote captions", async () => {
+  const { createBookMedia } = await import("./book-media.js");
+  const temp = await fs.mkdtemp(path.join(root, "media-test-"));
+  await fs.mkdir(path.join(root, "linear-algebra/assets"));
+  const svg = '<svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="#276"/></svg>';
+  const png = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNwaDjwHwAFBAKAPJ4DgAAAAABJRU5ErkJggg==",
+    "base64",
+  );
+  await fs.writeFile(path.join(root, "linear-algebra/assets/x.svg"), svg);
+  await fs.writeFile(path.join(root, "linear-algebra/assets/x.png"), png);
+  await fs.appendFile(
+    path.join(root, "linear-algebra/notes/01-vectors.md"),
+    "\n![SVG](../assets/x.svg)\n\n![PNG](../assets/x.png)\n\n![Remote](https://example.org/image.png)\n\n![Reference][x]\n![Short]\n[x]: ../assets/x.svg\n[Short]: ../assets/x.png\n",
+  );
+  const book = await assembleBook(root, "linear-algebra", new Date(), undefined, createBookMedia(root, temp));
+  expect(book.markdown).toContain("![SVG](media/image-1.svg)");
+  expect(book.markdown).toContain("![PNG](media/image-2.png)");
+  expect(book.markdown).toContain("![Reference](media/image-1.svg)");
+  expect(book.markdown).toContain("![Short](media/image-2.png)");
+  expect(book.markdown).toContain("https://example.org/image.png");
+  expect(await fs.readFile(path.join(temp, "media/image-1.svg"), "utf8")).toBe(svg);
+  expect(await fs.readFile(path.join(temp, "media/image-2.png"))).toEqual(png);
+  if (hasBinaries) await createBookJob({ root, locks: new FileLocks() })({ set: "linear-algebra" }, context());
+});
+
+it("turns YouTube moments into a local thumbnail, time and link", async () => {
+  const { createBookMedia } = await import("./book-media.js");
+  const temp = await fs.mkdtemp(path.join(root, "video-test-"));
+  await fs.mkdir(path.join(root, "library/lib-video"));
+  await fs.writeFile(
+    path.join(root, "library/lib-video/source.md"),
+    "---\nid: lib-video\ntitle: Lecture\ntype: video\ncredibility: A\nparse_tier: transcript\nadded: 2026-10-01\nurl: https://youtu.be/dQw4w9WgXcQ\n---\n",
+  );
+  await fs.writeFile(path.join(root, "library/lib-video/thumb.jpg"), new Uint8Array([255, 216, 255]));
+  const text = await createBookMedia(root, temp)(
+    '::youtube{src="https://youtu.be/dQw4w9WgXcQ" start=843 end=900}',
+    "linear-algebra/notes/x.md",
+  );
+  expect(text).toContain("Video: Lecture at 14:03");
+  expect(text).toContain("media/image-1.jpg");
+  expect(text).toContain("https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=843s");
+  expect(await fs.readFile(path.join(temp, "media/image-1.jpg"))).toEqual(Buffer.from([255, 216, 255]));
+});
+
+it("replaces inline Vega-Lite fences with a local SVG and keeps invalid specs readable", async () => {
+  const { createBookMedia } = await import("./book-media.js");
+  const temp = await fs.mkdtemp(path.join(root, "chart-test-"));
+  const prepare = createBookMedia(root, temp);
+  const spec = JSON.stringify({
+    data: { values: [{ x: 1, y: 2 }] },
+    mark: "point",
+    encoding: { x: { field: "x", type: "quantitative" }, y: { field: "y", type: "quantitative" } },
+  });
+  expect(await prepare(`\`\`\`vega-lite\n${spec}\n\`\`\``, "linear-algebra/notes/x.md")).toBe(
+    "![Data chart](media/chart-1.svg)",
+  );
+  expect(await fs.readFile(path.join(temp, "media/chart-1.svg"), "utf8")).toContain("<svg");
+  const bad = '```vega-lite\n{"data":{"url":"https://example.org/data.json"},"mark":"point"}\n```';
+  expect(await prepare(bad, "linear-algebra/notes/x.md")).toBe(bad);
+});
+
+it("uses an artifact's poster and static caption without reading its HTML", async () => {
+  const { createBookMedia } = await import("./book-media.js");
+  const temp = await fs.mkdtemp(path.join(root, "artifact-test-"));
+  await fs.mkdir(path.join(root, "linear-algebra/artifacts"));
+  await fs.writeFile(
+    path.join(root, "linear-algebra/artifacts/demo.svg"),
+    '<svg viewBox="0 0 10 10"><circle r="2"/></svg>',
+  );
+  const prepare = createBookMedia(root, temp);
+  const text = await prepare(
+    '::artifact{src="../artifacts/demo.html" poster="../artifacts/demo.svg" title="Projection"}',
+    "linear-algebra/notes/x.md",
+  );
+  expect(text).toBe("![Interactive: Projection — open this chapter in Studium](media/image-1.svg)");
+  expect(
+    await prepare('::artifact{src="../artifacts/demo.html" title="Projection"}', "linear-algebra/notes/x.md"),
+  ).toBe("Interactive: Projection — open this chapter in Studium");
+});
+
+it("passes rewritten Markdown and copied image bytes to the compiler process", async () => {
+  await fs.mkdir(path.join(root, "linear-algebra/assets"));
+  const svg = '<svg viewBox="0 0 10 10"><circle r="2"/></svg>';
+  await fs.writeFile(path.join(root, "linear-algebra/assets/stub.svg"), svg);
+  await fs.appendFile(path.join(root, "linear-algebra/notes/01-vectors.md"), "\n![Stub](../assets/stub.svg)\n");
+  const run = vi.fn(async (binary: string, _args: string[], cwd: string) => {
+    if (binary === "pandoc") {
+      expect(await fs.readFile(path.join(cwd, "book.md"), "utf8")).toContain("![Stub](media/image-1.svg)");
+      expect(await fs.readFile(path.join(cwd, "media/image-1.svg"), "utf8")).toBe(svg);
+    } else await fs.writeFile(path.join(cwd, "out.pdf"), "%PDF-1.4 stub");
+  });
+  await createBookJob({ root, locks: new FileLocks(), run })({ set: "linear-algebra" }, context());
+  expect(run.mock.calls.map(([binary]) => binary)).toEqual(["pandoc", "typst"]);
+});

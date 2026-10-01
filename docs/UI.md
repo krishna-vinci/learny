@@ -75,3 +75,26 @@ external edits (Obsidian, VS Code) appear live.
 
 Desktop first. Mobile must handle reading, chat and approvals; reader and chat swap
 full-screen. Installable PWA. Mobile editing is a non-goal.
+
+## Media in the reader (D29)
+
+Images resolve relative to the note and stay inside the set's assets/artifacts,
+with lazy decoding/loading and a descriptive caption. Unsaved HTTPS images remain
+images in the app, but only caption + URL text in the book. Raw note HTML is blocked.
+
+A YouTube moment starts as a local library thumbnail or neutral placeholder with
+Play video. Only a tap creates the nocookie iframe with start/end; Watch on YouTube
+is always available. Timestamp citations show “at 14:03” and a timed YouTube link.
+Vega-Lite fences lazy-load a responsive SVG chart with theme-token colors; invalid
+specs stay visible as code with “Chart couldn't be drawn”.
+
+Artifacts show their poster/title and Run. Only Run fetches the local HTML and
+creates a scripts-only iframe with a first-document network-blocking CSP. Full
+screen uses CSS and portals to the body; Escape exits. Failures offer retry; offline
+uncached artifacts explain that a connection is needed. Successful file and image
+reads use the existing bounded offline API cache, cleared on sign-out. Chat shows
+media directives as plain links and only local images from its own set.
+
+Books use local images, YouTube thumbnails with times/links, light chart SVGs and
+artifact posters/captions. Mermaid's existing diagram-in-the-app caption remains
+until mmdc rendering is implemented.

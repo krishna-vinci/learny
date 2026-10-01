@@ -197,3 +197,24 @@ describe("listSources and readSource", () => {
     await expect(readParsedFile(root, id, "parsed.md")).resolves.toBeNull();
   });
 });
+
+it("stores discovered Firecrawl Markdown images with absolute URLs and nearby headings", async () => {
+  const { collectImages } = await import("./images.js");
+  const markdown =
+    "# Geometry\n\n![Vectors](/fig.png)\n![No SVG](/x.svg)\n![Inline](data:image/png;base64,abc)\n![Pixel](/pixel.png)\n![Ref][figure]\n![Short]\n[figure]: /ref.png\n[Short]: /short.webp";
+  const images = collectImages(
+    markdown,
+    "https://example.org/page",
+    new Map([["https://example.org/pixel.png", 1024]]),
+  );
+  expect(images).toEqual([
+    { url: "https://example.org/fig.png", alt: "Vectors", nearHeading: "Geometry" },
+    { url: "https://example.org/ref.png", alt: "Ref", nearHeading: "Geometry" },
+    { url: "https://example.org/short.webp", alt: "Short", nearHeading: "Geometry" },
+  ]);
+  const { id } = await writeSource(
+    root,
+    makeExtracted({ originalExt: null, parseTier: "firecrawl", url: "https://example.org/page", markdown, images }),
+  );
+  expect(JSON.parse(await fs.readFile(path.join(root, `library/${id}/images.json`), "utf8"))).toEqual(images);
+});

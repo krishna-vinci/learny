@@ -101,6 +101,14 @@ describe("isWritableByAgent", () => {
     expect(isWritableByAgent("linear-algebra/notes/sub/deep/note.md")).toBe(true);
   });
 
+  it("allows media folders with the same segment and slug rules", () => {
+    for (const kind of ["assets", "artifacts"]) {
+      expect(isWritableByAgent(`alpha/${kind}/nested/figure.svg`)).toBe(true);
+      for (const rel of [`alpha/${kind}/../x.svg`, `library/${kind}/x.svg`, `Bad_slug/${kind}/x.svg`])
+        expect(isWritableByAgent(rel)).toBe(false);
+    }
+  });
+
   it("rejects paths outside the notes/log allowlist", () => {
     expect(isWritableByAgent("_global/config.yaml")).toBe(false);
     expect(isWritableByAgent("library/notes/x.md")).toBe(false);

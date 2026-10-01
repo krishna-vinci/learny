@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { lstat, mkdir, open, readFile, rename, unlink } from "node:fs/promises";
 import path from "node:path";
 import type { FileLocks } from "./lock";
+import { validateMediaWrite } from "./media.js";
 import { canonicalRel, isWritableByAgent, PathError, resolveInRoot } from "./paths";
 
 export type EditErrorCode = "not_found" | "no_match" | "multiple_matches" | "exists" | "forbidden" | "conflict";
@@ -39,6 +40,12 @@ function writableAbsolutePath(root: string, rel: string, canWrite = isWritableBy
   } catch (error) {
     throw toEditForbidden(error);
   }
+}
+
+function mutationLock<T>(locks: FileLocks, rel: string, holder: string, fn: () => Promise<T>): Promise<T> {
+  const [set, kind] = rel.split("/");
+  const write = () => locks.withLock(rel, holder, fn);
+  return kind === "assets" ? locks.withLock(`${set}/assets`, holder, write) : write();
 }
 
 async function readUtf8(abs: string, rel: string): Promise<string> {
@@ -103,6 +110,7 @@ export async function writeTextLocked(
   canWrite: (rootRelativePath: string) => boolean,
 ): Promise<void> {
   if (locks.holderOf(rel) !== holder) throw new Error(`File lock is required: ${rel}`);
+  await validateMediaWrite(root, rel, content);
   await atomicWrite(writableAbsolutePath(root, rel, canWrite), content);
 }
 
@@ -123,7 +131,7 @@ export async function editFile(
   }
   const abs = writableAbsolutePath(root, rel, opts?.canWrite);
 
-  return locks.withLock(rel, holder, async () => {
+  return mutationLock(locks, rel, holder, async () => {
     const content = await readUtf8(abs, rel);
     const matches = content.split(oldString).length - 1;
     if (matches === 0) {
@@ -140,6 +148,7 @@ export async function editFile(
       const index = content.indexOf(oldString);
       updated = content.slice(0, index) + newString + content.slice(index + oldString.length);
     }
+    await validateMediaWrite(root, rel, updated);
     await atomicWrite(abs, updated);
     return { replacements: opts?.replaceAll === true ? matches : 1 };
   });
@@ -156,11 +165,12 @@ export async function replaceFile(
 ): Promise<void> {
   const abs = writableAbsolutePath(root, rel, opts?.canWrite);
 
-  await locks.withLock(rel, holder, async () => {
+  await mutationLock(locks, rel, holder, async () => {
     const current = await readUtf8(abs, rel);
     if (current !== expected) {
       throw new EditError("conflict", `File changed since it was read: ${rel}`, current);
     }
+    await validateMediaWrite(root, rel, content);
     await atomicWrite(abs, content);
   });
 }
@@ -175,12 +185,13 @@ export async function createFile(
 ): Promise<void> {
   const abs = writableAbsolutePath(root, rel, opts?.canWrite);
 
-  await locks.withLock(rel, holder, async () => {
+  await mutationLock(locks, rel, holder, async () => {
     try {
       await lstat(abs);
     } catch (error) {
       if (isErrnoError(error, "ENOENT")) {
         await mkdir(path.dirname(abs), { recursive: true });
+        await validateMediaWrite(root, rel, content);
         await atomicWrite(abs, content);
         return;
       }

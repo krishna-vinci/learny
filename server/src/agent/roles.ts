@@ -36,7 +36,11 @@ const SKILL_TOOLS = ["load_skill", "load_skill_reference"] as const;
 const RESEARCH_TOOLS = ["wiki_search", "wiki_read", "web_fetch"] as const;
 const CHAT_JOB_TOOLS = ["start_job", "add_source", "record_quiz_result"] as const;
 
-function setPath(set: string | null, directory: "notes" | "log/checks" | "cards", rel: string): boolean {
+function setPath(
+  set: string | null,
+  directory: "notes" | "log/checks" | "cards" | "assets" | "artifacts",
+  rel: string,
+): boolean {
   return set !== null && rel.startsWith(`${set}/${directory}/`) && rel.length > `${set}/${directory}/`.length;
 }
 
@@ -66,11 +70,11 @@ export const ROLES: Record<RoleName, RoleSpec> = {
   },
   tutor: {
     modelRole: "tutor",
-    tools: [...STUDY_TOOLS, ...RESEARCH_TOOLS, ...SKILL_TOOLS, ...CHAT_JOB_TOOLS],
+    tools: [...STUDY_TOOLS, ...RESEARCH_TOOLS, ...SKILL_TOOLS, ...CHAT_JOB_TOOLS, "save_asset"],
     mcpServers: ["searxng", "papers", "context7"],
-    skills: ["explain", "evolve-note", "note-authoring", "quiz-me", "find-sources"],
+    skills: ["explain", "evolve-note", "note-authoring", "quiz-me", "find-sources", "media-authoring"],
     requiresSet: true,
-    scope: (set) => ({ set, library: false }),
+    scope: (set) => ({ set, library: true }),
     write: (_set, rel) => isWritableByAgent(rel),
     promptBuilder: ({ root, set, skills, anchor }) => {
       if (set === null) throw new Error("The tutor role requires a study set");
@@ -89,12 +93,13 @@ export const ROLES: Record<RoleName, RoleSpec> = {
   },
   drafter: {
     modelRole: "drafter",
-    tools: [...STUDY_TOOLS, ...RESEARCH_TOOLS, ...SKILL_TOOLS],
-    mcpServers: ["papers", "context7"],
-    skills: ["draft-chapter", "note-authoring"],
+    tools: [...STUDY_TOOLS, ...RESEARCH_TOOLS, ...SKILL_TOOLS, "save_asset"],
+    mcpServers: ["searxng", "papers", "context7"],
+    skills: ["draft-chapter", "note-authoring", "media-authoring"],
     requiresSet: true,
     scope: (set) => ({ set, library: true }),
-    write: (set, rel) => setPath(set, "notes", rel),
+    write: (set, rel) =>
+      ["notes", "assets", "artifacts"].some((dir) => setPath(set, dir as "notes" | "assets" | "artifacts", rel)),
     promptBuilder: ({ root, set, skills }) => buildBatchRolePrompt({ role: "drafter", root, set, skills }),
   },
   outliner: {

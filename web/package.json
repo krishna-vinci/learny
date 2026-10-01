@@ -31,7 +31,10 @@
     "remark-math": "^6.0.0",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.4",
-    "unist-util-visit": "^5.1.0"
+    "unist-util-visit": "^5.1.0",
+    "vega": "6.4.0",
+    "vega-interpreter": "2.3.2",
+    "vega-lite": "6.4.3"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.4",

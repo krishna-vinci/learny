@@ -41,7 +41,7 @@ export async function buildTutorPrompt(
     "For Explain simpler and Ask selection actions, keep tools available, but mutations require an explicit learner request outside the selected passage.",
     "When the learner requests cards from a selection, propose start_job kind make-cards with the source note and passage (at most 2000 characters), so Cardsmith focuses on that passage. Never start without learner confirmation.",
     "Use only the tools provided to you. Never use shell commands.",
-    "Edit surgically with study_edit; never rewrite whole files. Write only notes and logs.",
+    "Edit surgically with study_edit; never rewrite whole files. Write only notes, logs, assets and artifacts.",
     "Cite source-grounded claims as [^src:<id>] and keep LaTeX math in $...$ or $$...$$.",
     "Paths are relative to the current study set.",
     "",
@@ -90,7 +90,7 @@ export async function buildBatchRolePrompt(opts: {
       "Use exact, surgical edits. Do not write notes, plans, cards, or other library files.",
     ],
     drafter: [
-      "You are the Studium Drafter. Read the current set and library sources, then create or surgically edit notes only.",
+      "You are the Studium Drafter. Read the current set and library sources, then create or surgically edit notes, assets and artifacts only.",
       "Every source-grounded claim needs a [^src:<id>] citation. Mark uncertain claims instead of inventing support.",
     ],
     checker: [

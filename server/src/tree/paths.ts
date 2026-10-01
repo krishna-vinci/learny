@@ -105,7 +105,7 @@ export function canonicalRel(root: string, rel: string): string {
 }
 
 /**
- * Agents may only write under `<set>/notes/**` or `<set>/log/**`, where the
+ * Agents may only write under `<set>/notes/**`, `<set>/log/**`, assets or artifacts, where the
  * set slug is lowercase kebab-case and not the reserved `library` set.
  */
 export function isWritableByAgent(relFromRoot: string): boolean {
@@ -123,7 +123,7 @@ export function isWritableByAgent(relFromRoot: string): boolean {
   if (set === "library" || !SET_SLUG_PATTERN.test(set)) {
     return false;
   }
-  if (kind !== "notes" && kind !== "log") {
+  if (!["notes", "log", "assets", "artifacts"].includes(kind)) {
     return false;
   }
   return rest.every((segment) => segment !== "" && segment !== "." && segment !== "..");

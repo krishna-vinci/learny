@@ -3,6 +3,7 @@ import { parseHTML } from "linkedom";
 import TurndownService from "turndown";
 import { cleanMarkdown } from "./clean.js";
 import { firecrawlScrape } from "./firecrawl.js";
+import { collectImages, type SourceImage } from "./images.js";
 import { decodeBody, SAFE_FETCH_MAX_BYTES, safeFetch } from "./safe-fetch.js";
 import type { Extracted } from "./types.js";
 
@@ -16,6 +17,7 @@ export interface MarkdownConversion {
   title: string | null;
   byline: string | null;
   markdown: string;
+  images: SourceImage[];
 }
 
 /** Turndown configured for the markdown conventions used across the study tree. */
@@ -50,7 +52,7 @@ export function htmlToMarkdown(html: string, url?: string): MarkdownConversion {
   const markdown = createTurndown().turndown(sourceHtml);
   // Readability strips the article's own <h1>; re-add it so the source keeps its title.
   const withTitle = title !== null && !hasHeading(markdown, title) ? `# ${title}\n\n${markdown}` : markdown;
-  return { title, byline, markdown: cleanMarkdown(withTitle) };
+  return { title, byline, markdown: cleanMarkdown(withTitle), images: url ? collectImages(withTitle, url) : [] };
 }
 
 /**
@@ -70,6 +72,7 @@ export async function extractWeb(url: string, options: WebExtractOptions = {}): 
         title: scraped.title,
         authors: [],
         markdown: cleanMarkdown(scraped.markdown),
+        images: collectImages(scraped.markdown, scraped.url ?? url),
         pages: null,
         parseTier: "firecrawl",
         warning: null,
@@ -88,6 +91,7 @@ export async function extractWeb(url: string, options: WebExtractOptions = {}): 
     title: converted.title,
     authors: bylineAuthors(converted.byline),
     markdown: converted.markdown,
+    images: converted.images,
     pages: null,
     parseTier: "basic",
     warning,

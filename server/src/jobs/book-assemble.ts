@@ -55,6 +55,7 @@ export async function assembleBook(
   set: string,
   date = new Date(),
   signal?: AbortSignal,
+  prepareMedia?: (body: string, notePath: string) => Promise<string>,
 ): Promise<AssembledBook> {
   parseCompileBookInput({ set });
   signal?.throwIfAborted();
@@ -102,6 +103,7 @@ export async function assembleBook(
     signal?.throwIfAborted();
     if (Buffer.byteLength(body) > BOOK_MAX_MARKDOWN_BYTES)
       throw new Error("Book limit exceeded: at most 5 MB of Markdown");
+    if (prepareMedia) body = await prepareMedia(body, `${set}/${note.path}`);
     body = prose(body, (line) => {
       // Existing source definitions are replaced by a single generated definition.
       const definition = /^ {0,3}\[\^src:([a-z0-9][a-z0-9-]*)(#[^\]\s]+)?\]:.*$/.exec(line);

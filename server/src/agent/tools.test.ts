@@ -38,6 +38,31 @@ async function execute(name: string, params: Record<string, unknown>, onWrite?: 
 }
 
 describe("tutorTools", () => {
+  it("creates media and rejects unsafe or oversized complete SVG edits", async () => {
+    const svg = '<svg viewBox="0 0 10 10"><path fill="currentColor" d="M0 0"/></svg>';
+    expect((await execute("study_create", { path: "assets/figure.svg", content: svg })).details).toMatchObject({
+      isError: false,
+    });
+    for (const extra of [
+      "<script/>",
+      "<svg:script/>",
+      "<foreignObject/>",
+      '<path onclick="x()"/>',
+      '<use href="https://example.org"/>',
+    ]) {
+      expect(
+        (await execute("study_edit", { path: "assets/figure.svg", old_string: "</svg>", new_string: `${extra}</svg>` }))
+          .details,
+      ).toMatchObject({ isError: true });
+    }
+    expect(
+      (await execute("study_create", { path: "artifacts/x.html", content: "x".repeat(300 * 1024 + 1) })).details,
+    ).toMatchObject({ isError: true });
+    expect(
+      (await execute("study_create", { path: "artifacts/x.html", content: "<script>1</script>" })).details,
+    ).toMatchObject({ isError: false });
+  });
+
   it("edits an allowlisted note", async () => {
     const result = await execute("study_edit", {
       path: "notes/03-svd.md",
@@ -120,4 +145,29 @@ describe("tutorTools", () => {
     expect(text).toContain("Error:");
     expect(text).not.toContain("secret");
   });
+});
+
+it("warns about missing media and unregistered videos without failing note writes", async () => {
+  const result = await execute("study_create", {
+    path: "notes/99-media.md",
+    content:
+      '![Missing](../assets/missing.svg)\n\n::youtube{src="https://youtu.be/dQw4w9WgXcQ" start=843}\n\n::artifact{src="../artifacts/missing.html"}',
+  });
+  expect(result.details).toMatchObject({
+    isError: false,
+    warnings: expect.arrayContaining([
+      expect.stringContaining("missing.svg"),
+      expect.stringContaining("not a library source"),
+      expect.stringContaining("missing.html"),
+    ]),
+  });
+  expect(await fs.readFile(path.join(root, "linear-algebra/notes/99-media.md"), "utf8")).toContain("::youtube");
+});
+it("refuses SVG writes that exceed the entire set assets quota", async () => {
+  await fs.mkdir(path.join(root, "linear-algebra/assets"));
+  const file = await fs.open(path.join(root, "linear-algebra/assets/full.png"), "w");
+  await file.truncate(50 * 1024 * 1024);
+  await file.close();
+  const result = await execute("study_create", { path: "assets/new.svg", content: '<svg viewBox="0 0 1 1"/>' });
+  expect(result.details).toMatchObject({ isError: true, summary: expect.stringContaining("quota") });
 });

@@ -17,6 +17,7 @@ import {
   sourceIdBase,
   uniqueSourceId,
 } from "./ids.js";
+import { collectImages } from "./images.js";
 import { type ParsedPart, splitParsed } from "./split.js";
 import type { Extracted } from "./types.js";
 
@@ -224,6 +225,22 @@ export async function writeSource(
     "utf8",
   );
   tracked.push(sourceRel);
+  if (extracted.thumb) {
+    const thumbRel = `${dir}/thumb.jpg`;
+    await fs.writeFile(resolveInRoot(root, thumbRel), extracted.thumb);
+    tracked.push(thumbRel);
+  }
+  if (
+    extracted.images !== undefined ||
+    (extracted.url && extracted.originalExt === null && extracted.parseTier !== "transcript")
+  ) {
+    const imagesRel = `${dir}/images.json`;
+    await fs.writeFile(
+      resolveInRoot(root, imagesRel),
+      JSON.stringify(extracted.images ?? collectImages(extracted.markdown, extracted.url ?? ""), null, 2),
+    );
+    tracked.push(imagesRel);
+  }
 
   for (const part of split.parts) tracked.push(await writePart(root, dir, part));
 

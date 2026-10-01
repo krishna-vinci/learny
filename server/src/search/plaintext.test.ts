@@ -81,6 +81,7 @@ describe("plaintext", () => {
 
   it("drops HTML comments such as page markers", () => {
     expect(plaintext("Tokenizer <!-- p:4 --> compression")).toBe("Tokenizer compression");
+    expect(plaintext("Tokenizer <!-- t:843 --> compression")).toBe("Tokenizer compression");
   });
 });
 

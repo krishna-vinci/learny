@@ -1,17 +1,48 @@
-// Studium-specific citation tooltip for footnotes shaped like `[^src:<id>#p<n>]`. Not derived
-// from Memos, which has no equivalent syntax.
-import type { ReactNode } from "react";
+// Studium-specific source citation popover; not derived from Memos.
+import { formatMediaTime, youtubeVideoId } from "@studium/shared/media";
+import { type ReactNode, useEffect, useState } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-export function Citation({ src, page, children }: { src: string; page: string; children?: ReactNode }) {
-  const label = `${src}, p.${page}`;
+export function Citation({
+  src,
+  page,
+  time,
+  children,
+}: {
+  src: string;
+  page: string;
+  time?: string;
+  children?: ReactNode;
+}) {
+  const [url, setUrl] = useState<string>();
+  useEffect(() => {
+    if (!time) return;
+    const controller = new AbortController();
+    void fetch(`/api/library/${encodeURIComponent(src)}`, { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) return;
+        const data = (await response.json()) as { source?: { url?: string } };
+        const id = data.source?.url ? youtubeVideoId(data.source.url) : null;
+        if (id && !controller.signal.aborted) setUrl(`https://www.youtube.com/watch?v=${id}`);
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, [src, time]);
+  const timestamp = time ? formatMediaTime(Number(time)) : "";
+  const label = time ? `${src}, at ${timestamp}` : `${src}, p.${page}`;
+  const watch = url ? `${url}${url.includes("?") ? "&" : "?"}t=${time}s` : undefined;
   return (
     <TooltipProvider>
       <Tooltip>
-        {/* `title` is a plain-HTML fallback tooltip and keeps the label queryable without
-            simulating hover; TooltipContent below renders the richer on-hover popup. */}
         <TooltipTrigger render={<sup className="citation-ref cursor-help" title={label} />}>{children}</TooltipTrigger>
-        <TooltipContent>{label}</TooltipContent>
+        <TooltipContent>
+          {label}
+          {time && watch && (
+            <a className="block" href={watch} target="_blank" rel="noreferrer">
+              Watch on YouTube at {timestamp}
+            </a>
+          )}
+        </TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );

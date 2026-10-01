@@ -11,7 +11,7 @@ import { chapterExists, parseCurriculum } from "../tree/curriculum.js";
 import { editFile, readText, writeTextLocked } from "../tree/edit.js";
 import { commitPaths } from "../tree/git.js";
 import type { FileLocks } from "../tree/lock.js";
-import { resolveInRoot } from "../tree/paths.js";
+import { isWritableByAgent, resolveInRoot } from "../tree/paths.js";
 import { isSetSlug } from "../tree/read.js";
 import type { DraftChapterInput } from "./proposals.js";
 import type { JobContext, JobHandler } from "./runner.js";
@@ -200,7 +200,7 @@ function draftTask(
     `Brief: ${input.brief ?? "Follow the approved plan and curriculum."}`,
     `Allowed source ids: ${sources.join(", ") || "(none)"}`,
     `Create exactly ${notePath} (this exact path was reserved for you) with status: draft.`,
-    "Do not create, edit, rename, or delete any other file.",
+    "You may also write assets/ and artifacts/ for this chapter. Do not modify other notes or files.",
     "Read source.md and parsed.md or parsed/*.md directly under library/<id>/ for support.",
     "",
     "## PLAN.md",
@@ -263,7 +263,9 @@ export function createDraftJob(deps: DraftJobDeps): JobHandler {
     const notePath = reserved.notePath;
     if (!NOTE_PATH.test(notePath)) throw new Error(`invalid reserved note path: ${notePath}`);
     const noteRootPath = `${input.set}/${notePath}`;
-    const canWriteNote = (rel: string): boolean => rel === noteRootPath;
+    const canWriteNote = (rel: string): boolean =>
+      rel === noteRootPath ||
+      (isWritableByAgent(rel) && (rel.startsWith(`${input.set}/assets/`) || rel.startsWith(`${input.set}/artifacts/`)));
     const reportPath = `log/checks/${path.basename(notePath)}`;
     const reportRootPath = `${input.set}/${reportPath}`;
 
@@ -285,14 +287,14 @@ export function createDraftJob(deps: DraftJobDeps): JobHandler {
         onWrite: () => {},
       }).catch(rethrowRoleModelError);
       ctx.addUsage(usageFromPiMessages(draft.messages));
-      if (draft.written.length !== 1 || draft.written[0] !== noteRootPath) {
+      if (!draft.written.includes(noteRootPath) || draft.written.some((rel) => !canWriteNote(rel))) {
         throw new Error(`drafter must create exactly ${notePath}`);
       }
 
       // Commit the draft as the drafter before the checker edits its status, so the
       // checker's commit below carries the report and the `status: checked` edit.
       ctx.signal.throwIfAborted();
-      const drafterSha = await commitPaths(deps.root, [noteRootPath], `drafter: ${input.title}`, "drafter");
+      const drafterSha = await commitPaths(deps.root, draft.written, `drafter: ${input.title}`, "drafter");
       if (drafterSha === null) throw new Error("draft job produced no changes to commit");
       deps.hub.publish({ type: "commit", sha: drafterSha, subject: `drafter: ${input.title}`, author: "drafter" });
 
@@ -336,6 +338,7 @@ export function createDraftJob(deps: DraftJobDeps): JobHandler {
         return blocked;
       };
 
+      const mediaWritten: string[] = [];
       let blocked = await check(false);
       if (blocked) {
         ctx.signal.throwIfAborted();
@@ -358,8 +361,9 @@ export function createDraftJob(deps: DraftJobDeps): JobHandler {
           onFallback: (_from, to) => ctx.progress(`Drafter model rate-limited; using ${to}`),
           onWrite: () => {},
         }).catch(rethrowRoleModelError);
+        mediaWritten.push(...revision.written.filter((rel) => rel !== noteRootPath));
         ctx.addUsage(usageFromPiMessages(revision.messages));
-        if (revision.written.some((file) => file !== noteRootPath)) {
+        if (revision.written.some((file) => !canWriteNote(file))) {
           throw new Error("revision must only edit the reserved note");
         }
         blocked = await check(true);
@@ -370,7 +374,7 @@ export function createDraftJob(deps: DraftJobDeps): JobHandler {
       const curriculumPath = await tickCurriculum(deps, input.set, notePath, input.title);
       const checkerSha = await commitPaths(
         deps.root,
-        [noteRootPath, reportRootPath, ...(curriculumPath === null ? [] : [curriculumPath])],
+        [noteRootPath, reportRootPath, ...mediaWritten, ...(curriculumPath === null ? [] : [curriculumPath])],
         `checker: ${input.title}`,
         "checker",
       );

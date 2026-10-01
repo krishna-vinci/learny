@@ -77,3 +77,5 @@ A Context7 page counts as a source only after it is registered in `library/`. Us
 2. Verify headings, directive fences, math delimiters, and footnote IDs are balanced.
 3. Ensure one idea per section, every nontrivial claim cited or marked uncertain, and no private source text.
 4. Preserve user-authored wording unless the requested edit requires changing it.
+
+For purposeful visuals in notes, load `media-authoring` and follow its local-file and static-book rules.

@@ -5,7 +5,14 @@ function Pandoc(doc)
   doc = doc:walk({
     RawBlock = function() return {} end,
     RawInline = function() return {} end,
-    Image = function(image) return pandoc.Emph(image.caption) end,
+    Image = function(image)
+      if image.src:match("^media/[a-zA-Z0-9._-]+$") then
+        image.attributes.width = "100%"
+        return image
+      end
+      local caption = pandoc.utils.stringify(image.caption)
+      return pandoc.Emph({pandoc.Str(caption .. " (image: " .. image.src .. ")")})
+    end,
     Div = function(div)
       if div.classes:includes("book-chapter") then
         local chapter = div.content[1]

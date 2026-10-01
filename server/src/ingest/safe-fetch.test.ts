@@ -227,3 +227,14 @@ function abortableDelay(ms: number, signal: AbortSignal): Promise<void> {
     );
   });
 }
+
+it("refuses HTTPS image redirects to HTTP before following the insecure hop", async () => {
+  const fetchMock = vi.fn(
+    async () => new Response(null, { status: 302, headers: { location: "http://93.184.216.34/image.png" } }),
+  );
+  vi.stubGlobal("fetch", fetchMock);
+  await expect(safeFetch("https://93.184.216.34/image.png", { httpsOnly: true })).rejects.toMatchObject({
+    code: "unsupported_protocol",
+  });
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+});

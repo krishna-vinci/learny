@@ -141,6 +141,8 @@ async function resolvePublicUrl(rawUrl: string): Promise<ResolvedPublicUrl> {
 }
 
 export interface SafeFetchOptions {
+  /** Refuse protocol downgrades on every redirect hop. */
+  httpsOnly?: boolean;
   method?: string;
   headers?: Record<string, string>;
   body?: RequestInit["body"];
@@ -179,6 +181,8 @@ export async function safeFetch(rawUrl: string, options: SafeFetchOptions = {}):
         throw new SafeFetchError("timeout", `Request timed out after ${timeoutMs}ms: ${currentUrl}`);
       }
       const resolved = await resolvePublicUrl(currentUrl);
+      if (options.httpsOnly && resolved.url.protocol !== "https:")
+        throw new SafeFetchError("unsupported_protocol", "Only HTTPS image URLs are allowed, including redirects");
       const dispatcher = pinnedDispatcher(resolved);
       let response: Response;
       try {

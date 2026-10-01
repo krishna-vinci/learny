@@ -32,6 +32,8 @@ export interface Extracted {
   warning: string | null;
   url: string | null;
   originalExt: string | null;
+  thumb?: Uint8Array;
+  images?: import("./images.js").SourceImage[];
 }
 
 export interface ExtractInput {
@@ -131,6 +133,7 @@ export async function extract(kind: InputKind, input: ExtractInput, options: Ext
         title: converted.title,
         authors: [],
         markdown: converted.markdown,
+        images: converted.images,
         pages: null,
         parseTier: "basic",
         warning: null,
@@ -145,6 +148,7 @@ export async function extract(kind: InputKind, input: ExtractInput, options: Ext
         title: converted.title,
         authors: [],
         markdown: converted.markdown,
+        images: converted.images,
         pages: null,
         parseTier: "basic",
         warning: null,

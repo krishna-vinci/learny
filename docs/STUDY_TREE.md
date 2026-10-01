@@ -139,3 +139,25 @@ learner's message. Chat listing is derived (cache), never hand-maintained.
 
 Tracked: everything except originals, chats and `.cache/`. Commits are made by the app
 after each agent mutation, with the agent role and a short summary as the message.
+
+## Media (D29)
+
+`<set>/assets/**` holds saved raster images, SVG figures and image-credit sidecars;
+`<set>/artifacts/**` holds self-contained HTML and static poster SVGs. Both are
+tracked in git. Credit `assets/<name>.json` stores
+`{url, pageUrl?, sourceId?, alt, license?, savedAt}`.
+Paths in notes are note-relative: `notes/03-svd.md` embeds
+`![Projection](../assets/projection.svg)`. Resolution stays within the same set.
+
+Web sources have `library/<id>/images.json` with up to 50
+`{url, alt, nearHeading}` candidates collected before cleaning. YouTube sources have
+`thumb.jpg` when downloading succeeds and `<!-- t:<seconds> -->` at the start of
+transcript paragraphs. Cite moments with `[^src:<id>#t843]` alongside page citations.
+
+Media leaf directives use no space before attributes:
+`::youtube{src="https://youtu.be/dQw4w9WgXcQ" start=843 end=900}` and
+`::artifact{src="../artifacts/demo.html" poster="../artifacts/demo.svg" title="Explore"}`.
+Vega-Lite charts are `vega-lite` JSON fences with inline `data.values` only.
+PNG, JPEG, GIF and WebP may be downloaded; SVG must be written by an agent. No AVIF.
+See D29 for limits and web/book behavior. The files remain usable in Obsidian/GitHub:
+local images render there; directives, HTML and chart specs stay readable as files.

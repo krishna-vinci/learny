@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import type { FileLocks } from "../tree/lock.js";
 import { assembleBook } from "./book-assemble.js";
+import { createBookMedia } from "./book-media.js";
 import { bookCachePath, bookPdfPath, parseCompileBookInput } from "./book-paths.js";
 import type { JobHandler } from "./runner.js";
 
@@ -22,7 +23,11 @@ export function redactBookError(text: string, paths: readonly string[]): string 
   return result.replace(/https?:\/\/[^\s)]+/g, "[url]").slice(0, 4000);
 }
 
-export function createBookJob(deps: { root: string; locks: FileLocks }): JobHandler {
+export function createBookJob(deps: {
+  root: string;
+  locks: FileLocks;
+  run?: (binary: string, args: string[], cwd: string) => Promise<void>;
+}): JobHandler {
   return async (input, ctx) => {
     const { set } = parseCompileBookInput(input);
     return deps.locks.withLock(`${set}/.cache/book/${set}.pdf`, "compile-book", async () => {
@@ -33,12 +38,16 @@ export function createBookJob(deps: { root: string; locks: FileLocks }): JobHand
       const temp = await fs.mkdtemp(path.join(cache, "book-"));
       try {
         ctx.progress("Assembling chapters and sources");
-        const book = await assembleBook(deps.root, set, new Date(), ctx.signal);
+        const book = await assembleBook(deps.root, set, new Date(), ctx.signal, createBookMedia(deps.root, temp));
         await fs.writeFile(path.join(temp, "book.md"), book.markdown);
         // JSON is valid YAML; Pandoc safely renders the metadata as content.
         await fs.writeFile(path.join(temp, "metadata.yaml"), JSON.stringify(book.metadata));
         const run = async (binary: string, args: string[]) => {
           try {
+            if (deps.run) {
+              await deps.run(binary, args, temp);
+              return;
+            }
             await runFile(binary, args, { cwd: temp, timeout: 120_000, signal: ctx.signal, maxBuffer: 1024 * 1024 });
           } catch (error) {
             const failure = error as Error & { stderr?: string; code?: string; killed?: boolean };

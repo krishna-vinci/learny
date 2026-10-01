@@ -66,11 +66,13 @@ function ProposalCard({
  * job-proposal cards attached to it. */
 function MessageBubble({
   message,
+  notePath,
   proposals,
   startingProposalId,
   onRunProposal,
   onDismissProposal,
 }: {
+  notePath: string;
   message: ChatDockState["messages"][number] | ChatDockState["streaming"];
   proposals: JobProposalCard[];
   startingProposalId: string | undefined;
@@ -97,7 +99,7 @@ function MessageBubble({
         {isUser ? (
           <p className="whitespace-pre-wrap break-words text-sm">{message.text}</p>
         ) : (
-          <MessageMarkdown text={message.text} />
+          <MessageMarkdown text={message.text} notePath={notePath} />
         )}
       </div>
       {proposals.map((proposal) => (
@@ -224,6 +226,7 @@ function ChatPanel({ chat, headerEnd, className, composerClassName }: ChatPanelP
             <div className="flex flex-col gap-3">
               {state.messages.map((message) => (
                 <MessageBubble
+                  notePath={chat.notePath}
                   key={message.id}
                   message={message}
                   proposals={state.proposals.filter((p) => p.messageId === message.id && p.status !== "dismissed")}
@@ -234,6 +237,7 @@ function ChatPanel({ chat, headerEnd, className, composerClassName }: ChatPanelP
               ))}
               {state.streaming && (
                 <MessageBubble
+                  notePath={chat.notePath}
                   message={state.streaming}
                   proposals={state.proposals.filter((p) => p.messageId === "streaming" && p.status !== "dismissed")}
                   startingProposalId={startingProposalId}

@@ -1,27 +1,12 @@
+import { youtubeVideoId } from "@studium/shared/media";
 import { fetchTranscript, type TranscriptSegment, type VideoDetails } from "youtube-transcript-plus";
 import { cleanMarkdown } from "./clean.js";
+import { safeFetch } from "./safe-fetch.js";
 import { type Extracted, UnsupportedInputError } from "./types.js";
 
-const VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
-const PARAGRAPH_TARGET = 600;
+export { youtubeVideoId } from "@studium/shared/media";
 
-/** Pull the 11-character video id out of the common YouTube URL shapes. */
-export function youtubeVideoId(value: string): string | null {
-  let url: URL;
-  try {
-    url = new URL(value);
-  } catch {
-    return VIDEO_ID.test(value.trim()) ? value.trim() : null;
-  }
-  const host = url.hostname.toLowerCase();
-  if (host === "youtu.be") return firstPathSegment(url.pathname);
-  if (host.endsWith("youtube.com") || host.endsWith("youtube-nocookie.com")) {
-    if (url.pathname === "/watch") return videoIdOrNull(url.searchParams.get("v"));
-    const fromPath = /^\/(?:embed|shorts|live|v)\/([A-Za-z0-9_-]{11})/.exec(url.pathname);
-    if (fromPath?.[1] !== undefined) return fromPath[1];
-  }
-  return null;
-}
+const PARAGRAPH_TARGET = 600;
 
 /** Extract a YouTube video's captions as a transcript-tier markdown source. */
 export async function extractYoutube(url: string, options: { signal?: AbortSignal } = {}): Promise<Extracted> {
@@ -34,7 +19,20 @@ export async function extractYoutube(url: string, options: { signal?: AbortSigna
   const title = firstNonEmpty(details?.title);
   const markdown = cleanMarkdown(title === null ? body : `# ${title}\n\n${body}`);
 
+  let thumb: Uint8Array | undefined;
+  try {
+    const response = await safeFetch(`https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`, {
+      maxBytes: 5 * 1024 * 1024,
+      httpsOnly: true,
+      ...(options.signal ? { signal: options.signal } : {}),
+    });
+    if (response.contentType?.split(";")[0] === "image/jpeg" && response.bytes[0] === 255 && response.bytes[1] === 216)
+      thumb = response.bytes;
+  } catch {
+    /* A thumbnail failure must not discard a usable transcript. */
+  }
   return {
+    ...(thumb ? { thumb } : {}),
     title,
     authors: authorsOf(details?.author),
     markdown,
@@ -46,29 +44,22 @@ export async function extractYoutube(url: string, options: { signal?: AbortSigna
   };
 }
 
-function transcriptToMarkdown(segments: TranscriptSegment[]): string {
+export function transcriptToMarkdown(segments: TranscriptSegment[]): string {
   const paragraphs: string[] = [];
   let current = "";
+  let start = 0;
   for (const segment of segments) {
     const text = segment.text.replace(/\s+/g, " ").trim();
     if (text === "") continue;
+    if (current === "") start = Math.max(0, Math.floor(segment.offset));
     current = current === "" ? text : `${current} ${text}`;
     if (current.length >= PARAGRAPH_TARGET && /[.!?]["')\]]?$/.test(text)) {
-      paragraphs.push(current);
+      paragraphs.push(`<!-- t:${start} -->\n${current}`);
       current = "";
     }
   }
-  if (current !== "") paragraphs.push(current);
+  if (current !== "") paragraphs.push(`<!-- t:${start} -->\n${current}`);
   return paragraphs.join("\n\n");
-}
-
-function firstPathSegment(pathname: string): string | null {
-  const segment = pathname.split("/").filter((part) => part !== "")[0];
-  return segment === undefined ? null : videoIdOrNull(segment);
-}
-
-function videoIdOrNull(value: string | null | undefined): string | null {
-  return value !== null && value !== undefined && VIDEO_ID.test(value) ? value : null;
 }
 
 function firstNonEmpty(value: string | null | undefined): string | null {

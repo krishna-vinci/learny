@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { extractYoutube, youtubeVideoId } from "./youtube.js";
+import { extractYoutube, transcriptToMarkdown, youtubeVideoId } from "./youtube.js";
 
 const mocks = vi.hoisted(() => ({ fetchTranscript: vi.fn() }));
+
+vi.mock("./safe-fetch.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./safe-fetch.js")>()),
+  safeFetch: vi.fn(async () => ({ contentType: "image/jpeg", bytes: new Uint8Array([255, 216, 255]) })),
+}));
 
 vi.mock("youtube-transcript-plus", () => ({ fetchTranscript: mocks.fetchTranscript }));
 
@@ -49,6 +54,8 @@ describe("extractYoutube", () => {
     expect(extracted.authors).toEqual(["Some Channel"]);
     expect(extracted.markdown).toContain("# Great Video");
     expect(extracted.markdown).toContain("Hello and welcome to this talk.");
+    expect(extracted.markdown).toContain("<!-- t:0 -->");
+    expect(extracted.thumb).toEqual(new Uint8Array([255, 216, 255]));
     expect(extracted.url).toBe("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
   });
 
@@ -56,4 +63,20 @@ describe("extractYoutube", () => {
     await expect(extractYoutube("https://example.com/video")).rejects.toMatchObject({ kind: "youtube" });
     expect(mocks.fetchTranscript).not.toHaveBeenCalled();
   });
+});
+
+it("places one timestamp at the start of each paragraph, in seconds", () => {
+  const long = "Sentence. ".repeat(70);
+  const text = transcriptToMarkdown([
+    { text: long, offset: 843.9, duration: 3, lang: "en" },
+    { text: "Next paragraph.", offset: 900, duration: 3, lang: "en" },
+  ]);
+  expect(text).toContain(`<!-- t:843 -->\n${long.trim()}`);
+  expect(text).toContain("<!-- t:900 -->\nNext paragraph.");
+  expect(text.match(/<!-- t:/g)).toHaveLength(2);
+});
+it("keeps the transcript when the local thumbnail download fails", async () => {
+  const { safeFetch } = await import("./safe-fetch.js");
+  vi.mocked(safeFetch).mockRejectedValueOnce(new Error("offline"));
+  expect((await extractYoutube("https://youtu.be/dQw4w9WgXcQ")).markdown).toContain("<!-- t:0 -->");
 });
