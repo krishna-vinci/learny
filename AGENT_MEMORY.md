@@ -55,6 +55,10 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - The study tree git repo auto-commits per role author (tutor/librarian/drafter/checker/cardsmith/critic/user/system).
 
 ## Gotchas learned the hard way
+- **AI permission is enforced in `JobRunner.enqueue`** (it reads the owner's `aiEnabled` from SQLite and throws `AiDisabledError` for AI kinds; `compile-book` is exempt). Any code that enqueues in the background (e.g. the site-import queue) must catch it.
+- **Selected passages and source text are untrusted:** pass them through `server/src/agent/passage.ts` (escaped, delimited data blocks), never inline as instructions.
+- **Git calls are capped at 4 concurrent processes** (`server/src/concurrency.ts` limiter in `tree/git.ts`).
+- **Firecrawl must have public-only egress** (deployment contract in `docs/DEPLOY.md`). The owner's Firecrawl isn't firewalled yet.
 - **UX rules live in `docs/UX.md`** (persona walkthroughs, IA, the copy glossary, interaction rules) and **`docs/DESIGN.md`** (tokens, components, shadcn usage). Follow them for every UI change: one primary action per screen, plain words (To review, Activity, …), undo over confirm, no nags.
 - **Navigation helpers** are in `web/src/components/Navigation/nav.ts` (`practiceHref` → `/s/:set/practice`, `cardsHref` → `/s/:set/cards`, `toReviewHref`). The phone uses `BottomTabBar` (Today · Notes · Practice · Search · More) plus `MoreSheet`.
 - **Forgotten password:** `pnpm --filter @studium/server reset-password <username>` (hidden prompt; signs out all sessions).
@@ -80,7 +84,7 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - **Sessions:** DB-backed cookie `studium_session` (SameSite Strict). Personal access tokens use the `studium_pat_` prefix. There is no public sign-up; the admin adds users.
 
 ## Status (2026-09-30)
-- **Done:**
+- **Done:** M0–M6, plus the M4-8 review fixes (server). **Running:** the M4-8 web follow-up on Luna (`docs/prompts/m4-8-web-followup.md`).
   - M0 skeleton, M1 sources→notes, M2 cards
   - M3a platform: accounts and SSO, per-user trees, backups, notifications, export, service
   - M3b slices A (background jobs UX), B (reading comfort), C (themes)
@@ -101,6 +105,7 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - **Backups:** not configured yet on the live instance. The owner does this in Settings → Backups.
 
 ## Recently done
+- M4-8 review fixes, server (8fd1152, 0f27db2): all 11 findings
 - M6 simple & polished (PRs #3–#9, merged with M5 at d9932c1): UX audit, shadcn D1–D2, bottom tabs and IA, first-run flow, calm interactions, code-splitting + offline reading, book callouts and restart persistence, install guide
 - M5-B practice screens (quiz, teach-back, problems)
 - M5-A practice server (eeed44c) · reset-password CLI (a6a57b5)
@@ -133,3 +138,4 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - 2026-10-01 · M5-A (Sol 6.1) · `server/src/practice/*` (store, grading, weak-spots), `routes/practice.ts`, `agent/builtins/practice.ts`, `agent/practice-grader.ts`, `jobs/{practice-job,grade-job}.ts`, skills make-quiz/make-problems/grade-answer · EMA alpha 0.5; `grade-answer` is an internal fallback JobKind; problems and teach-backs are JSON-fenced Markdown · the orchestrator added the TodayPage `practice` icon.
 - 2026-10-01 · M5-B (Sol 6.1) · `pages/PracticePage.tsx` and practice components (quiz, teach-back, problems), navigation, Today weak topics, toasts, Settings roles · 35 browser checks at 390/1440 in light/dark/sepia · the phone Next bar overlaps content (M6).
 - 2026-10-01 · M6 (cloud Sonnet, 7 stacked PRs) · `docs/UX.md`, `docs/DESIGN.md`, `docs/INSTALL.md`; `components/Navigation/*`, onboarding, friendly errors, offline caching, lazy routes · the orchestrator merged M5 in: Practice routes to the M5 page, Cards gets `cardsHref`, plain names for Examiner/Grader · 604 server + 127 web tests pass; landing JS 120 kB gzip.
+- 2026-10-01 · M4-8 fixes (Sol 6.1, server-only) · enqueue-time AI gate, Firecrawl final-URL checks, skill-sync canonical confinement, passage trust blocks, prerequisite validation, Today cache plus bounded git, book limits and coalescing, fence length, card passages · the orchestrator ported the AI-revocation handling to M6's persisted `SiteImportQueue` · the web half goes to Luna.
