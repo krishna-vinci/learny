@@ -55,6 +55,8 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - The study tree git repo auto-commits per role author (tutor/librarian/drafter/checker/cardsmith/critic/user/system).
 
 ## Gotchas learned the hard way
+- **UX rules live in `docs/UX.md`** (persona walkthroughs, IA, the copy glossary, interaction rules) and **`docs/DESIGN.md`** (tokens, components, shadcn usage). Follow them for every UI change: one primary action per screen, plain words (To review, Activity, …), undo over confirm, no nags.
+- **Navigation helpers** are in `web/src/components/Navigation/nav.ts` (`practiceHref` → `/s/:set/practice`, `cardsHref` → `/s/:set/cards`, `toReviewHref`). The phone uses `BottomTabBar` (Today · Notes · Practice · Search · More) plus `MoreSheet`.
 - **Forgotten password:** `pnpm --filter @studium/server reset-password <username>` (hidden prompt; signs out all sessions).
 - **Hidden practice answers:** `server/src/app.ts` guards the raw file/diff/history APIs so `practice/` quiz and problem files can't leak answers. Keep that guard when adding file-reading routes.
 - **A new JobKind needs web updates too:** `web/src/components/Activity/ActivityPanelContent.tsx` `KIND_ICONS` is `Record<JobKind, …>`, so server tasks that add a kind must also run the web `tsc --noEmit`.
@@ -82,10 +84,9 @@ The orchestrator keeps the rest of this file current. When something listed unde
   - M0 skeleton, M1 sources→notes, M2 cards
   - M3a platform: accounts and SSO, per-user trees, backups, notifications, export, service
   - M3b slices A (background jobs UX), B (reading comfort), C (themes)
-- **In progress:** M4 is implemented; the M4-8 review found 11 issues (`docs/prompts/m4-8-review-report.md`), with the fix prompt `docs/prompts/m4-8-fixes.md` awaiting dispatch. **M5 done** (M5-A server, M5-B web). **M6** goes to the Claude cloud (`docs/plans/2026-10-01-m6-simple-and-polished.md`).
+- **Done:** M0–M6. M6 (PRs #3–#9 from the Claude cloud) is merged with M5. **Open:** the M4-8 review fixes (server-only run on Sol 6.1; web parts afterwards).
 
 ## Open gaps
-- **Phone overlap:** on quiz feedback the sticky Next bar and the chat button cover answer options (same class as the Inbox review bar). Fixed by the M6 navigation/calm sections.
 - **Book PDF layout:** callout boxes can split across pages, leaving an orphaned header (e.g. "Deeper" at the bottom of p5, its body on p6, and a mostly blank page). Keep a callout's header with its first lines (`block(breakable: …)` or `sticky` in `server/templates/book/book.typ` / `callouts.lua`). Mermaid appears as "(diagram in the app)".
 - **shadcn migration (deferred to M6):** batches D1–D5 in `docs/prompts/m3b-slice-d.md`, with the map in `docs/prompts/m3b-d-uimap.md` (the map will go stale; refresh it before running). New UI should still prefer the existing `components/ui` kit.
 - **Skills update** (awaiting the owner's go):
@@ -100,6 +101,7 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - **Backups:** not configured yet on the live instance. The owner does this in Settings → Backups.
 
 ## Recently done
+- M6 simple & polished (PRs #3–#9, merged with M5 at d9932c1): UX audit, shadcn D1–D2, bottom tabs and IA, first-run flow, calm interactions, code-splitting + offline reading, book callouts and restart persistence, install guide
 - M5-B practice screens (quiz, teach-back, problems)
 - M5-A practice server (eeed44c) · reset-password CLI (a6a57b5)
 - PR #2 M4-7b screens (3a9626f): plan a set, plan review, book card, docs-site import, chat proposals after reload, set-only revert, toasts
@@ -130,3 +132,4 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - 2026-10-01 · PR #2 M4-7b (cloud Sonnet) · `NewSetDialog`/`PlanSetSheet`/`PlanOptions`/`SourcePicker`, `pages/InboxPlanReview.tsx` + `plan-proposal.ts`, set-home `BookCard` (HEAD `book.pdf`), `Library/DocsSiteTab.tsx`, ChatDock `proposals_loaded` + DELETE, NoteHistory 409 → `scope:"set"` · new sets are created via `POST /api/sets` before `plan-set` so the title is kept · verified live: book card downloads.
 - 2026-10-01 · M5-A (Sol 6.1) · `server/src/practice/*` (store, grading, weak-spots), `routes/practice.ts`, `agent/builtins/practice.ts`, `agent/practice-grader.ts`, `jobs/{practice-job,grade-job}.ts`, skills make-quiz/make-problems/grade-answer · EMA alpha 0.5; `grade-answer` is an internal fallback JobKind; problems and teach-backs are JSON-fenced Markdown · the orchestrator added the TodayPage `practice` icon.
 - 2026-10-01 · M5-B (Sol 6.1) · `pages/PracticePage.tsx` and practice components (quiz, teach-back, problems), navigation, Today weak topics, toasts, Settings roles · 35 browser checks at 390/1440 in light/dark/sepia · the phone Next bar overlaps content (M6).
+- 2026-10-01 · M6 (cloud Sonnet, 7 stacked PRs) · `docs/UX.md`, `docs/DESIGN.md`, `docs/INSTALL.md`; `components/Navigation/*`, onboarding, friendly errors, offline caching, lazy routes · the orchestrator merged M5 in: Practice routes to the M5 page, Cards gets `cardsHref`, plain names for Examiner/Grader · 604 server + 127 web tests pass; landing JS 120 kB gzip.
