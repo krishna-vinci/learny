@@ -188,17 +188,19 @@ export default function TodayPage() {
                         : (set.nextAction ?? "Choose a chapter to continue.")}
                     </p>
                   </Link>
-                  <div className="mt-auto flex flex-col gap-2 border-t border-border/50 px-4 py-3">
-                    {set.practiceDue > 0 && (
-                      <Link
-                        to={`/s/${set.slug}/practice`}
-                        className="inline-flex min-h-11 items-center text-sm text-primary"
-                      >
-                        {set.practiceDue} topics due for practice →
-                      </Link>
-                    )}
-                    {set.weakTopics.length > 0 && <WeakTopics spots={set.weakTopics} set={set.slug} />}
-                  </div>
+                  {(set.practiceDue > 0 || set.weakTopics.length > 0) && (
+                    <div className="mt-auto flex flex-col gap-2 border-t border-border/50 px-4 py-3">
+                      {set.practiceDue > 0 && (
+                        <Link
+                          to={`/s/${set.slug}/practice`}
+                          className="inline-flex min-h-11 items-center text-sm text-primary"
+                        >
+                          {set.practiceDue} topics due for practice →
+                        </Link>
+                      )}
+                      {set.weakTopics.length > 0 && <WeakTopics spots={set.weakTopics} set={set.slug} />}
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
