@@ -3,6 +3,7 @@ import {
   ArchiveIcon,
   BookOpenIcon,
   ChevronRightIcon,
+  ClipboardListIcon,
   ClockIcon,
   LayersIcon,
   RefreshCwIcon,
@@ -40,8 +41,17 @@ function studiedAgo(at: string | null): string {
 
 /** Only what needs attention: zero counters are noise (docs/UX.md). */
 function SetCounters({ set }: { set: TodaySet }) {
+  const chaptersToReview = set.chaptersToReview ?? 0;
+  const plansToReview = set.plansToReview ?? 0;
+  const reviewCounters =
+    set.chaptersToReview === undefined || set.plansToReview === undefined
+      ? [set.inboxCount > 0 && `${set.inboxCount} items to review`]
+      : [
+          chaptersToReview > 0 && `${chaptersToReview} ${chaptersToReview === 1 ? "chapter" : "chapters"} to review`,
+          plansToReview > 0 && `${plansToReview} study ${plansToReview === 1 ? "plan" : "plans"} to review`,
+        ];
   const counters = [
-    set.inboxCount > 0 && `${set.inboxCount} to review`,
+    ...reviewCounters,
     set.draftCards > 0 && `${set.draftCards} new ${set.draftCards === 1 ? "card" : "cards"} to check`,
     set.staleCardFiles > 0 &&
       `${set.staleCardFiles} ${set.staleCardFiles === 1 ? "chapter's cards need" : "chapters' cards need"} a refresh`,
@@ -117,9 +127,14 @@ export default function TodayPage() {
             )}
             <ul className="flex flex-col gap-2">
               {data.doNext.slice(0, 7).map((item) => {
-                const Icon = icons[item.kind];
+                const Icon =
+                  item.reviewKind === "plan"
+                    ? ClipboardListIcon
+                    : item.reviewKind === "chapter"
+                      ? BookOpenIcon
+                      : icons[item.kind];
                 return (
-                  <li key={`${item.set}-${item.kind}-${item.href}`}>
+                  <li key={`${item.set}-${item.kind}-${item.reviewKind ?? ""}-${item.href}`}>
                     <Link
                       to={item.href}
                       className="flex min-h-16 items-center gap-3 rounded-lg border border-border/70 bg-card p-3 transition-colors hover:bg-accent/40 focus-visible:outline-2 focus-visible:outline-ring"
@@ -174,12 +189,14 @@ export default function TodayPage() {
                     </p>
                   </Link>
                   <div className="mt-auto flex flex-col gap-2 border-t border-border/50 px-4 py-3">
-                    <Link
-                      to={`/s/${set.slug}/practice`}
-                      className="inline-flex min-h-11 items-center text-sm text-primary"
-                    >
-                      {set.practiceDue} topics due for practice →
-                    </Link>
+                    {set.practiceDue > 0 && (
+                      <Link
+                        to={`/s/${set.slug}/practice`}
+                        className="inline-flex min-h-11 items-center text-sm text-primary"
+                      >
+                        {set.practiceDue} topics due for practice →
+                      </Link>
+                    )}
                     {set.weakTopics.length > 0 && <WeakTopics spots={set.weakTopics} set={set.slug} />}
                   </div>
                 </li>

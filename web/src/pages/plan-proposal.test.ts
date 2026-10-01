@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parsePlanSummary, parseProposedChapters } from "./plan-proposal";
+import { parsePlanSummary } from "./plan-proposal";
 
 const PLAN = `---
 title: "Linear algebra for ML"
@@ -31,21 +31,5 @@ describe("plan proposal parsing", () => {
       scopeIn: "Vectors and SVD.",
       scopeOut: "Abstract algebra.",
     });
-  });
-
-  it("reads numbered chapters with scope and prerequisites", () => {
-    const chapters = parseProposedChapters(`# Curriculum
-
-- [ ] 01 — Vectors
-  Scope: Vector operations.
-  Prerequisites: none
-- [ ] 02 — Matrices
-  Scope: Matrix operations.
-  Prerequisites: 01
-`);
-    expect(chapters).toEqual([
-      { number: "01", title: "Vectors", scope: "Vector operations.", prerequisites: "none" },
-      { number: "02", title: "Matrices", scope: "Matrix operations.", prerequisites: "01" },
-    ]);
   });
 });

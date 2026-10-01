@@ -12,6 +12,7 @@ import type {
   SourceSummary,
 } from "@studium/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRef } from "react";
 import type {
   AccessTokenSummary,
   AuthStatus,
@@ -513,10 +514,39 @@ export function useLibraryParsedFile(id: string | undefined, file: string | unde
  */
 export function useLiveStudiumUpdates() {
   const queryClient = useQueryClient();
+  const jobStatusesRef = useRef<Map<string, JobView["status"]> | null>(null);
+  if (jobStatusesRef.current === null) {
+    const statuses = new Map<string, JobView["status"]>();
+    for (const [, jobs] of queryClient.getQueriesData<JobView[]>({ queryKey: ["jobs"] })) {
+      for (const job of jobs ?? []) {
+        statuses.set(job.id, job.status);
+        if (statuses.size > 100) {
+          const oldestId = statuses.keys().next().value;
+          if (oldestId !== undefined) statuses.delete(oldestId);
+        }
+      }
+    }
+    jobStatusesRef.current = statuses;
+  }
+  const jobStatuses = jobStatusesRef.current;
 
   useStudiumEvents((event) => {
-    if (["file", "commit", "job"].includes(event.type) || (event.type === "chat" && event.event.kind === "settled")) {
+    let jobStatusChanged = false;
+    if (event.type === "job") {
+      const { id, status } = event.job;
+      jobStatusChanged = jobStatuses.get(id) !== status;
+      jobStatuses.delete(id);
+      jobStatuses.set(id, status);
+      if (jobStatuses.size > 100) {
+        const oldestId = jobStatuses.keys().next().value;
+        if (oldestId !== undefined) jobStatuses.delete(oldestId);
+      }
+    }
+
+    if (event.type === "commit" || event.type === "file" || jobStatusChanged) {
       queryClient.invalidateQueries({ queryKey: queryKeys.today });
+    }
+    if (["file", "commit", "job"].includes(event.type) || (event.type === "chat" && event.event.kind === "settled")) {
       queryClient.invalidateQueries({ queryKey: queryKeys.search });
     }
     if (

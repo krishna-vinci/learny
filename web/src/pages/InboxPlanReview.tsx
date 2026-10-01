@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { ActionBar } from "@/lib/action-bar";
 import { friendlyMessage } from "@/lib/friendly-errors";
 import { toast } from "@/lib/notify";
-import { parsePlanSummary, parseProposedChapters } from "./plan-proposal";
+import { parsePlanSummary } from "./plan-proposal";
 
 const MAX_DRAFT_FIRST = 5;
 
@@ -90,9 +90,11 @@ export function PlanReview({ set, item, onBack }: { set: string; item: InboxItem
   const [approving, setApproving] = useState(false);
 
   const summary = data ? parsePlanSummary(data.plan) : null;
-  const chapters = data ? parseProposedChapters(data.curriculum) : [];
-  const maxDraft = Math.min(MAX_DRAFT_FIRST, Math.max(chapters.length, 0));
-  const count = Math.min(draftFirst, maxDraft || MAX_DRAFT_FIRST);
+  const chapters = data?.chapters ?? [];
+  const draftableChapters = chapters.filter((chapter) => !chapter.ticked);
+  const maxDraft = Math.min(MAX_DRAFT_FIRST, draftableChapters.length);
+  const count = Math.min(draftFirst, maxDraft);
+  const chaptersToDraft = draftableChapters.slice(0, count);
 
   function refresh() {
     queryClient.invalidateQueries({ queryKey: queryKeys.inbox(set) });
@@ -199,22 +201,49 @@ export function PlanReview({ set, item, onBack }: { set: string; item: InboxItem
             </div>
           </section>
 
-          <section className="mt-4">
-            <h2 className="text-sm font-semibold text-foreground">Curriculum ({chapters.length} chapters)</h2>
-            <ol className="mt-2 rounded-md border border-border/70 px-3">
-              {chapters.map((chapter) => (
-                <li key={chapter.number} className="flex gap-3 border-b border-border/70 py-2.5 last:border-b-0">
-                  <span className="w-6 shrink-0 text-end text-sm text-muted-foreground">{Number(chapter.number)}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-foreground">{chapter.title}</p>
-                    {chapter.scope && <p className="text-sm text-muted-foreground">{chapter.scope}</p>}
-                    {chapter.prerequisites && (
-                      <p className="mt-0.5 text-xs text-muted-foreground">Prerequisites: {chapter.prerequisites}</p>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ol>
+          {data.chapters ? (
+            <section className="mt-4">
+              <h2 className="text-sm font-semibold text-foreground">Curriculum ({chapters.length} chapters)</h2>
+              <ol className="mt-2 rounded-md border border-border/70 px-3">
+                {chapters.map((chapter) => (
+                  <li key={chapter.number} className="flex gap-3 border-b border-border/70 py-2.5 last:border-b-0">
+                    <span className="w-6 shrink-0 text-end text-sm text-muted-foreground">
+                      {String(chapter.number).padStart(2, "0")}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-foreground">
+                        {chapter.title}
+                        {chapter.ticked && <span className="ml-2 text-xs font-normal text-muted-foreground">Done</span>}
+                      </p>
+                      {chapter.scope && <p className="text-sm text-muted-foreground">{chapter.scope}</p>}
+                      {chapter.prerequisites && (
+                        <p className="mt-0.5 text-xs text-muted-foreground">Prerequisites: {chapter.prerequisites}</p>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          ) : null}
+
+          <section className="mt-4" aria-live="polite">
+            <h2 className="text-sm font-semibold text-foreground">These chapters will be drafted now</h2>
+            {!data.chapters ? (
+              <p className="mt-2 text-sm text-muted-foreground">Draft preview unavailable.</p>
+            ) : chaptersToDraft.length > 0 ? (
+              <ol className="mt-2 rounded-md border border-border/70 px-3">
+                {chaptersToDraft.map((chapter) => (
+                  <li key={chapter.number} className="border-b border-border/70 py-2.5 last:border-b-0">
+                    <span className="mr-2 text-sm text-muted-foreground">
+                      {String(chapter.number).padStart(2, "0")}
+                    </span>
+                    <span className="text-sm font-medium text-foreground">{chapter.title}</span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="mt-2 text-sm text-muted-foreground">No chapters selected.</p>
+            )}
           </section>
 
           {data.sourcesToAdd.length > 0 && (
@@ -253,8 +282,8 @@ export function PlanReview({ set, item, onBack }: { set: string; item: InboxItem
                 size="icon"
                 className="size-11 md:size-8"
                 aria-label="More chapters"
-                disabled={count >= (maxDraft || MAX_DRAFT_FIRST)}
-                onClick={() => setDraftFirst(Math.min(maxDraft || MAX_DRAFT_FIRST, count + 1))}
+                disabled={count >= maxDraft}
+                onClick={() => setDraftFirst(Math.min(maxDraft, count + 1))}
               >
                 <PlusIcon aria-hidden="true" />
               </Button>

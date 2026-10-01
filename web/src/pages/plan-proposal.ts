@@ -1,6 +1,6 @@
-// Reads a plan proposal's two fences (`GET /api/sets/:set/plan-proposals/:file` returns them as
-// raw markdown) into what the Inbox review shows. Display only: the server parses and validates
-// the real thing on approve (`server/src/inbox/plans.ts`).
+// Reads the plan fence (`GET /api/sets/:set/plan-proposals/:file` returns it as raw markdown)
+// into what the Inbox review shows. Display only: the server parses and validates the real thing
+// on approve (`server/src/inbox/plans.ts`).
 
 export interface PlanSummary {
   title: string;
@@ -10,13 +10,6 @@ export interface PlanSummary {
   goal: string;
   scopeIn: string;
   scopeOut: string;
-}
-
-export interface ProposedChapter {
-  number: string;
-  title: string;
-  scope: string;
-  prerequisites: string;
 }
 
 function unquote(value: string): string {
@@ -57,30 +50,4 @@ export function parsePlanSummary(plan: string): PlanSummary {
     scopeIn: section(body, /^Scope\s*[—–-]\s*in$/i),
     scopeOut: section(body, /^Scope\s*[—–-]\s*out$/i),
   };
-}
-
-export function parseProposedChapters(curriculum: string): ProposedChapter[] {
-  const chapters: ProposedChapter[] = [];
-  let current: ProposedChapter | undefined;
-  for (const line of curriculum.split(/\r?\n/)) {
-    const item = /^\s*(?:[-+*]|\d+[.)])\s+\[[ xX]\]\s+(.+)$/.exec(line);
-    if (item?.[1] !== undefined) {
-      const label = item[1].trim();
-      const numbered = /^(\d{2,})\s+[—–-]\s+(.+)$/.exec(label);
-      current = {
-        number: numbered?.[1] ?? String(chapters.length + 1).padStart(2, "0"),
-        title: numbered?.[2]?.trim() ?? label,
-        scope: "",
-        prerequisites: "",
-      };
-      chapters.push(current);
-      continue;
-    }
-    if (!current) continue;
-    const scope = /^\s+Scope:\s*(.*)$/i.exec(line);
-    if (scope) current.scope = (scope[1] ?? "").trim();
-    const prerequisites = /^\s+Prerequisites:\s*(.*)$/i.exec(line);
-    if (prerequisites) current.prerequisites = (prerequisites[1] ?? "").trim();
-  }
-  return chapters;
 }
