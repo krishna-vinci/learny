@@ -175,3 +175,45 @@ describe("parseNextChapter", () => {
     expect(parseNextChapter("# Curriculum\n- [x] Done\n- [ ]   \n")).toBeNull();
   });
 });
+
+it("surfaces three weak/due topics after reviews and before drafting", () => {
+  const spot = {
+    topic: "rank",
+    note: "notes/01-rank.md",
+    strength: 0.4,
+    attempts: 1,
+    lastSeen: "2026-09-29T00:00:00.000Z",
+    nextReview: "2026-09-30",
+    intervalDays: 1 as const,
+    gap: "Missed idea",
+  };
+  const view = buildToday(
+    [
+      set("algebra", {
+        inbox,
+        cardFiles,
+        curriculum: "- [ ] Matrices",
+        weakSpots: [
+          spot,
+          { ...spot, topic: "span", strength: 0.5, nextReview: "2026-10-01" },
+          { ...spot, topic: "norm", strength: 1 },
+          { ...spot, topic: "basis", strength: 0.9 },
+          { ...spot, topic: "strong", strength: 1, nextReview: "2026-10-01" },
+        ],
+      }),
+    ],
+    NOW,
+  );
+  expect(view.sets[0]?.practiceDue).toBe(3);
+  expect(view.sets[0]?.weakTopics.map((s) => s.topic)).toEqual(["rank", "span", "basis"]);
+  expect(view.doNext.map((i) => i.kind)).toEqual([
+    "inbox",
+    "draft-cards",
+    "stale-cards",
+    "practice",
+    "practice",
+    "practice",
+    "next-chapter",
+  ]);
+  expect(view.doNext[3]).toMatchObject({ title: "Practise rank", href: "/s/algebra/practice?topic=rank" });
+});

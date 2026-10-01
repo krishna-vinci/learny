@@ -76,6 +76,7 @@ function aiRouteDisabled(method: string, pathname: string, kind?: unknown): bool
   const path = pathname.endsWith("/") && pathname.length > 1 ? pathname.slice(0, -1) : pathname;
   if (path === "/api/jobs") return kind !== "compile-book";
   if (path === "/api/library" || path === "/api/library/site-import") return true;
+  if (/^\/api\/sets\/[^/]+\/practice\/teachback$/.test(path)) return true;
   const chatMatch = /^\/api\/sets\/[^/]+\/chats(\/.*)?$/.exec(path);
   return chatMatch !== null && chatMatch[1] !== undefined;
 }
@@ -328,7 +329,12 @@ export function createServer(deps: ServerDeps): Hono {
     }
     await next();
   });
-  app.all("/api/*", async (c) => (await deps.workspaces.for(c.get("user"))).app.fetch(c.req.raw, c.env));
+  app.all("/api/*", async (c) =>
+    (await deps.workspaces.for(c.get("user"))).app.fetch(
+      c.req.raw,
+      Object.assign({}, c.env, { practiceAiEnabled: c.get("user").aiEnabled }),
+    ),
+  );
 
   if (deps.webDist !== undefined && existsSync(deps.webDist)) {
     const webRoot = deps.webDist;

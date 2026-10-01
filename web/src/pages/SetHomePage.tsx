@@ -12,6 +12,7 @@ import {
   NotebookTextIcon,
   PlusIcon,
   SparklesIcon,
+  TargetIcon,
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -290,6 +291,13 @@ export default function SetHomePage() {
             New chapter
           </Button>
         )}
+        <Link
+          to={`/s/${set}/practice`}
+          className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-11 md:h-8")}
+        >
+          <TargetIcon aria-hidden="true" />
+          Practice
+        </Link>
         {step.kind !== "tutor" && (
           <Button variant="outline" size="sm" className="h-11 md:h-8" onClick={() => openChatDock()}>
             <MessageSquareIcon aria-hidden="true" />

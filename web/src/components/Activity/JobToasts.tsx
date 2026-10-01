@@ -75,6 +75,27 @@ function completionToastFor(job: JobView, navigate: (to: string) => void): Compl
       },
     };
   }
+  if (job.kind === "make-quiz" && set && job.result?.quizId) {
+    return {
+      kind: "success",
+      message: "Quiz ready",
+      action: {
+        label: "Start",
+        onClick: () => navigate(`/s/${set}/practice?quiz=${encodeURIComponent(job.result?.quizId ?? "")}`),
+      },
+    };
+  }
+  if (job.kind === "make-problems" && set && job.result?.problemFile) {
+    return {
+      kind: "success",
+      message: "Problems ready",
+      action: {
+        label: "Open",
+        onClick: () =>
+          navigate(`/s/${set}/practice?tab=problems&file=${encodeURIComponent(job.result?.problemFile ?? "")}`),
+      },
+    };
+  }
   if (job.kind === "plan-set" && set) {
     return {
       kind: "success",

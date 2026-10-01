@@ -1,0 +1,3 @@
+Follow `docs/prompts/m4-8-fixes.md` exactly (read it and `docs/prompts/m4-8-review-report.md`), with ONE override:
+
+**Do NOT edit anything under `web/`.** A large frontend change (M6) is being merged in parallel. For decisions 6 (the web invalidation part), 8 (the web plan-review part) and 9 (the web TodayPage wording), implement only the server/API side. In your final report, describe the exact web changes needed (file, what to change, and the API fields to use), so the orchestrator can apply them after M6 merges. Keep `shared/src/api.ts` changes backward compatible (add fields; don't remove or rename them), so the current web still type-checks.

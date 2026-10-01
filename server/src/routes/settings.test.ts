@@ -127,7 +127,12 @@ describe("settings routes", () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         default: "faux/echo",
-        roles: { drafter: "faux/echo", checker: "anthropic/claude-sonnet-5" },
+        roles: {
+          drafter: "faux/echo",
+          checker: "anthropic/claude-sonnet-5",
+          examiner: "faux/echo",
+          grader: "anthropic/claude-sonnet-5",
+        },
       }),
     });
     expect(response.status).toBe(200);
@@ -138,6 +143,7 @@ describe("settings routes", () => {
     expect(written).toContain("# Keep this comment.");
     expect(written).toContain("other: keep-me");
     expect(written).toContain("checker: anthropic/claude-sonnet-5");
+    expect(view.models.roles).toMatchObject({ examiner: "faux/echo", grader: "anthropic/claude-sonnet-5" });
 
     const commits = await log(root, { limit: 1 });
     expect(commits[0]?.subject).toBe("user: set role models");

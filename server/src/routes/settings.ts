@@ -15,7 +15,7 @@ const HTTP_CHECK_TIMEOUT_MS = 5_000;
 const HTTP_CHECK_CACHE_MS = 60_000;
 
 // Roles accepted by PUT before their RoleSpec exists (see decisions table).
-const FUTURE_ROLE_KEYS = ["cardsmith", "critic", "scout"] as const;
+const FUTURE_ROLE_KEYS = ["cardsmith", "critic", "scout", "examiner", "grader"] as const;
 const KNOWN_ROLE_KEYS = new Set<string>([...Object.keys(ROLES), ...FUTURE_ROLE_KEYS]);
 
 /** The slice of `ModelRuntime` this route needs (fakeable in tests). */

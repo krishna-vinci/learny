@@ -17,6 +17,7 @@ import type {
   NoteSummary,
   ParsedFileView,
   PlanProposal,
+  QuestionType,
   SearchKind,
   SearchResponse,
   SetSummary,
@@ -239,7 +240,7 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   // Offline: reads are served from the service worker's cache; writes are refused here, with a clear
   // message, instead of being queued silently (or hanging).
   const method = (init?.method ?? "GET").toUpperCase();
@@ -662,6 +663,16 @@ export const api = {
             sources?: string[];
           }
         | { kind: Extract<JobKind, "compile-book">; set: string }
+        | {
+            kind: "make-quiz";
+            set: string;
+            notes?: string[];
+            topics?: string[];
+            count: number;
+            types?: QuestionType[];
+            difficulty?: 1 | 2 | 3;
+          }
+        | { kind: "make-problems"; set: string; note: string; count: number }
         | { proposalId: string },
     ): Promise<{ jobId: string; set?: string }> {
       return request("/api/jobs", { method: "POST", body: JSON.stringify(body) });

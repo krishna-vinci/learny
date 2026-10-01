@@ -5,8 +5,10 @@ import { Hono } from "hono";
 import { listCardFiles } from "../cards/store.js";
 import { readInbox } from "../inbox/read.js";
 import type { JobRunner } from "../jobs/runner.js";
+import { PracticeStore } from "../practice/store.js";
 import { buildToday } from "../today/build.js";
 import { log } from "../tree/git.js";
+import { FileLocks } from "../tree/lock.js";
 import { resolveInRoot } from "../tree/paths.js";
 import { listNotes, listSets } from "../tree/read.js";
 
@@ -62,13 +64,14 @@ export function todayRoutes(deps: TodayRoutesDeps): Hono {
         // Existing listings use direct filesystem paths; confine them before returning data.
         resolveInRoot(deps.root, `${set.slug}/PLAN.md`);
         resolveInRoot(deps.root, `${set.slug}/notes`);
-        const [inbox, cardFiles, notes, commits, chats, curriculum] = await Promise.all([
+        const [inbox, cardFiles, notes, commits, chats, curriculum, weakSpots] = await Promise.all([
           readInbox(deps.root, set.slug),
           listCardFiles(deps.root, set.slug),
           listNotes(deps.root, set.slug),
           setCommits(deps.root, set.slug),
           chatActivity(deps.root, set.slug),
           readCurriculum(deps.root, set.slug),
+          new PracticeStore({ root: deps.root, locks: new FileLocks() }, set.slug).readWeakSpots(),
         ]);
         return {
           ...set,
@@ -80,6 +83,7 @@ export function todayRoutes(deps: TodayRoutesDeps): Hono {
           commits,
           chatActivity: chats,
           curriculum,
+          weakSpots,
         };
       }),
     );

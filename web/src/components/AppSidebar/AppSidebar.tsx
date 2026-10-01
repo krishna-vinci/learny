@@ -17,6 +17,7 @@ import {
   PlusIcon,
   SettingsIcon,
   SunIcon,
+  TargetIcon,
   WrenchIcon,
 } from "lucide-react";
 import { useState } from "react";
@@ -25,7 +26,7 @@ import { useCardFiles, useCurrentUser, useInbox, useJobs, useNotes } from "@/api
 import { DesktopActivityIndicator, MobileActivityIndicator } from "@/components/Activity/ActivityIndicator";
 import { openActivityPanel } from "@/components/Activity/activity-store";
 import { AddSourceSheet } from "@/components/Library/AddSourceSheet";
-import { pageTitleFor, practiceHref, toReviewHref } from "@/components/Navigation/nav";
+import { cardsHref, pageTitleFor, practiceHref, toReviewHref } from "@/components/Navigation/nav";
 import { NewChapterSheet } from "@/components/NewChapterSheet";
 import { NewNoteDialog } from "@/components/NewNoteDialog";
 import { SearchButton } from "@/components/Search/SearchPalette";
@@ -146,7 +147,7 @@ const NotesSection = ({ set, activeNotePath }: { set: string; activeNotePath?: s
   );
 };
 
-// "Study": Today plus the current set's Cards and To review. Rows that need a set are left out
+// "Study": Today plus the current set's Practice, Cards and To review. Rows that need a set are left out
 // (not disabled) when no set is selected.
 const StudySection = ({ set }: { set?: string }) => {
   const { setMobileOpen } = useMobileSidebar();
@@ -156,7 +157,9 @@ const StudySection = ({ set }: { set?: string }) => {
   const { data: cardFiles = [] } = useCardFiles(set);
   const draftCardCount = cardFiles.reduce((total, file) => total + (file.counts.draft ?? 0), 0);
   const practicePath = set ? practiceHref(set) : "";
-  const cardsActive = !!set && (location.pathname === practicePath || location.pathname.startsWith(`${practicePath}/`));
+  const cardsPath = set ? cardsHref(set) : "";
+  const practiceActive = !!set && location.pathname.startsWith(practicePath);
+  const cardsActive = !!set && (location.pathname === cardsPath || location.pathname.startsWith(`${cardsPath}/`));
   const goTo = (path: string) => {
     navigate(path);
     setMobileOpen(false);
@@ -173,11 +176,17 @@ const StudySection = ({ set }: { set?: string }) => {
       {set && (
         <>
           <SidebarRow
+            icon={TargetIcon}
+            label="Practice"
+            state={practiceActive ? "current" : "idle"}
+            onClick={() => goTo(practicePath)}
+          />
+          <SidebarRow
             icon={NotebookTextIcon}
             label="Cards"
             count={draftCardCount}
             state={cardsActive ? "current" : "idle"}
-            onClick={() => goTo(practicePath)}
+            onClick={() => goTo(cardsPath)}
           />
           <SidebarRow
             icon={ArchiveIcon}

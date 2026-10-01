@@ -72,6 +72,22 @@ it("aggregates Today through the workspace app using only that workspace's sets"
     billing: "metered",
   }));
   const list = vi.spyOn(jobs, "list").mockImplementation((set) => views.filter((job) => job.set === set));
+  await fs.mkdir(path.join(root, "linear-algebra/practice"), { recursive: true });
+  await fs.writeFile(
+    path.join(root, "linear-algebra/practice/weak-spots.json"),
+    JSON.stringify([
+      {
+        topic: "rank",
+        note: "notes/01-vectors.md",
+        strength: 0.3,
+        attempts: 1,
+        lastSeen: "2026-09-29T00:00:00.000Z",
+        nextReview: "2026-09-30",
+        intervalDays: 1,
+        gap: "Missed rank",
+      },
+    ]),
+  );
   const app = createApp({ root, hub, jobs, locks: new FileLocks() });
   const response = await app.request("/api/today");
   expect(response.status).toBe(200);
@@ -89,12 +105,18 @@ it("aggregates Today through the workspace app using only that workspace's sets"
     notesCount: 4,
     lastStudiedAt: chatDate.toISOString(),
     nextChapter: null,
+    practiceDue: 1,
+    weakTopics: [expect.objectContaining({ topic: "rank" })],
   });
   expect(view.sets[1]?.daysLeft).toEqual(expect.any(Number));
   expect(view.sets[1]?.runningJobs.map((job) => job.status)).toEqual(["queued", "running"]);
   expect(list).toHaveBeenCalledWith("linear-algebra");
   expect(list).toHaveBeenCalledWith("empty");
   expect(view.doNext).toContainEqual(expect.objectContaining({ kind: "inbox", href: "/s/linear-algebra/inbox" }));
+
+  expect(view.doNext).toContainEqual(
+    expect.objectContaining({ kind: "practice", href: "/s/linear-algebra/practice?topic=rank" }),
+  );
 
   await fs.unlink(chat);
   const withoutChat = (await (await app.request("/api/today")).json()) as TodayView;

@@ -26,6 +26,12 @@ const ROLES: RoleInfo[] = [
   { key: "checker", label: "Fact-checking", description: "Checks chapters (works best on a different model)" },
   { key: "cardsmith", label: "Flashcard writing", description: "Writes flashcards from a chapter" },
   { key: "critic", label: "Flashcard checking", description: "Rejects weak flashcards before you see them" },
+  {
+    key: "examiner",
+    label: "Quiz & problem writing",
+    description: "Writes quizzes and practice problems from your notes",
+  },
+  { key: "grader", label: "Answer grading", description: "Grades your answers and explanations" },
   { key: "scout", label: "Finding sources", description: "Finds sources for a topic", later: true },
   { key: "outliner", label: "Study plans", description: "Plans your chapters" },
 ];

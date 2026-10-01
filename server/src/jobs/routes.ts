@@ -7,6 +7,7 @@ import { parseCompileBookInput } from "./book-paths.js";
 import { parseMakeCardsInput } from "./cards-job.js";
 import { parseDraftChapterInput } from "./draft-job.js";
 import { parsePlanSetInput } from "./plan-job.js";
+import { parseMakeProblemsInput, parseMakeQuizInput } from "./practice-job.js";
 import { jobProposals, type ProposalStore } from "./proposals.js";
 import type { JobRunner } from "./runner.js";
 
@@ -43,10 +44,37 @@ export function jobsRoutes(deps: JobsRoutesDeps): Hono {
           (body.kind === "draft-chapter" ||
             body.kind === "make-cards" ||
             body.kind === "compile-book" ||
-            body.kind === "plan-set")
+            body.kind === "plan-set" ||
+            body.kind === "make-quiz" ||
+            body.kind === "make-problems")
         )
       ) {
-        throw new Error('kind must be "draft-chapter", "make-cards", "compile-book" or "plan-set"');
+        throw new Error(
+          'kind must be "draft-chapter", "make-cards", "compile-book", "plan-set", "make-quiz" or "make-problems"',
+        );
+      }
+      if (
+        typeof input === "object" &&
+        input !== null &&
+        "kind" in input &&
+        (input.kind === "make-quiz" || input.kind === "make-problems")
+      ) {
+        const parsed = input.kind === "make-quiz" ? parseMakeQuizInput(input) : parseMakeProblemsInput(input);
+        if (deps.root === undefined) throw new Error("study root is required for practice");
+        if (!existsSync(resolveInRoot(deps.root, `${parsed.set}/PLAN.md`)))
+          return c.json({ error: "set not found" }, 404);
+        for (const note of "note" in parsed ? [parsed.note] : (parsed.notes ?? [])) {
+          if (!existsSync(resolveInRoot(deps.root, `${parsed.set}/${note}`)))
+            return c.json({ error: `note not found: ${note}` }, 404);
+        }
+        const job = deps.runner.enqueue(input.kind, parsed, {
+          set: parsed.set,
+          title:
+            input.kind === "make-quiz"
+              ? "Practice quiz"
+              : `Problems for ${"note" in parsed ? parsed.note : parsed.set}`,
+        });
+        return c.json({ jobId: job.id }, 202);
       }
       if (typeof input === "object" && input !== null && "kind" in input && input.kind === "plan-set") {
         const parsed = parsePlanSetInput(input);

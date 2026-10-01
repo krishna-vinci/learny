@@ -519,6 +519,13 @@ export function useLiveStudiumUpdates() {
       queryClient.invalidateQueries({ queryKey: queryKeys.today });
       queryClient.invalidateQueries({ queryKey: queryKeys.search });
     }
+    if (
+      event.type === "commit" ||
+      event.type === "file" ||
+      (event.type === "job" && ["make-quiz", "make-problems", "grade-answer"].includes(event.job.kind))
+    ) {
+      queryClient.invalidateQueries({ queryKey: ["practice"] });
+    }
     if (event.type === "commit" || event.type === "file") {
       queryClient.invalidateQueries({ queryKey: ["highlights"] });
     }

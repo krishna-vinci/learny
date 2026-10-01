@@ -1,8 +1,13 @@
 // Navigation destinations shared by the phone tab bar, the More sheet and the desktop sidebar,
 // so a route or a label changes in one place (docs/UX.md section 2 and the copy glossary).
 
-/** Where "Practice" goes. Until the Practice screens ship this is the cards page. */
+/** Where "Practice" goes: quizzes, teach-back and problems (M5). */
 export function practiceHref(set: string): string {
+  return `/s/${set}/practice`;
+}
+
+/** Flashcards for a set (draft review and Anki export). */
+export function cardsHref(set: string): string {
   return `/s/${set}/cards`;
 }
 

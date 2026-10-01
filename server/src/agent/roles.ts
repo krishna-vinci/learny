@@ -2,7 +2,16 @@ import { isWritableByAgent } from "../tree/paths.js";
 import type { SkillSummary } from "./builtins/skills.js";
 import { buildBatchRolePrompt, buildTutorPrompt } from "./prompt.js";
 
-export type RoleName = "tutor" | "librarian" | "outliner" | "drafter" | "checker" | "cardsmith" | "critic";
+export type RoleName =
+  | "tutor"
+  | "librarian"
+  | "outliner"
+  | "drafter"
+  | "checker"
+  | "cardsmith"
+  | "critic"
+  | "examiner"
+  | "grader";
 
 export interface RolePromptContext {
   root: string;
@@ -32,6 +41,29 @@ function setPath(set: string | null, directory: "notes" | "log/checks" | "cards"
 }
 
 export const ROLES: Record<RoleName, RoleSpec> = {
+  examiner: {
+    modelRole: "examiner",
+    tools: ["study_list", "study_read", ...SKILL_TOOLS, "add_practice_question", "add_problem"],
+    mcpServers: [],
+    skills: ["make-quiz", "make-problems"],
+    requiresSet: true,
+    scope: (set) => ({ set, library: true }),
+    write: (set, rel) =>
+      set !== null &&
+      (new RegExp(`^${set}/practice/quizzes/quiz-[0-9a-f]{8}\\.json$`).test(rel) ||
+        new RegExp(`^${set}/practice/problems/[0-9]{2,}-[a-z0-9][a-z0-9-]*\\.md$`).test(rel)),
+    promptBuilder: ({ root, set, skills }) => buildBatchRolePrompt({ role: "examiner", root, set, skills }),
+  },
+  grader: {
+    modelRole: "grader",
+    tools: ["study_list", "study_read", ...SKILL_TOOLS, "submit_grade"],
+    mcpServers: [],
+    skills: ["grade-answer"],
+    requiresSet: true,
+    scope: (set) => ({ set, library: true }),
+    write: () => false,
+    promptBuilder: ({ root, set, skills }) => buildBatchRolePrompt({ role: "grader", root, set, skills }),
+  },
   tutor: {
     modelRole: "tutor",
     tools: [...STUDY_TOOLS, ...RESEARCH_TOOLS, ...SKILL_TOOLS, ...CHAT_JOB_TOOLS],

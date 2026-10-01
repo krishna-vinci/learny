@@ -32,6 +32,9 @@ const KIND_ICONS: Record<JobKind, typeof LinkIcon> = {
   "make-cards": LayersIcon,
   "compile-book": BookOpenIcon,
   "plan-set": ListTreeIcon,
+  "make-quiz": LayersIcon,
+  "make-problems": NotebookTextIcon,
+  "grade-answer": ListTreeIcon,
 };
 
 function StatusChip({ status }: { status: JobStatus }) {

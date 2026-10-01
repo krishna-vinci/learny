@@ -1,6 +1,6 @@
 // Phone navigation: Today · Notes · Practice · Search · More (docs/UX.md section 2). Always
 // visible below `md`, except in full-screen reading. The "More" tab opens `MoreSheet`.
-import { BookOpenIcon, LayersIcon, MoreHorizontalIcon, SearchIcon, SunIcon } from "lucide-react";
+import { BookOpenIcon, MoreHorizontalIcon, SearchIcon, SunIcon, TargetIcon } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useInbox, useJobs, useSets } from "@/api/queries";
@@ -87,7 +87,7 @@ export function BottomTabBar() {
       >
         <Tab label="Today" icon={SunIcon} to="/today" active={pathname === "/today"} />
         <Tab label="Notes" icon={BookOpenIcon} to={setHomeHref(set)} active={notesActive} />
-        <Tab label="Practice" icon={LayersIcon} to={set ? practiceHref(set) : "/sets"} active={practiceActive} />
+        <Tab label="Practice" icon={TargetIcon} to={set ? practiceHref(set) : "/sets"} active={practiceActive} />
         <Tab label="Search" icon={SearchIcon} onClick={openSearch} active={false} />
         <Tab
           label="More"
