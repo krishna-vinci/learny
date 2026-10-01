@@ -55,6 +55,7 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - The study tree git repo auto-commits per role author (tutor/librarian/drafter/checker/cardsmith/critic/user/system).
 
 ## Gotchas learned the hard way
+- **iPhone/WebKit:** rehype-katex's MathML output crashed WebKit (Chrome and jsdom were fine). KaTeX is set to `output: "html"` and wrapped crash-safe in `web/src/lib/katex-loader.ts`; content sits inside `RenderBoundary`. Chrome-only browser tests can miss Safari bugs, and WebKit can't run on this host (missing system libs, no sudo), so ask the owner to check on the phone.
 - **AI permission is enforced in `JobRunner.enqueue`** (it reads the owner's `aiEnabled` from SQLite and throws `AiDisabledError` for AI kinds; `compile-book` is exempt). Any code that enqueues in the background (e.g. the site-import queue) must catch it.
 - **Selected passages and source text are untrusted:** pass them through `server/src/agent/passage.ts` (escaped, delimited data blocks), never inline as instructions.
 - **Git calls are capped at 4 concurrent processes** (`server/src/concurrency.ts` limiter in `tree/git.ts`).
