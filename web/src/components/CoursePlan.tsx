@@ -3,9 +3,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { MoreHorizontalIcon, RefreshCwIcon } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { api } from "@/api/client";
+import { ApiError, api } from "@/api/client";
 import { queryKeys, useCourse } from "@/api/queries";
 import { openActivityPanel } from "@/components/Activity/activity-store";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { FirstUseHint } from "@/components/FirstUseHint";
 import { RowsSkeleton } from "@/components/ListSkeleton";
 import { RewriteChapterDialog } from "@/components/RewriteChapterDialog";
@@ -34,7 +35,10 @@ export function prerequisiteReason(chapter: CourseChapter, chapters: readonly Co
   )
     return "Re-plan to clarify this chapter's prerequisites.";
   const missing = required.filter(
-    (order) => !chapters.some((c) => c.order === order && (c.state === "drafted" || c.state === "checked")),
+    (order) =>
+      !chapters.some(
+        (c) => c.order === order && (c.state === "drafted" || c.state === "checked" || c.state === "accepted"),
+      ),
   );
   return missing.length ? `Draft ${missing.map((n) => String(n).padStart(2, "0")).join(", ")} first.` : null;
 }
@@ -46,7 +50,13 @@ export function nextDrafts(chapters: readonly CourseChapter[]): CourseChapter[] 
     .slice(0, 3);
 }
 
-const STATE_LABELS = { planned: "Planned", drafting: "Drafting", drafted: "Drafted", checked: "Checked" } as const;
+const STATE_LABELS = {
+  planned: "Planned",
+  drafting: "Drafting",
+  drafted: "Drafted",
+  checked: "Checked",
+  accepted: "Accepted",
+} as const;
 
 export function CoursePlan({ set, jobs, onReplan }: { set: string; jobs: readonly JobView[]; onReplan: () => void }) {
   const course = useCourse(set);
@@ -54,12 +64,33 @@ export function CoursePlan({ set, jobs, onReplan }: { set: string; jobs: readonl
   const [expanded, setExpanded] = useState(false);
   const [pending, setPending] = useState<Set<number>>(new Set());
   const [rewritePath, setRewritePath] = useState<string | null>(null);
+  const [acceptAnyway, setAcceptAnyway] = useState<CourseChapter | null>(null);
+  const [accepting, setAccepting] = useState<string | null>(null);
   const chapters = course.data?.chapters ?? [];
   const ready = nextDrafts(chapters);
   const shown = expanded ? chapters : chapters.slice(0, 6);
   const noReadyReason = chapters.some((c) => c.state === "planned")
     ? "Draft the prerequisite chapters first."
     : "Every planned chapter has been started.";
+
+  async function accept(chapter: CourseChapter) {
+    if (!chapter.path || accepting) return;
+    setAccepting(chapter.path);
+    try {
+      await api.inbox.accept(set, chapter.path);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.course(set) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.notes(set) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.inbox(set) }),
+      ]);
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError && error.status === 409 ? error.message : friendlyMessage(error, "Failed to accept."),
+      );
+    } finally {
+      setAccepting(null);
+    }
+  }
 
   async function draft(rows: readonly CourseChapter[]) {
     setPending(new Set(rows.map((c) => c.order)));
@@ -135,7 +166,7 @@ export function CoursePlan({ set, jobs, onReplan }: { set: string; jobs: readonl
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      {(state === "drafted" || state === "checked") && chapter.path ? (
+                      {(state === "drafted" || state === "checked" || state === "accepted") && chapter.path ? (
                         <Link
                           className="min-h-11 min-w-0 flex-1 py-2 text-sm font-medium text-foreground hover:underline"
                           to={`/s/${set}/n/${chapter.path.replace(/^notes\//, "")}`}
@@ -145,7 +176,16 @@ export function CoursePlan({ set, jobs, onReplan }: { set: string; jobs: readonl
                       ) : (
                         <span className="min-w-0 flex-1 text-sm font-medium text-foreground">{chapter.title}</span>
                       )}
-                      <Badge variant={state === "checked" ? "success" : state === "drafting" ? "tint" : "muted"}>
+                      <Badge
+                        variant={
+                          state === "checked" || state === "accepted"
+                            ? "success"
+                            : state === "drafting"
+                              ? "tint"
+                              : "muted"
+                        }
+                        className={state === "accepted" ? "border-success/40 bg-success/25 font-semibold" : undefined}
+                      >
                         {STATE_LABELS[state]}
                       </Badge>
                     </div>
@@ -154,7 +194,19 @@ export function CoursePlan({ set, jobs, onReplan }: { set: string; jobs: readonl
                         {chapter.scope}
                       </p>
                     )}
-                    <div className="mt-1 flex items-center gap-2">
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      {(state === "drafted" || state === "checked") && chapter.path && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-11"
+                          aria-label={`Accept ${chapter.title}`}
+                          disabled={accepting !== null}
+                          onClick={() => (state === "checked" ? void accept(chapter) : setAcceptAnyway(chapter))}
+                        >
+                          {accepting === chapter.path ? "Accepting…" : "Accept"}
+                        </Button>
+                      )}
                       {state === "planned" && (
                         <Button
                           variant="outline"
@@ -179,7 +231,7 @@ export function CoursePlan({ set, jobs, onReplan }: { set: string; jobs: readonl
                           <span className="truncate">{job?.progress || (starting ? "Starting…" : "Drafting…")}</span>
                         </Button>
                       )}
-                      {(state === "drafted" || state === "checked") && chapter.path && (
+                      {(state === "drafted" || state === "checked" || state === "accepted") && chapter.path && (
                         <DropdownMenu>
                           <DropdownMenuTrigger
                             render={<Button variant="quiet" size="icon" className="size-11" />}
@@ -232,6 +284,14 @@ export function CoursePlan({ set, jobs, onReplan }: { set: string; jobs: readonl
           {ready.length === 0 && <p className="mt-1 text-xs text-muted-foreground">{noReadyReason}</p>}
         </>
       )}
+      <ConfirmDialog
+        open={acceptAnyway !== null}
+        onOpenChange={(open) => !open && setAcceptAnyway(null)}
+        title="Accept unchecked chapter?"
+        description="It hasn't been fact-checked yet. Accepting adds the chapter to your notes as it is."
+        confirmLabel="Accept anyway"
+        onConfirm={() => (acceptAnyway ? accept(acceptAnyway) : undefined)}
+      />
       {rewritePath && (
         <RewriteChapterDialog
           set={set}

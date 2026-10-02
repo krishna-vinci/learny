@@ -4,6 +4,7 @@ import path from "node:path";
 import type { SourceSummary, SourceType } from "@studium/shared";
 import { parseFrontmatter, SourceFrontmatter } from "@studium/shared";
 import { stringify as stringifyYaml } from "yaml";
+import { readText } from "../tree/edit.js";
 import { commitPaths } from "../tree/git.js";
 import { canonicalRel, resolveInRoot } from "../tree/paths.js";
 import { isSetSlug } from "../tree/read.js";
@@ -338,6 +339,22 @@ export async function listSources(root: string): Promise<SourceSummary[]> {
   }
   summaries.sort((a, b) => b.addedAt.localeCompare(a.addedAt) || a.id.localeCompare(b.id));
   return summaries;
+}
+
+/** Resolve only the sources explicitly linked in this set's PLAN.md. */
+export async function listSetSources(root: string, set: string): Promise<SourceSummary[]> {
+  const sources = safeFrontmatter(await readText(root, `${set}/PLAN.md`)).sources;
+  if (!Array.isArray(sources)) return [];
+  const linked = new Set(sources.filter((id): id is string => typeof id === "string"));
+  const sets = await setsBySourceId(root);
+  const summaries: SourceSummary[] = [];
+  // Enumerated library ids exclude missing entries and user-edited path escapes.
+  for (const id of await sourceIds(root)) {
+    if (!linked.has(id)) continue;
+    const frontmatter = await readFrontmatter(root, id);
+    if (frontmatter !== null) summaries.push(summaryFrom(id, frontmatter, [...new Set(sets.get(id) ?? [])]));
+  }
+  return summaries.sort((a, b) => b.addedAt.localeCompare(a.addedAt) || a.id.localeCompare(b.id));
 }
 
 /** One source's summary, `source.md` body and parsed files; null when unknown. */

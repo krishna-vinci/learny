@@ -533,6 +533,9 @@ export const api = {
   },
 
   sets: {
+    sources(set: string): Promise<SourceSummary[]> {
+      return request(`/api/sets/${encodeURIComponent(set)}/sources`);
+    },
     course(set: string): Promise<CourseView> {
       return request(`/api/sets/${encodeURIComponent(set)}/course`);
     },

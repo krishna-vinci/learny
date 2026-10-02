@@ -3,13 +3,20 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, expect, it, vi } from "vitest";
-import { api } from "@/api/client";
+import { ApiError, api } from "@/api/client";
 import { queryKeys } from "@/api/queries";
+import { toast } from "@/lib/notify";
 import { CoursePlan, nextDrafts, prerequisiteReason } from "./CoursePlan";
 
-vi.mock("@/api/client", () => ({
-  api: { sets: { course: vi.fn() }, jobs: { create: vi.fn().mockResolvedValue({ jobId: "new" }) } },
+vi.mock("@/api/client", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/api/client")>()),
+  api: {
+    sets: { course: vi.fn() },
+    inbox: { accept: vi.fn().mockResolvedValue({ sha: "accepted" }) },
+    jobs: { create: vi.fn().mockResolvedValue({ jobId: "new" }) },
+  },
 }));
+vi.mock("@/lib/notify", () => ({ toast: { error: vi.fn() } }));
 vi.mock("@/components/FirstUseHint", () => ({
   FirstUseHint: ({ children }: { children: React.ReactNode }) => <p>{children}</p>,
 }));
@@ -47,7 +54,7 @@ function setup(rows = chapters) {
       </MemoryRouter>
     </QueryClientProvider>,
   );
-  return { onReplan };
+  return { onReplan, queryClient };
 }
 it("renders course states and links, collapses after six rows, and opens re-planning", () => {
   const { onReplan } = setup();
@@ -91,4 +98,41 @@ it("disables the batch with a reason when no chapter is ready and blocks malform
   setup([chapter(1, "planned", "02")]);
   expect((screen.getByRole("button", { name: "Draft next 3" }) as HTMLButtonElement).disabled).toBe(true);
   expect(screen.getByText("Re-plan to clarify this chapter's prerequisites.")).toBeTruthy();
+});
+
+it("accepts checked chapters immediately and refreshes course, notes and inbox", async () => {
+  const { queryClient } = setup();
+  const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+  fireEvent.click(screen.getByRole("button", { name: "Accept Chapter 1" }));
+  await waitFor(() => expect(api.inbox.accept).toHaveBeenCalledWith("history", "notes/01-one.md"));
+  for (const key of [queryKeys.course("history"), queryKeys.notes("history"), queryKeys.inbox("history")]) {
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: key });
+  }
+  expect(screen.queryByRole("button", { name: "Accept Chapter 3" })).toBeNull();
+});
+it("asks before accepting drafts and leaves them unchanged when cancelled", async () => {
+  setup();
+  fireEvent.click(screen.getByRole("button", { name: "Accept Chapter 2" }));
+  expect(api.inbox.accept).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(api.inbox.accept).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Accept Chapter 2" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Accept anyway" }));
+  await waitFor(() => expect(api.inbox.accept).toHaveBeenCalledWith("history", "notes/02-two.md"));
+});
+it("shows the server's conflict error and retains accepted links and prerequisite eligibility", async () => {
+  vi.mocked(api.inbox.accept).mockRejectedValueOnce(
+    new ApiError(409, "note must be draft or checked", { error: "note must be draft or checked" }),
+  );
+  setup([
+    { ...chapter(1, "accepted"), path: "notes/01-one.md" },
+    { ...chapter(2, "checked"), path: "notes/02-two.md" },
+    chapter(3, "planned", "01"),
+  ]);
+  expect(screen.getByText("Accepted")).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Chapter 1" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Accept Chapter 1" })).toBeNull();
+  expect((screen.getByRole("button", { name: "Draft Chapter 3" }) as HTMLButtonElement).disabled).toBe(false);
+  fireEvent.click(screen.getByRole("button", { name: "Accept Chapter 2" }));
+  await waitFor(() => expect(toast.error).toHaveBeenCalledWith("note must be draft or checked"));
 });

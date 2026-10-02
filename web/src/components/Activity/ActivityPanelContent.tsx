@@ -92,9 +92,10 @@ function JobRow({
             {job.progress || (job.kind === "rewrite-chapter" ? "Rewriting chapter" : active ? "Working…" : "")}
           </p>
           {job.status === "failed" && job.error && (
-            <p className="mt-1 line-clamp-2 text-xs text-destructive" title={job.error}>
-              {job.error}
-            </p>
+            <details className="mt-1 text-xs text-destructive">
+              <summary className="min-h-11 cursor-pointer py-2 md:min-h-0 md:py-1">Show error</summary>
+              <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{job.error}</p>
+            </details>
           )}
         </div>
       </div>

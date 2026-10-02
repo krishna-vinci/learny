@@ -82,7 +82,7 @@ export function NewChapterSheet({ set, initialTitle, onClose }: NewChapterSheetP
               placeholder="What should this chapter cover?"
             />
           </div>
-          <SourcePicker selected={selectedSources} onChange={setSelectedSources} />
+          <SourcePicker set={set} selected={selectedSources} onChange={setSelectedSources} />
           <Button
             type="submit"
             className="h-11 w-full md:h-9 md:w-auto md:self-end"

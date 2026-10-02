@@ -26,7 +26,7 @@ it("derives states from notes and active jobs regardless of ticks, without mutat
   }
   const course = await buildCourse(root, "history", [{ id: "job", kind: "draft-chapter", title: "Working" }]);
   expect(course.subject).toBe("history");
-  expect(course.chapters.map((c) => c.state)).toEqual(["planned", "drafted", "checked", "checked", "drafting"]);
+  expect(course.chapters.map((c) => c.state)).toEqual(["planned", "drafted", "checked", "accepted", "drafting"]);
   expect(course.chapters[1]).toMatchObject({
     order: 2,
     scope: "A city and its people.",

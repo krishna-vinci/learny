@@ -46,6 +46,7 @@ export const queryKeys = {
   highlights: (set: string, note?: string) => ["highlights", set, ...(note ? [note] : [])] as const,
   sets: ["sets"] as const,
   course: (set: string) => ["sets", set, "course"] as const,
+  sources: (set: string) => ["sets", set, "sources"] as const,
   notes: (set: string) => ["sets", set, "notes"] as const,
   file: (set: string, path: string) => ["sets", set, "file", path] as const,
   book: (set: string) => ["sets", set, "book"] as const,
@@ -65,6 +66,14 @@ export const queryKeys = {
 
 export function useCourse(set: string) {
   return useQuery({ queryKey: queryKeys.course(set), queryFn: () => api.sets.course(set) });
+}
+
+export function useSetSources(set: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.sources(set ?? ""),
+    queryFn: () => api.sets.sources(set as string),
+    enabled: !!set,
+  });
 }
 
 export function useToday() {
@@ -567,6 +576,7 @@ export function useLiveStudiumUpdates() {
     if (event.type === "file") {
       if (event.set) {
         queryClient.invalidateQueries({ queryKey: queryKeys.course(event.set) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.sources(event.set) });
         queryClient.invalidateQueries({ queryKey: ["sets", event.set, "notes"] });
         queryClient.invalidateQueries({ queryKey: ["sets", event.set, "file"] });
         queryClient.invalidateQueries({ queryKey: ["sets", event.set, "history"] });
@@ -579,7 +589,7 @@ export function useLiveStudiumUpdates() {
     }
     if (event.type === "commit") {
       queryClient.invalidateQueries({
-        predicate: (query) => query.queryKey[0] === "sets" && query.queryKey[2] === "course",
+        predicate: (query) => query.queryKey[0] === "sets" && ["course", "sources"].includes(String(query.queryKey[2])),
       });
       queryClient.invalidateQueries({ predicate: (query) => query.queryKey.includes("history") });
       // A user commit (card patch, approve-clean, exported) doesn't carry a `set`, so
@@ -617,6 +627,7 @@ export function useLiveStudiumUpdates() {
       // list and, once we know the source id, its detail page too.
       if (job.kind === "ingest" && finished) {
         queryClient.invalidateQueries({ queryKey: queryKeys.library });
+        if (job.set) queryClient.invalidateQueries({ queryKey: queryKeys.sources(job.set) });
         const sourceId = job.result?.sourceId;
         if (sourceId) queryClient.invalidateQueries({ queryKey: queryKeys.librarySource(sourceId) });
       }

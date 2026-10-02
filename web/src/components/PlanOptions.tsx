@@ -26,10 +26,12 @@ export function PlanOptions({
   value,
   onChange,
   idPrefix,
+  set,
 }: {
   value: PlanOptionsValue;
   onChange: (value: PlanOptionsValue) => void;
   idPrefix: string;
+  set?: string;
 }) {
   return (
     <>
@@ -66,6 +68,7 @@ export function PlanOptions({
         />
       </div>
       <SourcePicker
+        set={set}
         label="Sources (optional)"
         selected={value.sources}
         onChange={(sources) => onChange({ ...value, sources })}

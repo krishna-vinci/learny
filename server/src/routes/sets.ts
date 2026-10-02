@@ -3,6 +3,7 @@ import type { Context } from "hono";
 import { Hono } from "hono";
 import { buildCourse } from "../course/build.js";
 import type { EventHub } from "../events.js";
+import { listSetSources } from "../ingest/library.js";
 import type { JobRunner } from "../jobs/runner.js";
 import { createNote, createSet, writeNoteAsUser } from "../tree/authoring.js";
 import { EditError } from "../tree/edit.js";
@@ -106,6 +107,19 @@ export function setsRoutes(deps: SetsDeps): Hono {
       return c.json(await buildCourse(root, set, deps.jobs?.chapterJobs(set)));
     } catch (error) {
       if (error instanceof PathError) return invalidPath(c);
+      if (error instanceof EditError && error.code === "not_found") return notFound(c);
+      throw error;
+    }
+  });
+
+  app.get("/:set/sources", async (c) => {
+    const set = c.req.param("set");
+    if (!(await setExists(root, set))) return notFound(c);
+    try {
+      return c.json(await listSetSources(root, set));
+    } catch (error) {
+      if (error instanceof PathError || (error instanceof EditError && error.code === "forbidden"))
+        return invalidPath(c);
       if (error instanceof EditError && error.code === "not_found") return notFound(c);
       throw error;
     }
