@@ -1,9 +1,10 @@
-import { assetUrl } from "@studium/shared/media";
+import { assetUrl, resolveNoteMedia } from "@studium/shared/media";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
-export const ARTIFACT_CSP = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src data:">`;
+export const ARTIFACT_CSP = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src data:; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">`;
 
 export function ArtifactBlock({
   src,
@@ -21,6 +22,10 @@ export function ArtifactBlock({
   const [posterFailed, setPosterFailed] = useState(false);
   const [set, ...parts] = src.split("/");
   const path = parts.join("/");
+  const valid = resolveNoteMedia(`${set}/chapter.md`, path, "html");
+  const validPoster = poster
+    ? resolveNoteMedia(`${set}/chapter.md`, poster.split("/").slice(1).join("/"), "poster")
+    : null;
   useEffect(() => {
     if (!full) return;
     const close = (event: KeyboardEvent) => {
@@ -30,6 +35,7 @@ export function ArtifactBlock({
     return () => window.removeEventListener("keydown", close);
   }, [full]);
   async function run() {
+    if (!valid || (poster && (poster.split("/")[0] !== set || !validPoster))) return;
     setBusy(true);
     setError(undefined);
     try {
@@ -49,17 +55,25 @@ export function ArtifactBlock({
       setBusy(false);
     }
   }
+  if (!valid || (poster && (poster.split("/")[0] !== set || !validPoster)))
+    return <p className="text-sm text-muted-foreground">This visual is unavailable.</p>;
   const body = (
-    <section className={full ? "fixed inset-0 z-50 flex flex-col bg-background p-4" : "my-4"} aria-label={title}>
+    <section className={full ? "fixed inset-0 z-50 flex flex-col bg-background p-4" : "min-w-0"} aria-label={title}>
       <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="text-sm text-muted-foreground">{title}</span>
+        <h2 className="text-lg font-semibold">{title}</h2>
         {html && (
           <Button className="min-h-11" variant="outline" onClick={() => setFull(!full)}>
             {full ? "Exit full screen" : "Full screen"}
           </Button>
         )}
       </div>
-      <div className={full ? "min-h-0 flex-1" : "relative aspect-[16/10] overflow-hidden rounded-lg bg-muted"}>
+      <div
+        className={
+          full
+            ? "min-h-0 flex-1"
+            : "relative h-[65svh] min-h-80 overflow-hidden rounded-lg border border-border/70 bg-muted"
+        }
+      >
         {html !== undefined ? (
           <iframe
             className="h-full w-full border-0"
@@ -70,7 +84,7 @@ export function ArtifactBlock({
           />
         ) : (
           <>
-            {poster && !posterFailed && (
+            {poster && !posterFailed && !busy && (
               <img
                 className="h-full w-full bg-white object-contain"
                 src={assetUrl({ set: set ?? "", path: poster.split("/").slice(1).join("/") })}
@@ -79,8 +93,9 @@ export function ArtifactBlock({
                 onError={() => setPosterFailed(true)}
               />
             )}
+            {busy && <Skeleton className="absolute inset-0 size-full" />}
             <div className="absolute inset-0 flex items-center justify-center">
-              <Button className="min-h-11" onClick={() => void run()} disabled={busy}>
+              <Button variant="outline" className="min-h-11" onClick={() => void run()} disabled={busy}>
                 {busy ? "Opening…" : error ? "Try again" : "Run"}
               </Button>
             </div>

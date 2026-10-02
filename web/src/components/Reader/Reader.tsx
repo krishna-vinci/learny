@@ -1,4 +1,6 @@
+import { Tabs } from "@base-ui/react/tabs";
 import type { FileView } from "@studium/shared";
+import { chapterVisuals } from "@studium/shared/media";
 import {
   HighlighterIcon,
   HistoryIcon,
@@ -9,7 +11,7 @@ import {
   PencilIcon,
   RefreshCwIcon,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import { useHighlights, useSaveFile } from "@/api/queries";
@@ -33,6 +35,7 @@ import { toast } from "@/lib/notify";
 import { readingPrefsVars, useReadingPrefs } from "@/lib/reading-prefs";
 import { readScrollPosition, saveScrollPosition } from "@/lib/scroll-memory";
 import { cn } from "@/lib/utils";
+import { ChapterVisuals } from "./ChapterVisuals";
 import { ImmersiveExitButton } from "./ImmersiveExitButton";
 import { ReaderPassages } from "./ReaderPassages";
 import { ReadingSettingsControl } from "./ReadingSettings";
@@ -166,6 +169,21 @@ function NoteEditor({ set, path, file, onDone }: { set: string; path: string; fi
  * settings (B1), immersive full screen (B2) and per-note scroll restore (B3). */
 export function Reader({ set, path, file, className }: ReaderProps) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const visualsOpen = searchParams.get("view") === "visuals";
+  const chapter = useMemo(() => chapterVisuals(file.body, `${set}/${path}`), [file.body, set, path]);
+  function changeView(view: string) {
+    if (!visualsOpen) saveScrollPosition(set, path, window.scrollY);
+    setHighlightsOpen(false);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (view === "visuals") next.set("view", "visuals");
+        else next.delete("view");
+        return next;
+      },
+      { preventScrollReset: true },
+    );
+  }
   const commitParam = searchParams.get("commit") ?? undefined;
   const [historyOpen, setHistoryOpen] = useState(!!commitParam);
   const [highlightsOpen, setHighlightsOpen] = useState(false);
@@ -231,6 +249,7 @@ export function Reader({ set, path, file, className }: ReaderProps) {
   // that would erase the position we are about to restore.
   const restoring = useRef(false);
   useEffect(() => {
+    if (visualsOpen) return;
     let timer: ReturnType<typeof setTimeout> | null = null;
     const onScroll = () => {
       if (restoring.current || timer !== null) return;
@@ -244,12 +263,16 @@ export function Reader({ set, path, file, className }: ReaderProps) {
       window.removeEventListener("scroll", onScroll);
       if (timer !== null) clearTimeout(timer);
     };
-  }, [set, path]);
+  }, [set, path, visualsOpen]);
   const restoredNote = useRef<string | null>(null);
   useEffect(() => {
-    const noteKey = `${set}/${path}`;
+    const noteKey = `${set}/${path}/${visualsOpen ? "visuals" : "reading"}`;
     if (restoredNote.current === noteKey) return;
     restoredNote.current = noteKey;
+    if (visualsOpen) {
+      window.scrollTo(0, 0);
+      return;
+    }
     const target = readScrollPosition(set, path);
     // An in-note anchor (footnote/citation link) takes precedence over the restore.
     if (target === null || window.location.hash || new URLSearchParams(window.location.search).has("q")) return;
@@ -280,10 +303,10 @@ export function Reader({ set, path, file, className }: ReaderProps) {
       cancelAnimationFrame(frame);
       restoring.current = false;
     };
-  }, [set, path]);
+  }, [set, path, visualsOpen]);
 
   // Notes usually open with their own `# Title`; only show the frontmatter title when they don't.
-  const bodyHasTitle = /^\s*#\s/.test(file.body);
+  const bodyHasTitle = /^\s*#\s/.test(chapter.body);
 
   const closeHistory = () => {
     setHistoryOpen(false);
@@ -321,7 +344,9 @@ export function Reader({ set, path, file, className }: ReaderProps) {
     <div
       className={cn("flex min-h-full w-full items-stretch", className)}
       // B1: the reader root carries the reading prefs as `--reader-*` variables.
-      style={readingPrefsVars(prefs)}
+      // B3 owns the reading position. Browser scroll anchoring must not shift it
+      // when a lazy player or a newly selected tab changes the content height.
+      style={{ ...readingPrefsVars(prefs), overflowAnchor: "none" }}
     >
       <article
         className={cn(
@@ -331,15 +356,37 @@ export function Reader({ set, path, file, className }: ReaderProps) {
           immersive && "pt-[calc(env(safe-area-inset-top,0px)+1rem)] md:pt-16",
         )}
       >
-        <div className="mx-auto w-full" style={{ maxWidth: "calc(var(--reader-measure, 72ch) + 4rem)" }}>
+        <Tabs.Root
+          value={visualsOpen ? "visuals" : "reading"}
+          onValueChange={(value) => changeView(String(value))}
+          className="mx-auto w-full"
+        >
           {/* Phone: the toolbar gets its own row, since floating it beside the title clips it. */}
           <div
             className={cn(
-              "flex flex-wrap items-start gap-2 md:gap-4",
-              bodyHasTitle ? "mb-3 justify-end md:float-right md:ms-4 md:mb-2" : "mb-4 justify-between",
+              "sticky top-12 z-20 mb-4 flex flex-wrap items-center justify-between gap-2 bg-background py-2 md:top-0 md:gap-4",
+              immersive && "top-0",
             )}
           >
-            {!bodyHasTitle && <h1 className="text-2xl font-semibold text-foreground">{titleFromFrontmatter(file)}</h1>}
+            {/* Chapters without visuals show no tabs: an empty Visuals tab is noise (docs/UX.md). */}
+            {chapter.visuals.length === 0 && !visualsOpen ? (
+              <span />
+            ) : (
+              <Tabs.List className="flex gap-1 rounded-lg bg-muted p-1" aria-label="Chapter views">
+                <Tabs.Tab
+                  value="reading"
+                  className="min-h-11 rounded-md px-4 text-sm font-medium text-muted-foreground data-[active]:bg-background data-[active]:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+                >
+                  Reading
+                </Tabs.Tab>
+                <Tabs.Tab
+                  value="visuals"
+                  className="min-h-11 rounded-md px-4 text-sm font-medium text-muted-foreground data-[active]:bg-background data-[active]:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+                >
+                  Visuals{chapter.visuals.length > 0 && ` (${chapter.visuals.length})`}
+                </Tabs.Tab>
+              </Tabs.List>
+            )}
             <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant="outline"
@@ -376,7 +423,13 @@ export function Reader({ set, path, file, className }: ReaderProps) {
                       <HistoryIcon />
                       {historyOpen ? "Hide history" : "History"}
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="min-h-11 md:min-h-0" onClick={() => setHighlightsOpen(true)}>
+                    <DropdownMenuItem
+                      className="min-h-11 md:min-h-0"
+                      onClick={() => {
+                        if (visualsOpen) changeView("reading");
+                        setHighlightsOpen(true);
+                      }}
+                    >
                       <HighlighterIcon />
                       Highlights ({highlights.length})
                     </DropdownMenuItem>
@@ -389,28 +442,46 @@ export function Reader({ set, path, file, className }: ReaderProps) {
               </DropdownMenu>
             </div>
           </div>
-          <FirstUseHint id="select-text" enabled={file.body.trim() !== ""} className="mb-3">
-            Select any text to ask the tutor about it or to highlight it.
-          </FirstUseHint>
-          {highlightsQuery.isError && (
-            <p role="alert" className="mb-3 text-sm text-destructive">
-              Could not load highlights.{" "}
-              <Button variant="quiet" onClick={() => void highlightsQuery.refetch()}>
-                Try again
-              </Button>
-            </p>
-          )}
-          <ReaderPassages
-            key={`${set}/${path}/${file.body}`}
-            set={set}
-            path={path}
-            content={file.body}
-            highlights={highlights}
-            listOpen={highlightsOpen}
-            onListClose={() => setHighlightsOpen(false)}
-            query={searchParams.get("q") ?? ""}
-          />
-        </div>
+          <Tabs.Panel
+            value="reading"
+            hidden={visualsOpen}
+            className="mx-auto w-full"
+            style={{ maxWidth: "calc(var(--reader-measure, 72ch) + 4rem)" }}
+          >
+            {!bodyHasTitle && (
+              <h1 className="mb-4 text-2xl font-semibold text-foreground">{titleFromFrontmatter(file)}</h1>
+            )}
+            <FirstUseHint id="select-text" enabled={chapter.body.trim() !== ""} className="mb-3">
+              Select any text to ask the tutor about it or to highlight it.
+            </FirstUseHint>
+            {highlightsQuery.isError && (
+              <p role="alert" className="mb-3 text-sm text-destructive">
+                Could not load highlights.{" "}
+                <Button variant="quiet" onClick={() => void highlightsQuery.refetch()}>
+                  Try again
+                </Button>
+              </p>
+            )}
+            <ReaderPassages
+              key={`${set}/${path}/${file.body}`}
+              set={set}
+              path={path}
+              content={chapter.body}
+              highlights={highlights}
+              listOpen={highlightsOpen}
+              onListClose={() => setHighlightsOpen(false)}
+              query={searchParams.get("q") ?? ""}
+            />
+          </Tabs.Panel>
+          <Tabs.Panel value="visuals" hidden={!visualsOpen}>
+            <h1 className="text-2xl font-semibold text-foreground">{titleFromFrontmatter(file)}</h1>
+            <ChapterVisuals
+              key={`${set}/${path}/${file.body}`}
+              visuals={chapter.visuals}
+              onRead={() => changeView("reading")}
+            />
+          </Tabs.Panel>
+        </Tabs.Root>
       </article>
       <RewriteChapterDialog set={set} path={path} open={rewriteOpen} onOpenChange={setRewriteOpen} />
       {immersive && <ImmersiveExitButton />}

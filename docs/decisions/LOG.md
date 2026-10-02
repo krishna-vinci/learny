@@ -287,3 +287,44 @@ Anki media, chat embeds, and server-side artifact poster rendering.
 - V6: course states derive from matching notes and active jobs; tick at draft commit and repair stale ticks on the next draft, never a read.
 
 Teaching commitments and the 20-rule mapping: `docs/TEACHING.md`.
+
+
+## D31 — Chapter Visuals, separate from Reading · locked · 2026-10-02
+
+**Supersedes the inline-artifact part of D29** (its artifact web placement and book
+placement). D29’s file paths, size limits, tool scopes, click-to-run and scripts-only
+sandbox remain. YouTube stays inline: it is passive viewing tied to nearby prose,
+with the merged URL robustness and click-to-load behavior retained. Static images,
+Mermaid and Vega-Lite charts also stay inline as explanatory figures.
+
+- Association is the chapter’s existing standalone `::artifact{src="…" poster="…"
+  title="…"}` leaf declarations. New declarations go at the end, without a registry
+  heading; no new frontmatter, manifest, API or storage migration. Existing declarations
+  among paragraphs are collected without rewriting user files. Fenced/indented examples
+  remain code; author declarations at chapter level, outside lists/quotes/callouts.
+- Resolve HTML/posters against the note, confined to that set’s `artifacts/`. Collect
+  in declaration order and deduplicate the same resolved HTML path (first wins).
+  Invalid declarations remain unavailable entries in Visuals, never in prose.
+- Reading / Visuals tabs appear above chapters that have visuals (or when `?view=visuals` is open), with the count; chapters without visuals show no tabs.
+  Reading retains the learner’s prose width. Visuals is an ordered full-width list,
+  each visual with title, optional poster, Run, retry/offline and full-screen controls.
+  Phone canvases use viewport height, not a short landscape slot. Empty chapters
+  explain Visuals and offer Return to reading; loading uses canvas-sized skeletons.
+- Run alone fetches HTML. Inactive panels unmount, stopping hidden simulations and
+  players. Switching back restores reading scroll/highlights. `?view=visuals` is a
+  chapter pointer; browser back and accessible keyboard tabs work.
+- HTML uses `srcDoc`, first-document CSP and exactly `sandbox="allow-scripts"`,
+  without same-origin, forms, popups or top-navigation privileges; referrer policy
+  is no-referrer. CSP retains inline scripts/styles and data images/fonts, explicitly
+  denies connections, nested frames, objects, base-URL changes and form submission.
+  Raw HTML in notes remains blocked. No sandbox weakening for a larger canvas.
+- **Existing Typst/PDF book:** each chapter appends “Visuals in Studium” with one
+  static poster when present and valid, title, and “open this chapter’s Visuals tab
+  in Studium.” A missing poster yields the title/text pointer. Invalid references
+  yield unavailable text. The compiler never reads/runs HTML or fetches external
+  resources; deployment-specific absolute links and automatic screenshots are not
+  required. A printed pointer remains meaningful after moving the study tree.
+- Agents write a self-contained responsive HTML file and SVG poster, then append
+  its declaration. They may use the whole canvas, include an instruction, support
+  touch and reduced motion, and keep the prose understandable without interaction.
+  Chat keeps plain links; Anki media remains deferred.

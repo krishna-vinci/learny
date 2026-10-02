@@ -76,14 +76,14 @@ external edits (Obsidian, VS Code) appear live.
 Desktop first. Mobile must handle reading, chat and approvals; reader and chat swap
 full-screen. Installable PWA. Mobile editing is a non-goal.
 
-## Media in the reader (D29)
+## Media in the reader (D29, D31)
 
 Images resolve relative to the note and stay inside the set's assets/artifacts,
 with lazy decoding/loading and a descriptive caption. Unsaved HTTPS images remain
 images in the app, but only caption + URL text in the book. Raw note HTML is blocked.
 
 Valid YouTube video links in ordinary Markdown (bare/autolink, labelled or reference
-links) also receive a player after their paragraph/heading or within a table cell,
+links) also receive a player after their paragraph/heading,
 keeping the original text and
 links usable. Supported forms include watch/share/shorts/live/embed/v, mobile,
 music and nocookie URLs, with optional tracking/playlist parameters. Times use
@@ -99,13 +99,27 @@ is always available. Timestamp citations show “at 14:03” and a timed YouTube
 Vega-Lite fences lazy-load a responsive SVG chart with theme-token colors; invalid
 specs stay visible as code with “Chart couldn't be drawn”.
 
-Artifacts show their poster/title and Run. Only Run fetches the local HTML and
-creates a scripts-only iframe with a first-document network-blocking CSP. Full
-screen uses CSS and portals to the body; Escape exits. Failures offer retry; offline
-uncached artifacts explain that a connection is needed. Successful file and image
-reads use the existing bounded offline API cache, cleared on sign-out. Chat shows
+Every chapter has Reading / Visuals tabs above the body. Visuals shows an attachment
+count only when nonzero, the chapter title, and an ordered vertical list of titles,
+posters and Run actions. It uses the full reader width with a viewport-height canvas
+on phones, while Reading keeps the learner’s prose measure. Empty Visuals explains
+the space and offers Return to reading; invalid references remain unavailable entries.
+A skeleton fills the canvas while its code/HTML opens. Run failures offer retry;
+offline uncached visuals explain that a connection is needed. Switching back stops
+iframes and restores Reading’s saved scroll and highlights. `?view=visuals` opens
+the tab directly; browser back returns to the prior view. Tabs support keyboard
+navigation and use the existing theme tokens and 44px touch targets. The view controls stay reachable while scrolling; browser
+scroll anchoring is disabled in the reader so lazy media cannot displace the saved
+reading position.
+
+Standalone `::artifact` declarations are chapter attachments, collected in order
+and omitted from Reading. Existing inline declarations work without a data rewrite.
+Only Run fetches local HTML and creates a scripts-only iframe with a first-document
+CSP; never `allow-same-origin`. Full screen uses CSS and portals to the body; Escape
+exits. Successful file and image reads use the existing bounded offline API cache, cleared on sign-out. Chat shows
 media directives as plain links and only local images from its own set.
 
 Books use local images, YouTube thumbnails with times/links, light chart SVGs and
-artifact posters/captions. Mermaid's existing diagram-in-the-app caption remains
-until mmdc rendering is implemented.
+a chapter-end “Visuals in Studium” section with artifact posters/titles and a
+pointer to that chapter’s Visuals tab. Missing posters become text pointers. Mermaid’s
+existing diagram-in-the-app caption remains until mmdc rendering is implemented.

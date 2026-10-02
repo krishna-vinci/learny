@@ -1,5 +1,12 @@
 import { expect, it } from "vitest";
-import { mediaAttributes, parseInlineChart, resolveNoteMedia, youtubeDirective, youtubeVideoId } from "./media.js";
+import {
+  chapterVisuals,
+  mediaAttributes,
+  parseInlineChart,
+  resolveNoteMedia,
+  youtubeDirective,
+  youtubeVideoId,
+} from "./media.js";
 
 it("resolves note-relative media without ever traversing out of the set", () => {
   expect(resolveNoteMedia("alpha/notes/x.md", "../assets/x.svg")).toEqual({ set: "alpha", path: "assets/x.svg" });
@@ -110,4 +117,38 @@ it("accepts encoded IDs and default ports but refuses invalid escapes and nocook
     "https://youtu.be/dQw4w9WgXcQ%2Fjunk",
   ])
     expect(youtubeVideoId(url)).toBeNull();
+});
+
+it("collects ordered chapter attachments, removes legacy inline declarations and preserves code examples", () => {
+  const first = '::artifact{src="../artifacts/first.html" poster="../artifacts/first.svg" title="First"}';
+  const second = '::artifact{src="../artifacts/second.html" title="Second"}';
+  const code = `\`\`\`\`md\n${second}\n\`\`\`\n${second}\n\`\`\`\``;
+  const input = `Before.\n${first}\nMiddle.\n${code}\n${second}\n${first}\nAfter.`;
+  const result = chapterVisuals(input, "alpha/notes/x.md");
+  expect(result.visuals).toEqual([
+    { src: "alpha/artifacts/first.html", poster: "alpha/artifacts/first.svg", title: "First" },
+    { src: "alpha/artifacts/second.html", title: "Second" },
+  ]);
+  expect(result.body).toContain(code);
+  expect(result.body).not.toContain(first);
+  expect(result.body).toContain("Middle.");
+  expect(result.body).toContain("After.");
+  expect(chapterVisuals(`~~~md\n${first}\n~~~\n    ${second}`, "alpha/notes/x.md").visuals).toEqual([]);
+});
+
+it("keeps invalid references unavailable without allowing other sets, schemes or non-artifact HTML", () => {
+  for (const src of [
+    "../../beta/artifacts/x.html",
+    "../notes/x.html",
+    "https://evil.test/x.html",
+    "../artifacts/x.js",
+  ]) {
+    expect(chapterVisuals(`::artifact{src="${src}" title="Fix me"}`, "alpha/notes/x.md").visuals).toEqual([
+      { title: "Fix me" },
+    ]);
+  }
+  expect(
+    chapterVisuals('::artifact{src="../artifacts/a.html" poster="../assets/a.svg"}', "alpha/notes/x.md").visuals,
+  ).toEqual([{ title: "Interactive figure" }]);
+  expect(chapterVisuals("Plain prose", "alpha/notes/x.md")).toEqual({ body: "Plain prose", visuals: [] });
 });

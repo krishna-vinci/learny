@@ -31,6 +31,7 @@ Rules:
 - Move content to `:::deeper` rather than deleting useful advanced context unless the plan excludes it.
 - Preserve all `[^src:...]` references and their footnote definitions. If moving cited text, move its citation with it.
 - Register new facts from web or documentation lookups with `add_source` before adding them to the note, then keep citations to the registered source. If registration is unavailable, report the URL to the owner and leave the proposed addition pending.
+- Preserve chapter `::artifact{…}` attachments and their files. Load `media-authoring` when adding an interactive visual: create HTML/poster files, then append a standalone declaration at the chapter end for the Visuals tab. Do not squeeze interactive HTML into prose or delete attachment declarations while pruning text.
 - Keep frontmatter `status` unchanged unless the workflow explicitly authorizes a transition.
 
 ## Resolve conflicts with evidence

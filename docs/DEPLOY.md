@@ -77,7 +77,7 @@ warn against exposing port 3000 directly.
 | Path traversal / symlink escape | file tools resolve real paths and must stay inside the study root; no bash |
 | Exfiltration through search/fetch queries | low-value data; tool calls visible in chat; no email/webhook tools for agents |
 | Agent writes to Anki | not possible; export is a user action |
-| Agent-generated JS sims | `<iframe sandbox="allow-scripts">` without `allow-same-origin`, separate origin + CSP |
+| Agent-generated JS sims | Chapter Visuals only, Run to load; `<iframe sandbox="allow-scripts">` without `allow-same-origin`, opaque origin + first-document CSP; connections/frames/objects/forms/base changes denied (D31) |
 | Raw HTML in notes | rehype-sanitize |
 
 ## Secrets

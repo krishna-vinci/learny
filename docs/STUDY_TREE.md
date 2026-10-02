@@ -140,7 +140,7 @@ learner's message. Chat listing is derived (cache), never hand-maintained.
 Tracked: everything except originals, chats and `.cache/`. Commits are made by the app
 after each agent mutation, with the agent role and a short summary as the message.
 
-## Media (D29)
+## Media (D29, D31)
 
 `<set>/assets/**` holds saved raster images, SVG figures and image-credit sidecars;
 `<set>/artifacts/**` holds self-contained HTML and static poster SVGs. Both are
@@ -161,3 +161,23 @@ Vega-Lite charts are `vega-lite` JSON fences with inline `data.values` only.
 PNG, JPEG, GIF and WebP may be downloaded; SVG must be written by an agent. No AVIF.
 See D29 for limits and web/book behavior. The files remain usable in Obsidian/GitHub:
 local images render there; directives, HTML and chart specs stay readable as files.
+
+
+### Chapter visual attachments (D31)
+
+Standalone `::artifact{…}` leaf declarations associate HTML with the chapter that
+contains them. Append new declarations at the end, after prose/footnotes, without
+a registry heading. Do not nest them in lists, blockquotes or callouts; fenced and
+indented examples are code. The existing `src`, optional `poster` and `title`
+attributes are unchanged. No frontmatter field, index or sidecar is added.
+The same file may be attached to several chapters; duplicate references within
+one chapter yield one visual (first declaration wins). Order is declaration order.
+Paths resolve relative to the chapter within its own set’s `artifacts/` folder.
+Invalid references yield unavailable entries; missing files are retryable on Run.
+
+The app collects attachments into a chapter Visuals view and omits declarations
+from the reading body, including legacy declarations placed among paragraphs. No
+on-disk migration is needed. Agents create HTML plus a static SVG poster with the
+existing file tools and then append a declaration, preserving existing attachments
+during edits. The existing book compiler appends poster/title/text pointers at the
+chapter end; it never reads or executes interactive HTML. See D31 for behavior.

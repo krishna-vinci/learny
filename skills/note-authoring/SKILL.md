@@ -94,4 +94,4 @@ A Context7 page counts as a source only after it is registered in `library/`. Us
 3. Ensure one idea per section, every nontrivial claim cited or marked uncertain, and no private source text.
 4. Preserve user-authored wording unless the requested edit requires changing it.
 
-For purposeful visuals in notes, load `media-authoring` and follow its local-file and static-book rules.
+For purposeful visuals, load `media-authoring`. Keep static figures/charts and YouTube inline; attach interactive HTML to the chapter’s Visuals tab with standalone `::artifact{…}` declarations at the note end. Prose must stand alone; preserve existing attachment references during edits.

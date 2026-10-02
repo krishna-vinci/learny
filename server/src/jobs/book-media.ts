@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import {
+  chapterVisuals,
   formatMediaTime,
   mediaAttributes,
   resolveNoteMedia,
@@ -66,14 +67,15 @@ export function createBookMedia(root: string, temp: string) {
     }
   }
   return async (body: string, notePath: string): Promise<string> => {
+    const chapter = chapterVisuals(body, notePath);
     // Leave fenced examples intact. Reference-style images share the same path resolution.
     let fence = "";
     let length = 0;
     const definitions = new Map<string, string>();
-    for (const match of body.matchAll(/^ {0,3}\[([^\]^]+)\]:\s*<?([^\s>]+)>?/gm))
+    for (const match of chapter.body.matchAll(/^ {0,3}\[([^\]^]+)\]:\s*<?([^\s>]+)>?/gm))
       definitions.set(match[1]?.toLowerCase() ?? "", match[2] ?? "");
     const lines: string[] = [];
-    const sourceLines = body.split("\n");
+    const sourceLines = chapter.body.split("\n");
     for (let lineIndex = 0; lineIndex < sourceLines.length; lineIndex++) {
       const line = sourceLines[lineIndex] ?? "";
       const marker = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
@@ -108,21 +110,6 @@ export function createBookMedia(root: string, temp: string) {
         lines.push(line);
         continue;
       }
-      const artifact = /^::artifact\{(.*)\}$/.exec(line);
-      if (artifact) {
-        const attrs = mediaAttributes(artifact[1] ?? "");
-        const media = attrs?.src ? resolveNoteMedia(notePath, attrs.src, "html") : null;
-        const poster = attrs?.poster ? resolveNoteMedia(notePath, attrs.poster, "poster") : null;
-        if (!media || (attrs?.poster && !poster)) {
-          lines.push("(interactive figure unavailable)");
-          continue;
-        }
-        const title = (attrs?.title ?? "Interactive figure").replace(/[[\]<>\n]/g, " ");
-        const caption = `Interactive: ${title} — open this chapter in Studium`;
-        const target = poster && attrs?.poster ? await copyImage(notePath, attrs.poster) : null;
-        lines.push(target ? `![${caption}](${target})` : caption);
-        continue;
-      }
       const video = await youtube(line);
       if (video !== null) {
         lines.push(video);
@@ -139,6 +126,20 @@ export function createBookMedia(root: string, temp: string) {
         offset = match.index + match[0].length;
       }
       lines.push(updated + line.slice(offset));
+    }
+    if (chapter.visuals.length) {
+      lines.push("", "## Visuals in Studium", "");
+      for (const visual of chapter.visuals) {
+        const title = visual.title.replace(/[[\]<>\n*_`\\]/g, " ");
+        const caption = visual.src
+          ? `Interactive: ${title} — open this chapter's Visuals tab in Studium`
+          : `Interactive: ${title} (unavailable)`;
+        // The compiler copies only the static poster, never reads or runs the HTML.
+        const target = visual.poster
+          ? await copyImage(notePath, path.posix.relative(path.posix.dirname(notePath), visual.poster))
+          : null;
+        lines.push(target ? `![${caption}](${target})` : caption, "");
+      }
     }
     return lines.join("\n");
   };

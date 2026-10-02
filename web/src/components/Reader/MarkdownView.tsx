@@ -24,7 +24,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } fro
 
 const Citation = lazy(() => import("./Citation").then((module) => ({ default: module.Citation })));
 const CodeBlock = lazy(() => import("./CodeBlock").then((module) => ({ default: module.CodeBlock })));
-const ArtifactBlock = lazy(() => import("./ArtifactBlock").then((module) => ({ default: module.ArtifactBlock })));
 const YouTubeEmbed = lazy(() => import("./YouTubeEmbed").then((module) => ({ default: module.YouTubeEmbed })));
 
 type MarkdownRehypePlugins = NonNullable<ComponentProps<typeof ReactMarkdown>["rehypePlugins"]>;
@@ -44,22 +43,8 @@ const markdownComponents: Components = {
   div: ({ children, node: _node, ...rest }) => {
     const props = asProps(rest);
     const artifact = props["data-artifact"];
-    if (typeof artifact === "string")
-      return (
-        <Suspense fallback={<div className="my-4 aspect-[16/10] bg-muted" aria-busy="true" />}>
-          <ArtifactBlock
-            key={artifact}
-            src={artifact}
-            poster={
-              typeof props["data-artifact-poster"] === "string" ? (props["data-artifact-poster"] as string) : undefined
-            }
-            title={
-              typeof props["data-artifact-title"] === "string" ? (props["data-artifact-title"] as string) : undefined
-            }
-          />
-        </Suspense>
-      );
-    if (props["data-artifact-unavailable"]) return <div className="text-sm text-muted-foreground">{children}</div>;
+    // Chapter artifacts live in the reader's Visuals view; never instantiate one in prose.
+    if (typeof artifact === "string" || props["data-artifact-unavailable"]) return null;
     const video = props["data-youtube"];
     if (typeof video === "string")
       return (

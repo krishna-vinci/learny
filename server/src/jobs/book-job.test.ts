@@ -255,9 +255,11 @@ it("copies confined SVG and PNG references before compiling, preserving remote c
   );
   await fs.writeFile(path.join(root, "linear-algebra/assets/x.svg"), svg);
   await fs.writeFile(path.join(root, "linear-algebra/assets/x.png"), png);
+  await fs.mkdir(path.join(root, "linear-algebra/artifacts"));
+  await fs.writeFile(path.join(root, "linear-algebra/artifacts/visual.svg"), svg);
   await fs.appendFile(
     path.join(root, "linear-algebra/notes/01-vectors.md"),
-    "\n![SVG](../assets/x.svg)\n\n![PNG](../assets/x.png)\n\n![Remote](https://example.org/image.png)\n\n![Reference][x]\n![Short]\n[x]: ../assets/x.svg\n[Short]: ../assets/x.png\n",
+    '\n![SVG](../assets/x.svg)\n\n![PNG](../assets/x.png)\n\n![Remote](https://example.org/image.png)\n\n![Reference][x]\n![Short]\n[x]: ../assets/x.svg\n[Short]: ../assets/x.png\n\n::artifact{src="../artifacts/not-read.html" poster="../artifacts/visual.svg" title="Explore vectors"}\n',
   );
   const book = await assembleBook(root, "linear-algebra", new Date(), undefined, createBookMedia(root, temp));
   expect(book.markdown).toContain("![SVG](media/image-1.svg)");
@@ -265,6 +267,10 @@ it("copies confined SVG and PNG references before compiling, preserving remote c
   expect(book.markdown).toContain("![Reference](media/image-1.svg)");
   expect(book.markdown).toContain("![Short](media/image-2.png)");
   expect(book.markdown).toContain("https://example.org/image.png");
+  expect(book.markdown).toContain("## Visuals in Studium");
+  expect(book.markdown).toContain(
+    "![Interactive: Explore vectors — open this chapter's Visuals tab in Studium](media/image-3.svg)",
+  );
   expect(await fs.readFile(path.join(temp, "media/image-1.svg"), "utf8")).toBe(svg);
   expect(await fs.readFile(path.join(temp, "media/image-2.png"))).toEqual(png);
   if (hasBinaries) await createBookJob({ root, locks: new FileLocks() })({ set: "linear-algebra" }, context());
@@ -326,10 +332,12 @@ it("uses an artifact's poster and static caption without reading its HTML", asyn
     '::artifact{src="../artifacts/demo.html" poster="../artifacts/demo.svg" title="Projection"}',
     "linear-algebra/notes/x.md",
   );
-  expect(text).toBe("![Interactive: Projection — open this chapter in Studium](media/image-1.svg)");
+  expect(text).toContain(
+    "## Visuals in Studium\n\n![Interactive: Projection — open this chapter's Visuals tab in Studium](media/image-1.svg)",
+  );
   expect(
     await prepare('::artifact{src="../artifacts/demo.html" title="Projection"}', "linear-algebra/notes/x.md"),
-  ).toBe("Interactive: Projection — open this chapter in Studium");
+  ).toContain("Interactive: Projection — open this chapter's Visuals tab in Studium");
 });
 
 it("passes rewritten Markdown and copied image bytes to the compiler process", async () => {
@@ -345,4 +353,21 @@ it("passes rewritten Markdown and copied image bytes to the compiler process", a
   });
   await createBookJob({ root, locks: new FileLocks(), run })({ set: "linear-algebra" }, context());
   expect(run.mock.calls.map(([binary]) => binary)).toEqual(["pandoc", "typst"]);
+});
+
+it("collects visual fallbacks after prose, deduplicates attachments and keeps fenced examples inert", async () => {
+  const { createBookMedia } = await import("./book-media.js");
+  const temp = await fs.mkdtemp(path.join(root, "visuals-test-"));
+  const prepare = createBookMedia(root, temp);
+  const visual = '::artifact{src="../artifacts/demo.html" poster="../artifacts/missing.svg" title="Explore"}';
+  const code = `\`\`\`md\n${visual}\n\`\`\``;
+  const text = await prepare(
+    `Opening.\n${visual}\nClosing.\n${visual}\n${code}\n::artifact{src="../../beta/artifacts/x.html"}`,
+    "linear-algebra/notes/x.md",
+  );
+  expect(text.indexOf("## Visuals in Studium")).toBeGreaterThan(text.indexOf("Closing."));
+  expect(text).toContain(code);
+  expect(text.match(/Interactive: Explore/g)).toHaveLength(1);
+  expect(text).toContain("Interactive: Interactive figure (unavailable)");
+  expect(text).not.toContain("media/image");
 });

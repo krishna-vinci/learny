@@ -1,5 +1,7 @@
+import { chapterVisuals } from "@studium/shared/media";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { ChapterVisuals } from "./ChapterVisuals";
 import { MarkdownView } from "./MarkdownView";
 
 // `vitest.config.ts` runs with `globals: false`, so @testing-library/react's automatic
@@ -140,9 +142,14 @@ it("runs an artifact only after tapping with an exact sandbox and first-document
   }));
   vi.stubGlobal("fetch", fetch);
   render(
-    <MarkdownView
-      notePath="alpha/notes/x.md"
-      content={'::artifact{src="../artifacts/demo.html" poster="../artifacts/demo.svg" title="Explore vectors"}'}
+    <ChapterVisuals
+      visuals={
+        chapterVisuals(
+          '::artifact{src="../artifacts/demo.html" poster="../artifacts/demo.svg" title="Explore vectors"}',
+          "alpha/notes/x.md",
+        ).visuals
+      }
+      onRead={() => {}}
     />,
   );
   expect((await screen.findByAltText("Explore vectors")).getAttribute("src")).toBe(
@@ -160,8 +167,13 @@ it("runs an artifact only after tapping with an exact sandbox and first-document
 });
 it("rejects artifacts outside the set, under notes or with the wrong extension", () => {
   for (const src of ["../../beta/artifacts/x.html", "../notes/x.html", "../artifacts/x.js"]) {
-    const view = render(<MarkdownView notePath="alpha/notes/x.md" content={`::artifact{src="${src}"}`} />);
-    expect(screen.getByText("(interactive figure unavailable)")).toBeTruthy();
+    const view = render(
+      <ChapterVisuals
+        visuals={chapterVisuals(`::artifact{src="${src}"}`, "alpha/notes/x.md").visuals}
+        onRead={() => {}}
+      />,
+    );
+    expect(screen.getByText("This visual is unavailable. Its chapter reference needs to be corrected.")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
     view.unmount();
   }
@@ -172,7 +184,12 @@ it("shows an artifact fetch failure and allows retry", async () => {
     .mockRejectedValueOnce(new Error("offline"))
     .mockResolvedValueOnce({ ok: true, json: async () => ({ raw: "<p>Ready</p>" }) });
   vi.stubGlobal("fetch", fetch);
-  render(<MarkdownView notePath="alpha/notes/x.md" content={'::artifact{src="../artifacts/demo.html"}'} />);
+  render(
+    <ChapterVisuals
+      visuals={chapterVisuals('::artifact{src="../artifacts/demo.html"}', "alpha/notes/x.md").visuals}
+      onRead={() => {}}
+    />,
+  );
   fireEvent.click(screen.getByRole("button", { name: "Run" }));
   expect(await screen.findByRole("alert")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Try again" }));
@@ -296,4 +313,48 @@ it("embeds heading videos but keeps table and footnote links plain", async () =>
   expect(container.querySelector("td section, td [data-youtube]")).toBeNull();
   expect(container.querySelector("td a[href*='youtu']")).not.toBeNull();
   expect(container.querySelector("section[data-footnotes] [data-youtube], .footnotes [data-youtube]")).toBeNull();
+});
+
+it("keeps interactive references out of Markdown reading, including unavailable ones", () => {
+  const fetch = vi.fn();
+  vi.stubGlobal("fetch", fetch);
+  render(
+    <MarkdownView
+      notePath="alpha/notes/x.md"
+      content={
+        'Before.\n\n::artifact{src="../artifacts/demo.html" title="Explore"}\n\n::artifact{src="../notes/bad.html"}\n\nAfter.'
+      }
+    />,
+  );
+  expect(screen.getByText("Before.")).toBeTruthy();
+  expect(screen.getByText("After.")).toBeTruthy();
+  expect(screen.queryByText("Explore")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
+  expect(fetch).not.toHaveBeenCalled();
+});
+
+it("defends artifact props outside the chapter parser and blocks hostile CSP overrides", async () => {
+  const { ArtifactBlock, ARTIFACT_CSP } = await import("./ArtifactBlock");
+  const fetch = vi.fn(async () => ({
+    ok: true,
+    json: async () => ({
+      raw: '<meta http-equiv="Content-Security-Policy" content="default-src *"><script>parent.document.body.textContent="owned"</script>',
+    }),
+  }));
+  vi.stubGlobal("fetch", fetch);
+  const view = render(<ArtifactBlock src="alpha/notes/unsafe.html" />);
+  expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
+  expect(fetch).not.toHaveBeenCalled();
+  view.rerender(<ArtifactBlock src="alpha/artifacts/demo.html" poster="beta/artifacts/poster.svg" />);
+  expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
+  view.rerender(<ArtifactBlock src="alpha/artifacts/demo.html" />);
+  fireEvent.click(screen.getByRole("button", { name: "Run" }));
+  await waitFor(() => expect(document.querySelector("iframe")).not.toBeNull());
+  const frame = document.querySelector("iframe");
+  expect(frame?.getAttribute("sandbox")).toBe("allow-scripts");
+  expect(frame?.getAttribute("referrerpolicy")).toBe("no-referrer");
+  expect(frame?.getAttribute("srcdoc")?.startsWith(ARTIFACT_CSP)).toBe(true);
+  expect(ARTIFACT_CSP).toContain("connect-src 'none'");
+  expect(ARTIFACT_CSP).toContain("form-action 'none'");
+  expect(frame?.hasAttribute("allow")).toBe(false);
 });
