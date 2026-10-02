@@ -3,7 +3,9 @@ import path from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { defineTool, type ModelRuntime, type ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { parseFrontmatter } from "@studium/shared";
+import { parseYoutubeVideo } from "@studium/shared/media";
 import { Type } from "typebox";
+import { mediaWarnings } from "../agent/media-warnings.js";
 import { noteLint } from "../agent/note-lint.js";
 import { rethrowRoleModelError, runRole } from "../agent/run-role.js";
 import type { EventHub } from "../events.js";
@@ -139,6 +141,8 @@ async function setChecked(
   const note = await readText(deps.root, noteRootPath);
   if (noteLint(noteRootPath, note).length > 0)
     throw new Error("cannot mark a note checked while teaching lint hits remain");
+  if ((await mediaWarnings(deps.root, noteRootPath, note)).some((warning) => warning.startsWith("Video source ")))
+    throw new Error("cannot mark a note checked while a cited video is missing its watch link");
   if (noteStatus(note) === "checked") return;
   if (noteStatus(note) !== "draft") throw new Error("only a draft note can be marked checked");
   const oldLine = frontmatterStatusLine(note);
@@ -228,21 +232,42 @@ async function reserveNotePath(
   return { notePath, release: () => reserved.delete(order) };
 }
 
+async function videoSourceInstructions(root: string, sources: string[]): Promise<string> {
+  const videos: string[] = [];
+  for (const id of sources) {
+    const { frontmatter } = parseFrontmatter(await readText(root, `library/${id}/source.md`));
+    const video =
+      frontmatter.type === "video" && typeof frontmatter.url === "string" ? parseYoutubeVideo(frontmatter.url) : null;
+    if (video) videos.push(`${id}: https://www.youtube.com/watch?v=${video.id}`);
+  }
+  if (!videos.length) return "";
+  return [
+    "Registered video sources (exact IDs/URLs; do not substitute search results or example URLs):",
+    ...videos,
+    "For each video source used, include a descriptive Markdown watch link near the concept it supports.",
+    "Choose a timestamp only from a <!-- t:N --> marker in the relevant parsed transcript; never invent timestamps.",
+    "Use a timed link and [^src:<id>#tN] with a human-readable footnote when supported; otherwise link the whole video and cite [^src:<id>].",
+    "Ordinary Markdown links also render as click-to-load players. Use ::youtube only when explicit start/end bounds are useful, and keep a Markdown link for portability.",
+  ].join("\n");
+}
+
 function draftTask(
   input: DraftChapterInput,
   notePath: string,
   plan: string,
   curriculum: string,
   sources: string[],
+  videoInstructions: string,
 ): string {
   return [
-    "Load the draft-chapter and note-authoring skills, then draft one new chapter.",
+    "Load the draft-chapter, note-authoring and media-authoring skills, then draft one new chapter.",
     `Title: ${input.title}`,
     `Brief: ${input.brief ?? "Follow the approved plan and curriculum."}`,
     `Allowed source ids: ${sources.join(", ") || "(none)"}`,
     `Create exactly ${notePath} (this exact path was reserved for you) with status: draft.`,
     "You may also write assets/ and artifacts/ for this chapter. Do not modify other notes or files.",
     "Read source.md and parsed.md or parsed/*.md directly under library/<id>/ for support.",
+    videoInstructions,
     "",
     "## PLAN.md",
     plan,
@@ -321,6 +346,7 @@ function createChapterJob(deps: DraftJobDeps, rewriting: boolean): JobHandler {
       optionalText(deps.root, `${input.set}/curriculum.md`),
     ]);
     const sources = await resolveDraftSources(deps.root, plan, input.sources);
+    const videoInstructions = await videoSourceInstructions(deps.root, sources);
     if (sources.length === 0) {
       throw new Error(
         "This set has no sources yet. Add a source in the Library (or ask the tutor to find some), then retry.",
@@ -376,12 +402,13 @@ function createChapterJob(deps: DraftJobDeps, rewriting: boolean): JobHandler {
               `Only ${notePath}, assets/ and artifacts/ are writable. Do not create another chapter.`,
               `Allowed source ids: ${sources.join(", ")}`,
               "Verify retained claims against their registered library sources.",
+              videoInstructions,
               "## PLAN.md",
               plan,
               "## curriculum.md",
               curriculum,
             ].join("\n")
-          : draftTask(input, notePath, plan, curriculum, sources),
+          : draftTask(input, notePath, plan, curriculum, sources, videoInstructions),
         locks: deps.locks,
         mcp: deps.mcp,
         runtime: deps.runtime,
@@ -447,7 +474,13 @@ function createChapterJob(deps: DraftJobDeps, rewriting: boolean): JobHandler {
         }).catch(rethrowRoleModelError);
         ctx.addUsage(usageFromPiMessages(result.messages));
         let report = await readText(deps.root, reportRootPath);
-        const lint = noteLint(noteRootPath, await readText(deps.root, noteRootPath));
+        const checkedNote = await readText(deps.root, noteRootPath);
+        const lint = [
+          ...noteLint(noteRootPath, checkedNote),
+          ...(await mediaWarnings(deps.root, noteRootPath, checkedNote)).filter((warning) =>
+            warning.startsWith("Video source "),
+          ),
+        ];
         if (lint.length > 0 && !hasBlockingIssues(report)) {
           report += `\n## Teaching quality\n\n${lint.map((warning, i) => `### ${i + 1}. Blocker — ${warning}`).join("\n\n")}\n`;
           const holder = `checker:lint:${crypto.randomUUID()}`;
@@ -472,9 +505,10 @@ function createChapterJob(deps: DraftJobDeps, rewriting: boolean): JobHandler {
           root: deps.root,
           set: input.set,
           task: [
-            "Load the draft-chapter and note-authoring skills.",
+            "Load the draft-chapter, note-authoring and media-authoring skills.",
             `Revise ${notePath} surgically to resolve every blocker in ${reportPath}.`,
             "Preserve correct content and citations, and keep status: draft for re-checking.",
+            videoInstructions,
           ].join("\n"),
           locks: deps.locks,
           mcp: deps.mcp,

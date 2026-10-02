@@ -1,5 +1,12 @@
 import { promises as fs } from "node:fs";
-import { mediaAttributes, resolveNoteMedia, youtubeDirective, youtubeVideoId } from "@studium/shared/media";
+import { parseFrontmatter } from "@studium/shared";
+import {
+  mediaAttributes,
+  parseYoutubeVideo,
+  resolveNoteMedia,
+  youtubeDirective,
+  youtubeVideoId,
+} from "@studium/shared/media";
 import { listSources } from "../ingest/library.js";
 import { canonicalRel, resolveInRoot } from "../tree/paths.js";
 
@@ -7,6 +14,8 @@ import { canonicalRel, resolveInRoot } from "../tree/paths.js";
 export async function mediaWarnings(root: string, notePath: string, text: string): Promise<string[]> {
   if (!/^[^/]+\/notes\/.+\.md$/.test(notePath)) return [];
   const warnings: string[] = [];
+  const { frontmatter, body } = parseFrontmatter(text);
+  const linkedVideos = new Set<string>();
   let sources: Awaited<ReturnType<typeof listSources>> | undefined;
   async function exists(src: string, kind: "image" | "html" | "poster" = "image") {
     const media = resolveNoteMedia(notePath, src, kind);
@@ -25,22 +34,39 @@ export async function mediaWarnings(root: string, notePath: string, text: string
   for (const match of text.matchAll(/^ {0,3}\[([^\]^]+)\]:\s*<?([^\s>]+)>?/gm))
     definitions.set((match[1] ?? "").toLowerCase(), match[2] ?? "");
   let fence = "";
-  for (const line of text.split("\n")) {
-    const marker = /^ {0,3}(`{3,}|~{3,})/.exec(line);
-    if (marker?.[1]) {
-      fence = fence ? "" : marker[1];
+  for (const line of body.replace(/<!--[\s\S]*?-->/g, "").split("\n")) {
+    const marker = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
+    if (fence) {
+      if (marker?.[1] && marker[1][0] === fence[0] && marker[1].length >= fence.length && !marker[2]?.trim())
+        fence = "";
       continue;
     }
-    if (fence) continue;
+    if (marker?.[1]) {
+      fence = marker[1];
+      continue;
+    }
     for (const match of line.matchAll(/!\[([^\]]*)\](?:\(<?([^\s)>]+)>?(?:\s+["'][^"']*["'])?\)|\[([^\]]*)\])?/g)) {
       const src = match[2] ?? definitions.get((match[3] || match[1] || "").toLowerCase());
       if (src && !src.startsWith("https:")) await exists(src);
+    }
+    const linkLine = line.replace(/(`+).*?\1/g, "").replace(/<(?!(?:https?:)?\/\/)[^>]*>/gi, "");
+    for (const url of linkLine.matchAll(
+      /(?:https?:\/\/|\/\/)[^\s<>"')\]]+|(?:^|[\s(])(?:(?:www|m|music)\.)?(?:youtube(?:-nocookie)?\.com|youtu\.be)\/[^\s<>"')\]]+/gi,
+    )) {
+      const video = parseYoutubeVideo(
+        url[0]
+          .trim()
+          .replace(/^\(/, "")
+          .replace(/[.,!?:;]+$/, ""),
+      );
+      if (video) linkedVideos.add(video.id);
     }
     const match = /^::(youtube|artifact)\{(.*)\}$/.exec(line);
     if (!match) continue;
     const attrs = mediaAttributes(match[2] ?? "");
     if (match[1] === "youtube") {
       const video = attrs ? youtubeDirective(attrs) : null;
+      if (video) linkedVideos.add(video.id);
       sources ??= await listSources(root);
       if (!video || !sources.some((s) => s.type === "video" && s.url && youtubeVideoId(s.url) === video.id))
         warnings.push(
@@ -49,6 +75,18 @@ export async function mediaWarnings(root: string, notePath: string, text: string
     } else if (attrs?.src) {
       await exists(attrs.src, "html");
       if (attrs.poster) await exists(attrs.poster, "poster");
+    }
+  }
+  const cited = frontmatter.sources;
+  if (Array.isArray(cited) && cited.length) {
+    sources ??= await listSources(root);
+    for (const source of sources) {
+      if (!cited.includes(source.id) || source.type !== "video" || !source.url) continue;
+      const video = parseYoutubeVideo(source.url);
+      if (video && !linkedVideos.has(video.id))
+        warnings.push(
+          `Video source ${source.id} needs a watch link near the concept it supports: https://www.youtube.com/watch?v=${video.id}. Use transcript timestamps when present; never invent them.`,
+        );
     }
   }
   return [...new Set(warnings)];

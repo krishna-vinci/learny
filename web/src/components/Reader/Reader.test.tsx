@@ -178,3 +178,122 @@ it("shows an artifact fetch failure and allows retry", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Try again" }));
   await waitFor(() => expect(document.querySelector("iframe")).not.toBeNull());
 });
+
+it.each([
+  ["https://youtube.com/watch?v=dQw4w9WgXcQ&t=843", 843],
+  ["https://youtu.be/dQw4w9WgXcQ?si=abc&t=14m3s", 843],
+  ["https://m.youtube.com/watch?v=dQw4w9WgXcQ#t=2385", 2385],
+  ["https://music.youtube.com/watch?v=dQw4w9WgXcQ&list=abc", 0],
+  ["https://youtube.com/shorts/dQw4w9WgXcQ", 0],
+  ["https://youtube.com/embed/dQw4w9WgXcQ?start=12&end=20", 12],
+  ["https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ", 0],
+  ["https://www.youtu.be/dQw4w9WgXcQ", 0],
+])("embeds ordinary Markdown video links %s after a click", async (url, start) => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => ({ ok: false })),
+  );
+  const { container } = render(<MarkdownView content={`Watch [this **lecture**](${url}) for the example.`} />);
+  const button = await screen.findByRole("button", { name: "Play video" });
+  expect(screen.getByRole("link", { name: "this lecture" }).getAttribute("href")).toBe(url);
+  expect(container.querySelector("p section, p div, a section")).toBeNull();
+  expect(container.querySelector("iframe")).toBeNull();
+  fireEvent.click(button);
+  const iframe = container.querySelector("iframe");
+  expect(iframe?.getAttribute("src")).toContain(`/embed/dQw4w9WgXcQ?start=${start}`);
+  expect(iframe?.getAttribute("referrerpolicy")).toBe("strict-origin-when-cross-origin");
+});
+it.each([
+  "https://youtu.be/dQw4w9WgXcQ?t=12",
+  "<https://youtu.be/dQw4w9WgXcQ?t=12>",
+  "youtu.be/dQw4w9WgXcQ?t=12",
+  "www.youtube.com/watch?v=dQw4w9WgXcQ&t=12",
+  "[Lecture][video]\n\n[video]: https://youtu.be/dQw4w9WgXcQ?t=12",
+  "> [Lecture](https://youtu.be/dQw4w9WgXcQ?t=12)",
+  "- [Lecture](https://youtu.be/dQw4w9WgXcQ?t=12)",
+  '::youtube{src="https://youtu.be/dQw4w9WgXcQ?t=12"}',
+])("embeds pasted, reference and directive forms: %s", async (content) => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => ({ ok: false })),
+  );
+  render(<MarkdownView content={content} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Play video" }));
+  expect(document.querySelector("iframe")?.getAttribute("src")).toContain("?start=12");
+});
+it("leaves code, channel links, lookalikes and hostile HTML inert", async () => {
+  render(
+    <MarkdownView
+      content={
+        '`https://youtu.be/dQw4w9WgXcQ`\n\n```md\nhttps://youtu.be/dQw4w9WgXcQ\n```\n\n[Channel](https://youtube.com/unesco)\n\n[Fake](https://youtube.com.evil.test/watch?v=dQw4w9WgXcQ)\n\n::youtube{src="javascript:alert(1)"}\n\n<div data-youtube="dQw4w9WgXcQ"><script>alert(1)</script></div>'
+      }
+    />,
+  );
+  await screen.findByText("Channel");
+  expect(screen.queryByRole("button", { name: "Play video" })).toBeNull();
+  expect(document.querySelector("iframe, script, [href^='javascript:']")).toBeNull();
+});
+it("deduplicates a repeated moment in one paragraph and keeps distinct moments", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => ({ ok: false })),
+  );
+  render(
+    <MarkdownView
+      content={
+        "[One](https://youtu.be/dQw4w9WgXcQ?t=12) and [same](https://youtube.com/watch?v=dQw4w9WgXcQ&t=12), then [two](https://youtu.be/dQw4w9WgXcQ?t=20)."
+      }
+    />,
+  );
+  await waitFor(() => expect(screen.getAllByRole("button", { name: "Play video" })).toHaveLength(2));
+});
+
+it("keeps a portable link next to its explicit segment without duplicating the player", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => ({ ok: false })),
+  );
+  render(
+    <MarkdownView
+      content={
+        '[Watch at 14:03](https://youtu.be/dQw4w9WgXcQ?t=843)\n\n::youtube{src="https://youtu.be/dQw4w9WgXcQ" start=843 end=900}'
+      }
+    />,
+  );
+  expect(await screen.findByRole("button", { name: "Play video" })).toBeTruthy();
+  expect(screen.getAllByRole("button", { name: "Play video" })).toHaveLength(1);
+  expect(screen.getByRole("link", { name: "Watch at 14:03" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Play video" }));
+  expect(document.querySelector("iframe")?.getAttribute("src")).toContain("start=843&end=900");
+});
+
+it("validates the player component props even outside the Markdown pipeline", async () => {
+  const { YouTubeEmbed } = await import("./YouTubeEmbed");
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => ({ ok: false })),
+  );
+  render(<YouTubeEmbed id={'x" onload="alert(1)'} start={0} />);
+  expect(screen.getByText("(video unavailable)")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Play video" })).toBeNull();
+  expect(document.querySelector("iframe")).toBeNull();
+});
+
+it("embeds heading videos but keeps table and footnote links plain", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => ({ ok: false })),
+  );
+  const { container } = render(
+    <MarkdownView
+      content={
+        "## [Lecture](https://youtu.be/dQw4w9WgXcQ)\n\n| Video |\n| --- |\n| [Example](https://youtu.be/dQw4w9WgXcQ?t=12) |\n\nSee the talk.[^v]\n\n[^v]: Talk, https://youtu.be/dQw4w9WgXcQ?t=30"
+      }
+    />,
+  );
+  await waitFor(() => expect(screen.getAllByRole("button", { name: "Play video" })).toHaveLength(1));
+  expect(container.querySelector("h2 section, tr > section, tr > div")).toBeNull();
+  expect(container.querySelector("td section, td [data-youtube]")).toBeNull();
+  expect(container.querySelector("td a[href*='youtu']")).not.toBeNull();
+  expect(container.querySelector("section[data-footnotes] [data-youtube], .footnotes [data-youtube]")).toBeNull();
+});

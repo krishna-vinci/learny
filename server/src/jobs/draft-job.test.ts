@@ -602,3 +602,90 @@ it("does not allow a clean report to waive remaining teaching lint", async () =>
     ).details,
   ).toMatchObject({ isError: true, summary: expect.stringContaining("teaching lint") });
 });
+
+it("passes exact registered video URLs and evidence-based timestamp instructions to the drafter", async () => {
+  const sourcePath = path.join(root, "library/lib-strang-la/source.md");
+  const source = await fs.readFile(sourcePath, "utf8");
+  await fs.writeFile(
+    sourcePath,
+    source.replace("type: book", "type: video\nurl: https://music.youtube.com/watch?v=dQw4w9WgXcQ&list=abc"),
+  );
+  const runRole = vi
+    .spyOn(roleRunner, "runRole")
+    .mockResolvedValue({ text: "Need more evidence", written: [], messages: [] });
+  const handler = createDraftJob({
+    root,
+    locks: new FileLocks(),
+    mcp: new McpManager([]),
+    runtime: await createModelRuntime(),
+    hub: new EventHub(),
+  });
+  await expect(
+    handler(
+      { set: "linear-algebra", title: "Eigenvalues" },
+      { signal: new AbortController().signal, progress: vi.fn(), addUsage: vi.fn() },
+    ),
+  ).rejects.toThrow("Need more evidence");
+  const task = runRole.mock.calls[0]?.[1].task;
+  expect(task).toContain("media-authoring");
+  expect(task).toContain("lib-strang-la: https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+  expect(task).toContain("For each video source used");
+  expect(task).toContain("<!-- t:N -->");
+  expect(task).toContain("never invent");
+});
+
+it.each([true, false])(
+  "revises a missing video watch link and keeps unresolved omissions blocked (repair=%s)",
+  async (repair) => {
+    const sourcePath = path.join(root, "library/lib-strang-la/source.md");
+    const source = await fs.readFile(sourcePath, "utf8");
+    await fs.writeFile(sourcePath, source.replace("type: book", "type: video\nurl: https://youtu.be/dQw4w9WgXcQ"));
+    const notePath = "linear-algebra/notes/04-video.md";
+    const reportPath = "linear-algebra/log/checks/04-video.md";
+    let drafts = 0;
+    vi.spyOn(roleRunner, "runRole").mockImplementation(async (role, opts) => {
+      if (role === "drafter") {
+        drafts++;
+        expect(opts.task).toContain("lib-strang-la: https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+        if (drafts === 1)
+          await fs.writeFile(
+            path.join(root, notePath),
+            "---\ntitle: Video\nstatus: draft\nsources: [lib-strang-la]\n---\nEvidence.[^src:lib-strang-la]\n",
+          );
+        else if (repair)
+          await fs.appendFile(path.join(root, notePath), "\n[Watch the lecture](https://youtu.be/dQw4w9WgXcQ)\n");
+        return { text: "Drafted", written: [notePath], messages: [] };
+      }
+      await fs.mkdir(path.dirname(path.join(root, reportPath)), { recursive: true });
+      await fs.writeFile(path.join(root, reportPath), "# Check\n\nNo issues found.\n");
+      const result = await opts.extraTools?.[0]?.execute(
+        "status",
+        { path: "notes/04-video.md", status: "checked" },
+        undefined,
+        undefined,
+        undefined as never,
+      );
+      expect(result?.details).toMatchObject({ isError: !(repair && drafts === 2) });
+      return { text: "Checked", written: [reportPath], messages: [] };
+    });
+    const handler = createDraftJob({
+      root,
+      locks: new FileLocks(),
+      mcp: new McpManager([]),
+      runtime: await createModelRuntime(),
+      hub: new EventHub(),
+    });
+    await handler(
+      { set: "linear-algebra", title: "Video" },
+      { signal: new AbortController().signal, progress: vi.fn(), addUsage: vi.fn() },
+    );
+    expect(drafts).toBe(2);
+    expect(await fs.readFile(path.join(root, notePath), "utf8")).toContain(
+      repair ? "status: checked" : "status: draft",
+    );
+    if (!repair)
+      expect(await fs.readFile(path.join(root, reportPath), "utf8")).toContain(
+        "Video source lib-strang-la needs a watch link",
+      );
+  },
+);

@@ -61,3 +61,18 @@ describe("arxivPdfUrl", () => {
     expect(() => arxivPdfUrl("https://example.com/paper")).toThrow(UnsupportedInputError);
   });
 });
+
+it.each([
+  "https://youtube.com/watch?v=dQw4w9WgXcQ",
+  "https://youtube-nocookie.com/embed/dQw4w9WgXcQ",
+  "https://music.youtube.com/watch?v=dQw4w9WgXcQ",
+  "youtu.be/dQw4w9WgXcQ?t=12",
+])("routes validated YouTube forms to captions: %s", (url) => {
+  expect(detectInput({ url })).toBe("youtube");
+});
+it.each(["https://evil.youtube.com/watch?v=dQw4w9WgXcQ", "https://youtube.com/unesco"])(
+  "does not treat %s as a video",
+  (url) => {
+    expect(detectInput({ url })).toBe("web");
+  },
+);

@@ -38,3 +38,9 @@ If `web_fetch` is unavailable or the text cannot be read, mark the candidate unv
 ## Return a short ranked list
 
 For each source, give its title and URL, credibility tier with a source-specific reason, concepts covered, and why its depth fits `PLAN.md`'s level. Include publication year or library version where relevant, and state whether registration is complete or pending. Cite registered material as `[^src:<id>]`; pending URLs are proposals, never support for a factual claim.
+
+For YouTube discovery, search for a specific lecture/demo covering the concept and
+prefer a named educator or institution. A channel/playlist page is not a video URL.
+Register the actual watch/share/shorts URL, then inspect the ingested transcript
+before selecting it as evidence. Once registered, copy its exact `source.md` URL;
+use transcript `<!-- t:N -->` markers for moments and never guess IDs or times.

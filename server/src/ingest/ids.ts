@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { parseYoutubeVideo } from "@studium/shared/media";
 
 /** Directory (study-root relative) that holds every `library/<src-id>/` folder. */
 export const LIBRARY_DIR = "library";
@@ -116,6 +117,8 @@ export interface DedupeKey {
 
 /** Lowercased, tracking-param-free URL used for dedupe comparisons. */
 export function normalizeUrl(value: string): string {
+  const video = parseYoutubeVideo(value);
+  if (video) return `https://www.youtube.com/watch?v=${video.id}`;
   let url: URL;
   try {
     url = new URL(value.trim());

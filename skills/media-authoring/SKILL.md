@@ -39,18 +39,46 @@ Downloads are limited to 5 MB and 6000×6000 pixels; all assets in a set to 50 M
 
 ## YouTube moments
 
-Use only library videos: add the source first so its transcript is ingested. Choose
-`start` from the `<!-- t:843 -->` paragraph you used, in integer seconds, and cite
-`[^src:<id>#t843]` with a footnote definition. Embed the leaf directive with no space
-before its attributes:
+When a chapter uses a registered YouTube source, surface that video near the concept
+it supports. Read its `source.md` and relevant parsed transcript first. Copy the
+actual registered URL/video ID; never copy an example ID, invent a URL, or replace
+the source with an unrelated search result. If a new video is needed, discover it
+with `find-sources`, register it with `add_source` when available, and wait for a
+usable transcript; otherwise report the proposed URL for registration.
+
+Prefer a descriptive ordinary Markdown link: it works in Studium, Obsidian and
+GitHub. The reader adds a click-to-load player beside video links, including bare
+watch/share/shorts/embed/mobile/music URLs. Channel and playlist links stay links.
+
+For each video source used, include at least one link. Choose the time from the
+`<!-- t:843 -->` marker of the transcript paragraph supporting the nearby concept.
+Use integer seconds in the URL and a timestamp citation with a defined footnote:
 
 ```md
-::youtube{src="https://youtu.be/dQw4w9WgXcQ" start=843 end=900}
+[Watch the projection example at 14:03](https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=843s)
+
+The projection keeps the component along the line.[^src:lib-video#t843]
+
+[^src:lib-video#t843]: Channel, *Lecture title*, at 14:03.
 ```
 
-The app shows a local thumbnail until the learner taps Play; the book shows the
-thumbnail, time and link. Bare URLs remain links. Re-ingest of old videos is not
-currently available; do not invent timestamps missing from a transcript.
+These IDs and times are syntax examples, never source suggestions. If the transcript
+has no timestamp markers, link the whole registered video and cite `[^src:<id>]`;
+do not invent a time. Omit `end` unless the transcript supports that boundary.
+
+For an explicit segment, use the existing leaf directive with no space before its
+attributes. Keep a descriptive Markdown link beside it for portability:
+
+```md
+::youtube{src="https://www.youtube.com/watch?v=dQw4w9WgXcQ" start=843 end=900}
+```
+
+The app uses a local thumbnail or placeholder until Play; no request to YouTube
+occurs before that tap. The existing Typst book shows directive thumbnails, times
+and links; ordinary Markdown links remain readable timed links in the book.
+Old ingests may lack timestamp markers; re-ingest is not currently available.
+Before finishing, check every used video source has its correct link and review
+write warnings for missing watch links or unregistered directive videos.
 
 ## Data charts
 

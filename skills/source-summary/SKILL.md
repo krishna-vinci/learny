@@ -58,7 +58,7 @@ math bare: no standalone `*` or `^` outside dollar signs, and no Markdown emphas
 
 ## Complete the registry entry
 
-Use the `source.md` frontmatter contract: stable id, title, authors, type, optional URL, credibility, parse tier, checksum when supplied, and added date. Keep the id unchanged. The body contains the summary and table of contents.
+Use the `source.md` frontmatter contract: stable id, title, authors, type, optional URL, credibility, parse tier, checksum when supplied, and added date. Keep the id and original registered URL unchanged. For video sources, mention usable transcript timestamp markers in the summary/TOC when present, so drafters can locate moments; never invent timestamps or replace the video URL with a channel or search result. The body contains the summary and table of contents.
 
 ## Review
 

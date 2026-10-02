@@ -1,5 +1,5 @@
 import type { SourceSummary } from "@studium/shared";
-import { youtubeVideoId } from "@studium/shared/media";
+import { youtubeDirective, youtubeVideoId } from "@studium/shared/media";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -19,7 +19,9 @@ export function YouTubeEmbed({ id, start, end }: { id: string; start: number; en
       .catch(() => {});
     return () => controller.abort();
   }, [id]);
-  const watch = `https://www.youtube.com/watch?v=${id}&t=${start}s`;
+  const video = youtubeDirective({ src: id, start: String(start), ...(end === undefined ? {} : { end: String(end) }) });
+  if (!video) return <p className="text-sm text-muted-foreground">(video unavailable)</p>;
+  const watch = `https://www.youtube.com/watch?v=${video.id}&t=${video.start}s`;
   return (
     <section className="my-4">
       <div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
@@ -27,7 +29,7 @@ export function YouTubeEmbed({ id, start, end }: { id: string; start: number; en
           <iframe
             className="h-full w-full"
             title={source?.title ?? "YouTube video"}
-            src={`https://www.youtube-nocookie.com/embed/${id}?start=${start}${end === undefined ? "" : `&end=${end}`}&autoplay=1`}
+            src={`https://www.youtube-nocookie.com/embed/${video.id}?start=${video.start}${video.end === undefined ? "" : `&end=${video.end}`}&autoplay=1`}
             referrerPolicy="strict-origin-when-cross-origin"
             allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
             allowFullScreen

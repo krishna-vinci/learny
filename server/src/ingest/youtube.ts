@@ -13,7 +13,7 @@ export async function extractYoutube(url: string, options: { signal?: AbortSigna
   const videoId = youtubeVideoId(url);
   if (videoId === null) throw new UnsupportedInputError("youtube", `Not a recognized YouTube URL: ${url}`);
 
-  const result = await fetchTranscript(url, { videoDetails: true, signal: options.signal });
+  const result = await fetchTranscript(videoId, { videoDetails: true, signal: options.signal });
   const details: VideoDetails | undefined = result.videoDetails;
   const body = transcriptToMarkdown(result.segments);
   const title = firstNonEmpty(details?.title);

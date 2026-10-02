@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { arxivIdOf, siteLabel, sourceIdBase } from "./ids.js";
+import { arxivIdOf, normalizeUrl, siteLabel, sourceIdBase } from "./ids.js";
 
 describe("arxivIdOf", () => {
   it("accepts exact arxiv.org /abs and /pdf URLs and bare ids", () => {
@@ -44,4 +44,13 @@ describe("sourceIdBase", () => {
       "lib-nature-news",
     );
   });
+});
+
+it("deduplicates watch, share, music and embedded URLs by video ID", () => {
+  const urls = [
+    "https://youtu.be/dQw4w9WgXcQ?t=843",
+    "https://music.youtube.com/watch?v=dQw4w9WgXcQ&list=abc",
+    "https://youtube.com/embed/dQw4w9WgXcQ?start=12",
+  ];
+  for (const url of urls) expect(normalizeUrl(url)).toBe("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
 });

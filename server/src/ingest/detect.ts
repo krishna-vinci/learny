@@ -1,3 +1,4 @@
+import { parseYoutubeVideo } from "@studium/shared/media";
 import { type InputKind, UnsupportedInputError } from "./types.js";
 
 export interface DetectInput {
@@ -94,6 +95,7 @@ export function detectInput(input: DetectInput): InputKind {
 }
 
 function detectFromUrl(raw: string): InputKind | null {
+  if (parseYoutubeVideo(raw)) return "youtube";
   let url: URL;
   try {
     url = new URL(raw);
@@ -102,7 +104,6 @@ function detectFromUrl(raw: string): InputKind | null {
   }
   const host = url.hostname.toLowerCase();
   if (host === "wikipedia.org" || host.endsWith(".wikipedia.org")) return "wikipedia";
-  if (host === "youtu.be" || host.endsWith(".youtube.com") || host.endsWith(".youtube-nocookie.com")) return "youtube";
   if (host === "arxiv.org" || host.endsWith(".arxiv.org")) return "arxiv";
   if (host === "doi.org" || host.endsWith(".doi.org")) return "doi";
   return urlExtKind(url.pathname);
