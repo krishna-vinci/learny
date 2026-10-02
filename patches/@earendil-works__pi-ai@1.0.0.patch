@@ -1,0 +1,32 @@
+diff --git a/dist/utils/json-parse.js b/dist/utils/json-parse.js
+index 82e105cb676a2f4be16167023243aa73dd8cb2e4..5e2fd47d22877139704cfb8c9b0aae1ba7f7fae8 100644
+--- a/dist/utils/json-parse.js
++++ b/dist/utils/json-parse.js
+@@ -87,10 +87,27 @@ export function parseJsonWithRepair(json) {
+  * @param partialJson The partial JSON string from streaming
+  * @returns Parsed object or empty object if parsing fails
+  */
++// Studium patch: providers call this on every streamed chunk with the whole argument string so
++// far, which is quadratic and froze the server on long tool calls (a chapter or an HTML file).
++// Past this size, only complete-looking JSON is parsed; mid-stream previews of huge calls are
++// skipped. The final call (complete JSON) still parses fully.
++const STREAMING_PREVIEW_LIMIT = 16 * 1024;
++function endsLikeObject(text) {
++    for (let index = text.length - 1; index >= 0; index--) {
++        const char = text[index];
++        if (char === " " || char === "\n" || char === "\r" || char === "\t")
++            continue;
++        return char === "}";
++    }
++    return false;
++}
+ export function parseStreamingJson(partialJson) {
+     if (!partialJson || partialJson.trim() === "") {
+         return {};
+     }
++    if (partialJson.length > STREAMING_PREVIEW_LIMIT && !endsLikeObject(partialJson)) {
++        return {};
++    }
+     try {
+         return parseJsonWithRepair(partialJson);
+     }
