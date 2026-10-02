@@ -64,6 +64,7 @@ describe("initStudyTree", () => {
         "find-sources",
         "grade-answer",
         "make-quiz",
+        "make-visual",
         "media-authoring",
         "make-problems",
         "make-deck",

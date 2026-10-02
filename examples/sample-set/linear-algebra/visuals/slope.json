@@ -1,0 +1,44 @@
+{
+  "type": "function-plot",
+  "title": "Slope and stretch",
+  "x": [
+    -3,
+    3
+  ],
+  "y": [
+    -3,
+    3
+  ],
+  "xLabel": "Input x (units)",
+  "yLabel": "Output y (units)",
+  "params": [
+    {
+      "name": "a",
+      "min": 0,
+      "max": 2,
+      "value": 1
+    }
+  ],
+  "curves": [
+    {
+      "expression": "a*x",
+      "label": "y = ax"
+    }
+  ],
+  "story": {
+    "scenes": [
+      {
+        "state": {
+          "a": 1
+        },
+        "narration": "At unit slope the input and output match."
+      },
+      {
+        "state": {
+          "a": 2
+        },
+        "narration": "Doubling the slope doubles each output."
+      }
+    ]
+  }
+}

@@ -152,3 +152,17 @@ it("keeps invalid references unavailable without allowing other sets, schemes or
   ).toEqual([{ title: "Interactive figure" }]);
   expect(chapterVisuals("Plain prose", "alpha/notes/x.md")).toEqual({ body: "Plain prose", visuals: [] });
 });
+
+it("collects widgets and sketches in declaration order while retaining legacy artifacts and code", () => {
+  const result = chapterVisuals(
+    '::visual{src="../visuals/x.json" title="Plot"}\n::visual{src="../visuals/y.html"}\n::artifact{src="../artifacts/z.html"}\n::visual{src="../visuals/x.json"}\n```md\n::visual{src="../visuals/x.json"}\n```',
+    "alpha/notes/a.md",
+  );
+  expect(result.visuals.map((v) => v.kind)).toEqual(["widget", "sketch", undefined]);
+  expect(result.visuals.map((v) => v.src)).toEqual([
+    "alpha/visuals/x.json",
+    "alpha/visuals/y.html",
+    "alpha/artifacts/z.html",
+  ]);
+  expect(result.body).toContain("```md\n::visual");
+});

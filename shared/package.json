@@ -5,13 +5,19 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./media": "./src/media.ts"
+    "./media": "./src/media.ts",
+    "./visuals": "./src/visuals/index.ts",
+    "./visuals/*": "./src/visuals/*.ts",
+    "./chapter-visuals": "./src/chapter-visuals.ts"
   },
   "dependencies": {
+    "d3": "7.9.0",
+    "expr-eval-fork": "3.0.3",
     "yaml": "^2.9.1",
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@types/d3": "7.4.3",
     "vitest": "^5.0.2"
   }
 }

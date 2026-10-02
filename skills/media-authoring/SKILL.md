@@ -12,7 +12,7 @@ Use at most one visual per main idea. Use none when text is clearer.
 | Process or flow | Mermaid |
 | Geometry, vectors, labelled structure | SVG figure |
 | Numbers, functions, comparisons | Vega-Lite |
-| A parameter to vary or steps to play through | Interactive artifact |
+| A parameter to vary or steps to play through | `make-visual` widget or sketch |
 | A real-world demo or lecture moment | YouTube |
 | A figure from the cited source | Saved image |
 
@@ -93,31 +93,10 @@ The app renders a theme-aware SVG and the book renders a light SVG. If the spec 
 invalid, its code stays readable. Mermaid stays a diagram-in-the-app caption in the
 book until the later mmdc work.
 
-## Interactive artifacts
+## Interactive visuals
 
-Write one self-contained `artifacts/<name>.html`, at most 300 KB, using only inline
-CSS/JS and data images/fonts. No network or external fonts; the sandbox blocks them.
-Use the full available canvas, not a narrow inline slot. Make it responsive from
-360px wide with touch, readable labels and controls, and respect
-`prefers-color-scheme` and `prefers-reduced-motion`. Include a short instruction
-inside the visual, such as “Drag the point to change the projection.” Always also
-write `artifacts/<name>.svg`: a poster of the key frame, following the SVG rules.
-
-Attach it by appending one standalone leaf declaration at the end of the chapter
-(after its prose/footnotes). No registry heading, frontmatter or manifest is needed.
-Use one declaration per visual, in the intended exploration order; paths are
-note-relative. Do not nest declarations in lists, callouts, blockquotes or code.
-
-```md
-::artifact{src="../artifacts/projection.html" poster="../artifacts/projection.svg" title="Explore projection"}
-```
-
-The reader collects declarations into that chapter’s **Visuals** tab, removes
-them from Reading, and gives each visual the full reader width. Existing inline
-declarations still attach without rewriting the note. The learner must tap Run;
-returning to Reading stops it. Prose should remain complete without running a
-visual; an optional short cue may say “Try the projection in Visuals.” Static
-images/charts and passive YouTube moments stay inline. The existing Typst book
-collects posters and titles at the chapter end under “Visuals in Studium,” with
-a pointer to this chapter’s Visuals tab; missing posters degrade to text. Check write warnings for missing files and register sources
-before using them. Do not put media in Anki cards: `.apkg` does not pack media files.
+Load `make-visual` for built-in widgets, bundled-runtime sketches, stories and their
+static book forms. It owns all interactive authoring guidance. New files go in
+`visuals/`, attached by standalone `::visual{…}` at the chapter end. Existing
+`::artifact`/`artifacts/` files and declarations keep working; preserve them on edits.
+Prose must stand alone. Chat keeps plain links; Anki media remains deferred.

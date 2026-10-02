@@ -54,4 +54,4 @@ If the learner answers incorrectly, identify the precise misconception, correct 
 - Never rewrite a note during an explanation unless the learner asks for an edit.
 - If the explanation reveals a gap in a note, propose the exact surgical edit and wait for approval.
 
-For purposeful visuals in notes, load `media-authoring` and follow its local-file and static-book rules.
+For purposeful visuals in notes, load `media-authoring` for static images/charts/video, or `make-visual` for interactive widgets/sketches and static book stills.

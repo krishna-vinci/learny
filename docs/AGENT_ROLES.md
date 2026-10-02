@@ -92,3 +92,13 @@ or YouTube videos absent from the library produce advisory write warnings.
 
 The tutor can read library source files and image lists; library writes remain librarian-only.
 The drafter also has the optional SearXNG MCP for the source-image search fallback.
+
+### Visual authoring (D32)
+
+Tutor and Drafter can write `<set>/visuals/**` through the same confined, locked
+study tools as assets/artifacts. Draft and revision jobs allow these media files
+alongside their one reserved chapter; other notes remain forbidden. JSON widget
+specs and sketch headers are validated on complete writes; JSON/HTML/SVG ≤300 KB.
+Checker/Cardsmith/Critic gain no visual write scope. Tutor/Drafter load `make-visual`
+for interactive authoring; static media remains in `media-authoring`. Agents write
+new interactive files only in visuals/, preserve legacy artifacts and include posters.

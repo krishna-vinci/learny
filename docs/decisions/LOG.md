@@ -328,3 +328,35 @@ Mermaid and Vega-Lite charts also stay inline as explanatory figures.
   its declaration. They may use the whole canvas, include an instruction, support
   touch and reduced motion, and keep the prose understandable without interaction.
   Chat keeps plain links; Anki media remains deferred.
+
+## D32 — Visuals that teach · locked · 2026-10-02
+
+Extends D29/D31; supersedes none of D31's placement decisions. New interactive
+files live in tracked `<set>/visuals/`, attached at chapter level by
+`::visual{src="../visuals/name.json|.html" title="…"}`. JSON is a strict built-in widget;
+HTML is a sketch. Legacy artifacts/`::artifact` keep their Run button and sandbox.
+
+- Widgets (function-plot, matrix-transform/SVD, step-through, timeline) share pure
+  zod-validated SVG layouts between thin React controls and the server renderer.
+  Safe expression evaluation is arithmetic/functions/declared numeric variables only.
+- Sketches declare bundled p5/D3/Three needs and static posters in their JSON header.
+  Public content-hashed libraries are served separately without auth, immutable and
+  excluded from PWA precache. Only declared libraries load; never inline library code.
+- CSP allows only inline code/styles, the local `/visual-runtime/` scripts and data/blob
+  images/data fonts; denies connections/frames/objects/base/form submission. Sandbox
+  stays exactly `allow-scripts`, opaque origin, anonymous script requests without cookies.
+- Stories use ordered scenes/narration, Play/Pause, scrub/Previous/Next/dots and arrows/
+  space. Autoplay at half visibility, pause offscreen/hidden, stop on leaving Visuals;
+  reduced motion starts at scene one paused. Phones animate at most one sketch.
+- App theme tokens/system font and contrast-mapped Okabe-Ito palette are inherited;
+  parent only accepts shape-validated ready/error/scene events from its own frame.
+- Book: widget default-state SVG plus story-scene SVGs/narration; sketch authored
+  poster or scene posters. Maximum six scene stills; longer stories use first/last
+  plus “N more scenes in Studium”. Missing posters retain the chapter Visuals pointer.
+  Compiler may inspect a new sketch's declarative JSON header; never executes HTML,
+  opens a browser, or fetches external resources. Legacy HTML remains unread.
+- `make-visual` is interactive authoring's single source; `media-authoring` retains
+  images/YouTube/Mermaid/Vega. `VisualRouter` is a reserved interface, default null;
+  `_global/config.yaml` defaults to `visuals.router: off`, with no model wiring.
+- Deferred: scroll-synced scrollytelling (phone/list scroll conflicts), automatic
+  headless poster capture and Mermaid-to-SVG (Chrome dependency).

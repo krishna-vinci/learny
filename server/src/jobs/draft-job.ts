@@ -86,7 +86,7 @@ function validateRewrite(before: string, after: string): void {
   const preserved = [
     ...before.matchAll(/\[\^src:[^\]]+\]/g),
     ...before.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g),
-    ...before.matchAll(/^::(?:youtube|artifact)\{[^\n]+\}/gm),
+    ...before.matchAll(/^::(?:youtube|artifact|visual)\{[^\n]+\}/gm),
     ...before.matchAll(/^(`{3,}|~{3,})(?:mermaid|vega-lite)\b[^\n]*\n[\s\S]*?^\1\s*$/gm),
   ];
   for (const match of preserved) {
@@ -260,12 +260,12 @@ function draftTask(
   videoInstructions: string,
 ): string {
   return [
-    "Load the draft-chapter, note-authoring and media-authoring skills, then draft one new chapter.",
+    "Load the draft-chapter, note-authoring, media-authoring and make-visual skills, then draft one new chapter.",
     `Title: ${input.title}`,
     `Brief: ${input.brief ?? "Follow the approved plan and curriculum."}`,
     `Allowed source ids: ${sources.join(", ") || "(none)"}`,
     `Create exactly ${notePath} (this exact path was reserved for you) with status: draft.`,
-    "You may also write assets/ and artifacts/ for this chapter. Do not modify other notes or files.",
+    "You may also write assets/, artifacts/ and visuals/ for this chapter. Do not modify other notes or files.",
     "Read source.md and parsed.md or parsed/*.md directly under library/<id>/ for support.",
     videoInstructions,
     "",
@@ -363,7 +363,10 @@ function createChapterJob(deps: DraftJobDeps, rewriting: boolean): JobHandler {
     const noteRootPath = `${input.set}/${notePath}`;
     const canWriteNote = (rel: string): boolean =>
       rel === noteRootPath ||
-      (isWritableByAgent(rel) && (rel.startsWith(`${input.set}/assets/`) || rel.startsWith(`${input.set}/artifacts/`)));
+      (isWritableByAgent(rel) &&
+        (rel.startsWith(`${input.set}/assets/`) ||
+          rel.startsWith(`${input.set}/artifacts/`) ||
+          rel.startsWith(`${input.set}/visuals/`)));
     const reportPath = `log/checks/${path.basename(notePath)}`;
     const reportRootPath = `${input.set}/${reportPath}`;
 
@@ -394,12 +397,12 @@ function createChapterJob(deps: DraftJobDeps, rewriting: boolean): JobHandler {
         set: input.set,
         task: rewriting
           ? [
-              "Load the draft-chapter, note-authoring and media-authoring skills and the plan subject guide.",
+              "Load the draft-chapter, note-authoring, media-authoring and make-visual skills and the plan subject guide.",
               `Rewrite ${notePath} in place in the warm teaching voice. Read the existing note first.`,
               "Keep all facts, citation identifiers, figures and frontmatter fields; reset status to draft.",
               "Fix footnote text to author/organisation, title, section/page; remove internal paths and line numbers.",
               "Use the flexible chapter shape, including Check yourself with collapsed Answers and Key takeaways.",
-              `Only ${notePath}, assets/ and artifacts/ are writable. Do not create another chapter.`,
+              `Only ${notePath}, assets/, artifacts/ and visuals/ are writable. Do not create another chapter.`,
               `Allowed source ids: ${sources.join(", ")}`,
               "Verify retained claims against their registered library sources.",
               videoInstructions,
@@ -505,7 +508,7 @@ function createChapterJob(deps: DraftJobDeps, rewriting: boolean): JobHandler {
           root: deps.root,
           set: input.set,
           task: [
-            "Load the draft-chapter, note-authoring and media-authoring skills.",
+            "Load the draft-chapter, note-authoring, media-authoring and make-visual skills.",
             `Revise ${notePath} surgically to resolve every blocker in ${reportPath}.`,
             "Preserve correct content and citations, and keep status: draft for re-checking.",
             videoInstructions,

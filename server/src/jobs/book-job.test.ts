@@ -268,8 +268,8 @@ it("copies confined SVG and PNG references before compiling, preserving remote c
   expect(book.markdown).toContain("![Short](media/image-2.png)");
   expect(book.markdown).toContain("https://example.org/image.png");
   expect(book.markdown).toContain("## Visuals in Studium");
-  expect(book.markdown).toContain(
-    "![Interactive: Explore vectors — open this chapter's Visuals tab in Studium](media/image-3.svg)",
+  expect(book.markdown).toMatch(
+    /!\[Interactive: Explore vectors — open this chapter's Visuals tab in Studium\]\(media\/image-\d+\.svg\)/,
   );
   expect(await fs.readFile(path.join(temp, "media/image-1.svg"), "utf8")).toBe(svg);
   expect(await fs.readFile(path.join(temp, "media/image-2.png"))).toEqual(png);
@@ -370,4 +370,55 @@ it("collects visual fallbacks after prose, deduplicates attachments and keeps fe
   expect(text.match(/Interactive: Explore/g)).toHaveLength(1);
   expect(text).toContain("Interactive: Interactive figure (unavailable)");
   expect(text).not.toContain("media/image");
+});
+
+it("renders widget default and capped story scenes and sketch posters without executing HTML", async () => {
+  const { createBookMedia } = await import("./book-media.js");
+  const temp = await fs.mkdtemp(path.join(root, "visual-test-"));
+  const folder = path.join(root, "linear-algebra/visuals");
+  await fs.mkdir(folder, { recursive: true });
+  await fs.writeFile(
+    path.join(folder, "trace.json"),
+    JSON.stringify({
+      type: "step-through",
+      title: "Trace",
+      steps: [{ caption: "Start.", items: [1] }],
+      story: { scenes: Array.from({ length: 8 }, (_, i) => ({ state: { step: 0 }, narration: `Scene ${i + 1}.` })) },
+    }),
+  );
+  await fs.writeFile(
+    path.join(folder, "first.svg"),
+    '<svg xmlns="http://www.w3.org/2000/svg"><text>First still</text></svg>',
+  );
+  await fs.writeFile(
+    path.join(folder, "last.svg"),
+    '<svg xmlns="http://www.w3.org/2000/svg"><text>Last still</text></svg>',
+  );
+  await fs.writeFile(
+    path.join(folder, "story.html"),
+    '<script type="application/json" id="studium-visual">' +
+      JSON.stringify({
+        libs: [],
+        story: true,
+        posters: [
+          { src: "first.svg", narration: "Begin here." },
+          { src: "last.svg", narration: "End here." },
+        ],
+      }) +
+      '</script><script>throw new Error("NEVER EXECUTE")</script>',
+  );
+  const text = await createBookMedia(root, temp)(
+    '::visual{src="../visuals/trace.json" title="Trace"}\n::visual{src="../visuals/story.html" title="Story"}',
+    "linear-algebra/notes/x.md",
+  );
+  expect(text).toContain("media/widget-1.svg");
+  expect(text).toContain("Scene 1.");
+  expect(text).toContain("Scene 8.");
+  expect(text).not.toContain("Scene 4.");
+  expect(text).toContain("6 more scenes in Studium");
+  expect(text).toContain("Begin here.");
+  expect(text).toContain("End here.");
+  expect(text).not.toContain("NEVER EXECUTE");
+  expect(await fs.readFile(path.join(temp, "media/widget-1.svg"), "utf8")).toContain("<svg");
+  expect(await fs.readdir(path.join(temp, "media"))).toHaveLength(5);
 });

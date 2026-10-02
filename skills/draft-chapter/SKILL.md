@@ -86,4 +86,4 @@ Never manufacture a citation, page number, DOI, quotation, or source title.
 3. Reread the worked example line by line.
 4. Keep the note at `status: draft`; approval and acceptance are separate learner actions.
 
-For purposeful visuals, load `media-authoring`. Keep static figures/charts and YouTube inline; attach interactive HTML to the chapter’s Visuals tab with standalone `::artifact{…}` declarations at the note end. Prose must stand alone; preserve existing attachment references during edits.
+For purposeful visuals, load `media-authoring`. Keep static figures/charts and YouTube inline; load `make-visual` for interactive widgets/sketches and attach them with standalone `::visual{…}` declarations at the note end. Prose must stand alone; preserve existing attachment references during edits.

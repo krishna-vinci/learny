@@ -8,3 +8,7 @@ dist/
 .env.*
 !.env.example
 data.pre-*/
+
+# Generated public sketch libraries (built before web dev/build).
+web/public/visual-runtime/*.js
+web/public/visual-runtime/manifest.json

@@ -8,6 +8,8 @@ import {
   youtubeDirective,
   youtubeVideoId,
 } from "@studium/shared/media";
+import { parseWidget, widgetScenes, widgetToSvg } from "@studium/shared/visuals";
+import { parseSketchHeader } from "@studium/shared/visuals/sketch";
 import { listSources } from "../ingest/library.js";
 import { validateAgentMedia } from "../tree/media.js";
 import { canonicalRel, resolveInRoot } from "../tree/paths.js";
@@ -50,7 +52,11 @@ export function createBookMedia(root: string, temp: string) {
     try {
       const rel = `${media.set}/${media.path}`;
       const canonical = canonicalRel(root, rel);
-      if (!canonical.startsWith(`${media.set}/assets/`) && !canonical.startsWith(`${media.set}/artifacts/`))
+      if (
+        !canonical.startsWith(`${media.set}/assets/`) &&
+        !canonical.startsWith(`${media.set}/artifacts/`) &&
+        !canonical.startsWith(`${media.set}/visuals/`)
+      )
         return null;
       if (copied.has(canonical)) return copied.get(canonical) ?? null;
       const abs = resolveInRoot(root, rel);
@@ -134,7 +140,65 @@ export function createBookMedia(root: string, temp: string) {
         const caption = visual.src
           ? `Interactive: ${title} — open this chapter's Visuals tab in Studium`
           : `Interactive: ${title} (unavailable)`;
-        // The compiler copies only the static poster, never reads or runs the HTML.
+        if (visual.kind === "widget" && visual.src) {
+          try {
+            const canonical = canonicalRel(root, visual.src);
+            if (!canonical.startsWith(`${visual.src.split("/")[0]}/visuals/`)) throw new Error("Outside visual folder");
+            const abs = resolveInRoot(root, visual.src);
+            if ((await fs.stat(abs)).size > 300 * 1024) throw new Error("Visual too large");
+            const spec = parseWidget(await fs.readFile(abs, "utf8"));
+            const writeScene = async (state: Parameters<typeof widgetToSvg>[1], text: string) => {
+              const target = `media/widget-${++count}.svg`;
+              await fs.mkdir(path.join(temp, "media"), { recursive: true });
+              await fs.writeFile(path.join(temp, target), widgetToSvg(spec, state));
+              lines.push(`![${text.replace(/[[\]<>\n*_`\\]/g, " ")}](${target})`, "");
+            };
+            await writeScene({}, caption);
+            const scenes = widgetScenes(spec);
+            if (spec.story || scenes.length > 1) {
+              const selected = scenes.length <= 6 ? scenes : [scenes[0], scenes.at(-1)];
+              for (const scene of selected) if (scene) await writeScene(scene.state, scene.narration);
+              if (scenes.length > 6) lines.push(`${scenes.length - 2} more scenes in Studium`, "");
+            }
+            continue;
+          } catch {
+            lines.push(`${caption} (widget unavailable)`, "");
+            continue;
+          }
+        }
+        if (visual.kind === "sketch" && visual.src) {
+          try {
+            const abs = resolveInRoot(root, visual.src);
+            if (
+              !canonicalRel(root, visual.src).startsWith(`${visual.src.split("/")[0]}/visuals/`) ||
+              (await fs.stat(abs)).size > 300 * 1024
+            )
+              throw new Error("Invalid sketch path");
+            // Inspect only the declarative JSON header. Never evaluate HTML or capture a browser.
+            const header = parseSketchHeader(await fs.readFile(abs, "utf8"));
+            const posters = header.story
+              ? header.posters
+              : header.poster
+                ? [{ src: header.poster, narration: caption }]
+                : undefined;
+            if (posters?.length) {
+              const selected = posters.length <= 6 ? posters : [posters[0], posters.at(-1)];
+              for (const poster of selected)
+                if (poster) {
+                  const rel = path.posix.join(path.posix.dirname(visual.src), poster.src);
+                  const target = await copyImage(notePath, path.posix.relative(path.posix.dirname(notePath), rel));
+                  const text = poster.narration.replace(/[[\]<>\n*_`\\]/g, " ");
+                  lines.push(target ? `![${text}](${target})` : `${text} — ${caption}`, "");
+                }
+              if (posters.length > 6) lines.push(`${posters.length - 2} more scenes in Studium`, "");
+              lines.push(caption, "");
+              continue;
+            }
+          } catch {
+            /* Missing/invalid headers retain the declaration poster or text pointer. */
+          }
+        }
+        // Legacy artifacts retain D31: only copy their static poster, never read HTML.
         const target = visual.poster
           ? await copyImage(notePath, path.posix.relative(path.posix.dirname(notePath), visual.poster))
           : null;

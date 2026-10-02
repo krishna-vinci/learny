@@ -25,6 +25,7 @@ import { type BackupRouteDeps, backupRoutes } from "./backups/routes.js";
 import { deriveKey } from "./db/secret.js";
 import { exportRoutes } from "./export/routes.js";
 import { requestGuard } from "./http/guard.js";
+import { visualRuntimeRoutes } from "./http/visual-runtime.js";
 import { NON_AI_JOB_KINDS } from "./jobs/runner.js";
 import { Notifier } from "./notify/notifier.js";
 import { notificationRoutes } from "./notify/routes.js";
@@ -302,6 +303,7 @@ export function createServer(deps: ServerDeps): Hono {
     secretsKey,
     auth: { db: deps.db, ...deps.authOpts },
   };
+  if (deps.webDist) app.route("/visual-runtime", visualRuntimeRoutes(deps.webDist));
   app.use("/api/*", requestGuard());
   app.route("/api/auth", authRoutes({ db: deps.db, ...deps.authOpts }));
   app.route("/api/auth", ssoAuthRoutes(ssoOptions));
@@ -349,11 +351,12 @@ export function createServer(deps: ServerDeps): Hono {
   if (deps.webDist !== undefined && existsSync(deps.webDist)) {
     const webRoot = deps.webDist;
     app.use("*", async (c, next) => {
-      if (c.req.method !== "GET" || c.req.path.startsWith("/api/")) return next();
+      if (c.req.method !== "GET" || c.req.path.startsWith("/api/") || c.req.path.startsWith("/visual-runtime/"))
+        return next();
       return serveStatic({ root: webRoot })(c, next);
     });
     app.get("*", async (c, next) => {
-      if (c.req.path.startsWith("/api/")) return next();
+      if (c.req.path.startsWith("/api/") || c.req.path.startsWith("/visual-runtime/")) return next();
       return serveStatic({ root: webRoot, rewriteRequestPath: () => "/index.html" })(c, next);
     });
   }

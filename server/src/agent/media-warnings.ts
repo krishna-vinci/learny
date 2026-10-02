@@ -17,13 +17,17 @@ export async function mediaWarnings(root: string, notePath: string, text: string
   const { frontmatter, body } = parseFrontmatter(text);
   const linkedVideos = new Set<string>();
   let sources: Awaited<ReturnType<typeof listSources>> | undefined;
-  async function exists(src: string, kind: "image" | "html" | "poster" = "image") {
+  async function exists(src: string, kind: "image" | "html" | "poster" | "visual" = "image") {
     const media = resolveNoteMedia(notePath, src, kind);
     try {
       if (!media) throw new Error("invalid path");
       const rel = `${media.set}/${media.path}`;
       const canonical = canonicalRel(root, rel);
-      if (!canonical.startsWith(`${media.set}/assets/`) && !canonical.startsWith(`${media.set}/artifacts/`))
+      if (
+        !canonical.startsWith(`${media.set}/assets/`) &&
+        !canonical.startsWith(`${media.set}/artifacts/`) &&
+        !canonical.startsWith(`${media.set}/visuals/`)
+      )
         throw new Error("outside media folders");
       if (!(await fs.stat(resolveInRoot(root, rel))).isFile()) throw new Error("not a file");
     } catch {
@@ -61,7 +65,7 @@ export async function mediaWarnings(root: string, notePath: string, text: string
       );
       if (video) linkedVideos.add(video.id);
     }
-    const match = /^::(youtube|artifact)\{(.*)\}$/.exec(line);
+    const match = /^::(youtube|artifact|visual)\{(.*)\}$/.exec(line);
     if (!match) continue;
     const attrs = mediaAttributes(match[2] ?? "");
     if (match[1] === "youtube") {
@@ -73,7 +77,7 @@ export async function mediaWarnings(root: string, notePath: string, text: string
           `YouTube video is not a library source: ${attrs?.src ?? "invalid directive"}. Add and ingest the video first.`,
         );
     } else if (attrs?.src) {
-      await exists(attrs.src, "html");
+      await exists(attrs.src, match[1] === "visual" ? "visual" : "html");
       if (attrs.poster) await exists(attrs.poster, "poster");
     }
   }

@@ -7,6 +7,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const ArtifactBlock = lazy(() => import("./ArtifactBlock").then((module) => ({ default: module.ArtifactBlock })));
 
+const VisualBlock = lazy(() => import("./VisualBlock").then((module) => ({ default: module.VisualBlock })));
+
 export function ChapterVisuals({ visuals, onRead }: { visuals: ChapterVisual[]; onRead: () => void }) {
   if (!visuals.length)
     return (
@@ -27,11 +29,17 @@ export function ChapterVisuals({ visuals, onRead }: { visuals: ChapterVisual[]; 
     );
   return (
     <div className="flex flex-col gap-8 pt-6">
-      <p className="text-sm text-muted-foreground">Explore at your own pace. Choose Run to start a visual.</p>
+      <p className="text-sm text-muted-foreground">
+        Explore at your own pace. Step through a story or adjust its controls.
+      </p>
       {visuals.map((visual, index) =>
         visual.src ? (
           <Suspense key={visual.src} fallback={<Skeleton className="h-[65svh] w-full" aria-label="Opening visual" />}>
-            <ArtifactBlock src={visual.src} poster={visual.poster} title={visual.title} />
+            {visual.kind ? (
+              <VisualBlock visual={visual} />
+            ) : (
+              <ArtifactBlock src={visual.src} poster={visual.poster} title={visual.title} />
+            )}
           </Suspense>
         ) : (
           // biome-ignore lint/suspicious/noArrayIndexKey: Unavailable entries have no state; the list remounts when chapter content changes.

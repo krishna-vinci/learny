@@ -124,3 +124,14 @@ describe("isWritableByAgent", () => {
     expect(isWritableByAgent("linear-algebra/notes//x.md")).toBe(false);
   });
 });
+
+it("allows visuals only within a valid set and rejects traversal", () => {
+  expect(isWritableByAgent("alpha/visuals/plot.json")).toBe(true);
+  for (const rel of [
+    "library/visuals/plot.json",
+    "alpha/visuals/../notes/x.md",
+    "alpha/visuals",
+    "Alpha/visuals/x.html",
+  ])
+    expect(isWritableByAgent(rel)).toBe(false);
+});
