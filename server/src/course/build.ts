@@ -51,9 +51,11 @@ export async function buildCourse(
         state: job
           ? ("drafting" as const)
           : note
-            ? note.status === "checked" || note.status === "accepted"
-              ? ("checked" as const)
-              : ("drafted" as const)
+            ? note.status === "accepted"
+              ? ("accepted" as const)
+              : note.status === "checked"
+                ? ("checked" as const)
+                : ("drafted" as const)
             : ("planned" as const),
         ...(note ? { path: note.path } : {}),
         ...(job ? { jobId: job.id } : {}),

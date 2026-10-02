@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useLibrary } from "@/api/queries";
+import { useLibrary, useSets } from "@/api/queries";
 import { AddSourceSheet } from "@/components/Library/AddSourceSheet";
 import { RowsSkeleton } from "@/components/ListSkeleton";
 import { Badge } from "@/components/ui/badge";
@@ -37,10 +37,12 @@ const TYPE_ICON: Record<SourceType, LucideIcon> = {
 
 export default function LibraryPage() {
   const { data: sources = [], isLoading } = useLibrary();
+  const { data: sets = [] } = useSets();
+  const [filterSet, setFilterSet] = useState("");
   const [query, setQuery] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
   const defaultSet = useLastVisitedSet();
-  const filtered = filterSources(sources, query);
+  const filtered = filterSources(sources, query).filter((source) => !filterSet || source.sets.includes(filterSet));
 
   return (
     <TooltipProvider>
@@ -62,6 +64,24 @@ export default function LibraryPage() {
               className="h-11 ps-9"
             />
           </div>
+        )}
+
+        {sources.length > 0 && (
+          <label className="flex flex-wrap items-center gap-2 text-sm">
+            Study set
+            <select
+              className="h-11 min-w-0 max-w-full rounded-md border border-border bg-background px-3 text-foreground"
+              value={filterSet}
+              onChange={(event) => setFilterSet(event.target.value)}
+            >
+              <option value="">All sets</option>
+              {sets.map((set) => (
+                <option key={set.slug} value={set.slug}>
+                  {set.title}
+                </option>
+              ))}
+            </select>
+          </label>
         )}
 
         {isLoading && <RowsSkeleton rows={4} />}
@@ -86,7 +106,7 @@ export default function LibraryPage() {
         )}
 
         {!isLoading && sources.length > 0 && filtered.length === 0 && (
-          <p className="text-sm text-muted-foreground">No sources match "{query}".</p>
+          <p className="text-sm text-muted-foreground">No sources match this filter{query ? ` and "${query}"` : ""}.</p>
         )}
 
         {filtered.length > 0 && (

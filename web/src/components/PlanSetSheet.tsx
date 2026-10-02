@@ -64,7 +64,7 @@ export function PlanSetSheet({ set, title, initialGoal, initialOptions, onClose 
               placeholder="What are you trying to learn?"
             />
           </div>
-          <PlanOptions idPrefix="plan-set" value={options} onChange={setOptions} />
+          <PlanOptions set={set} idPrefix="plan-set" value={options} onChange={setOptions} />
           <Button
             type="submit"
             className="h-11 w-full md:h-9 md:w-auto md:self-end"

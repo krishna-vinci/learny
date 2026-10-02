@@ -79,6 +79,39 @@ describe("sets authoring routes", () => {
     expect((await courseApp.request("/api/sets/alpha/course")).status).toBe(400);
   });
 
+  it("lists only PLAN-linked sources, deduplicates ids and skips missing or escaped entries", async () => {
+    for (const id of ["lib-own", "lib-other"]) {
+      await fs.mkdir(path.join(root, "library", id), { recursive: true });
+      await fs.writeFile(
+        path.join(root, "library", id, "source.md"),
+        `---\nid: ${id}\ntitle: ${id}\nauthors: []\ntype: book\ncredibility: A\nparse_tier: basic\nadded: 2026-10-02\n---\n`,
+      );
+    }
+    await fs.mkdir(path.join(root, "beta"));
+    await fs.writeFile(path.join(root, "beta/PLAN.md"), "---\nsources: [lib-other]\n---\n");
+    await fs.writeFile(
+      path.join(root, "alpha/PLAN.md"),
+      "---\nsources: [lib-own, lib-own, lib-missing, '../beta']\n---\n",
+    );
+    const response = await app.request("/api/sets/alpha/sources");
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual([expect.objectContaining({ id: "lib-own", sets: ["alpha"] })]);
+    expect(await (await app.request("/api/sets/beta/sources")).json()).toEqual([
+      expect.objectContaining({ id: "lib-other", sets: ["beta"] }),
+    ]);
+    expect((await app.request("/api/sets/missing/sources")).status).toBe(404);
+    expect(events).toEqual([]);
+  });
+
+  it("handles empty source lists and rejects an escaped PLAN path", async () => {
+    expect(await (await app.request("/api/sets/alpha/sources")).json()).toEqual([]);
+    await fs.unlink(path.join(root, "alpha/PLAN.md"));
+    expect((await app.request("/api/sets/alpha/sources")).status).toBe(404);
+    await fs.writeFile(path.join(outside, "PLAN.md"), "---\nsources: []\n---\n");
+    await fs.symlink(path.join(outside, "PLAN.md"), path.join(root, "alpha/PLAN.md"));
+    expect((await app.request("/api/sets/alpha/sources")).status).toBe(400);
+  });
+
   function commitEvents() {
     return events.filter((event) => event.type === "commit");
   }

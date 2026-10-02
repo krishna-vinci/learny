@@ -149,7 +149,7 @@ export interface CourseChapter {
   title: string;
   scope: string;
   prerequisites: string;
-  state: "planned" | "drafting" | "drafted" | "checked";
+  state: "planned" | "drafting" | "drafted" | "checked" | "accepted";
   path?: string;
   jobId?: string;
 }

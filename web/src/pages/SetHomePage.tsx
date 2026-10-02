@@ -1,18 +1,15 @@
 // `/s/:set` — the set's "Continue" page: the set's goal, ONE primary next step (from Today's
-// do-next, see lib/continue-step.ts), a small row of secondary actions, the rest behind
-// "More actions", and the notes list (docs/UX.md: one primary action per screen).
+// do-next, see lib/continue-step.ts), toolbar, notes, book and course plan.
 import type { JobView } from "@studium/shared";
 import {
   ArrowRightIcon,
   BookOpenIcon,
-  ChevronDownIcon,
   DownloadIcon,
   ListChecksIcon,
   MessageSquareIcon,
   NotebookTextIcon,
   PlusIcon,
   SparklesIcon,
-  TargetIcon,
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -241,7 +238,6 @@ export default function SetHomePage() {
   const [newNoteOpen, setNewNoteOpen] = useState(false);
   const [addSourceOpen, setAddSourceOpen] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
 
   const summary = sets?.find((s) => s.slug === set);
   const runningJobCount = jobs.filter((job) => job.status === "queued" || job.status === "running").length;
@@ -260,17 +256,7 @@ export default function SetHomePage() {
         {!goal && nextAction && <p className="mt-1 text-sm text-muted-foreground">{nextAction}</p>}
       </div>
 
-      {planningJob ? (
-        <PreparingCard job={planningJob} />
-      ) : (
-        <ContinueCard
-          step={step}
-          onNewChapter={() => setNewChapterOpen({ title: step.kind === "new-chapter" ? step.chapterTitle : undefined })}
-          onAddSource={() => setAddSourceOpen(true)}
-          onTutor={() => openChatDock()}
-        />
-      )}
-      {runningJobCount > 0 && !planningJob && (
+      {runningJobCount > 0 && (
         <p className="mt-2 text-sm text-muted-foreground">
           {runningJobCount} running in the background.{" "}
           <Link to="/jobs" className="text-primary underline underline-offset-2">
@@ -279,62 +265,30 @@ export default function SetHomePage() {
         </p>
       )}
 
-      <CoursePlan key={set} set={set} jobs={jobs} onReplan={() => setPlanOpen(true)} />
+      {planningJob && <PreparingCard job={planningJob} />}
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        {step.kind !== "add-source" && (
-          <Button variant="outline" size="sm" className="h-11 md:h-8" onClick={() => setAddSourceOpen(true)}>
-            <PlusIcon aria-hidden="true" />
-            Add source
-          </Button>
-        )}
-        {step.kind !== "new-chapter" && (
-          <Button variant="outline" size="sm" className="h-11 md:h-8" onClick={() => setNewChapterOpen({})}>
-            <NotebookTextIcon aria-hidden="true" />
-            New chapter
-          </Button>
-        )}
-        <Link
-          to={`/s/${set}/practice`}
-          className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-11 md:h-8")}
-        >
-          <TargetIcon aria-hidden="true" />
-          Practice
-        </Link>
-        {step.kind !== "tutor" && (
-          <Button variant="outline" size="sm" className="h-11 md:h-8" onClick={() => openChatDock()}>
-            <MessageSquareIcon aria-hidden="true" />
-            Ask the tutor
-          </Button>
-        )}
-        <Button
-          variant="quiet"
-          size="sm"
-          className="h-11 md:h-8"
-          aria-expanded={moreOpen}
-          aria-controls="more-actions"
-          onClick={() => setMoreOpen((open) => !open)}
-        >
-          More actions
-          <ChevronDownIcon className={cn("transition-transform", moreOpen && "rotate-180")} aria-hidden="true" />
+      <div className="mt-4 flex flex-wrap gap-2" role="toolbar" aria-label="Study set actions">
+        <Button variant="outline" size="sm" className="h-11 md:h-8" onClick={() => setAddSourceOpen(true)}>
+          <PlusIcon aria-hidden="true" />
+          Add source
+        </Button>
+        <Button variant="outline" size="sm" className="h-11 md:h-8" onClick={() => setNewChapterOpen({})}>
+          <NotebookTextIcon aria-hidden="true" />
+          New chapter
+        </Button>
+        <Button variant="outline" size="sm" className="h-11 md:h-8" onClick={() => openChatDock()}>
+          <MessageSquareIcon aria-hidden="true" />
+          Ask the tutor
+        </Button>
+        <Button variant="outline" size="sm" className="h-11 md:h-8" onClick={() => setNewNoteOpen(true)}>
+          <ListChecksIcon aria-hidden="true" />
+          Write a note
+        </Button>
+        <Button variant="outline" size="sm" className="h-11 md:h-8" onClick={() => setPlanOpen(true)}>
+          <SparklesIcon aria-hidden="true" />
+          Make a plan
         </Button>
       </div>
-
-      {moreOpen && (
-        <div id="more-actions" className="mt-2 flex flex-col gap-2">
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" className="h-11 md:h-8" onClick={() => setNewNoteOpen(true)}>
-              <ListChecksIcon aria-hidden="true" />
-              Write a note
-            </Button>
-            <Button variant="outline" size="sm" className="h-11 md:h-8" onClick={() => setPlanOpen(true)}>
-              <SparklesIcon aria-hidden="true" />
-              Make a plan
-            </Button>
-          </div>
-          <BookCard set={set} jobs={jobs} />
-        </div>
-      )}
 
       <section className="mt-6">
         <h2 className="text-sm font-semibold text-foreground">Notes</h2>
@@ -353,6 +307,17 @@ export default function SetHomePage() {
           </ul>
         )}
       </section>
+
+      <BookCard set={set} jobs={jobs} />
+      <CoursePlan key={set} set={set} jobs={jobs} onReplan={() => setPlanOpen(true)} />
+      {!planningJob && (
+        <ContinueCard
+          step={step}
+          onNewChapter={() => setNewChapterOpen({ title: step.kind === "new-chapter" ? step.chapterTitle : undefined })}
+          onAddSource={() => setAddSourceOpen(true)}
+          onTutor={() => openChatDock()}
+        />
+      )}
 
       {planOpen && (
         <PlanSetSheet

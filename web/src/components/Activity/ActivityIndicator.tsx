@@ -2,7 +2,7 @@
 // count, rendered in the phone header or the desktop sidebar header. Tapping it opens
 // the activity panel: a bottom sheet on phone, a popover on desktop.
 import { XIcon } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 import { useJobs } from "@/api/queries";
@@ -30,14 +30,17 @@ function ActivityTriggerButton({
   expanded,
   onClick,
   className,
+  triggerRef,
 }: {
   count: number;
   expanded: boolean;
   onClick: () => void;
   className?: string;
+  triggerRef?: React.Ref<HTMLButtonElement>;
 }) {
   return (
     <Button
+      ref={triggerRef}
       variant="ghost"
       size="icon"
       aria-label={`${count} background ${count === 1 ? "job" : "jobs"} queued or running`}
@@ -127,34 +130,71 @@ export function MobileActivityIndicator({ className }: { className?: string }) {
 export function DesktopActivityIndicator() {
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const { open, jobId, count, hidden } = useActivityTrigger();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ left: 8, top: 8, maxHeight: 448 });
   useCloseActivityPanelOnNavigate();
+  useActivityPanelEscape(open);
+  useLayoutEffect(() => {
+    if (!open || !isDesktop) return;
+    const place = () => {
+      const trigger = triggerRef.current?.getBoundingClientRect();
+      const panel = panelRef.current;
+      if (!trigger || !panel) return;
+      const margin = 8;
+      const width = panel.getBoundingClientRect().width;
+      const height = Math.min(panel.scrollHeight, 448, window.innerHeight - margin * 2);
+      const below = trigger.bottom + margin;
+      const top = below + height <= window.innerHeight - margin ? below : trigger.top - margin - height;
+      setPosition({
+        left: Math.max(margin, Math.min(trigger.right - width, window.innerWidth - width - margin)),
+        top: Math.max(margin, Math.min(top, window.innerHeight - height - margin)),
+        maxHeight: Math.min(448, window.innerHeight - margin * 2),
+      });
+    };
+    place();
+    const observer = new ResizeObserver(place);
+    if (panelRef.current) observer.observe(panelRef.current);
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [open, isDesktop]);
   if (!isDesktop || hidden) return null;
   return (
-    <div className="relative shrink-0">
+    <div className="shrink-0">
       <ActivityTriggerButton
+        triggerRef={triggerRef}
         count={count}
         expanded={open}
         onClick={() => (open ? closeActivityPanel() : openActivityPanel())}
       />
-      {open && (
-        <>
-          <button
-            type="button"
-            aria-label="Close activity"
-            tabIndex={-1}
-            className="fixed inset-0 z-40 cursor-default"
-            onClick={closeActivityPanel}
-          />
-          <div
-            role="dialog"
-            aria-label="Background activity"
-            className="absolute end-0 top-full z-50 mt-2 flex max-h-[28rem] w-[22rem] flex-col overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-lg"
-          >
-            <PanelHeader />
-            <ActivityPanelContent focusJobId={jobId} />
-          </div>
-        </>
-      )}
+      {open &&
+        createPortal(
+          <>
+            <button
+              type="button"
+              aria-label="Close activity"
+              tabIndex={-1}
+              className="fixed inset-0 z-40 cursor-default"
+              onClick={closeActivityPanel}
+            />
+            <div
+              ref={panelRef}
+              role="dialog"
+              aria-label="Background activity"
+              style={position}
+              className="fixed z-50 flex w-[22rem] max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-lg"
+            >
+              <PanelHeader />
+              <ActivityPanelContent focusJobId={jobId} />
+            </div>
+          </>,
+          document.body,
+        )}
     </div>
   );
 }

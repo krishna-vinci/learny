@@ -65,3 +65,23 @@ describe("useLiveStudiumUpdates", () => {
     expect(todayInvalidationCount()).toBe(4);
   });
 });
+
+it("refreshes set source queries after PLAN changes, commits and completed ingest", () => {
+  const queryClient = new QueryClient();
+  const key = queryKeys.sources("algebra");
+  queryClient.setQueryData(key, []);
+  renderHook(() => useLiveStudiumUpdates(), {
+    wrapper: ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>,
+  });
+  const emit = (event: StudiumEvent) => act(() => stream.handler?.(event));
+  for (const event of [
+    { type: "file", set: "algebra", path: "PLAN.md", change: "change" },
+    { type: "commit", sha: "sha", subject: "Link source", author: "user" },
+    { type: "job", job: { ...job("done", "Added source"), kind: "ingest" } },
+  ] as StudiumEvent[]) {
+    queryClient.setQueryData(key, []);
+    emit(event);
+    expect(queryClient.getQueryState(key)?.isInvalidated).toBe(true);
+  }
+  cleanup();
+});
