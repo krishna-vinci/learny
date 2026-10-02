@@ -35,6 +35,7 @@ import { exitImmersive, isImmersive, toggleImmersive, useImmersive } from "@/lib
 import { toast } from "@/lib/notify";
 import { readingPrefsVars, useReadingPrefs } from "@/lib/reading-prefs";
 import { readScrollPosition, saveScrollPosition } from "@/lib/scroll-memory";
+import { useHideOnScroll } from "@/lib/use-hide-on-scroll";
 import { cn } from "@/lib/utils";
 import { ImmersiveExitButton } from "./ImmersiveExitButton";
 import { ReaderPassages } from "./ReaderPassages";
@@ -199,6 +200,7 @@ export function Reader({ set, path, file, className }: ReaderProps) {
   const [editing, setEditing] = useState(() => searchParams.get("edit") === "1");
   const prefs = useReadingPrefs();
   const immersive = useImmersive();
+  const toolbarHidden = useHideOnScroll(true);
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
   async function makeCards() {
@@ -367,8 +369,10 @@ export function Reader({ set, path, file, className }: ReaderProps) {
           {/* Phone: the toolbar gets its own row, since floating it beside the title clips it. */}
           <div
             className={cn(
-              "sticky top-12 z-20 mb-4 flex flex-wrap items-center justify-between gap-2 bg-background py-2 md:top-0 md:gap-4",
+              "sticky top-12 z-20 mb-4 flex items-center justify-between gap-2 bg-background py-2 transition-transform duration-200 motion-reduce:transition-none md:top-0 md:flex-wrap md:gap-4",
               immersive && "top-0",
+              // Phones: slide away while scrolling down, back on scroll up (the bar is otherwise permanent).
+              toolbarHidden && "max-md:-translate-y-[calc(100%+3.5rem)]",
             )}
           >
             {/* Chapters without visuals show no tabs: an empty Visuals tab is noise (docs/UX.md). */}
@@ -378,28 +382,28 @@ export function Reader({ set, path, file, className }: ReaderProps) {
               <Tabs.List className="flex gap-1 rounded-lg bg-muted p-1" aria-label="Chapter views">
                 <Tabs.Tab
                   value="reading"
-                  className="min-h-11 rounded-md px-4 text-sm font-medium text-muted-foreground data-[active]:bg-background data-[active]:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+                  className="min-h-11 rounded-md px-3 text-sm font-medium md:px-4 text-muted-foreground data-[active]:bg-background data-[active]:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
                 >
                   Reading
                 </Tabs.Tab>
                 <Tabs.Tab
                   value="visuals"
-                  className="min-h-11 rounded-md px-4 text-sm font-medium text-muted-foreground data-[active]:bg-background data-[active]:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+                  className="min-h-11 rounded-md px-3 text-sm font-medium md:px-4 text-muted-foreground data-[active]:bg-background data-[active]:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
                 >
                   Visuals{chapter.visuals.length > 0 && ` (${chapter.visuals.length})`}
                 </Tabs.Tab>
               </Tabs.List>
             )}
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex shrink-0 items-center gap-2 md:flex-wrap">
               <Button
                 variant="outline"
                 size="sm"
-                className="h-11 md:h-7"
+                className="h-11 min-w-11 md:h-7 md:min-w-0"
                 onClick={() => void makeCards()}
                 disabled={makingCards}
               >
                 <LayersIcon />
-                {makingCards ? "Starting…" : "Make cards"}
+                <span className="max-sm:sr-only">{makingCards ? "Starting…" : "Make cards"}</span>
               </Button>
               <ReadingSettingsControl />
               <DropdownMenu>

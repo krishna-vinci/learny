@@ -15,9 +15,21 @@ import { parseVisualControl } from "./control-message";
     scenes = [],
     draw = () => {};
   const listeners = new Set();
+  const palette = ["#0072B2", "#D55E00", "#009E73", "#CC79A7", "#E69F00", "#56B4E9", "#F0E442", "#000000"];
   const runtime = {
-    palette: ["#0072B2", "#D55E00", "#009E73", "#CC79A7", "#E69F00", "#56B4E9", "#F0E442", "#000000"],
-    theme: {},
+    palette,
+    // Complete from the first draw: sketches render once before the parent's theme message arrives,
+    // and the documented shape includes `palette` (a sketch reading theme.palette[0] crashed on {}).
+    theme: {
+      bg: "#fafaf9",
+      fg: "#292524",
+      muted: "#57534e",
+      accent: "#0072B2",
+      grid: "#d6d3d1",
+      font: "system-ui, sans-serif",
+      palette,
+      dark: false,
+    },
     get playing() {
       return enabled && playing && !reduced;
     },
@@ -63,7 +75,7 @@ import { parseVisualControl } from "./control-message";
     },
   };
   window.studium = runtime;
-  let chrome, caption, scrub, play, dots;
+  let chrome, caption, scrub, dots;
   function setup() {
     if (!document.getElementById("studium-stage")) {
       const stage = document.createElement("div");
@@ -84,44 +96,42 @@ import { parseVisualControl } from "./control-message";
       row.append(b);
       return b;
     };
-    button("Previous", () => {
-      playing = false;
-      runtime.go(scene - 1);
-    });
-    play = button("Pause", () => {
-      playing = !playing;
-      render();
-      schedule();
-    });
-    button("Next", () => {
-      playing = false;
-      runtime.go(scene + 1);
-    });
-    scrub = document.createElement("input");
-    scrub.type = "range";
-    scrub.min = "0";
-    scrub.max = String(Math.max(0, scenes.length - 1));
-    scrub.step = "1";
-    scrub.setAttribute("aria-label", "Scene");
-    scrub.addEventListener("input", () => {
-      playing = false;
-      runtime.go(Number(scrub.value));
-    });
-    row.append(scrub);
-    chrome.append(row);
-    dots = document.createElement("div");
-    dots.className = "row";
-    scenes.forEach((_, i) => {
-      const b = document.createElement("button");
-      b.textContent = String(i + 1);
-      b.setAttribute("aria-label", `Scene ${i + 1}`);
-      b.onclick = () => {
+    // Scene controls only for stories; play/pause lives in the app's control strip.
+    if (scenes.length > 1) {
+      button("Previous", () => {
         playing = false;
-        runtime.go(i);
-      };
-      dots.append(b);
-    });
-    chrome.append(dots);
+        runtime.go(scene - 1);
+      });
+      button("Next", () => {
+        playing = false;
+        runtime.go(scene + 1);
+      });
+      scrub = document.createElement("input");
+      scrub.type = "range";
+      scrub.min = "0";
+      scrub.max = String(Math.max(0, scenes.length - 1));
+      scrub.step = "1";
+      scrub.setAttribute("aria-label", "Scene");
+      scrub.addEventListener("input", () => {
+        playing = false;
+        runtime.go(Number(scrub.value));
+      });
+      row.append(scrub);
+      chrome.append(row);
+      dots = document.createElement("div");
+      dots.className = "row";
+      scenes.forEach((_, i) => {
+        const b = document.createElement("button");
+        b.textContent = String(i + 1);
+        b.setAttribute("aria-label", `Scene ${i + 1}`);
+        b.onclick = () => {
+          playing = false;
+          runtime.go(i);
+        };
+        dots.append(b);
+      });
+      chrome.append(dots);
+    }
     caption = document.createElement("p");
     caption.setAttribute("aria-live", "polite");
     chrome.append(caption);
@@ -131,9 +141,8 @@ import { parseVisualControl } from "./control-message";
   function render() {
     if (caption) {
       caption.textContent = scenes[scene]?.narration ?? "";
-      scrub.value = String(scene);
-      play.textContent = runtime.playing ? "Pause" : "Play";
-      [...dots.children].forEach((b, i) => {
+      if (scrub) scrub.value = String(scene);
+      [...(dots?.children ?? [])].forEach((b, i) => {
         b.setAttribute("aria-pressed", String(i === scene));
       });
     }
@@ -171,8 +180,9 @@ import { parseVisualControl } from "./control-message";
     const control = parseVisualControl(e.data);
     if (!control) return;
     if (control.theme) {
-      runtime.theme = control.theme;
-      runtime.palette = control.theme.palette;
+      runtime.theme = { ...runtime.theme, ...control.theme };
+      if (control.theme.palette?.length) runtime.palette = control.theme.palette;
+      else runtime.theme.palette = runtime.palette;
       for (const k of ["bg", "fg", "muted", "accent", "grid"])
         document.documentElement.style.setProperty(`--${k}`, control.theme[k]);
       document.body.style.fontFamily = control.theme.font;
