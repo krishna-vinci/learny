@@ -281,7 +281,7 @@ it("gives the tutor a bounded course summary and chapter/rewrite proposal instru
   });
   const summary = prompt.split("## Course summary\n")[1]?.split("\n\n## Curriculum")[0] ?? "";
   expect(summary.trim().split("\n")).toHaveLength(30);
-  expect(summary).toContain("01 — Topic 1: checked");
+  expect(summary).toContain("01 — Topic 1: accepted");
   expect(summary).toContain("05 — Topic 5: drafting");
   expect(summary).toContain("… 6 more chapters");
   expect(prompt).toContain("start_job kind draft-chapter");
