@@ -1,0 +1,170 @@
+[
+  {
+    "id": "math-basic",
+    "subject": "math",
+    "level": "basic",
+    "expected": "function-plot",
+    "alternatives": [],
+    "section": "A straight line y = mx passes through the origin. Increasing slope m from 0.5 to 3 makes the line steeper. Compare y for x=1 and x=2; label both axes in units."
+  },
+  {
+    "id": "math-intermediate",
+    "subject": "math",
+    "level": "intermediate",
+    "expected": "matrix-transform",
+    "alternatives": [],
+    "section": "The matrix [[2,0],[0,1]] doubles horizontal coordinates and keeps vertical coordinates unchanged. Show a unit circle and the two basis directions before and after the stretch."
+  },
+  {
+    "id": "math-advanced",
+    "subject": "math",
+    "level": "advanced",
+    "expected": "matrix-transform",
+    "alternatives": [],
+    "section": "For A=[[0,-1],[2,0]], the SVD is V^T=I, Sigma=diag(2,1), U=[[0,-1],[1,0]]. First choose input directions, then scale, then rotate 90 degrees. Explain the three cumulative stages."
+  },
+  {
+    "id": "science-basic",
+    "subject": "science",
+    "level": "basic",
+    "expected": "sketch",
+    "alternatives": [],
+    "section": "A simplified polyethylene fragment contains n repeat units, each -CH2-CH2-. It has 2n carbon atoms, ignoring end groups. Let n vary from 1 to 4; highlight one repeat pair. This is a counting schematic, not a reaction mechanism."
+  },
+  {
+    "id": "science-intermediate",
+    "subject": "science",
+    "level": "intermediate",
+    "expected": "function-plot",
+    "alternatives": ["chart"],
+    "section": "For a fixed amount of ideal gas at constant temperature, pressure P=12/V with P in kPa and V in litres. Volumes 1,2,3,4,6 L give pressures 12,6,4,3,2 kPa. Show the inverse relation; no extrapolation to zero volume."
+  },
+  {
+    "id": "science-advanced",
+    "subject": "science",
+    "level": "advanced",
+    "expected": "function-plot",
+    "alternatives": [],
+    "section": "A damped oscillator follows x(t)=exp(-b*t)*cos(2*t), displacement in metres and time in seconds. Compare damping b=0.1,0.4,0.8 over 0 to 10 seconds; larger b removes amplitude faster without changing this model's angular frequency."
+  },
+  {
+    "id": "technology-basic",
+    "subject": "technology",
+    "level": "basic",
+    "expected": "step-through",
+    "alternatives": [],
+    "section": "One pass of bubble sort on [3,1,2]: compare positions 0 and 1, swap to [1,3,2], compare positions 1 and 2, swap to [1,2,3]. Highlight the compared pair; show each state."
+  },
+  {
+    "id": "technology-intermediate",
+    "subject": "technology",
+    "level": "intermediate",
+    "expected": "step-through",
+    "alternatives": ["sketch"],
+    "section": "A cache lookup has three stages: request key, check cache, return cached value on a hit or fetch from storage on a miss. Trace a miss that then populates the cache; do not suggest the cache is authoritative."
+  },
+  {
+    "id": "technology-advanced",
+    "subject": "technology",
+    "level": "advanced",
+    "expected": "step-through",
+    "alternatives": ["sketch"],
+    "section": "In a two-phase commit success trace, a coordinator asks two participants to prepare, both vote yes, then the coordinator sends commit and both commit. Focus on this single success trace, not failure recovery. Label coordinator and participants."
+  },
+  {
+    "id": "history-basic",
+    "subject": "history",
+    "level": "basic",
+    "expected": "timeline",
+    "alternatives": [],
+    "section": "Hyderabad was founded in 1591; Asaf Jahi rule began in 1724; Hyderabad integrated into India in 1948. Show these three milestones with years, without inventing day/month precision."
+  },
+  {
+    "id": "history-intermediate",
+    "subject": "history",
+    "level": "intermediate",
+    "expected": "timeline",
+    "alternatives": [],
+    "section": "Compare overlapping political eras: Qutb Shahi rule 1518–1687 and Mughal rule in Golconda 1687–1724, followed by Asaf Jahi rule 1724–1948. Include the founding of Hyderabad in 1591 within the first era."
+  },
+  {
+    "id": "history-advanced",
+    "subject": "history",
+    "level": "advanced",
+    "expected": "chart",
+    "alternatives": [],
+    "section": "A fictional archive sample lists ten surviving letters in 1800, thirty in 1850, and fifteen in 1900. Compare surviving records by year; explicitly label fictional sample. Counts measure survival in this sample, not historical activity or population."
+  },
+  {
+    "id": "finance-basic",
+    "subject": "finance",
+    "level": "basic",
+    "expected": "function-plot",
+    "alternatives": ["chart"],
+    "section": "In an illustrative calculation, 100 currency units earn simple interest: A(t)=100*(1+r*t), where annual r ranges from 0 to 0.1 and time t from 0 to 10 years. No tax, fees or advice. Label amount and time."
+  },
+  {
+    "id": "finance-intermediate",
+    "subject": "finance",
+    "level": "intermediate",
+    "expected": "function-plot",
+    "alternatives": ["chart"],
+    "section": "Compare simple A(t)=100*(1+0.05*t) with annual compound A(t)=100*1.05^t for 0–20 years. Both start at 100 units. Show why the compound curve grows faster in this hypothetical example; ignore fees and tax."
+  },
+  {
+    "id": "finance-advanced",
+    "subject": "finance",
+    "level": "advanced",
+    "expected": "function-plot",
+    "alternatives": ["chart"],
+    "section": "Illustrative two-asset portfolio variance: w^2*0.04+(1-w)^2*0.09+2*w*(1-w)*rho*0.2*0.3. Weight w ranges 0–1 and correlation rho ranges -1–1. Show lower correlation reduces variance for interior weights. Units: return squared; this is a mathematical model, not investment advice."
+  },
+  {
+    "id": "language-basic",
+    "subject": "language",
+    "level": "basic",
+    "expected": "step-through",
+    "alternatives": ["sketch"],
+    "section": "In the sentence 'The cat sleeps', identify subject ('The cat') and verb ('sleeps'). Step from the whole sentence to the two labelled roles. Focus only on this example."
+  },
+  {
+    "id": "language-intermediate",
+    "subject": "language",
+    "level": "intermediate",
+    "expected": "step-through",
+    "alternatives": ["sketch"],
+    "section": "Change active 'Mira wrote the letter' to passive 'The letter was written by Mira': identify object, move it to subject position, change verb to was written, retain agent in by Mira. Show the stages, keeping tense and meaning."
+  },
+  {
+    "id": "language-advanced",
+    "subject": "language",
+    "level": "advanced",
+    "expected": "sketch",
+    "alternatives": ["step-through"],
+    "section": "'I saw the man with the telescope' has two readings: I used the telescope to see, or the man had the telescope. Show two labelled attachment structures for the prepositional phrase. Do not present either reading as uniquely correct."
+  },
+  {
+    "id": "practical-basic",
+    "subject": "practical",
+    "level": "basic",
+    "expected": "step-through",
+    "alternatives": [],
+    "section": "Before tightening a bicycle wheel quick release: seat the axle, adjust the nut, close the lever, then check the wheel is secure. Use short labelled stages; this diagram supports, rather than replaces, the manufacturer's instructions."
+  },
+  {
+    "id": "practical-intermediate",
+    "subject": "practical",
+    "level": "intermediate",
+    "expected": "chart",
+    "alternatives": ["function-plot"],
+    "section": "A fictional household logs electricity use: Monday 4 kWh, Tuesday 6 kWh, Wednesday 3 kWh, Thursday 5 kWh. Compare days on a labelled bar chart; mark the data as an example, not a forecast."
+  },
+  {
+    "id": "practical-advanced",
+    "subject": "practical",
+    "level": "advanced",
+    "expected": "none",
+    "alternatives": [],
+    "section": "A personal reflection: 'I prefer quiet mornings for writing, because interruptions break my concentration.' There is no quantitative relationship, sequence, structure or general claim to illustrate. Keep this reflective sentence as text; a visual would add decoration."
+  }
+]

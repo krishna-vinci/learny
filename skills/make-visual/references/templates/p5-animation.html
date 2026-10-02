@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Oscillation projection</title>
+<script type="application/json" id="studium-visual">{"libs":["p5"],"aspect":"9:7","poster":"p5-animation.svg"}</script>
+</head><body><script>
+/* FILL: title, period in seconds, displacement label; keep runtime-owned time. */
+const example = {title: "A periodic displacement", period: 4, unit: "Displacement (m)"};
+let sketch, observer, frame = {time: 0, playing: false, theme: {}};
+function paint(p, {time, theme}) {
+  const fg = theme.fg ?? "#292524", bg = theme.bg ?? "#fafaf9", muted = theme.muted ?? "#57534e", font = theme.font ?? "system-ui";
+  p.background(bg); p.textFont(font); p.textSize(16); p.textAlign(p.CENTER, p.CENTER);
+  p.noStroke(); p.fill(fg); p.text(example.title, p.width / 2, 30);
+  const center = p.width / 2, y = p.height / 2, amplitude = Math.max(10, p.width / 2 - 50);
+  const displacement = Math.sin(2 * Math.PI * time / (example.period * 1000));
+  p.stroke(muted); p.strokeWeight(2); p.line(40, y, p.width - 40, y);
+  p.line(center, y - 12, center, y + 12);
+  p.noStroke(); p.fill(studium.palette[0]); p.circle(center + amplitude * displacement, y, 28);
+  p.fill(fg); p.text(example.unit, center, y + 50);
+  p.fill(muted); p.text("−1", 40, y + 25); p.text("0", center, y + 25); p.text("1", p.width - 40, y + 25);
+}
+document.addEventListener("DOMContentLoaded", () => {
+  const stage = document.getElementById("studium-stage");
+  sketch = new p5(p => {
+    p.setup = () => {
+      p.createCanvas(stage.clientWidth, stage.clientHeight); p.noLoop();
+      observer = new ResizeObserver(() => {p.resizeCanvas(stage.clientWidth, stage.clientHeight, true); p.redraw();});
+      observer.observe(stage);
+    };
+    p.draw = () => paint(p, frame);
+  }, stage);
+  // Runtime time advances only while active/playing, and remains still for reduced motion.
+  studium.mount({draw: next => {frame = next; sketch?.redraw();}});
+});
+window.addEventListener("pagehide", () => {observer?.disconnect(); sketch?.remove();});
+</script></body></html>

@@ -1,0 +1,21 @@
+{
+  "type": "timeline",
+  "title": "Hyderabad: three milestones",
+  "caption": "Select an event to read its historical context.",
+  "events": [
+    {
+      "date": 1591,
+      "title": "Founded",
+      "category": "City",
+      "description": "Muhammad Quli Qutb Shah founded Hyderabad in 1591."
+    },
+    { "date": 1724, "title": "Asaf Jahi", "category": "Rule", "description": "Asaf Jahi rule began in 1724." },
+    {
+      "date": 1948,
+      "title": "Integration",
+      "category": "Rule",
+      "description": "Hyderabad integrated into India in 1948."
+    }
+  ],
+  "eras": [{ "start": 1724, "end": 1948, "title": "Asaf Jahi" }]
+}

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Distance over time</title>
+<script type="application/json" id="studium-visual">{"libs":["d3"],"aspect":"9:7","poster":"d3-chart.svg"}</script>
+</head><body><script>
+/* FILL: short title, data in seconds/metres, axis units; keep the responsive margins. */
+const example = {title: "Distance over time", xLabel: "Time (s)", yLabel: "Distance (m)", data: [{seconds:0,metres:0},{seconds:1,metres:2},{seconds:2,metres:4},{seconds:3,metres:6}]};
+const svg = d3.create("svg").attr("viewBox", "0 0 360 280").attr("role", "img").attr("aria-label", example.title).style("width", "100%").style("height", "100%");
+const x = d3.scaleLinear().domain([0, 3]).range([64, 330]);
+const y = d3.scaleLinear().domain([0, 6]).range([216, 64]);
+function draw({theme}) {
+  const fg = theme.fg ?? "#292524", grid = theme.grid ?? "#d6d3d1", font = theme.font ?? "system-ui, sans-serif";
+  svg.selectAll("*").remove();
+  svg.style("font-family", font).style("color", fg);
+  svg.append("text").attr("x", 16).attr("y", 28).attr("fill", fg).attr("font-size", 18).text(example.title);
+  svg.append("g").attr("transform", "translate(0,216)").call(d3.axisBottom(x).ticks(3)).attr("font-size", 14);
+  svg.append("g").attr("transform", "translate(64,0)").call(d3.axisLeft(y).ticks(3)).attr("font-size", 14);
+  svg.append("text").attr("x", 190).attr("y", 266).attr("text-anchor", "middle").attr("font-size", 16).attr("fill", fg).text(example.xLabel);
+  svg.append("text").attr("transform", "translate(18,144) rotate(-90)").attr("text-anchor", "middle").attr("font-size", 16).attr("fill", fg).text(example.yLabel);
+  svg.append("path").datum(example.data).attr("d", d3.line().x(d => x(d.seconds)).y(d => y(d.metres))).attr("fill", "none").attr("stroke", studium.palette[0]).attr("stroke-width", 3);
+  svg.selectAll("circle").data(example.data).join("circle").attr("cx", d => x(d.seconds)).attr("cy", d => y(d.metres)).attr("r", 5).attr("fill", studium.palette[1]).attr("stroke", grid);
+}
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("studium-stage").append(svg.node());
+  studium.mount({draw});
+});
+</script></body></html>

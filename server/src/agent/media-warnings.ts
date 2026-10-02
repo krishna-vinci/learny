@@ -7,11 +7,36 @@ import {
   youtubeDirective,
   youtubeVideoId,
 } from "@studium/shared/media";
+import { parseSketchHeader } from "@studium/shared/visuals/sketch";
 import { listSources } from "../ingest/library.js";
 import { canonicalRel, resolveInRoot } from "../tree/paths.js";
+import { lintVisualHtml } from "../tree/visual-lint.js";
 
 /** A missing figure is advisory; a valid note write must still succeed. */
 export async function mediaWarnings(root: string, notePath: string, text: string): Promise<string[]> {
+  if (/^[^/]+\/visuals\/.+\.html$/.test(notePath)) {
+    const warnings = lintVisualHtml(text).warnings;
+    try {
+      const header = parseSketchHeader(text);
+      for (const poster of [header.poster, ...(header.posters ?? []).map((p) => p.src)]) {
+        if (!poster) continue;
+        try {
+          const rel = `${notePath.slice(0, notePath.lastIndexOf("/"))}/${poster}`;
+          const [set] = notePath.split("/");
+          const canonical = canonicalRel(root, rel);
+          if (!canonical.startsWith(`${set}/visuals/`) || !(await fs.stat(resolveInRoot(root, rel))).isFile())
+            throw new Error("unavailable poster");
+        } catch {
+          warnings.push(
+            `Poster ${poster}: write this static SVG in the same visuals folder before attaching the sketch.`,
+          );
+        }
+      }
+    } catch {
+      // Invalid headers are already hard write errors, not advisory missing-file warnings.
+    }
+    return warnings;
+  }
   if (!/^[^/]+\/notes\/.+\.md$/.test(notePath)) return [];
   const warnings: string[] = [];
   const { frontmatter, body } = parseFrontmatter(text);

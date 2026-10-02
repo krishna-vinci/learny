@@ -79,7 +79,39 @@ export function parseRewriteChapterInput(value: unknown): RewriteChapterInput {
   return { kind: "rewrite-chapter", set: value.set as string, path: value.path };
 }
 
-/** A rewrite may change prose, not source identifiers, metadata or embedded figures. */
+/** Ignore preserved metadata/media/citations when measuring actual prose replacement. */
+export function rewriteChange(before: string, after: string) {
+  const sentences = (note: string) => {
+    const parts = parseFrontmatter(note)
+      .body.replace(/^(`{3,}|~{3,})[^\n]*\n[\s\S]*?^\1\s*$/gm, "")
+      .replace(/^\[\^src:[^\]]+\]:.*$/gm, "")
+      .replace(/^::(?:visual|artifact|youtube)\{[^\n]+\}/gm, "")
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+      .replace(/\[\^src:[^\]]+\]/g, "")
+      .replace(/^#{1,6}.*$/gm, "")
+      .replace(/^:{3}.*$/gm, "")
+      .replace(/[*_`]/g, "")
+      .replace(/\s+/g, " ")
+      .toLowerCase()
+      .split(/(?<=[.!?])\s+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const prose = parts.filter((s) => s.length >= 20);
+    return prose.length ? prose : parts;
+  };
+  const old = sentences(before),
+    next = sentences(after),
+    oldSet = new Set(old),
+    nextSet = new Set(next);
+  return {
+    before: old.length,
+    after: next.length,
+    newAfterRatio: next.filter((s) => !oldSet.has(s)).length / Math.max(1, next.length),
+    replacedBeforeRatio: old.filter((s) => !nextSet.has(s)).length / Math.max(1, old.length),
+  };
+}
+
+/** A rewrite replaces prose while keeping identifiers, metadata and embedded figures. */
 function validateRewrite(before: string, after: string): void {
   const metadata = (text: string) => {
     const { status: _status, ...fields } = parseFrontmatter(text).frontmatter;
@@ -98,6 +130,11 @@ function validateRewrite(before: string, after: string): void {
     if (!after.includes(value)) throw new Error("rewrite must preserve citations and figures");
   }
   if (noteStatus(after) !== "draft") throw new Error("rewritten note must have status draft");
+  const change = rewriteChange(before, after);
+  if (change.newAfterRatio < 0.4 || change.replacedBeforeRatio < 0.4)
+    throw new Error(
+      "Rewrite must replace the chapter’s prose: rework at least 40% of the original sentences and make at least 40% of the result new; changing only the opening or appending questions is insufficient.",
+    );
 }
 
 async function optionalText(root: string, rel: string): Promise<string> {
@@ -423,6 +460,8 @@ function createChapterJob(deps: DraftJobDeps, rewriting: boolean): JobHandler {
           ? [
               "Load the draft-chapter, note-authoring, media-authoring and make-visual skills and the plan subject guide.",
               `Rewrite ${notePath} in place in the warm teaching voice. Read the existing note first.`,
+              "Replace the existing prose throughout the chapter, from the opening through the concept sections and examples; do not just add a hook, questions or takeaways to the old text.",
+              "Preserve facts and learning goals, but re-explain them conversationally with concrete examples and clearer sequencing. Rework at least 40% of the original sentences; at least 40% of the resulting prose must be new.",
               "Keep all facts, citation identifiers, figures and frontmatter fields; reset status to draft.",
               "Fix footnote text to author/organisation, title, section/page; remove internal paths and line numbers.",
               "Use the flexible chapter shape, including Check yourself with collapsed Answers and Key takeaways.",

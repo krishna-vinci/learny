@@ -30,8 +30,8 @@ uses phone viewport height and reserves bottom room for controls.
   and save static SVG stills with study tools; there is no privileged download bridge.
 
 Mount your SVG/canvas in `#studium-stage` at DOMContentLoaded. The runtime has already
-created it and `#studium-chrome`. Do not remove the chrome. It supplies Play/Pause,
-Previous/Next, scene scrub/dots/narration and arrow/space keyboard support. Use the
+created it and `#studium-chrome`. Do not remove the chrome. It supplies Previous/Next, scene scrub/dots/narration and arrow/space keyboard
+support. Play/Pause lives in the app control strip; do not add another button. Use the
 stage's client width/height and ResizeObserver for resizing. Font is the app's system
 stack; no webfonts. Controls use 44 px targets. Respect `playing`/reduced motion.
 

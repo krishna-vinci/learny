@@ -228,3 +228,27 @@ it.each([
     warnings: expect.arrayContaining([expect.stringContaining("needs a watch link")]),
   });
 });
+
+it("returns visual style/poster warnings to the agent while preserving the successful write", async () => {
+  const content =
+    '<script type="application/json" id="studium-visual">{"libs":["d3"],"poster":"x.svg"}</script><script>studium.mount({draw:({theme})=>{document.body.style.color=theme.fg;}});</script>';
+  const result = await execute("study_create", { path: "visuals/warnings.html", content });
+  expect(result.details).toMatchObject({
+    isError: false,
+    warnings: [
+      expect.stringContaining("Library d3"),
+      expect.stringContaining("Theme fg"),
+      expect.stringContaining("Poster x.svg"),
+    ],
+  });
+  expect(result.content[0]).toMatchObject({ text: expect.stringContaining("Warning: Theme fg") });
+  expect(await fs.readFile(path.join(root, "linear-algebra/visuals/warnings.html"), "utf8")).toBe(content);
+  await execute("study_create", { path: "visuals/x.svg", content: '<svg viewBox="0 0 360 280"/>' });
+  const fixed = await execute("study_edit", {
+    path: "visuals/warnings.html",
+    old_string: content,
+    new_string: content.replace('"libs":["d3"]', '"libs":[]').replace("theme.fg;", 'theme.fg ?? "#292524";'),
+  });
+  expect(fixed.details).toMatchObject({ isError: false });
+  expect(fixed.details).not.toHaveProperty("warnings");
+});

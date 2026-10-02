@@ -1,0 +1,7 @@
+{
+  "type": "matrix-transform",
+  "title": "SVD: choose, stretch, rotate",
+  "caption": "The blue and orange basis directions follow the same three cumulative stages.",
+  "matrix": [[0, -1], [2, 0]],
+  "svd": { "vT": [[1, 0], [0, 1]], "sigma": [[2, 0], [0, 1]], "u": [[0, -1], [1, 0]] }
+}

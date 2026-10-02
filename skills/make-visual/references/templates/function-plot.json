@@ -1,0 +1,17 @@
+{
+  "type": "function-plot",
+  "title": "Slope changes the line",
+  "caption": "Compare the height at the same x as slope increases.",
+  "x": [0, 2],
+  "y": [0, 6],
+  "xLabel": "x (units)",
+  "yLabel": "y (units)",
+  "curves": [{ "expression": "m*x", "label": "y = m x" }],
+  "params": [{ "name": "m", "min": 0.5, "max": 3, "value": 1, "step": 0.5 }],
+  "story": {
+    "scenes": [
+      { "state": { "m": 0.5 }, "narration": "A shallow slope gains half a unit of height per horizontal unit." },
+      { "state": { "m": 3 }, "narration": "A steeper slope gains three units of height per horizontal unit." }
+    ]
+  }
+}

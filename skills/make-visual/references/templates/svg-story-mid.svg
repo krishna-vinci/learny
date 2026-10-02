@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 280" role="img">
+<!-- /* FILL: title, short labels and geometry to match the HTML default/scene state. */ -->
+<title>Watch a segment grow</title><rect width="360" height="280" fill="#fafaf9"/>
+<g fill="#292524" font-family="system-ui, sans-serif" font-size="16"><text x="16" y="30" font-size="18">Watch a segment grow</text><path d="M30 140H210" stroke="#0072B2" stroke-width="8"/><path d="M30 124V156" stroke="#292524" stroke-width="2"/><text x="22" y="182">0</text><path d="M120 124V156" stroke="#292524" stroke-width="2"/><text x="112" y="182">1</text><path d="M210 124V156" stroke="#292524" stroke-width="2"/><text x="202" y="182">2</text><text x="16" y="242">Length: 2 m</text></g></svg>

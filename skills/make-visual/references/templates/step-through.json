@@ -1,0 +1,11 @@
+{
+  "type": "step-through",
+  "title": "One bubble-sort pass",
+  "view": "array",
+  "steps": [
+    { "caption": "Compare 3 and 1: the left value is larger.", "items": [3, 1, 2], "active": [0, 1] },
+    { "caption": "Swap them, leaving 1 and 3 in order.", "items": [1, 3, 2], "active": [0, 1] },
+    { "caption": "Compare 3 and 2: the left value is larger.", "items": [1, 3, 2], "active": [1, 2] },
+    { "caption": "Swap them; this pass leaves the largest value at the end.", "items": [1, 2, 3], "active": [1, 2] }
+  ]
+}

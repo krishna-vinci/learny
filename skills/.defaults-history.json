@@ -70,11 +70,71 @@
   "make-quiz/SKILL.md": ["64283ab1314e369692707ac7fe1b774dbb1705dbc7391f730b0a515781ac383c"],
   "make-visual/SKILL.md": [
     "8e7af1d1d58488eb5c8e7838245dd26f043c92b25e3891c9f3e5ddd6b40012ee",
-    "f16c7dd08cc2444ffc84283cee984522c4a52206a0e2037e4ff5617166b30aaf"
+    "f16c7dd08cc2444ffc84283cee984522c4a52206a0e2037e4ff5617166b30aaf",
+    "5447bed14b257fbd2edb92cc659cd9f82d3903074a5b5e819693cbf0a80caaa7"
   ],
   "make-visual/references/d3.md": ["8c61b01d3fae96a3ad9d6b470c52b22da680dc8ade3420fc6b2a4e6928b217d2"],
+  "make-visual/references/fill-slots.md": ["33118dafe6f258e9ef5ea7816e8b16cd4cf65a1285a3942cdbc9975924b7f1d3"],
   "make-visual/references/p5.md": ["61c057d2df189b3f7a5347f4ccbab5b90e1f4bed28a86b18d619c37b77abd9f9"],
-  "make-visual/references/runtime.md": ["b3f82cf32eef290dec66af148c6e2a94918660b79ba2240976463c7f9f224c54"],
+  "make-visual/references/runtime.md": [
+    "b3f82cf32eef290dec66af148c6e2a94918660b79ba2240976463c7f9f224c54",
+    "8df7e5986e8c73b1fa47bc64156feb5748f400e92fb7db7c7c070bb17f6c9590"
+  ],
+  "make-visual/references/subjects.md": ["c047d3510db0971adc96cfa2f6ce9906de69cc4ac48214652c0c6280ca1d2565"],
+  "make-visual/references/templates/d3-chart.html": [
+    "19a6d0118b4676c78b2817e740f4fbfeffdaf69e8bcca97b1d0cec9f7a5f81c6"
+  ],
+  "make-visual/references/templates/d3-chart.svg": ["9e0495ddc6dae1b9ef097b191f8b9806dfa2f222fc2d00d8e32167ce73ec4811"],
+  "make-visual/references/templates/function-plot.json": [
+    "d13d6c053f1db134192e1e8190d93917cd06b0f00145a221ead0d27814f68183",
+    "3fddcf32018dbbf5966e5a6bdb70863f5cf36c5e5d3dd4f7d35783770c59cf11"
+  ],
+  "make-visual/references/templates/function-plot.svg": [
+    "8ed4793e571d044c62ceb3c56094ad21e6869c000194b934985b4e6e3dced046"
+  ],
+  "make-visual/references/templates/matrix-transform.json": [
+    "b5a7d1b7f32abe0aac3b01fbb3da514ad86e4452f63cb59c0f8d35937e0a3f5d",
+    "c76b10e704cde1a2e7e8dc618b9fdce73afa82ccb9f65ded6e215f8c18cc3d0a"
+  ],
+  "make-visual/references/templates/matrix-transform.svg": [
+    "15559a62b3c3c56e09a4d1bbb9ff860a9f7a8a69157f717b2ecbc65d3f6b923f"
+  ],
+  "make-visual/references/templates/p5-animation.html": [
+    "a1361c7c725c763538458759128e7c74ca0e989f4c045ada493ecbdb7a6dffca"
+  ],
+  "make-visual/references/templates/p5-animation.svg": [
+    "3807317b47e46253952231c7044b998d0e3ad268dba17b888732ddd42ac8acba"
+  ],
+  "make-visual/references/templates/step-through.json": [
+    "5dc76605a63c74d96f0d3b576b755eececf455889193b1e787c8cda31842f660",
+    "6dc9766bec9d9f2aa6af1eca834ebfacf75b4b6821a2b27358c8aef73216be20"
+  ],
+  "make-visual/references/templates/step-through.svg": [
+    "b7db0c821de7a81d175c74084c39b633336cc05bff68eca5873c47e861069867"
+  ],
+  "make-visual/references/templates/svg-labelled-diagram.html": [
+    "03bee76b6c467e37ed58e839ddecac9d8afb872e6b207560a4169db09aecf51f"
+  ],
+  "make-visual/references/templates/svg-labelled-diagram.svg": [
+    "7fbf567b219aaf6762ac5c1767321a3ba2af65296d94fedb80ece54793fc9ac5"
+  ],
+  "make-visual/references/templates/svg-story-end.svg": [
+    "50c8c37a83d5f260e5c0d57c10d3b7f6c68e2b4b855299d9eec884c60bf3b769"
+  ],
+  "make-visual/references/templates/svg-story-mid.svg": [
+    "e42c4f004a437fc7d0aa881661358ada8fcdcd2118c1fd118785ddd89655b0fe"
+  ],
+  "make-visual/references/templates/svg-story.html": [
+    "bccb26b8e66f14c4313d8cc35db4bf434431ccdc70fcc79ae3195088545f47a0"
+  ],
+  "make-visual/references/templates/svg-story.svg": [
+    "38ef2fd0a9aa91935c6d0599f6a705d9ef9858e25965c510d2f58fb037a257ab"
+  ],
+  "make-visual/references/templates/timeline.json": [
+    "3e47a8e29950892641c8fa6350758bcff7db96e6318fd113e45349762669cb40",
+    "fdc6f4ff811f14f0e87193167a21fa61571775d6565bf335a3549484548177ae"
+  ],
+  "make-visual/references/templates/timeline.svg": ["ce35cc2c424e91f970589437b33fcf770112f4238d99f3ee10df074b0ffa97d8"],
   "make-visual/references/three.md": [
     "6950e950fc74e58b091e8ddef02799217777b5e3a0750e6f552e421ef93679f9",
     "ef548c2b564ffe82b67987c8c82476c6b3f80a2bd4260c8f49dee63e6fb23c81"

@@ -1,81 +1,92 @@
 ---
 name: make-visual
-description: Teach a single concept with a built-in widget or a local sketch and static book stills.
+description: Add a readable teaching visual by filling a validated widget or bundled sketch template; use no visual when it adds no value.
 ---
 
-# Make a visual
+# Make one teaching visual
 
-A visual earns its place when changing a parameter, inspecting geometry or stepping
-through a process makes the idea easier to understand. One concept per visual.
-The chapter's prose must stand alone. Do not add motion as decoration.
+Choose one concept. The prose must still make sense without the visual.
+Default to a widget or Vega-Lite chart. Use a sketch only when no widget fits.
 
-## Choose the form
+## Decision table — use the first matching row
 
-| Need | Form |
-| --- | --- |
-| Vary an equation, transform a matrix, inspect a trace or explore dates | Built-in widget first |
-| A custom interactive model beyond the catalog | Sketch on Studium's bundled runtime |
-| Static explanatory data/comparison | Inline Vega-Lite (`media-authoring`) |
-| Flow, dependency or sequence | Inline Mermaid (`media-authoring`) |
-| Static geometry, diagram or labelled structure | SVG figure (`media-authoring`) |
-| Source image or video moment | `media-authoring` |
+| Concept | Form | Copy this reference |
+| --- | --- | --- |
+| Nothing spatial, quantitative or sequential to explain | None | Keep the text |
+| Equation or parameter changes a curve | Widget | `templates/function-plot.json` |
+| Matrix changes space; singular value decomposition | Widget | `templates/matrix-transform.json` |
+| Algorithm, grammar transformation, process or small graph | Widget | `templates/step-through.json` |
+| Events or eras on a dated axis | Widget | `templates/timeline.json` |
+| Compare measured categories or a fixed data series | Vega-Lite | `media-authoring` chart example |
+| Labelled structure with a parameter; no widget fits | SVG sketch | `templates/svg-labelled-diagram.html` |
+| Spatial changes need narrated scenes; no widget fits | SVG story | `templates/svg-story.html` |
+| Continuous motion explains a relationship; no widget fits | p5 sketch | `templates/p5-animation.html` |
+| Custom data interaction unavailable in Vega-Lite/widgets | D3 sketch | `templates/d3-chart.html` |
 
-Read `references/widgets.md` for the four complete schemas/examples. Use a widget
-unless it cannot express the concept; don't recreate its axes or controls in HTML.
-Read `references/runtime.md` before writing a sketch, and only the needed version-pinned
-cheat-sheet: `p5.md`, `d3.md` or `three.md`. Context7 can clarify those library APIs.
+Static figures, Mermaid, photos and video belong to `media-authoring`.
+Read `references/subjects.md` for concrete ideas matching the PLAN subject.
 
-## Write and attach
+## Copy, fill, check
 
-1. Read the chapter, PLAN subject and relevant sources. State the concept to teach.
-2. Write `<set>/visuals/<name>.json` for a widget or `.html` for a sketch using the
-   normal study tools. Validation errors contain zod details; fix them before continuing.
-3. Sketches require a static SVG poster, or one SVG/narration per story scene, declared
-   in their `studium-visual` JSON header. Keep these files in the same visuals folder.
-4. Append a standalone leaf after chapter prose/footnotes, in exploration order:
+1. Read the section and its cited evidence. Name the one idea the visual teaches.
+2. Load the chosen complete template using `load_skill_reference`.
+   On runtimes without that tool, open the same file in this skill's references folder.
+3. Copy it; change only marked `/* FILL: … */` slots in HTML.
+   JSON cannot contain comments: its fill slots are listed in `references/fill-slots.md`.
+   Keep JSON valid; never paste comment markers or invent schema fields.
+4. Fill realistic values and short labels, with units. Keep the example defaults usable.
+   Consult `references/widgets.md` only for additional supported fields.
+5. For sketches, copy the matching `.svg` template and change its marked title,
+   labels and geometry to match the default draw. Stories have one poster per scene.
+   Keep filename references in the header and chapter declaration in sync.
+6. Write through the study tools, fix every hard validation error, then read warnings.
+   Missing poster files can warn until the matching SVG is written.
+7. Append one standalone declaration after the chapter's prose and footnotes:
 
 ```md
-::visual{src="../visuals/stretch.json" title="How a matrix stretches space"}
-::visual{src="../visuals/process.html" poster="../visuals/process.svg" title="Follow the process"}
+::visual{src="../visuals/stretch.json" title="How the matrix stretches space"}
+::visual{src="../visuals/chain.html" poster="../visuals/chain.svg" title="Count repeat units"}
 ```
 
-No registry heading/frontmatter is needed. Paths are note-relative, confined to the
-same set's `visuals/` folder. Sketches must also set `poster="…"` on the declaration
-(their rail thumbnail and stage placeholder before the live sketch loads — the header
-posters alone are not known until the HTML is fetched). Widgets may set `poster="…"`
-optionally. Do not nest declarations in lists, quotes or callouts.
-Preserve existing `::artifact` attachments and their files; that legacy alias keeps
-its click-to-run behavior. Write all new interactive visuals into `visuals/`.
-The Reader collects both forms in **Visuals**, never inline in Reading.
+Write JSON/HTML/SVG into `<set>/visuals/`; paths above are note-relative.
+A sketch MUST set `poster` on the declaration as well as its JSON header.
+No registry heading; no declarations inside lists, quotes or callouts.
+Preserve existing `::artifact` declarations and their files.
 
-## Quality bar
+## Checklist before finishing
 
-- One concept, one purposeful interaction; one narration sentence per scene.
-- Label axes and values, including units. Name parameters and give sensible defaults/ranges.
-- Readable at 360 px: avoid crowded text and rely on labels/shapes as well as colour.
-- Use `studium.palette` and `studium.theme` in sketches; widgets inherit these tokens.
-  The palette uses Okabe-Ito hues mapped for contrast in all five app themes.
-- Touch targets ≥44 px, keyboard arrows/space, meaningful scrub/step controls.
-- Let the runtime own time. Draw only inside `studium.mount({draw})`; no private
-  requestAnimationFrame, timers, p5 loop or Three animation loop. p5 uses `noLoop()`.
-- Visible visuals autoplay; hidden/offscreen visuals pause. Reduced motion starts on
-  scene one paused, with manual navigation. Leaving Visuals stops/unmounts the frame.
-- No network, CDN imports, external fonts or images. Declare only needed bundled libs.
-- Each authored JSON/HTML/SVG ≤300 KB (public libraries are separate). No scripts,
-  foreignObject, event handlers or external resources in SVG posters.
+- [ ] Exactly one concept; one useful interaction or narrated comparison.
+- [ ] Labels and units are readable at 360 px; labels fit their reserved space.
+- [ ] Widget numbers/ranges/scenes are valid; equations use declared parameters.
+- [ ] HTML has a valid `studium-visual` header and `studium.mount({draw})`.
+- [ ] Every used bundled library is declared; no unused library is declared.
+- [ ] Theme comes from the draw argument, with fallbacks; colours use `studium.palette`.
+- [ ] SVG has `viewBox`; canvas resizes to the stage; no fixed CSS pixel width.
+- [ ] No fetch, XMLHttpRequest, WebSocket, dynamic imports or external script tags.
+- [ ] Runtime owns time and play state; no timers/private animation loops.
+- [ ] Reduced motion starts paused; runtime scene controls are not duplicated.
+- [ ] Poster SVGs exist, match the default/scene states, and contain no scripts,
+      event handlers, foreignObject or external resources; each file ≤300 KB.
 
-## Book contract
+## Mistakes and fixes
 
-Widgets use the same pure layout for default-state SVG and every story scene.
-Sketches use authored posters; the compiler never executes HTML or opens a browser.
-At most six scene stills: longer stories print first/last and “N more scenes in Studium”.
-Include captions that convey the concept without motion. Missing sketch posters in
-old/user-edited files degrade to a title and chapter Visuals pointer.
-Automatic headless captures and Mermaid-to-SVG remain deferred.
+| Mistake | Fix |
+| --- | --- |
+| `theme.palette[0]`, `theme.text`, `theme.background` | Use `studium.palette[0]`; documented fields are `fg`, `bg`, `muted`, `accent`, `grid`, `font` with fallbacks |
+| Long text spills beyond the SVG | Keep the template's wrapping/shrinking helper; shorten labels, put detail in narration |
+| `d3`, `p5` or `THREE` is undefined | Declare its library in header `libs`; remove declarations you do not use |
+| Fetch/import/CDN scripts | Embed the example data; bundled libraries load from the runtime |
+| `width:640px` or a fixed canvas size | Use `viewBox` and 100% SVG dimensions; resize canvas with the stage |
+| Missing declaration poster | Set `poster="../visuals/name.svg"`; header posters alone do not provide rail thumbnails |
+| Extra Play/Next controls | Keep the runtime's chrome; add only the concept's parameter slider |
+| Several concepts crowd one figure | Split the teaching section's goals; choose the most useful single visual |
 
-## Router slot
+## Freedom last
 
-`VisualRouter.decide({heading,text,subject})` is reserved in the server.
-`visuals.router: off` is the default configuration; `nullRouter` returns null, so
-this skill's judgment applies. No router/model call or paid setup is required.
-Scroll-synced stories are deferred: phone scroll conflicts with the Visuals list.
+If none of the templates expresses the concept, read `references/runtime.md` and
+only the needed library guide (`p5.md`, `d3.md`, `three.md`). Adapt the smallest
+working template; preserve mounting, fallback colours, sizing, playback and posters.
+Do not recreate widget controls in HTML. The book uses shared widget SVG layouts
+or authored sketch posters; it never executes HTML. At most six scene stills print.
+The optional visual router supplies a hint; this skill still chooses the form.
+Scroll-synced stories remain deferred because they conflict with phone scrolling.

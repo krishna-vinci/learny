@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Repeat-unit counting</title>
+<script type="application/json" id="studium-visual">{"libs":[],"aspect":"9:7","poster":"svg-labelled-diagram.svg"}</script>
+</head><body><script>
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent) {
+  const node = document.createElementNS(NS, tag);
+  for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, String(value));
+  if (parent) parent.append(node);
+  return node;
+}
+function label(svg, value, x, y, width, height, color, font) {
+  const node = el("text", {fill: color, "font-family": font}, svg);
+  el("title", {}, node).textContent = value;
+  let size = 18, lines = [];
+  const measure = word => { node.setAttribute("font-size", size); node.append(document.createTextNode(word)); const length = node.getComputedTextLength(); node.lastChild.remove(); return length; };
+  for (; size >= 12; size--) {
+    lines = [""];
+    for (const word of String(value).split(/\s+/)) {
+      const pieces = measure(word) > width ? [...word] : [word];
+      for (const piece of pieces) {
+        const gap = pieces.length === 1 && lines[lines.length - 1] ? " " : "";
+        const next = lines[lines.length - 1] + gap + piece;
+        if (measure(next) <= width) lines[lines.length - 1] = next;
+        else lines.push(piece);
+      }
+    }
+    if (lines.length * (size + 4) <= height) break;
+  }
+  size = Math.max(12, size);
+  const maxLines = Math.max(1, Math.floor(height / (size + 4)));
+  if (lines.length > maxLines) {
+    lines = lines.slice(0, maxLines);
+    let last = lines[maxLines - 1];
+    while (last && measure(last + "…") > width) last = last.slice(0, -1);
+    lines[maxLines - 1] = last + "…";
+  }
+  node.setAttribute("font-size", size);
+  lines.forEach((line, i) => el("tspan", {x, y: y + size + i * (size + 4)}, node).textContent = line);
+  return node;
+}
+/* FILL: title, short part label, unit label, counts; retain layout and helper. */
+const example = {title: "Count the repeat units", part: "One repeat unit", unit: "carbon atoms", min: 1, max: 4, value: 2, atomsPerUnit: 2};
+const svg = el("svg", {viewBox: "0 0 360 280", role: "img", "aria-label": example.title});
+svg.style.width = "100%"; svg.style.height = "100%";
+let count = example.value;
+function draw({theme}) {
+  svg.replaceChildren();
+  const fg = theme.fg ?? "#292524", bg = theme.bg ?? "#fafaf9", muted = theme.muted ?? "#57534e", font = theme.font ?? "system-ui, sans-serif";
+  const colors = studium.palette;
+  label(svg, example.title, 16, 12, 328, 50, fg, font);
+  for (let i = 0; i < count; i++) {
+    const x = 24 + i * 80;
+    el("rect", {x, y: 90, width: 68, height: 60, rx: 12, fill: bg, stroke: colors[i === 0 ? 1 : 0], "stroke-width": 3}, svg);
+    if (i) el("line", {x1: x - 12, x2: x, y1: 120, y2: 120, stroke: fg, "stroke-width": 3}, svg);
+    label(svg, "CH₂–CH₂", x + 5, 106, 58, 28, fg, font);
+  }
+  label(svg, example.part + " = " + example.atomsPerUnit + " " + example.unit, 16, 166, 328, 48, muted, font);
+  label(svg, count + " × " + example.atomsPerUnit + " = " + count * example.atomsPerUnit + " " + example.unit, 16, 220, 328, 42, colors[0], font);
+}
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("studium-stage").append(svg);
+  studium.mount({draw});
+  studium.slider({label: "Repeat units (n)", min: example.min, max: example.max, value: count, step: 1, onChange: value => {count = value; studium.go(studium.scene);}});
+});
+</script></body></html>

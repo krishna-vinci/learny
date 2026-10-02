@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 280" role="img">
+<!-- /* FILL: title, short labels and geometry to match the HTML default/scene state. */ -->
+<title>Count the repeat units</title><rect width="360" height="280" fill="#fafaf9"/>
+<g fill="#292524" font-family="system-ui, sans-serif" font-size="16"><text x="16" y="30" font-size="18">Count the repeat units</text>
+<rect x="24" y="90" width="68" height="60" rx="12" fill="none" stroke="#D55E00" stroke-width="3"/><rect x="104" y="90" width="68" height="60" rx="12" fill="none" stroke="#0072B2" stroke-width="3"/>
+<path d="M92 120H104" stroke="#292524" stroke-width="3"/><text x="29" y="122" font-size="14">CH₂–CH₂</text><text x="109" y="122" font-size="14">CH₂–CH₂</text>
+<text x="16" y="184">One repeat unit = 2 carbon atoms</text><text x="16" y="238" fill="#0072B2">2 × 2 = 4 carbon atoms</text></g></svg>

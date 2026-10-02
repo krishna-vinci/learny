@@ -11,7 +11,14 @@ import { EventHub } from "../events.js";
 import { McpManager } from "../mcp/bridge.js";
 import { diff, ensureRepo, log } from "../tree/git.js";
 import { FileLocks } from "../tree/lock.js";
-import { createDraftJob, createRewriteJob, hasBlockingIssues, setNoteStatusTool, tickCurriculum } from "./draft-job.js";
+import {
+  createDraftJob,
+  createRewriteJob,
+  hasBlockingIssues,
+  rewriteChange,
+  setNoteStatusTool,
+  tickCurriculum,
+} from "./draft-job.js";
 
 const SAMPLE_SET = fileURLToPath(new URL("../../../examples/sample-set", import.meta.url));
 
@@ -507,6 +514,80 @@ describe("rewrite chapter job", () => {
     expect(runRole.mock.calls.map(([role]) => role)).toEqual(["drafter", "checker"]);
     expect(await fs.readFile(path.join(root, rel), "utf8")).toBe(rewritten.replace("status: draft", "status: checked"));
     expect((await log(root, { limit: 2 })).map((c) => c.author)).toEqual(["checker", "drafter"]);
+  });
+  it.each(["append-only", "shallow"])(
+    "restores and rejects a %s rewrite before committing or checking",
+    async (kind) => {
+      const rel = "linear-algebra/notes/03-svd.md";
+      const prose = [
+        "The horizontal vector points to the right.",
+        "The vertical vector points upwards in the plane.",
+        "The sum of the two vectors gives a diagonal direction.",
+        "Scaling a vector doubles each of its coordinates.",
+        "A basis lets us describe every vector in the plane.",
+      ].join(" ");
+      const original = `---\ntitle: SVD\nstatus: accepted\nsources: [lib-strang-la]\n---\n${prose}[^src:lib-strang-la]\n\n[^src:lib-strang-la]: Strang, *Linear Algebra*, chapter 1.\n`;
+      await fs.writeFile(path.join(root, rel), original);
+      const beforeCommits = await log(root);
+      const newQuestions =
+        " How would you combine these directions? Why do we use coordinates for vectors? Can you scale the horizontal direction? Which vectors span the whole plane? How does a diagonal differ from a horizontal direction?";
+      const output = original
+        .replace("status: accepted", "status: draft")
+        .replace(
+          prose,
+          (kind === "shallow"
+            ? prose.replace("The horizontal vector points to the right.", "Imagine taking one step towards the right.")
+            : prose) + newQuestions,
+        );
+      const runRole = vi.spyOn(roleRunner, "runRole").mockImplementation(async (_role, opts) => {
+        expect(opts.task).toContain("Replace the existing prose throughout the chapter");
+        await fs.writeFile(path.join(root, rel), output);
+        return { text: "Done", written: [rel], messages: [] };
+      });
+      await expect(
+        createRewriteJob({
+          root,
+          locks: new FileLocks(),
+          mcp: new McpManager([]),
+          runtime: await createModelRuntime(),
+          hub: new EventHub(),
+        })(
+          { set: "linear-algebra", path: "notes/03-svd.md" },
+          { signal: new AbortController().signal, progress: vi.fn(), addUsage: vi.fn() },
+        ),
+      ).rejects.toThrow("at least 40%");
+      expect(runRole).toHaveBeenCalledTimes(1);
+      expect(await fs.readFile(path.join(root, rel), "utf8")).toBe(original);
+      expect(await log(root)).toEqual(beforeCommits);
+    },
+  );
+  it("does not count new metadata, source text or media as replaced prose", () => {
+    const original =
+      "---\ntitle: SVD\nstatus: accepted\n---\nA vector represents a direction in the plane.[^src:lib-strang-la]\n![Figure](../assets/x.svg)\n[^src:lib-strang-la]: parsed.md, lines 1–3.\n";
+    const changed = original
+      .replace("status: accepted", "status: draft")
+      .replace("parsed.md, lines 1–3.", "Strang, *Linear Algebra*, chapter 1.");
+    expect(rewriteChange(original, changed)).toMatchObject({
+      before: 1,
+      after: 1,
+      newAfterRatio: 0,
+      replacedBeforeRatio: 0,
+    });
+    expect(
+      rewriteChange(
+        original,
+        changed.replace(
+          "A vector represents a direction in the plane.",
+          "Picture a step: its vector tells us which direction to take.",
+        ),
+      ),
+    ).toMatchObject({ newAfterRatio: 1, replacedBeforeRatio: 1 });
+    expect(rewriteChange("Fact.", "Better fact.")).toMatchObject({
+      before: 1,
+      after: 1,
+      newAfterRatio: 1,
+      replacedBeforeRatio: 1,
+    });
   });
   it("fails before a model call if the existing note is absent or the path is invalid", async () => {
     const runRole = vi.spyOn(roleRunner, "runRole");

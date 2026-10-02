@@ -1,7 +1,6 @@
 import { type Dirent, promises as fs } from "node:fs";
-import { parseWidget } from "@studium/shared/visuals";
-import { parseSketchHeader } from "@studium/shared/visuals/sketch";
 import { canonicalRel, resolveInRoot } from "./paths.js";
+import { lintVisualHtml, svgViewBoxProblem, validateWidgetJson } from "./visual-lint.js";
 export const IMAGE_MIME: Record<string, string> = {
   png: "image/png",
   jpg: "image/jpeg",
@@ -24,11 +23,10 @@ export function validateAgentMedia(rel: string, content: string): void {
     if (Buffer.byteLength(content) > 300 * 1024) throw new Error("SVG, HTML and visual JSON must be at most 300 KB");
   }
   if (/^[^/]+\/visuals\//.test(rel)) {
-    if (ext === "json") parseWidget(content);
+    if (ext === "json") validateWidgetJson(content);
     else if (ext === "html") {
-      const header = parseSketchHeader(content);
-      if (!header.poster && !header.posters) throw new Error("New sketches require a poster or scene posters");
-      if (header.story && !header.posters) throw new Error("Story sketches require scene posters");
+      const problems = lintVisualHtml(content).errors;
+      if (problems.length) throw new Error(problems.join("\n"));
     } else if (ext !== "svg") throw new Error("Visuals must be JSON, HTML or SVG");
   }
   if (ext !== "svg") return;
@@ -47,6 +45,10 @@ export function validateAgentMedia(rel: string, content: string): void {
   }
   if (/@import|\b(?:xlink:)?href\s*=\s*[^\s"']/i.test(content))
     throw new Error("Unsafe SVG: external references are forbidden");
+  if (/^[^/]+\/visuals\//.test(rel)) {
+    const problem = svgViewBoxProblem(content);
+    if (problem) throw new Error(problem);
+  }
 }
 
 export async function assetBytes(root: string, set: string): Promise<number> {
