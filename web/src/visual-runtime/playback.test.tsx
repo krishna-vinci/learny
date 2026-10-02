@@ -89,7 +89,8 @@ it("reduced motion starts on scene one paused with manual keyboard navigation", 
     }),
   );
   render(<WidgetBlock spec={spec} active reduced />);
-  expect(screen.getByRole("button", { name: "Play" })).toBeTruthy();
+  // Play/scene buttons live in the parent-side strip now; keyboard navigation is unchanged.
+  expect(screen.getByText("First.")).toBeTruthy();
   fireEvent.keyDown(screen.getByLabelText("Reduced controls"), { key: "ArrowRight" });
   expect(screen.getByText("Second.")).toBeTruthy();
 });

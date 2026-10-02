@@ -104,19 +104,36 @@ count only when nonzero, the chapter title, and an ordered vertical list of titl
 posters and Run actions. It uses the full reader width with a viewport-height canvas
 on phones, while Reading keeps the learner’s prose measure. Empty Visuals explains
 the space and offers Return to reading; invalid references remain unavailable entries.
-A skeleton fills the canvas while its code/HTML opens. Run failures offer retry;
-offline uncached visuals explain that a connection is needed. Switching back stops
+A skeleton fills the canvas while its code/HTML opens. Run failures offer retry.
+Switching back stops
 iframes and restores Reading’s saved scroll and highlights. `?view=visuals` opens
 the tab directly; browser back returns to the prior view. Tabs support keyboard
 navigation and use the existing theme tokens and 44px touch targets. The view controls stay reachable while scrolling; browser
 scroll anchoring is disabled in the reader so lazy media cannot displace the saved
 reading position.
 
+Full screen is CSS-only on the same element tree — a running widget, sketch or
+legacy artifact never reloads on enter or exit; Escape or the exit button leaves,
+body scroll locks, and focus moves to the exit control and back. Failures are
+distinguishable: a missing connection offers Try again; a malformed visual
+explains the problem in a collapsible detail with no retry; a crashed sketch
+offers Restart. A declaration the collector skips (quoted, listed, deeply
+indented, inside a callout) renders as a muted “Visual not shown” line instead of
+vanishing, and agent note writes containing one are rejected at write time with
+the correct shape.
+
+Offline, measured in Chromium with DevTools network emulation: widgets play from
+the cached note JSON; sketch manifests are served by a service-worker runtime
+cache (NetworkFirst), but the sandboxed frame’s library loads are neither
+service-worker-controlled nor answered by the HTTP cache under emulation, so
+sketches still need a connection and mount a blank frame offline instead of an
+error.
+
 Standalone `::artifact` declarations are chapter attachments, collected in order
-and omitted from Reading. Existing inline declarations work without a data rewrite.
+and omitted from Reading; declarations inside callout containers are prose and are
+not collected. Existing inline declarations work without a data rewrite.
 Only Run fetches local HTML and creates a scripts-only iframe with a first-document
-CSP; never `allow-same-origin`. Full screen uses CSS and portals to the body; Escape
-exits. Successful file and image reads use the existing bounded offline API cache, cleared on sign-out. Chat shows
+CSP; never `allow-same-origin`. Successful file and image reads use the existing bounded offline API cache, cleared on sign-out. Chat shows
 media directives as plain links and only local images from its own set.
 
 Books use local images, YouTube thumbnails with times/links, light chart SVGs and

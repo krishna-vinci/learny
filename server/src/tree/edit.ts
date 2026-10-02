@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { lstat, mkdir, open, readFile, rename, unlink } from "node:fs/promises";
 import path from "node:path";
+import { parseFrontmatter } from "@studium/shared";
+import { misplacedVisualDeclarations } from "@studium/shared/chapter-visuals";
 import { repairFrontmatter } from "./frontmatter-repair.js";
 import type { FileLocks } from "./lock";
 import { validateMediaWrite } from "./media.js";
@@ -47,6 +49,26 @@ function mutationLock<T>(locks: FileLocks, rel: string, holder: string, fn: () =
   const [set, kind] = rel.split("/");
   const write = () => locks.withLock(rel, holder, fn);
   return kind === "assets" ? locks.withLock(`${set}/assets`, holder, write) : write();
+}
+
+const MISPLACED_DECLARATION =
+  'Visual declarations must be standalone top-level lines at the end of the chapter, outside lists, quotes and callouts: ::visual{src="../visuals/x.json" title="…"}';
+
+/**
+ * Agent note writes only: a declaration the reader's collector skips (quoted, listed, inside a
+ * callout, extra colons) vanishes from both the reading view and the Visuals tab (D31/D32), so
+ * the write is rejected with the correct shape. Learner saves are never rejected.
+ */
+function rejectMisplacedDeclarations(rel: string, text: string, strict: boolean): void {
+  if (!strict || !/^[^/]+\/notes\/.+\.md$/.test(rel)) return;
+  let body: string;
+  try {
+    body = parseFrontmatter(text).body;
+  } catch {
+    return; // Broken frontmatter is reported by its own repair path; never block on a parse error.
+  }
+  const misplaced = misplacedVisualDeclarations(body);
+  if (misplaced.length > 0) throw new Error(`${MISPLACED_DECLARATION} (found: ${misplaced[0]})`);
 }
 
 async function readUtf8(abs: string, rel: string): Promise<string> {
@@ -151,6 +173,7 @@ export async function editFile(
       updated = content.slice(0, index) + newString + content.slice(index + oldString.length);
     }
     updated = repairFrontmatter(rel, updated, holder !== "user");
+    rejectMisplacedDeclarations(rel, updated, holder !== "user");
     await validateMediaWrite(root, rel, updated);
     await atomicWrite(abs, updated);
     return { replacements: opts?.replaceAll === true ? matches : 1 };
@@ -174,6 +197,7 @@ export async function replaceFile(
       throw new EditError("conflict", `File changed since it was read: ${rel}`, current);
     }
     const text = repairFrontmatter(rel, content, holder !== "user");
+    rejectMisplacedDeclarations(rel, text, holder !== "user");
     await validateMediaWrite(root, rel, text);
     await atomicWrite(abs, text);
   });
@@ -195,6 +219,7 @@ export async function createFile(
     } catch (error) {
       if (isErrnoError(error, "ENOENT")) {
         const text = repairFrontmatter(rel, content, holder !== "user");
+        rejectMisplacedDeclarations(rel, text, holder !== "user");
         await mkdir(path.dirname(abs), { recursive: true });
         await validateMediaWrite(root, rel, text);
         await atomicWrite(abs, text);

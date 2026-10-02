@@ -25,16 +25,19 @@
   "draft-chapter/references/subject-language.md": ["9f08c53d9e9972234ec4c4461c09e1d37ab4800db736044518d374ee0718e3e6"],
   "draft-chapter/references/subject-math.md": [
     "db22d0378b01dbdca3c1730b03b230e546fc76d327dbf872c92641ececdd6008",
-    "6ff784d551e624363ad93ee9d0675c432879cd5526b733afbf1c776bcf5d05a1"
+    "6ff784d551e624363ad93ee9d0675c432879cd5526b733afbf1c776bcf5d05a1",
+    "67b0544628ccdb64522a32c41f5deb7b877320a06690b9119bb89e8b089540ff"
   ],
   "draft-chapter/references/subject-practical.md": ["554aba76b883b24511ae7ec83a80740f9e2ab9f4ec98b4785a9c41b0e8eaeca8"],
   "draft-chapter/references/subject-science.md": [
     "75ee82add2e2752c2f4c3c66d86ade501c07b62975980bea066b604426cb2657",
-    "b4cbb4222fcd5f357a7bd17b3a6205d3ba1e861f49777d189a9a9060ce5d5d83"
+    "b4cbb4222fcd5f357a7bd17b3a6205d3ba1e861f49777d189a9a9060ce5d5d83",
+    "76312233be3d3d1a2da7d3d988fd4e092299e194e222a8929e54fb392cbc841c"
   ],
   "draft-chapter/references/subject-technology.md": [
     "a9dce1f4a49c129d3c80d43529f4e965264b9211bca99c9df5753c30d78c468e",
-    "7e948991bcf885c4f53f121993a1318d5c9ad751b4337b4e7daca4f0506e2c56"
+    "7e948991bcf885c4f53f121993a1318d5c9ad751b4337b4e7daca4f0506e2c56",
+    "54569fe516359390edfe882f1372b14166ae49b63912bc6ccadf2e9abee8ac79"
   ],
   "evolve-note/SKILL.md": [
     "cb552d20db1198980c5793456fbc897ff89088905e7bf48f3c28b29b96650fcf",
@@ -65,7 +68,10 @@
   ],
   "make-problems/SKILL.md": ["93bcbe1b2cf351ccbef09556a6e0f83dfd4a3ac2b6bfeef008fa5a55b08aeeca"],
   "make-quiz/SKILL.md": ["64283ab1314e369692707ac7fe1b774dbb1705dbc7391f730b0a515781ac383c"],
-  "make-visual/SKILL.md": ["8e7af1d1d58488eb5c8e7838245dd26f043c92b25e3891c9f3e5ddd6b40012ee"],
+  "make-visual/SKILL.md": [
+    "8e7af1d1d58488eb5c8e7838245dd26f043c92b25e3891c9f3e5ddd6b40012ee",
+    "f16c7dd08cc2444ffc84283cee984522c4a52206a0e2037e4ff5617166b30aaf"
+  ],
   "make-visual/references/d3.md": ["8c61b01d3fae96a3ad9d6b470c52b22da680dc8ade3420fc6b2a4e6928b217d2"],
   "make-visual/references/p5.md": ["61c057d2df189b3f7a5347f4ccbab5b90e1f4bed28a86b18d619c37b77abd9f9"],
   "make-visual/references/runtime.md": ["b3f82cf32eef290dec66af148c6e2a94918660b79ba2240976463c7f9f224c54"],
@@ -91,7 +97,8 @@
     "c45df4485a7544a2f2b5a6458c8037c6d917c8110c163b958de2180736d0fbd0",
     "97260d8bb3ca0c7a3c3b3dbe3c1b15741df1bc16eb795ddb18ad366277d68827",
     "c2156bfc614e42cf44d32d736eafd124ce269236ed3a33e27ac78dea8db7c454",
-    "5fa0e85023934a4ae1e1d79615f2b601b7d7dff371d70cea3cded2e783eb2252"
+    "5fa0e85023934a4ae1e1d79615f2b601b7d7dff371d70cea3cded2e783eb2252",
+    "cc1365d628a0e4931434fb3e3d8978014a435e053e302bab0d0f26bb74b380c6"
   ],
   "note-authoring/references/teaching.md": ["0d3b6c9096e0dff6c1ca75924ff3994ab75ccf04e561048386036c930c5ed4a1"],
   "plan-set/SKILL.md": [

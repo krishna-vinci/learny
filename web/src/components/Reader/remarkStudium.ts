@@ -63,28 +63,28 @@ export function remarkStudiumDirectives(options: { plainLinks?: boolean; notePat
           directive.data.hProperties = { href: directive.attributes?.src ?? "" };
           directive.children = [{ type: "text", value: directive.attributes?.src ?? "(video unavailable)" }];
         }
-      } else if (directive.type === "leafDirective" && directive.name === "artifact") {
+      } else if (directive.type === "leafDirective" && (directive.name === "artifact" || directive.name === "visual")) {
+        // A declaration reaching prose is misplaced: collectable ones are stripped from the body
+        // by chapterVisuals before the reader renders it. Chat keeps a plain link to the file.
         const src = directive.attributes?.src;
-        const poster = directive.attributes?.poster;
-        const media = typeof src === "string" ? resolveNoteMedia(options.notePath, src, "html") : null;
-        const image = typeof poster === "string" ? resolveNoteMedia(options.notePath, poster, "poster") : null;
-        if (media && (poster === undefined || image)) {
-          if (options.plainLinks) {
+        const media =
+          typeof src === "string"
+            ? resolveNoteMedia(options.notePath, src, directive.name === "visual" ? "visual" : "html")
+            : null;
+        if (options.plainLinks) {
+          if (media) {
             directive.data.hName = "a";
             directive.data.hProperties = { href: `/api/sets/${media.set}/file?path=${encodeURIComponent(media.path)}` };
             directive.children = [{ type: "text", value: title ?? "Interactive figure" }];
           } else {
             directive.data.hName = "div";
-            directive.data.hProperties = {
-              "data-artifact": `${media.set}/${media.path}`,
-              ...(image ? { "data-artifact-poster": `${image.set}/${image.path}` } : {}),
-              "data-artifact-title": title ?? "Interactive figure",
-            };
+            directive.data.hProperties = { "data-visual-misplaced": "true" };
+            directive.children = [{ type: "text", value: "(interactive figure unavailable)" }];
           }
         } else {
           directive.data.hName = "div";
-          directive.data.hProperties = { "data-artifact-unavailable": "true" };
-          directive.children = [{ type: "text", value: "(interactive figure unavailable)" }];
+          directive.data.hProperties = { "data-visual-misplaced": "true" };
+          directive.children = [];
         }
       } else if (CALLOUT_DIRECTIVES.has(directive.name)) {
         directive.data.hName = "div";

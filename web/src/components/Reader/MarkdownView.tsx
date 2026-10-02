@@ -42,9 +42,14 @@ const markdownComponents: Components = {
   // bodies contain no raw HTML (rehype-raw is not in the pipeline).
   div: ({ children, node: _node, ...rest }) => {
     const props = asProps(rest);
-    const artifact = props["data-artifact"];
-    // Chapter artifacts live in the reader's Visuals view; never instantiate one in prose.
-    if (typeof artifact === "string" || props["data-artifact-unavailable"]) return null;
+    // A `::visual`/`::artifact` declaration reaching prose is misplaced (collectable ones are
+    // stripped from the body before rendering): say why it is missing instead of dropping it.
+    if (props["data-visual-misplaced"] !== undefined)
+      return (
+        <p className="my-2 text-xs text-muted-foreground">
+          Visual not shown: move this declaration to its own line at the chapter end.
+        </p>
+      );
     const video = props["data-youtube"];
     if (typeof video === "string")
       return (

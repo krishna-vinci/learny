@@ -21,7 +21,7 @@ then the precise statement, then hands-on use.
 ## Blocks
 
 `$...$` / `$$...$$` math; `:::theorem` with assumptions; `:::deeper` for proofs.
-Vega-Lite for functions and data; an `::artifact` when dragging a parameter builds intuition.
+Vega-Lite for functions and data; a `make-visual` widget (`::visual`) when dragging a parameter builds intuition.
 
 ## Pitfalls
 

@@ -20,8 +20,8 @@ that predicts behaviour, then the smallest code or design that works — and how
 ## Blocks
 
 Fenced code with a language tag; keep blocks ≤ 25 lines. `:::example` for a guided task.
-`:::definition` for terms. Vega-Lite for benchmarks or growth curves; `::artifact` for
-step-through algorithms.
+`:::definition` for terms. Vega-Lite for benchmarks or growth curves; a `make-visual`
+widget (`::visual`) for step-through algorithms.
 
 ## Pitfalls
 

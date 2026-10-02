@@ -22,7 +22,7 @@ build the model that explains it, then show the evidence that makes us trust the
 
 `:::definition` for terms with precise meaning (energy, enzyme, pH). `:::example` for worked
 calculations or experiment walk-throughs. `:::deeper` for derivations and edge cases.
-Vega-Lite for real data (rates, curves); an `::artifact` when a parameter is worth playing with.
+Vega-Lite for real data (rates, curves); a `make-visual` widget (`::visual`) when a parameter is worth playing with.
 
 ## Pitfalls
 

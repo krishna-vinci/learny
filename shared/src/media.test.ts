@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import {
   chapterVisuals,
   mediaAttributes,
+  misplacedVisualDeclarations,
   parseInlineChart,
   resolveNoteMedia,
   youtubeDirective,
@@ -165,4 +166,30 @@ it("collects widgets and sketches in declaration order while retaining legacy ar
     "alpha/artifacts/z.html",
   ]);
   expect(result.body).toContain("```md\n::visual");
+});
+
+it("keeps declarations inside callout containers as prose while still collecting two-space indents", () => {
+  const declaration = '::visual{src="../visuals/x.json" title="Plot"}';
+  const inside = chapterVisuals(`:::example\n${declaration}\n:::\n\nAfter.`, "alpha/notes/a.md");
+  expect(inside.visuals).toEqual([]);
+  expect(inside.body).toContain(declaration);
+  expect(inside.body).toContain(":::example");
+  // Two-space indent is still a top-level line (a lazy list continuation), so it stays collectable.
+  expect(chapterVisuals(`  ${declaration}`, "alpha/notes/a.md").visuals.map((v) => v.src)).toEqual([
+    "alpha/visuals/x.json",
+  ]);
+});
+
+it("reports declarations the collector skips so writers and the reader can flag them", () => {
+  const declaration = '::visual{src="../visuals/x.json" title="Plot"}';
+  const artifact = '::artifact{src="../artifacts/z.html"}';
+  expect(misplacedVisualDeclarations(`Before.\n${declaration}\nAfter.`)).toEqual([]);
+  expect(misplacedVisualDeclarations(`  ${declaration}`)).toEqual([]);
+  expect(misplacedVisualDeclarations(`\`\`\`md\n${declaration}\n\`\`\``)).toEqual([]);
+  expect(misplacedVisualDeclarations(`> ${declaration}`)).toEqual([`> ${declaration}`]);
+  expect(misplacedVisualDeclarations(`- ${artifact}`)).toEqual([`- ${artifact}`]);
+  expect(misplacedVisualDeclarations(`1. ${artifact}`)).toEqual([`1. ${artifact}`]);
+  expect(misplacedVisualDeclarations(`    ${declaration}`)).toEqual([declaration]);
+  expect(misplacedVisualDeclarations(`:::example\n${declaration}\n:::`)).toEqual([declaration]);
+  expect(misplacedVisualDeclarations(`:::${declaration.slice(2)}`)).toEqual([`:::${declaration.slice(2)}`]);
 });

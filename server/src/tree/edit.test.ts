@@ -193,3 +193,32 @@ describe("agent frontmatter repair", () => {
     expect(() => repairFrontmatter("s/notes/a.md", "---\ntitle: [unclosed\n---\n")).toThrow(/Quote values/);
   });
 });
+
+describe("agent visual declarations", () => {
+  let root: string;
+  let locks: FileLocks;
+  beforeEach(async () => {
+    root = await mkdtemp(path.join(tmpdir(), "studium-edit-decl-"));
+    locks = new FileLocks();
+    await mkdir(path.join(root, "linear-algebra", "notes"), { recursive: true });
+  });
+  afterEach(async () => {
+    await rm(root, { recursive: true, force: true });
+  });
+  it("rejects misplaced declarations for agents but never for the learner", async () => {
+    const note = "linear-algebra/notes/visual.md";
+    const misplaced = '---\ntitle: V\n---\n\n# Chapter\n\n- ::visual{src="../visuals/x.json"}\n';
+    await expect(createFile(root, locks, "drafter", note, misplaced)).rejects.toThrow(
+      /standalone top-level lines at the end of the chapter/,
+    );
+    // The learner's save is never rejected, but the misplaced line also blocks later agent edits
+    // to the same file: validation covers the whole document, like the media checks.
+    await createFile(root, locks, "user", note, misplaced);
+    expect(await readText(root, note)).toContain("- ::visual{");
+    await expect(editFile(root, locks, "drafter", note, "# Chapter", "Changed.")).rejects.toThrow(/found: - ::visual/);
+    // A standalone top-level declaration is valid for agents.
+    const valid = '---\ntitle: V\n---\n\n# Chapter\n\n::visual{src="../visuals/x.json" title="Plot"}\n';
+    await createFile(root, locks, "drafter", "linear-algebra/notes/visual2.md", valid);
+    expect(await readText(root, "linear-algebra/notes/visual2.md")).toContain("::visual{");
+  });
+});

@@ -1,6 +1,8 @@
 import { chapterVisuals } from "@studium/shared/media";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { ArtifactBlock } from "./ArtifactBlock";
 import { ChapterVisuals } from "./ChapterVisuals";
 import { MarkdownView } from "./MarkdownView";
 
@@ -142,15 +144,17 @@ it("runs an artifact only after tapping with an exact sandbox and first-document
   }));
   vi.stubGlobal("fetch", fetch);
   render(
-    <ChapterVisuals
-      visuals={
-        chapterVisuals(
-          '::artifact{src="../artifacts/demo.html" poster="../artifacts/demo.svg" title="Explore vectors"}',
-          "alpha/notes/x.md",
-        ).visuals
-      }
-      onRead={() => {}}
-    />,
+    <MemoryRouter>
+      <ChapterVisuals
+        visuals={
+          chapterVisuals(
+            '::artifact{src="../artifacts/demo.html" poster="../artifacts/demo.svg" title="Explore vectors"}',
+            "alpha/notes/x.md",
+          ).visuals
+        }
+        onRead={() => {}}
+      />
+    </MemoryRouter>,
   );
   expect((await screen.findByAltText("Explore vectors")).getAttribute("src")).toBe(
     "/api/sets/alpha/asset?path=artifacts%2Fdemo.svg",
@@ -168,10 +172,12 @@ it("runs an artifact only after tapping with an exact sandbox and first-document
 it("rejects artifacts outside the set, under notes or with the wrong extension", () => {
   for (const src of ["../../beta/artifacts/x.html", "../notes/x.html", "../artifacts/x.js"]) {
     const view = render(
-      <ChapterVisuals
-        visuals={chapterVisuals(`::artifact{src="${src}"}`, "alpha/notes/x.md").visuals}
-        onRead={() => {}}
-      />,
+      <MemoryRouter>
+        <ChapterVisuals
+          visuals={chapterVisuals(`::artifact{src="${src}"}`, "alpha/notes/x.md").visuals}
+          onRead={() => {}}
+        />
+      </MemoryRouter>,
     );
     expect(screen.getByText("This visual is unavailable. Its chapter reference needs to be corrected.")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
@@ -185,10 +191,12 @@ it("shows an artifact fetch failure and allows retry", async () => {
     .mockResolvedValueOnce({ ok: true, json: async () => ({ raw: "<p>Ready</p>" }) });
   vi.stubGlobal("fetch", fetch);
   render(
-    <ChapterVisuals
-      visuals={chapterVisuals('::artifact{src="../artifacts/demo.html"}', "alpha/notes/x.md").visuals}
-      onRead={() => {}}
-    />,
+    <MemoryRouter>
+      <ChapterVisuals
+        visuals={chapterVisuals('::artifact{src="../artifacts/demo.html"}', "alpha/notes/x.md").visuals}
+        onRead={() => {}}
+      />
+    </MemoryRouter>,
   );
   fireEvent.click(screen.getByRole("button", { name: "Run" }));
   expect(await screen.findByRole("alert")).toBeTruthy();
@@ -315,22 +323,45 @@ it("embeds heading videos but keeps table and footnote links plain", async () =>
   expect(container.querySelector("section[data-footnotes] [data-youtube], .footnotes [data-youtube]")).toBeNull();
 });
 
-it("keeps interactive references out of Markdown reading, including unavailable ones", () => {
+it("marks misplaced visual declarations in prose instead of silently dropping them", () => {
   const fetch = vi.fn();
   vi.stubGlobal("fetch", fetch);
   render(
     <MarkdownView
       notePath="alpha/notes/x.md"
       content={
-        'Before.\n\n::artifact{src="../artifacts/demo.html" title="Explore"}\n\n::artifact{src="../notes/bad.html"}\n\nAfter.'
+        'Before.\n\n::artifact{src="../artifacts/demo.html" title="Explore"}\n\n::artifact{src="../notes/bad.html"}\n\n> ::visual{src="../visuals/x.json"}\n\nAfter.'
       }
     />,
   );
   expect(screen.getByText("Before.")).toBeTruthy();
   expect(screen.getByText("After.")).toBeTruthy();
+  expect(
+    screen.getAllByText("Visual not shown: move this declaration to its own line at the chapter end."),
+  ).toHaveLength(3);
   expect(screen.queryByText("Explore")).toBeNull();
   expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
   expect(fetch).not.toHaveBeenCalled();
+});
+
+it("keeps a running artifact's iframe across full-screen toggles", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => ({ ok: true, json: async () => ({ raw: "<p>Ready</p>" }) })),
+  );
+  render(<ArtifactBlock src="alpha/artifacts/demo.html" />);
+  fireEvent.click(screen.getByRole("button", { name: "Run" }));
+  const frame = await waitFor(() => {
+    const element = document.querySelector("iframe");
+    expect(element).not.toBeNull();
+    return element as Element;
+  });
+  const srcdoc = frame.getAttribute("srcdoc");
+  fireEvent.click(screen.getByRole("button", { name: "Full screen" }));
+  expect(document.querySelector("iframe")).toBe(frame);
+  expect(document.querySelector("iframe")?.getAttribute("srcdoc")).toBe(srcdoc);
+  fireEvent.click(screen.getByRole("button", { name: "Exit full screen" }));
+  expect(document.querySelector("iframe")).toBe(frame);
 });
 
 it("defends artifact props outside the chapter parser and blocks hostile CSP overrides", async () => {

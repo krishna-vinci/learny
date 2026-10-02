@@ -36,11 +36,14 @@ cheat-sheet: `p5.md`, `d3.md` or `three.md`. Context7 can clarify those library 
 
 ```md
 ::visual{src="../visuals/stretch.json" title="How a matrix stretches space"}
-::visual{src="../visuals/process.html" title="Follow the process"}
+::visual{src="../visuals/process.html" poster="../visuals/process.svg" title="Follow the process"}
 ```
 
 No registry heading/frontmatter is needed. Paths are note-relative, confined to the
-same set's `visuals/` folder. Do not nest declarations in lists, quotes or callouts.
+same set's `visuals/` folder. Sketches must also set `poster="…"` on the declaration
+(their rail thumbnail and stage placeholder before the live sketch loads — the header
+posters alone are not known until the HTML is fetched). Widgets may set `poster="…"`
+optionally. Do not nest declarations in lists, quotes or callouts.
 Preserve existing `::artifact` attachments and their files; that legacy alias keeps
 its click-to-run behavior. Write all new interactive visuals into `visuals/`.
 The Reader collects both forms in **Visuals**, never inline in Reading.

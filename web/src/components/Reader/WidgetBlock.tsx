@@ -1,9 +1,9 @@
 import { layoutWidget, type WidgetSpec, widgetScenes } from "@studium/shared/visuals";
 import type { SvgNode, VisualState } from "@studium/shared/visuals/common";
 import { year } from "@studium/shared/visuals/timeline";
-import { createElement, useEffect, useMemo, useState } from "react";
+import { createElement, type Ref, useEffect, useImperativeHandle, useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { StoryControls, useStory } from "./StoryControls";
+import { useStory } from "./StoryControls";
 export function SvgSceneNode({ node }: { node: SvgNode }) {
   const attrs = Object.fromEntries(
     Object.entries(node.attrs).map(([k, v]) => [k.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase()), v]),
@@ -19,17 +19,37 @@ export function SvgSceneNode({ node }: { node: SvgNode }) {
     ),
   );
 }
+/** Story control surface for the parent-side strip: same React tree, no message protocol. */
+export interface WidgetStoryApi {
+  toggle(): void;
+  step(delta: number): void;
+}
+
 export function WidgetBlock({
   spec,
   active = false,
   reduced = false,
+  full = false,
+  apiRef,
+  onStoryState,
 }: {
   spec: WidgetSpec;
   active?: boolean;
   reduced?: boolean;
+  full?: boolean;
+  apiRef?: Ref<WidgetStoryApi>;
+  onStoryState?: (state: { playing: boolean; scene: number; count: number }) => void;
 }) {
   const scenes = useMemo(() => widgetScenes(spec), [spec]);
   const story = useStory(scenes, active, reduced);
+  useImperativeHandle(
+    apiRef,
+    () => ({ toggle: () => story.toggle(), step: (delta: number) => story.go(story.scene + delta) }),
+    [story],
+  );
+  useEffect(() => {
+    onStoryState?.({ playing: story.playing, scene: story.scene, count: scenes.length });
+  }, [onStoryState, story.playing, story.scene, scenes.length]);
   const [params, setParams] = useState<VisualState>({});
   const [progress, setProgress] = useState(reduced ? 1 : 0);
   // biome-ignore lint/correctness/useExhaustiveDependencies: A scene change clears overrides so its authored state applies.
@@ -57,7 +77,7 @@ export function WidgetBlock({
   const param = (name: string, value: number) => setParams((p) => ({ ...p, [name]: value }));
   return (
     <div
-      className="overflow-hidden rounded-lg border border-border/70 bg-background"
+      className={`overflow-hidden rounded-lg border border-border/70 bg-background${full ? " flex h-full min-h-0 flex-col" : ""}`}
       role="application"
       /* biome-ignore lint/a11y/noNoninteractiveTabindex: Interactive SVG simulation exposes arrow and space shortcuts on focus. */
       tabIndex={0}
@@ -71,7 +91,13 @@ export function WidgetBlock({
       }}
       aria-label={`${spec.title} controls`}
     >
-      <div className="flex h-[min(55svh,32rem)] min-h-72 items-center justify-center overflow-hidden">
+      <div
+        className={
+          full
+            ? "flex min-h-0 flex-1 items-center justify-center overflow-hidden"
+            : "flex h-[min(55svh,32rem)] min-h-72 items-center justify-center overflow-hidden"
+        }
+      >
         <svg
           className="max-h-full w-full"
           viewBox={`0 0 ${scene.width} ${scene.height}`}
@@ -182,13 +208,12 @@ export function WidgetBlock({
           )}
         </div>
       )}
-      <StoryControls
-        scenes={scenes}
-        scene={story.scene}
-        playing={story.playing}
-        onGo={story.go}
-        onToggle={story.toggle}
-      />
+      {/* Play/pause and scene stepping live in the parent-side strip; the narration stays. */}
+      {scenes.length > 1 && (
+        <p className="min-h-12 px-3 pb-3 text-sm leading-relaxed text-muted-foreground" aria-live="polite">
+          {scenes[story.scene]?.narration}
+        </p>
+      )}
     </div>
   );
 }

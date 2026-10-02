@@ -1,3 +1,5 @@
+import { parseVisualControl } from "./control-message";
+
 (() => {
   const send = (event, extra = {}) => parent.postMessage({ type: "studium-visual", event, ...extra }, "*");
   const style = document.createElement("style");
@@ -165,32 +167,31 @@
     }
   }
   window.addEventListener("message", (e) => {
-    if (e.source !== parent || !e.data || e.data.type !== "studium-visual-control") return;
-    const d = e.data;
-    if (
-      d.theme &&
-      typeof d.theme === "object" &&
-      ["bg", "fg", "muted", "accent", "grid", "font"].every((k) => typeof d.theme[k] === "string") &&
-      Array.isArray(d.theme.palette) &&
-      d.theme.palette.every((x) => typeof x === "string")
-    ) {
-      runtime.theme = d.theme;
-      runtime.palette = d.theme.palette;
+    if (e.source !== parent) return;
+    const control = parseVisualControl(e.data);
+    if (!control) return;
+    if (control.theme) {
+      runtime.theme = control.theme;
+      runtime.palette = control.theme.palette;
       for (const k of ["bg", "fg", "muted", "accent", "grid"])
-        document.documentElement.style.setProperty(`--${k}`, d.theme[k]);
-      document.body.style.fontFamily = d.theme.font;
+        document.documentElement.style.setProperty(`--${k}`, control.theme[k]);
+      document.body.style.fontFamily = control.theme.font;
       listeners.forEach((fn) => {
-        fn(d.theme);
+        fn(control.theme);
       });
     }
-    if (typeof d.active === "boolean") enabled = d.active;
-    if (typeof d.reduced === "boolean" && d.reduced !== reduced) {
-      reduced = d.reduced;
+    if (control.active !== undefined) enabled = control.active;
+    if (control.reduced !== undefined && control.reduced !== reduced) {
+      reduced = control.reduced;
       if (reduced) {
         playing = false;
         scene = 0;
         elapsed = 0;
       }
+    }
+    if (control.playing !== undefined && control.playing !== playing) {
+      playing = control.playing;
+      if (!playing) elapsed = 0;
     }
     render();
     schedule();

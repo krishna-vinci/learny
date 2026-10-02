@@ -43,6 +43,33 @@ export default defineConfig({
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api\//, /^\/visual-runtime\//],
         runtimeCaching: [
+          // Visual runtime (D32): the parent's manifest.json fetch is SW-controlled and served
+          // no-cache, so without this rule an offline reload killed every sketch even when the
+          // library files were still in the HTTP cache. NetworkFirst keeps deploys fresh.
+          {
+            urlPattern: ({ url }) => url.pathname === "/visual-runtime/manifest.json",
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "studium-visual-manifest",
+              networkTimeoutSeconds: 3,
+              expiration: { maxEntries: 1 },
+              cacheableResponse: { statuses: [200] },
+            },
+          },
+          // The hashed library bundles (p5/d3/three + our runtime) are immutable, so CacheFirst
+          // after first use is safe. Library loads happen inside the sandboxed srcdoc frame
+          // (opaque origin), which a service worker generally does not control: the frame's
+          // requests rely on the browser HTTP cache (max-age=immutable from the server); this
+          // rule covers the contexts the SW does control.
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith("/visual-runtime/") && url.pathname.endsWith(".js"),
+            handler: "CacheFirst",
+            options: {
+              cacheName: "studium-visual-runtime",
+              expiration: { maxEntries: 12, maxAgeSeconds: 60 * 60 * 24 * 90, purgeOnQuotaError: true },
+              cacheableResponse: { statuses: [200] },
+            },
+          },
           // Offline reading (docs/UX.md section 6): the last-opened sets' notes, source summaries and
           // highlights, plus the session/set/Today reads the app shell needs to start. Network first, so
           // online use is always fresh; the cache only answers when the network fails. Capped at 150

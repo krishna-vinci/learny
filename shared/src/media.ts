@@ -105,7 +105,11 @@ export function formatMediaTime(seconds: number): string {
   return `${hours ? `${hours}:` : ""}${hours ? String(minutes).padStart(2, "0") : minutes}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
-export { type ChapterVisual, chapterVisuals } from "./chapter-visuals.js";
+export {
+  type ChapterVisual,
+  chapterVisuals,
+  misplacedVisualDeclarations,
+} from "./chapter-visuals.js";
 
 /** Charts are local computations: every declared data source must be inline. */
 export function parseInlineChart(json: string): Record<string, unknown> {

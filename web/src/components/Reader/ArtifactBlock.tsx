@@ -1,8 +1,9 @@
 import { assetUrl, resolveNoteMedia } from "@studium/shared/media";
-import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { VisualNav } from "./VisualBlock";
+import { FULLSCREEN_SECTION, useVisualFullscreen, VisualStrip } from "./VisualFrame";
 
 export const ARTIFACT_CSP = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src data:; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">`;
 
@@ -10,30 +11,24 @@ export function ArtifactBlock({
   src,
   poster,
   title = "Interactive figure",
+  nav,
 }: {
   src: string;
   poster?: string;
   title?: string;
+  nav?: VisualNav;
 }) {
   const [html, setHtml] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
-  const [full, setFull] = useState(false);
   const [posterFailed, setPosterFailed] = useState(false);
+  const { full, toggle, exitButton } = useVisualFullscreen();
   const [set, ...parts] = src.split("/");
   const path = parts.join("/");
   const valid = resolveNoteMedia(`${set}/chapter.md`, path, "html");
   const validPoster = poster
     ? resolveNoteMedia(`${set}/chapter.md`, poster.split("/").slice(1).join("/"), "poster")
     : null;
-  useEffect(() => {
-    if (!full) return;
-    const close = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setFull(false);
-    };
-    window.addEventListener("keydown", close);
-    return () => window.removeEventListener("keydown", close);
-  }, [full]);
   async function run() {
     if (!valid || (poster && (poster.split("/")[0] !== set || !validPoster))) return;
     setBusy(true);
@@ -57,16 +52,9 @@ export function ArtifactBlock({
   }
   if (!valid || (poster && (poster.split("/")[0] !== set || !validPoster)))
     return <p className="text-sm text-muted-foreground">This visual is unavailable.</p>;
-  const body = (
-    <section className={full ? "fixed inset-0 z-50 flex flex-col bg-background p-4" : "min-w-0"} aria-label={title}>
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold">{title}</h2>
-        {html && (
-          <Button className="min-h-11" variant="outline" onClick={() => setFull(!full)}>
-            {full ? "Exit full screen" : "Full screen"}
-          </Button>
-        )}
-      </div>
+  return (
+    <section className={full ? FULLSCREEN_SECTION : "min-w-0"} aria-label={title}>
+      <h2 className="mb-2 text-lg font-semibold">{title}</h2>
       <div
         className={
           full
@@ -107,7 +95,28 @@ export function ArtifactBlock({
           {error}
         </p>
       )}
+      <VisualStrip>
+        {nav?.hasPrev && (
+          <Button variant="outline" className="min-h-11" aria-label="Previous visual" onClick={nav.onPrev}>
+            ‹
+          </Button>
+        )}
+        {html !== undefined && (
+          <Button variant="outline" className="min-h-11" onClick={() => setHtml(undefined)}>
+            Restart
+          </Button>
+        )}
+        {html !== undefined && (
+          <Button ref={exitButton} className="min-h-11" variant="outline" onClick={toggle}>
+            {full ? "Exit full screen" : "Full screen"}
+          </Button>
+        )}
+        {nav?.hasNext && (
+          <Button variant="outline" className="min-h-11" aria-label="Next visual" onClick={nav.onNext}>
+            ›
+          </Button>
+        )}
+      </VisualStrip>
     </section>
   );
-  return full ? createPortal(body, document.body) : body;
 }

@@ -22,7 +22,7 @@ it("re-renders the pure curve after a parameter slider change", () => {
   fireEvent.change(screen.getByLabelText("a"), { target: { value: "2" } });
   expect(container.querySelector("path")?.getAttribute("d")).not.toBe(before);
 });
-it("steps captions with buttons and focused keyboard arrows", () => {
+it("steps captions with focused keyboard arrows; play/scene buttons live in the parent strip", () => {
   const spec = parseWidget(
     JSON.stringify({
       type: "step-through",
@@ -34,8 +34,9 @@ it("steps captions with buttons and focused keyboard arrows", () => {
     }),
   );
   render(<WidgetBlock spec={spec} reduced />);
-  expect(screen.getByRole("button", { name: "Play" })).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  expect(screen.queryByRole("button", { name: "Play" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Next" })).toBeNull();
+  fireEvent.keyDown(screen.getByLabelText("Sort controls"), { key: "ArrowRight" });
   expect(screen.getByText("Swap.")).toBeTruthy();
   fireEvent.keyDown(screen.getByLabelText("Sort controls"), { key: "ArrowLeft" });
   expect(screen.getByText("Compare.")).toBeTruthy();

@@ -36,10 +36,10 @@ import { toast } from "@/lib/notify";
 import { readingPrefsVars, useReadingPrefs } from "@/lib/reading-prefs";
 import { readScrollPosition, saveScrollPosition } from "@/lib/scroll-memory";
 import { cn } from "@/lib/utils";
-
 import { ImmersiveExitButton } from "./ImmersiveExitButton";
 import { ReaderPassages } from "./ReaderPassages";
 import { ReadingSettingsControl } from "./ReadingSettings";
+import { VisualsWhisper } from "./VisualsWhisper";
 
 const ChapterVisuals = lazy(() => import("./ChapterVisuals").then((module) => ({ default: module.ChapterVisuals })));
 
@@ -475,6 +475,7 @@ export function Reader({ set, path, file, className }: ReaderProps) {
               onListClose={() => setHighlightsOpen(false)}
               query={searchParams.get("q") ?? ""}
             />
+            <VisualsWhisper count={chapter.visuals.length} onOpen={() => changeView("visuals")} />
           </Tabs.Panel>
           <Tabs.Panel value="visuals" hidden={!visualsOpen}>
             <h1 className="text-2xl font-semibold text-foreground">{titleFromFrontmatter(file)}</h1>
