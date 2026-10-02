@@ -102,3 +102,39 @@ specs and sketch headers are validated on complete writes; JSON/HTML/SVG ≤300 
 Checker/Cardsmith/Critic gain no visual write scope. Tutor/Drafter load `make-visual`
 for interactive authoring; static media remains in `media-authoring`. Agents write
 new interactive files only in visuals/, preserve legacy artifacts and include posters.
+
+## Classifier consultations (M10 / D33)
+
+The optional classifier routes routine decisions; it never replaces a role.
+Tutor consults `tutor.intent` and `context.relevance`; Drafter consults
+`context.relevance` and `visual.router`; Checker consults `check.depth` and
+`context.relevance`, retaining all cited evidence. Critic consults
+`cards.prescreen`; Grader consults `grade.triage`; Librarian consults `ingest.kind`.
+Checker and Critic always run, and the grader always assesses free-text answers.
+
+```yaml
+models:
+  default: your-provider/your-model
+  classifier: opencode/jev-1.13-free # absent/null: off
+  roles: {}
+classifier:
+  decisions:
+    tutor.intent: {mode: shadow, threshold: 0.8}
+    context.relevance: {mode: on, threshold: 0.6}
+    check.depth: {mode: shadow, threshold: 0.85}
+    cards.prescreen: {mode: shadow, threshold: 0.8}
+    visual.router: {mode: on, threshold: 0.7}
+    grade.triage: {mode: shadow, threshold: 0.8}
+    ingest.kind: {mode: shadow, threshold: 0.8}
+```
+
+Skills remain lazy (`load_skill` / `load_skill_reference`). Drafter starts with
+FTS-ranked passages (12k estimated-token cap), Checker with anchored cited spans
+and neighbours. Unresolved/unanchored citations require `study_read` expansion.
+Tutor provider history retains the last four turns verbatim and compacts older
+text into escaped excerpts beyond an 8k estimated-token budget; recent large turns
+can exceed that budget. Persisted transcripts stay complete. Quick turns can use
+`enable_research` to restore research tools and full set context immediately.
+
+Every classifier call logs private, disposable workspace telemetry; known card,
+grade and source-kind outcomes feed calibration. Logs are not study-tree records.

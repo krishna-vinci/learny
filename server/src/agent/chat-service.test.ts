@@ -15,6 +15,7 @@ import { McpManager } from "../mcp/bridge.js";
 import { ensureRepo, log } from "../tree/git.js";
 import { FileLocks } from "../tree/lock.js";
 import { BusyError, ChatService } from "./chat-service.js";
+import { Classifier } from "./classifier.js";
 import { createModelRuntime } from "./models.js";
 
 const SAMPLE_SET = fileURLToPath(new URL("../../../examples/sample-set", import.meta.url));
@@ -40,6 +41,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   if (previousAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
   else process.env.PI_CODING_AGENT_DIR = previousAgentDir;
   await Promise.all([fs.rm(root, { recursive: true, force: true }), fs.rm(agentDir, { recursive: true, force: true })]);
@@ -482,4 +484,50 @@ describe("ChatService", () => {
     release();
     await settled;
   });
+});
+
+it("a quick turn can restore research tools without storing routing instructions as learner text", async () => {
+  vi.spyOn(Classifier.prototype, "decide").mockImplementation(
+    async (name) =>
+      ({
+        id: "test",
+        source: name === "tutor.intent" ? "classifier" : "fallback",
+        mode: "on",
+        confidence: 1,
+        probabilities: {},
+        answer: name === "tutor.intent" ? "quick answer" : {},
+      }) as never,
+  );
+  const { chats, faux, hub } = await setup();
+  let initial: string[] = [];
+  let expanded: string[] = [];
+  const names = (c: TranscriptContext) => {
+    const active = new Set<string>();
+    for (const m of c.messages)
+      if (m.role === "system") {
+        for (const t of m.toolsAdded ?? []) active.add(t.name);
+        for (const t of m.toolsRemoved ?? []) active.delete(t.name);
+      }
+    return [...active];
+  };
+  faux.setResponses([
+    (c) => {
+      initial = names(c);
+      return fauxAssistantMessage(fauxToolCall("enable_research", {}, { id: "expand" }), { stopReason: "toolUse" });
+    },
+    (c) => {
+      expanded = names(c);
+      expect(contextText(c)).toContain("## Curriculum");
+      return fauxAssistantMessage(fauxText("Explained."));
+    },
+  ]);
+  const id = await chats.create("linear-algebra");
+  const done = waitForSettled(hub, id);
+  await chats.send("linear-algebra", id, "Explain this");
+  await done;
+  expect(initial).not.toContain("web_fetch");
+  expect(initial).toContain("enable_research");
+  expect(expanded).toContain("web_fetch");
+  const saved = await chats.get("linear-algebra", id);
+  expect(saved.messages.find((m) => m.role === "user")?.text).toBe("Explain this");
 });

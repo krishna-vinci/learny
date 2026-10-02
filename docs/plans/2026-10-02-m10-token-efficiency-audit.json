@@ -1,0 +1,1261 @@
+{
+  "real": true,
+  "estimate": "characters/4; controlled replay, not complete production jobs",
+  "costUsd": 0.12303177999999998,
+  "upperBoundUsd": 0,
+  "scratch": "/tmp/studium-m10-audit-1INbXi",
+  "rows": [
+    {
+      "role": "checker",
+      "phase": "before",
+      "file": "deepseek-ngram/notes/01-how-engram-works-in-ai-model.md",
+      "buckets": {
+        "system": 81,
+        "skills": 58,
+        "tools": 526,
+        "setContext": 150,
+        "sources": 30480,
+        "history": 0,
+        "task": 59
+      },
+      "estimatedTokens": 31354,
+      "usage": {
+        "input": 36110,
+        "output": 1024,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 1020,
+        "totalTokens": 37134,
+        "cost": {
+          "input": 0.0054164999999999994,
+          "output": 0.000512,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0.0059285
+        }
+      },
+      "stopReason": "length",
+      "model": "zai/glm-5.3-flash",
+      "ms": 29049.69739
+    },
+    {
+      "role": "checker",
+      "phase": "after",
+      "file": "deepseek-ngram/notes/01-how-engram-works-in-ai-model.md",
+      "buckets": {
+        "system": 81,
+        "skills": 58,
+        "tools": 526,
+        "setContext": 150,
+        "sources": 15843,
+        "history": 0,
+        "task": 46
+      },
+      "estimatedTokens": 16704,
+      "usage": {
+        "input": 18196,
+        "output": 1024,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 731,
+        "totalTokens": 19220,
+        "cost": {
+          "input": 0.0027294,
+          "output": 0.000512,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0.0032413999999999998
+        }
+      },
+      "stopReason": "length",
+      "model": "zai/glm-5.3-flash",
+      "ms": 23290.116002999996
+    },
+    {
+      "role": "critic",
+      "phase": "before",
+      "file": "hyderabad-history/cards/01-hyderabad-on-the-map-and-timeline.md",
+      "buckets": {
+        "system": 87,
+        "skills": 61,
+        "tools": 230,
+        "setContext": 1098,
+        "sources": 1120,
+        "history": 0,
+        "task": 38
+      },
+      "estimatedTokens": 2634,
+      "usage": {
+        "input": 2897,
+        "output": 658,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 12,
+        "totalTokens": 3555,
+        "cost": {
+          "input": 0.00043454999999999996,
+          "output": 0.000329,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0.00076355
+        }
+      },
+      "stopReason": "stop",
+      "model": "zai/glm-5.3-flash",
+      "ms": 19217.682815999993
+    },
+    {
+      "role": "critic",
+      "phase": "after",
+      "file": "hyderabad-history/cards/01-hyderabad-on-the-map-and-timeline.md",
+      "buckets": {
+        "system": 87,
+        "skills": 61,
+        "tools": 230,
+        "setContext": 1098,
+        "sources": 1120,
+        "history": 0,
+        "task": 38
+      },
+      "estimatedTokens": 2634,
+      "usage": {
+        "input": 2769,
+        "output": 711,
+        "cacheRead": 128,
+        "cacheWrite": 0,
+        "reasoning": 8,
+        "totalTokens": 3608,
+        "cost": {
+          "input": 0.00041535,
+          "output": 0.00035549999999999997,
+          "cacheRead": 0.00000384,
+          "cacheWrite": 0,
+          "total": 0.00077469
+        }
+      },
+      "stopReason": "stop",
+      "model": "zai/glm-5.3-flash",
+      "ms": 18205.672777
+    },
+    {
+      "role": "checker",
+      "phase": "before",
+      "file": "hyderabad-history/notes/01-hyderabad-on-the-map-and-timeline.md",
+      "buckets": {
+        "system": 81,
+        "skills": 58,
+        "tools": 526,
+        "setContext": 1098,
+        "sources": 55057,
+        "history": 0,
+        "task": 95
+      },
+      "estimatedTokens": 56915,
+      "usage": {
+        "input": 67363,
+        "output": 906,
+        "cacheRead": 128,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "totalTokens": 68397,
+        "cost": {
+          "input": 0.01010445,
+          "output": 0.000453,
+          "cacheRead": 0.00000384,
+          "cacheWrite": 0,
+          "total": 0.01056129
+        }
+      },
+      "stopReason": "stop",
+      "model": "zai/glm-5.3-flash",
+      "ms": 23229.39893699999
+    },
+    {
+      "role": "checker",
+      "phase": "after",
+      "file": "hyderabad-history/notes/01-hyderabad-on-the-map-and-timeline.md",
+      "buckets": {
+        "system": 81,
+        "skills": 58,
+        "tools": 526,
+        "setContext": 1098,
+        "sources": 14236,
+        "history": 0,
+        "task": 45
+      },
+      "estimatedTokens": 16044,
+      "usage": {
+        "input": 15835,
+        "output": 1024,
+        "cacheRead": 896,
+        "cacheWrite": 0,
+        "reasoning": 534,
+        "totalTokens": 17755,
+        "cost": {
+          "input": 0.0023752499999999998,
+          "output": 0.000512,
+          "cacheRead": 0.000026879999999999997,
+          "cacheWrite": 0,
+          "total": 0.0029141299999999996
+        }
+      },
+      "stopReason": "length",
+      "model": "zai/glm-5.3-flash",
+      "ms": 28009.39663599999
+    },
+    {
+      "role": "checker",
+      "phase": "before",
+      "file": "hyderabad-history/notes/02-before-hyderabad-deccan-and-golconda.md",
+      "buckets": {
+        "system": 81,
+        "skills": 58,
+        "tools": 526,
+        "setContext": 1098,
+        "sources": 40748,
+        "history": 0,
+        "task": 60
+      },
+      "estimatedTokens": 42571,
+      "usage": {
+        "input": 47050,
+        "output": 1024,
+        "cacheRead": 896,
+        "cacheWrite": 0,
+        "reasoning": 619,
+        "totalTokens": 48970,
+        "cost": {
+          "input": 0.0070574999999999995,
+          "output": 0.000512,
+          "cacheRead": 0.000026879999999999997,
+          "cacheWrite": 0,
+          "total": 0.00759638
+        }
+      },
+      "stopReason": "length",
+      "model": "zai/glm-5.3-flash",
+      "ms": 25780.04610400001
+    },
+    {
+      "role": "checker",
+      "phase": "after",
+      "file": "hyderabad-history/notes/02-before-hyderabad-deccan-and-golconda.md",
+      "buckets": {
+        "system": 81,
+        "skills": 58,
+        "tools": 526,
+        "setContext": 1098,
+        "sources": 12882,
+        "history": 0,
+        "task": 42
+      },
+      "estimatedTokens": 14687,
+      "usage": {
+        "input": 12455,
+        "output": 1024,
+        "cacheRead": 1984,
+        "cacheWrite": 0,
+        "reasoning": 808,
+        "totalTokens": 15463,
+        "cost": {
+          "input": 0.00186825,
+          "output": 0.000512,
+          "cacheRead": 0.00005951999999999999,
+          "cacheWrite": 0,
+          "total": 0.00243977
+        }
+      },
+      "stopReason": "length",
+      "model": "zai/glm-5.3-flash",
+      "ms": 26486.228000000003
+    },
+    {
+      "role": "checker",
+      "phase": "before",
+      "file": "hyderabad-history/notes/03-qutb-shahis-and-the-founding-of.md",
+      "buckets": {
+        "system": 81,
+        "skills": 58,
+        "tools": 526,
+        "setContext": 1098,
+        "sources": 52497,
+        "history": 0,
+        "task": 94
+      },
+      "estimatedTokens": 54354,
+      "usage": {
+        "input": 62542,
+        "output": 1024,
+        "cacheRead": 1984,
+        "cacheWrite": 0,
+        "reasoning": 627,
+        "totalTokens": 65550,
+        "cost": {
+          "input": 0.0093813,
+          "output": 0.000512,
+          "cacheRead": 0.00005951999999999999,
+          "cacheWrite": 0,
+          "total": 0.009952820000000001
+        }
+      },
+      "stopReason": "length",
+      "model": "zai/glm-5.3-flash",
+      "ms": 27287.50667599999
+    },
+    {
+      "role": "checker",
+      "phase": "after",
+      "file": "hyderabad-history/notes/03-qutb-shahis-and-the-founding-of.md",
+      "buckets": {
+        "system": 81,
+        "skills": 58,
+        "tools": 526,
+        "setContext": 1098,
+        "sources": 10050,
+        "history": 0,
+        "task": 43
+      },
+      "estimatedTokens": 11856,
+      "usage": {
+        "input": 9930,
+        "output": 1024,
+        "cacheRead": 1984,
+        "cacheWrite": 0,
+        "reasoning": 14,
+        "totalTokens": 12938,
+        "cost": {
+          "input": 0.0014895,
+          "output": 0.000512,
+          "cacheRead": 0.00005951999999999999,
+          "cacheWrite": 0,
+          "total": 0.0020610199999999998
+        }
+      },
+      "stopReason": "length",
+      "model": "zai/glm-5.3-flash",
+      "ms": 27170.560786999995
+    },
+    {
+      "role": "checker",
+      "phase": "before",
+      "file": "hyderabad-history/notes/04-reading-the-qutb-shahi-city-in-stone.md",
+      "buckets": {
+        "system": 81,
+        "skills": 58,
+        "tools": 526,
+        "setContext": 1098,
+        "sources": 60996,
+        "history": 0,
+        "task": 99
+      },
+      "estimatedTokens": 62858,
+      "usage": {
+        "input": 70589,
+        "output": 943,
+        "cacheRead": 1984,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "totalTokens": 73516,
+        "cost": {
+          "input": 0.01058835,
+          "output": 0.00047149999999999997,
+          "cacheRead": 0.00005951999999999999,
+          "cacheWrite": 0,
+          "total": 0.01111937
+        }
+      },
+      "stopReason": "stop",
+      "model": "zai/glm-5.3-flash",
+      "ms": 25058.253834000032
+    },
+    {
+      "role": "checker",
+      "phase": "after",
+      "file": "hyderabad-history/notes/04-reading-the-qutb-shahi-city-in-stone.md",
+      "buckets": {
+        "system": 81,
+        "skills": 58,
+        "tools": 526,
+        "setContext": 1098,
+        "sources": 17667,
+        "history": 0,
+        "task": 45
+      },
+      "estimatedTokens": 19475,
+      "usage": {
+        "input": 17458,
+        "output": 1024,
+        "cacheRead": 1984,
+        "cacheWrite": 0,
+        "reasoning": 715,
+        "totalTokens": 20466,
+        "cost": {
+          "input": 0.0026187,
+          "output": 0.000512,
+          "cacheRead": 0.00005951999999999999,
+          "cacheWrite": 0,
+          "total": 0.0031902199999999997
+        }
+      },
+      "stopReason": "length",
+      "model": "zai/glm-5.3-flash",
+      "ms": 26002.177953000006
+    },
+    {
+      "role": "checker",
+      "phase": "before",
+      "file": "hyderabad-history/notes/06-hyderabad-state-and-british-paramountcy.md",
+      "buckets": {
+        "system": 81,
+        "skills": 58,
+        "tools": 526,
+        "setContext": 1098,
+        "sources": 38827,
+        "history": 0,
+        "task": 55
+      },
+      "estimatedTokens": 40645,
+      "usage": {
+        "input": 45568,
+        "output": 949,
+        "cacheRead": 1984,
+        "cacheWrite": 0,
+        "reasoning": 304,
+        "totalTokens": 48501,
+        "cost": {
+          "input": 0.0068352,
+          "output": 0.0004745,
+          "cacheRead": 0.00005951999999999999,
+          "cacheWrite": 0,
+          "total": 0.00736922
+        }
+      },
+      "stopReason": "stop",
+      "model": "zai/glm-5.3-flash",
+      "ms": 25339.903038999997
+    },
+    {
+      "role": "checker",
+      "phase": "after",
+      "file": "hyderabad-history/notes/06-hyderabad-state-and-british-paramountcy.md",
+      "buckets": {
+        "system": 81,
+        "skills": 58,
+        "tools": 526,
+        "setContext": 1098,
+        "sources": 8350,
+        "history": 0,
+        "task": 41
+      },
+      "estimatedTokens": 10154,
+      "usage": {
+        "input": 9242,
+        "output": 858,
+        "cacheRead": 1984,
+        "cacheWrite": 0,
+        "reasoning": 213,
+        "totalTokens": 12084,
+        "cost": {
+          "input": 0.0013863,
+          "output": 0.00042899999999999997,
+          "cacheRead": 0.00005951999999999999,
+          "cacheWrite": 0,
+          "total": 0.00187482
+        }
+      },
+      "stopReason": "stop",
+      "model": "zai/glm-5.3-flash",
+      "ms": 23855.48982399999
+    },
+    {
+      "role": "checker",
+      "phase": "before",
+      "file": "hyderabad-history/notes/07-test.md",
+      "buckets": {
+        "system": 81,
+        "skills": 58,
+        "tools": 526,
+        "setContext": 1098,
+        "sources": 34,
+        "history": 0,
+        "task": 38
+      },
+      "estimatedTokens": 1835,
+      "usage": {
+        "input": 59,
+        "output": 348,
+        "cacheRead": 1984,
+        "cacheWrite": 0,
+        "reasoning": 11,
+        "totalTokens": 2391,
+        "cost": {
+          "input": 0.00000885,
+          "output": 0.000174,
+          "cacheRead": 0.00005951999999999999,
+          "cacheWrite": 0,
+          "total": 0.00024237
+        }
+      },
+      "stopReason": "stop",
+      "model": "zai/glm-5.3-flash",
+      "ms": 12085.451376999961
+    },
+    {
+      "role": "checker",
+      "phase": "after",
+      "file": "hyderabad-history/notes/07-test.md",
+      "buckets": {
+        "system": 81,
+        "skills": 58,
+        "tools": 526,
+        "setContext": 1098,
+        "sources": 34,
+        "history": 0,
+        "task": 38
+      },
+      "estimatedTokens": 1835,
+      "usage": {
+        "input": 59,
+        "output": 232,
+        "cacheRead": 1984,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "totalTokens": 2275,
+        "cost": {
+          "input": 0.00000885,
+          "output": 0.000116,
+          "cacheRead": 0.00005951999999999999,
+          "cacheWrite": 0,
+          "total": 0.00018437
+        }
+      },
+      "stopReason": "stop",
+      "model": "zai/glm-5.3-flash",
+      "ms": 11061.447059999977
+    },
+    {
+      "role": "critic",
+      "phase": "before",
+      "file": "linear-algebra/cards/02-matrices.md",
+      "buckets": {
+        "system": 87,
+        "skills": 61,
+        "tools": 230,
+        "setContext": 292,
+        "sources": 729,
+        "history": 0,
+        "task": 38
+      },
+      "estimatedTokens": 1437,
+      "usage": {
+        "input": 1645,
+        "output": 601,
+        "cacheRead": 128,
+        "cacheWrite": 0,
+        "reasoning": 12,
+        "totalTokens": 2374,
+        "cost": {
+          "input": 0.00024675,
+          "output": 0.0003005,
+          "cacheRead": 0.00000384,
+          "cacheWrite": 0,
+          "total": 0.00055109
+        }
+      },
+      "stopReason": "stop",
+      "model": "zai/glm-5.3-flash",
+      "ms": 18694.28690799995
+    },
+    {
+      "role": "critic",
+      "phase": "after",
+      "file": "linear-algebra/cards/02-matrices.md",
+      "buckets": {
+        "system": 87,
+        "skills": 61,
+        "tools": 230,
+        "setContext": 292,
+        "sources": 729,
+        "history": 0,
+        "task": 38
+      },
+      "estimatedTokens": 1437,
+      "usage": {
+        "input": 1261,
+        "output": 589,
+        "cacheRead": 512,
+        "cacheWrite": 0,
+        "reasoning": 134,
+        "totalTokens": 2362,
+        "cost": {
+          "input": 0.00018915,
+          "output": 0.0002945,
+          "cacheRead": 0.00001536,
+          "cacheWrite": 0,
+          "total": 0.0004990099999999999
+        }
+      },
+      "stopReason": "stop",
+      "model": "zai/glm-5.3-flash",
+      "ms": 17214.164347999962
+    },
+    {
+      "role": "critic",
+      "phase": "before",
+      "file": "linear-algebra/cards/03-svd.md",
+      "buckets": {
+        "system": 87,
+        "skills": 61,
+        "tools": 230,
+        "setContext": 292,
+        "sources": 547,
+        "history": 0,
+        "task": 38
+      },
+      "estimatedTokens": 1255,
+      "usage": {
+        "input": 944,
+        "output": 498,
+        "cacheRead": 512,
+        "cacheWrite": 0,
+        "reasoning": 10,
+        "totalTokens": 1954,
+        "cost": {
+          "input": 0.0001416,
+          "output": 0.000249,
+          "cacheRead": 0.00001536,
+          "cacheWrite": 0,
+          "total": 0.00040595999999999997
+        }
+      },
+      "stopReason": "stop",
+      "model": "zai/glm-5.3-flash",
+      "ms": 14680.983372999995
+    },
+    {
+      "role": "critic",
+      "phase": "after",
+      "file": "linear-algebra/cards/03-svd.md",
+      "buckets": {
+        "system": 87,
+        "skills": 61,
+        "tools": 230,
+        "setContext": 292,
+        "sources": 547,
+        "history": 0,
+        "task": 38
+      },
+      "estimatedTokens": 1255,
+      "usage": {
+        "input": 688,
+        "output": 603,
+        "cacheRead": 768,
+        "cacheWrite": 0,
+        "reasoning": 14,
+        "totalTokens": 2059,
+        "cost": {
+          "input": 0.0001032,
+          "output": 0.0003015,
+          "cacheRead": 0.000023039999999999996,
+          "cacheWrite": 0,
+          "total": 0.00042774
+        }
+      },
+      "stopReason": "stop",
+      "model": "zai/glm-5.3-flash",
+      "ms": 18926.130888000014
+    },
+    {
+      "role": "checker",
+      "phase": "before",
+      "file": "linear-algebra/notes/01-vectors.md",
+      "buckets": {
+        "system": 81,
+        "skills": 58,
+        "tools": 526,
+        "setContext": 292,
+        "sources": 320,
+        "history": 0,
+        "task": 38
+      },
+      "estimatedTokens": 1315,
+      "usage": {
+        "input": 625,
+        "output": 353,
+        "cacheRead": 896,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "totalTokens": 1874,
+        "cost": {
+          "input": 0.00009375,
+          "output": 0.00017649999999999998,
+          "cacheRead": 0.000026879999999999997,
+          "cacheWrite": 0,
+          "total": 0.00029713
+        }
+      },
+      "stopReason": "stop",
+      "model": "zai/glm-5.3-flash",
+      "ms": 12535.928473000007
+    },
+    {
+      "role": "checker",
+      "phase": "after",
+      "file": "linear-algebra/notes/01-vectors.md",
+      "buckets": {
+        "system": 81,
+        "skills": 58,
+        "tools": 526,
+        "setContext": 292,
+        "sources": 320,
+        "history": 0,
+        "task": 38
+      },
+      "estimatedTokens": 1315,
+      "usage": {
+        "input": 49,
+        "output": 433,
+        "cacheRead": 1472,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "totalTokens": 1954,
+        "cost": {
+          "input": 0.00000735,
+          "output": 0.00021649999999999998,
+          "cacheRead": 0.00004416,
+          "cacheWrite": 0,
+          "total": 0.00026800999999999995
+        }
+      },
+      "stopReason": "stop",
+      "model": "zai/glm-5.3-flash",
+      "ms": 15666.158010999963
+    },
+    {
+      "role": "checker",
+      "phase": "before",
+      "file": "linear-algebra/notes/02-matrices.md",
+      "buckets": {
+        "system": 81,
+        "skills": 58,
+        "tools": 526,
+        "setContext": 292,
+        "sources": 323,
+        "history": 0,
+        "task": 38
+      },
+      "estimatedTokens": 1318,
+      "usage": {
+        "input": 605,
+        "output": 558,
+        "cacheRead": 896,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "totalTokens": 2059,
+        "cost": {
+          "input": 0.00009075,
+          "output": 0.000279,
+          "cacheRead": 0.000026879999999999997,
+          "cacheWrite": 0,
+          "total": 0.00039663000000000003
+        }
+      },
+      "stopReason": "stop",
+      "model": "zai/glm-5.3-flash",
+      "ms": 17637.72229200002
+    },
+    {
+      "role": "checker",
+      "phase": "after",
+      "file": "linear-algebra/notes/02-matrices.md",
+      "buckets": {
+        "system": 81,
+        "skills": 58,
+        "tools": 526,
+        "setContext": 292,
+        "sources": 323,
+        "history": 0,
+        "task": 38
+      },
+      "estimatedTokens": 1318,
+      "usage": {
+        "input": 413,
+        "output": 501,
+        "cacheRead": 1088,
+        "cacheWrite": 0,
+        "reasoning": 6,
+        "totalTokens": 2002,
+        "cost": {
+          "input": 0.00006195,
+          "output": 0.00025049999999999996,
+          "cacheRead": 0.00003264,
+          "cacheWrite": 0,
+          "total": 0.00034509
+        }
+      },
+      "stopReason": "stop",
+      "model": "zai/glm-5.3-flash",
+      "ms": 17227.62812899996
+    },
+    {
+      "role": "checker",
+      "phase": "before",
+      "file": "linear-algebra/notes/03-svd.md",
+      "buckets": {
+        "system": 81,
+        "skills": 58,
+        "tools": 526,
+        "setContext": 292,
+        "sources": 441,
+        "history": 0,
+        "task": 38
+      },
+      "estimatedTokens": 1436,
+      "usage": {
+        "input": 572,
+        "output": 684,
+        "cacheRead": 1088,
+        "cacheWrite": 0,
+        "reasoning": 8,
+        "totalTokens": 2344,
+        "cost": {
+          "input": 0.0000858,
+          "output": 0.00034199999999999996,
+          "cacheRead": 0.00003264,
+          "cacheWrite": 0,
+          "total": 0.00046044
+        }
+      },
+      "stopReason": "stop",
+      "model": "zai/glm-5.3-flash",
+      "ms": 19895.177496999968
+    },
+    {
+      "role": "checker",
+      "phase": "after",
+      "file": "linear-algebra/notes/03-svd.md",
+      "buckets": {
+        "system": 81,
+        "skills": 58,
+        "tools": 526,
+        "setContext": 292,
+        "sources": 441,
+        "history": 0,
+        "task": 38
+      },
+      "estimatedTokens": 1436,
+      "usage": {
+        "input": 60,
+        "output": 543,
+        "cacheRead": 1600,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "totalTokens": 2203,
+        "cost": {
+          "input": 0.000009,
+          "output": 0.0002715,
+          "cacheRead": 0.000047999999999999994,
+          "cacheWrite": 0,
+          "total": 0.00032849999999999996
+        }
+      },
+      "stopReason": "stop",
+      "model": "zai/glm-5.3-flash",
+      "ms": 17220.736084999982
+    },
+    {
+      "role": "checker",
+      "phase": "before",
+      "file": "linear-algebra/notes/04-low-rank-approximation-and-pca.md",
+      "buckets": {
+        "system": 81,
+        "skills": 58,
+        "tools": 526,
+        "setContext": 292,
+        "sources": 53270,
+        "history": 0,
+        "task": 65
+      },
+      "estimatedTokens": 54292,
+      "usage": {
+        "input": 76120,
+        "output": 1024,
+        "cacheRead": 1088,
+        "cacheWrite": 0,
+        "reasoning": 364,
+        "totalTokens": 78232,
+        "cost": {
+          "input": 0.011418,
+          "output": 0.000512,
+          "cacheRead": 0.00003264,
+          "cacheWrite": 0,
+          "total": 0.01196264
+        }
+      },
+      "stopReason": "length",
+      "model": "zai/glm-5.3-flash",
+      "ms": 29185.218770999927
+    },
+    {
+      "role": "checker",
+      "phase": "after",
+      "file": "linear-algebra/notes/04-low-rank-approximation-and-pca.md",
+      "buckets": {
+        "system": 81,
+        "skills": 58,
+        "tools": 526,
+        "setContext": 292,
+        "sources": 6039,
+        "history": 0,
+        "task": 41
+      },
+      "estimatedTokens": 7037,
+      "usage": {
+        "input": 7977,
+        "output": 1024,
+        "cacheRead": 1088,
+        "cacheWrite": 0,
+        "reasoning": 461,
+        "totalTokens": 10089,
+        "cost": {
+          "input": 0.00119655,
+          "output": 0.000512,
+          "cacheRead": 0.00003264,
+          "cacheWrite": 0,
+          "total": 0.00174119
+        }
+      },
+      "stopReason": "length",
+      "model": "zai/glm-5.3-flash",
+      "ms": 26421.973707000026
+    },
+    {
+      "role": "checker",
+      "phase": "before",
+      "file": "linear-algebra/notes/05-pca-in-practice.md",
+      "buckets": {
+        "system": 81,
+        "skills": 58,
+        "tools": 526,
+        "setContext": 292,
+        "sources": 102237,
+        "history": 0,
+        "task": 92
+      },
+      "estimatedTokens": 103286,
+      "usage": {
+        "input": 133814,
+        "output": 1024,
+        "cacheRead": 1088,
+        "cacheWrite": 0,
+        "reasoning": 576,
+        "totalTokens": 135926,
+        "cost": {
+          "input": 0.0200721,
+          "output": 0.000512,
+          "cacheRead": 0.00003264,
+          "cacheWrite": 0,
+          "total": 0.020616739999999998
+        }
+      },
+      "stopReason": "length",
+      "model": "zai/glm-5.3-flash",
+      "ms": 31307.369917999953
+    },
+    {
+      "role": "checker",
+      "phase": "after",
+      "file": "linear-algebra/notes/05-pca-in-practice.md",
+      "buckets": {
+        "system": 81,
+        "skills": 58,
+        "tools": 526,
+        "setContext": 292,
+        "sources": 18046,
+        "history": 0,
+        "task": 47
+      },
+      "estimatedTokens": 19050,
+      "usage": {
+        "input": 20653,
+        "output": 1024,
+        "cacheRead": 1088,
+        "cacheWrite": 0,
+        "reasoning": 422,
+        "totalTokens": 22765,
+        "cost": {
+          "input": 0.00309795,
+          "output": 0.000512,
+          "cacheRead": 0.00003264,
+          "cacheWrite": 0,
+          "total": 0.00364259
+        }
+      },
+      "stopReason": "length",
+      "model": "zai/glm-5.3-flash",
+      "ms": 23651.964299999992
+    },
+    {
+      "role": "critic",
+      "phase": "before",
+      "file": "polymers/cards/01-polymers-from-carbon-bonds-to-everyday.md",
+      "buckets": {
+        "system": 87,
+        "skills": 61,
+        "tools": 230,
+        "setContext": 180,
+        "sources": 679,
+        "history": 0,
+        "task": 38
+      },
+      "estimatedTokens": 1275,
+      "usage": {
+        "input": 1271,
+        "output": 567,
+        "cacheRead": 128,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "totalTokens": 1966,
+        "cost": {
+          "input": 0.00019065,
+          "output": 0.0002835,
+          "cacheRead": 0.00000384,
+          "cacheWrite": 0,
+          "total": 0.00047799
+        }
+      },
+      "stopReason": "stop",
+      "model": "zai/glm-5.3-flash",
+      "ms": 16851.30544600007
+    },
+    {
+      "role": "critic",
+      "phase": "after",
+      "file": "polymers/cards/01-polymers-from-carbon-bonds-to-everyday.md",
+      "buckets": {
+        "system": 87,
+        "skills": 61,
+        "tools": 230,
+        "setContext": 180,
+        "sources": 679,
+        "history": 0,
+        "task": 38
+      },
+      "estimatedTokens": 1275,
+      "usage": {
+        "input": 887,
+        "output": 485,
+        "cacheRead": 512,
+        "cacheWrite": 0,
+        "reasoning": 8,
+        "totalTokens": 1884,
+        "cost": {
+          "input": 0.00013304999999999998,
+          "output": 0.00024249999999999999,
+          "cacheRead": 0.00001536,
+          "cacheWrite": 0,
+          "total": 0.00039091
+        }
+      },
+      "stopReason": "stop",
+      "model": "zai/glm-5.3-flash",
+      "ms": 14993.043277999968
+    },
+    {
+      "role": "checker",
+      "phase": "before",
+      "file": "polymers/notes/01-polymers-from-carbon-bonds-to-everyday.md",
+      "buckets": {
+        "system": 81,
+        "skills": 58,
+        "tools": 526,
+        "setContext": 180,
+        "sources": 3443,
+        "history": 0,
+        "task": 38
+      },
+      "estimatedTokens": 4326,
+      "usage": {
+        "input": 3226,
+        "output": 569,
+        "cacheRead": 896,
+        "cacheWrite": 0,
+        "reasoning": 8,
+        "totalTokens": 4691,
+        "cost": {
+          "input": 0.0004839,
+          "output": 0.0002845,
+          "cacheRead": 0.000026879999999999997,
+          "cacheWrite": 0,
+          "total": 0.00079528
+        }
+      },
+      "stopReason": "stop",
+      "model": "zai/glm-5.3-flash",
+      "ms": 17624.428045999957
+    },
+    {
+      "role": "checker",
+      "phase": "after",
+      "file": "polymers/notes/01-polymers-from-carbon-bonds-to-everyday.md",
+      "buckets": {
+        "system": 81,
+        "skills": 58,
+        "tools": 526,
+        "setContext": 180,
+        "sources": 3443,
+        "history": 0,
+        "task": 38
+      },
+      "estimatedTokens": 4326,
+      "usage": {
+        "input": 26,
+        "output": 558,
+        "cacheRead": 4096,
+        "cacheWrite": 0,
+        "reasoning": 13,
+        "totalTokens": 4680,
+        "cost": {
+          "input": 0.0000039,
+          "output": 0.000279,
+          "cacheRead": 0.00012288,
+          "cacheWrite": 0,
+          "total": 0.00040578
+        }
+      },
+      "stopReason": "stop",
+      "model": "zai/glm-5.3-flash",
+      "ms": 16758.449474000023
+    },
+    {
+      "role": "drafter",
+      "phase": "before",
+      "file": "deepseek-ngram/notes/01-how-engram-works-in-ai-model.md",
+      "buckets": {
+        "system": 100,
+        "skills": 131,
+        "tools": 617,
+        "setContext": 150,
+        "sources": 30480,
+        "history": 0,
+        "task": 56
+      },
+      "estimatedTokens": 31534,
+      "usage": {
+        "input": 36177,
+        "output": 865,
+        "cacheRead": 128,
+        "cacheWrite": 0,
+        "reasoning": 18,
+        "totalTokens": 37170,
+        "cost": {
+          "input": 0.00542655,
+          "output": 0.0004325,
+          "cacheRead": 0.00000384,
+          "cacheWrite": 0,
+          "total": 0.005862889999999999
+        }
+      },
+      "stopReason": "stop",
+      "model": "zai/glm-5.3-flash",
+      "ms": 22477.297601000057
+    },
+    {
+      "role": "drafter",
+      "phase": "after",
+      "file": "deepseek-ngram/notes/01-how-engram-works-in-ai-model.md",
+      "buckets": {
+        "system": 100,
+        "skills": 131,
+        "tools": 617,
+        "setContext": 150,
+        "sources": 16327,
+        "history": 0,
+        "task": 43
+      },
+      "estimatedTokens": 17368,
+      "usage": {
+        "input": 17661,
+        "output": 567,
+        "cacheRead": 320,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "totalTokens": 18548,
+        "cost": {
+          "input": 0.00264915,
+          "output": 0.0002835,
+          "cacheRead": 0.0000096,
+          "cacheWrite": 0,
+          "total": 0.0029422499999999996
+        }
+      },
+      "stopReason": "stop",
+      "model": "zai/glm-5.3-flash",
+      "ms": 14371.993722999934
+    },
+    {
+      "role": "tutor",
+      "phase": "before",
+      "file": "deepseek-ngram/notes/01-how-engram-works-in-ai-model.md",
+      "buckets": {
+        "system": 390,
+        "skills": 213,
+        "tools": 617,
+        "setContext": 161,
+        "sources": 30480,
+        "history": 172020,
+        "task": 55
+      },
+      "estimatedTokens": 203936,
+      "usage": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 0,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "stopReason": "error",
+      "model": "zai/glm-5.3-flash",
+      "ms": 1.4913549999473616
+    },
+    {
+      "role": "tutor",
+      "phase": "after",
+      "file": "deepseek-ngram/notes/01-how-engram-works-in-ai-model.md",
+      "buckets": {
+        "system": 390,
+        "skills": 213,
+        "tools": 617,
+        "setContext": 161,
+        "sources": 30480,
+        "history": 34405,
+        "task": 55
+      },
+      "estimatedTokens": 66321,
+      "usage": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 0,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "stopReason": "error",
+      "model": "zai/glm-5.3-flash",
+      "ms": 1.2063399999169633
+    }
+  ]
+}

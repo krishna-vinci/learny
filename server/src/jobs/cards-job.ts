@@ -2,6 +2,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
 import { parseCardFile, parseFrontmatter, toCardView } from "@studium/shared";
+import { workspaceClassifier } from "../agent/classifier-workspace.js";
 import { selectedPassage } from "../agent/passage.js";
 import { rethrowRoleModelError, runRole } from "../agent/run-role.js";
 import { noteCommitSha } from "../cards/store.js";
@@ -329,10 +330,29 @@ export function createCardsJob(deps: CardsJobDeps): JobHandler {
       if (ids.length === 0) return;
       ctx.signal.throwIfAborted();
       const reviewed = new Set<string>();
+      const classifier = await workspaceClassifier(deps.root, deps.runtime, ctx.signal, ctx);
+      const candidates = parseCardFile(await readText(deps.root, cardRootPath))
+        .cards.filter((c) => ids.includes(c.id))
+        .map((c) => ({ id: c.id, text: c.body.slice(0, 1000) }));
+      const deck = await deckSnapshot(deps.root, input.set);
+      const screen = await classifier.decide("cards.prescreen", {
+        state: { candidates, note: note.slice(0, 8000), deck: deck.slice(0, 8000) },
+      });
+      const priority = { reject: 0, revise: 1, ok: 2 };
+      const ordered =
+        screen.source === "classifier"
+          ? [...ids].sort(
+              (a, b) => priority[screen.answer[a]?.verdict ?? "ok"] - priority[screen.answer[b]?.verdict ?? "ok"],
+            )
+          : ids;
+      const hint =
+        screen.source === "classifier"
+          ? `Likely issues (untrusted routing hints; independently review EVERY assigned card): ${JSON.stringify(screen.answer)}`
+          : "";
       const result = await runRole("critic", {
         root: deps.root,
         set: input.set,
-        task: criticTask(cardPath, ids, note, await deckSnapshot(deps.root, input.set), recheck),
+        task: criticTask(cardPath, ordered, note, deck, recheck) + (hint ? `\n${hint}` : ""),
         locks: deps.locks,
         mcp: deps.mcp,
         runtime: deps.runtime,
@@ -345,6 +365,10 @@ export function createCardsJob(deps: CardsJobDeps): JobHandler {
         cards: { rootPath: cardRootPath, allowedIds: ids, onReview: (id) => reviewed.add(id) },
       }).catch(rethrowRoleModelError);
       ctx.addUsage(usageFromPiMessages(result.messages));
+      const actual = parseCardFile(await readText(deps.root, cardRootPath))
+        .cards.filter((c) => reviewed.has(c.id) && c.critic)
+        .map((c) => [c.id, { verdict: c.critic?.verdict }]);
+      await classifier.outcome("cards.prescreen", screen.id, Object.fromEntries(actual));
       const missing = ids.filter((id) => !reviewed.has(id));
       if (missing.length > 0) throw new Error(`critic did not review assigned cards: ${missing.join(", ")}`);
     };

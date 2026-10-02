@@ -4,6 +4,7 @@ import path from "node:path";
 import { ConfigYaml, type ServiceHealth, type SettingsView } from "@studium/shared";
 import { Hono } from "hono";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
+import { classifierStatus } from "../agent/classifier.js";
 import { ROLES } from "../agent/roles.js";
 import { readText } from "../tree/edit.js";
 import { commitPaths } from "../tree/git.js";
@@ -120,7 +121,11 @@ function serializeConfig(existing: string, models: ModelsBody): string {
   const parsed: unknown = parseYaml(body);
   const doc: Record<string, unknown> =
     typeof parsed === "object" && parsed !== null && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {};
-  doc.models = { default: models.default, roles: { ...models.roles } };
+  const previousModels =
+    typeof doc.models === "object" && doc.models !== null && !Array.isArray(doc.models)
+      ? (doc.models as Record<string, unknown>)
+      : {};
+  doc.models = { ...previousModels, default: models.default, roles: { ...models.roles } };
   const serialized = stringifyYaml(doc);
   return leading === "" ? serialized : `${leading}\n${serialized}`;
 }
@@ -193,6 +198,7 @@ export function settingsRoutes(deps: SettingsDeps): Hono {
     const [config, available, services] = await Promise.all([readConfig(root), availableModels(runtime), httpChecks()]);
     return {
       models: { default: config.models.default, roles: { ...config.models.roles } },
+      classifier: classifierStatus(runtime, root, config, deps.env ?? process.env),
       available,
       warnings: buildWarnings(config, available),
       services: [...mcp.health(), ...services],

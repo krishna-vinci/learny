@@ -247,6 +247,11 @@ export interface ServiceHealth {
 // `GET /api/settings` view: configured role models plus live availability,
 // warnings, and service health.
 export interface SettingsView {
+  classifier?: {
+    model: string | null;
+    status: "configured" | "working" | "off";
+    decisions: Record<string, { mode: "off" | "shadow" | "on"; threshold: number }>;
+  };
   models: { default: string; roles: Record<string, string> };
   available: string[];
   warnings: string[];

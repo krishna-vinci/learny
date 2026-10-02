@@ -1,0 +1,75 @@
+{
+  "real": true,
+  "estimate": "characters/4; controlled replay, not complete production jobs",
+  "costUsd": 0.004330815,
+  "upperBoundUsd": 0,
+  "scratch": "/tmp/studium-m10-audit-RdIGFO",
+  "rows": [
+    {
+      "role": "tutor",
+      "phase": "before",
+      "file": "deepseek-ngram/notes/01-how-engram-works-in-ai-model.md",
+      "buckets": {
+        "system": 390,
+        "skills": 213,
+        "tools": 617,
+        "setContext": 161,
+        "sources": 4336,
+        "history": 18210,
+        "task": 35
+      },
+      "estimatedTokens": 23962,
+      "usage": {
+        "input": 3,
+        "output": 266,
+        "cacheRead": 0,
+        "cacheWrite": 22262,
+        "reasoning": 101,
+        "totalTokens": 22531,
+        "cost": {
+          "input": 3.0000000000000004e-7,
+          "output": 0.000133,
+          "cacheRead": 0,
+          "cacheWrite": 0.00278275,
+          "total": 0.00291605
+        }
+      },
+      "stopReason": "stop",
+      "model": "github-copilot/gpt-6-luna",
+      "ms": 5451.557639999999
+    },
+    {
+      "role": "tutor",
+      "phase": "after",
+      "file": "deepseek-ngram/notes/01-how-engram-works-in-ai-model.md",
+      "buckets": {
+        "system": 390,
+        "skills": 213,
+        "tools": 617,
+        "setContext": 161,
+        "sources": 4336,
+        "history": 6321,
+        "task": 35
+      },
+      "estimatedTokens": 12073,
+      "usage": {
+        "input": 3,
+        "output": 264,
+        "cacheRead": 1059,
+        "cacheWrite": 10175,
+        "reasoning": 58,
+        "totalTokens": 11501,
+        "cost": {
+          "input": 3.0000000000000004e-7,
+          "output": 0.00013199999999999998,
+          "cacheRead": 0.00001059,
+          "cacheWrite": 0.001271875,
+          "total": 0.001414765
+        }
+      },
+      "stopReason": "stop",
+      "model": "github-copilot/gpt-6-luna",
+      "ms": 3916.362298
+    }
+  ]
+}

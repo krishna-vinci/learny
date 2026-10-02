@@ -5,13 +5,17 @@ import { defineTool, type ModelRuntime, type ToolDefinition } from "@earendil-wo
 import { parseFrontmatter } from "@studium/shared";
 import { parseYoutubeVideo } from "@studium/shared/media";
 import { Type } from "typebox";
+import { workspaceClassifier } from "../agent/classifier-workspace.js";
+import { selectContext } from "../agent/context-selection.js";
 import { mediaWarnings } from "../agent/media-warnings.js";
 import { noteLint } from "../agent/note-lint.js";
 import { rethrowRoleModelError, runRole } from "../agent/run-role.js";
+import { classifierVisualRouter } from "../agent/visual-router.js";
 import type { EventHub } from "../events.js";
 import { resolveDraftSources } from "../inbox/plan-sources.js";
 import { slugify } from "../ingest/ids.js";
 import type { McpManager } from "../mcp/bridge.js";
+import { evidencePack, rankedPassages, renderPassages, splitPassages } from "../search/passages.js";
 import { chapterExists, parseCurriculum } from "../tree/curriculum.js";
 import { editFile, readText, writeTextLocked } from "../tree/edit.js";
 import { commitPaths } from "../tree/git.js";
@@ -266,7 +270,7 @@ function draftTask(
     `Allowed source ids: ${sources.join(", ") || "(none)"}`,
     `Create exactly ${notePath} (this exact path was reserved for you) with status: draft.`,
     "You may also write assets/, artifacts/ and visuals/ for this chapter. Do not modify other notes or files.",
-    "Read source.md and parsed.md or parsed/*.md directly under library/<id>/ for support.",
+    "Use the ranked source passages below first. Read source.md or more parsed text with study_read when support is missing; you need not read every parse.",
     videoInstructions,
     "",
     "## PLAN.md",
@@ -347,11 +351,31 @@ function createChapterJob(deps: DraftJobDeps, rewriting: boolean): JobHandler {
     ]);
     const sources = await resolveDraftSources(deps.root, plan, input.sources);
     const videoInstructions = await videoSourceInstructions(deps.root, sources);
+
     if (sources.length === 0) {
       throw new Error(
         "This set has no sources yet. Add a source in the Library (or ask the tutor to find some), then retry.",
       );
     }
+
+    const classifier = await workspaceClassifier(deps.root, deps.runtime, ctx.signal, ctx);
+    const brief = `${input.title} ${input.brief ?? ""}`;
+    const passages = rewriting
+      ? []
+      : await selectContext(classifier, await rankedPassages(deps.root, sources, brief), brief);
+    const visual = rewriting
+      ? null
+      : await classifierVisualRouter(classifier).decide({
+          heading: input.title,
+          text: input.brief ?? "",
+          subject:
+            typeof parseFrontmatter(plan).frontmatter.subject === "string"
+              ? (parseFrontmatter(plan).frontmatter.subject as string)
+              : "general",
+        });
+    const visualHint = visual
+      ? `Visual authoring hint (not a requirement): ${JSON.stringify(visual)}. Use make-visual judgment.`
+      : "";
 
     // Reserve the target path before the model runs so its write policy can be
     // pinned to exactly that file (create and, in revision, edit).
@@ -411,7 +435,7 @@ function createChapterJob(deps: DraftJobDeps, rewriting: boolean): JobHandler {
               "## curriculum.md",
               curriculum,
             ].join("\n")
-          : draftTask(input, notePath, plan, curriculum, sources, videoInstructions),
+          : `${draftTask(input, notePath, plan, curriculum, sources, videoInstructions)}\n\n## Ranked source passages\n${renderPassages(passages)}\n${visualHint}`,
         locks: deps.locks,
         mcp: deps.mcp,
         runtime: deps.runtime,
@@ -452,6 +476,21 @@ function createChapterJob(deps: DraftJobDeps, rewriting: boolean): JobHandler {
         if (noteStatus(currentNote) !== "draft") {
           throw new Error("drafted note must have status draft");
         }
+        const sections = splitPassages(currentNote).map((p, i) => ({ id: `section-${i}`, text: p.text }));
+        const depth = await classifier.decide("check.depth", {
+          state: { candidates: sections.map((p) => ({ id: p.id, text: p.text.slice(0, 1500) })) },
+        });
+        const fullSections = sections.filter(
+          (p) => depth.source !== "classifier" || depth.answer[p.id] !== false || /\[\^src:/.test(p.text),
+        );
+        const evidence = fullSections.length
+          ? await evidencePack(deps.root, fullSections.map((p) => p.text).join("\n"), noteSources(currentNote))
+          : { passages: [], missing: [] };
+        const selectedEvidence = await selectContext(classifier, evidence.passages, input.title);
+        const depthHint =
+          depth.source === "classifier"
+            ? `Check every section. Full evidence check: ${fullSections.map((p) => p.id).join(", ") || "none"}. Other sections: quick consistency read; study_read more whenever a factual claim is found. Cited sections always get full evidence. Section numbering is zero-based in note order.`
+            : "";
         const statusTool = setNoteStatusTool({
           root: deps.root,
           locks: deps.locks,
@@ -464,7 +503,13 @@ function createChapterJob(deps: DraftJobDeps, rewriting: boolean): JobHandler {
         const result = await runRole("checker", {
           root: deps.root,
           set: input.set,
-          task: checkerTask(notePath, reportPath, noteSources(currentNote), recheck),
+          task: [
+            checkerTask(notePath, reportPath, noteSources(currentNote), recheck),
+            "Use this cited evidence pack first; study_read can expand any source. Unresolved/unanchored citations require source inspection, never assume the pack is complete.",
+            `Unresolved: ${evidence.missing.join(", ") || "none"}`,
+            depthHint,
+            renderPassages(selectedEvidence),
+          ].join("\n\n"),
           locks: deps.locks,
           mcp: deps.mcp,
           runtime: deps.runtime,

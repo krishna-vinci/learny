@@ -43,3 +43,6 @@ Each decision: question text in one module (`server/src/agent/decisions/<name>.t
 - Tests stub every model and the classifier; the only real-model runs are the Part 1 audit (≤ $2) and one real classifier smoke call (load the key into that process only with `--env-file=/home/krishna/learny/.env`; never print it).
 - Scoped tests: touched server test files + `src/agent/ src/jobs/` dirs; `tsc --noEmit` server/web/shared; web build; biome on changed files.
 - Report: audit before/after per role, each decision's implementation, deviations, 5-line log entry.
+
+## Reporting rule (added after owner feedback)
+Always report tokens as **fresh input / output / cache read / cache write** separately, never a single total, and per **provider/model**. State whether a provider is subscription (actual charge $0) or metered; label catalog prices as estimates. The spike's "3.2 M tokens" was 0.68 M fresh input + 0.04 M output + 2.49 M cache reads on `zai/glm-5.3-flash` (subscription), across 17 reviews (~43k fresh tokens each). Optimise fresh input first.

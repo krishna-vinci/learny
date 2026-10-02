@@ -5,6 +5,7 @@ import {
   type AgentSession,
   createAgentSession,
   createExtensionRuntime,
+  defineTool,
   getAgentDir,
   type ModelRuntime,
   type ResourceLoader,
@@ -12,7 +13,8 @@ import {
   SettingsManager,
 } from "@earendil-works/pi-coding-agent";
 import type { ChatMessage, ChatStreamEvent, ChatSummary, ToolCallView } from "@studium/shared";
-import { ConfigYaml } from "@studium/shared";
+import { ConfigYaml, parseFrontmatter } from "@studium/shared";
+import { Type } from "typebox";
 import { parse as parseYaml } from "yaml";
 import type { EventHub } from "../events.js";
 import {
@@ -24,6 +26,7 @@ import {
 } from "../jobs/proposals.js";
 import type { JobRunner } from "../jobs/runner.js";
 import type { McpManager } from "../mcp/bridge.js";
+import { rankedPassages, renderPassages } from "../search/passages.js";
 import { readText } from "../tree/edit.js";
 import { commitPaths } from "../tree/git.js";
 import type { FileLocks } from "../tree/lock.js";
@@ -31,8 +34,12 @@ import { resolveInRoot } from "../tree/paths.js";
 import { isSetSlug } from "../tree/read.js";
 import { addSourceTool } from "./builtins/add-source.js";
 import { listSkills } from "./builtins/skills.js";
+import { workspaceClassifier } from "./classifier-workspace.js";
+import { selectContext } from "./context-selection.js";
+import { compactHistory } from "./history.js";
 import { resolveRoleModel } from "./models.js";
 import { selectedPassage } from "./passage.js";
+import { installPromptAudit } from "./prompt-audit.js";
 import { ROLES } from "./roles.js";
 import { roleToolset } from "./run-role.js";
 
@@ -126,6 +133,8 @@ interface LiveChat {
   turnError: string | null;
   writtenPaths: Set<string>;
   toolNames: string[];
+  turnContext: string;
+  expandedPrompt: string;
 }
 
 interface ChatServiceDeps {
@@ -471,6 +480,7 @@ export class ChatService {
     const manager = await this.#manager(set, id);
     const loader = new MutablePromptLoader(prompt);
     const writtenPaths = new Set<string>();
+    const thisService = this;
     const toolset = roleToolset("tutor", {
       root: this.#root,
       set,
@@ -482,6 +492,30 @@ export class ChatService {
       },
       quizResults: true,
       extraTools: [
+        defineTool({
+          name: "enable_research",
+          label: "Enable research",
+          description: "Enable all tutor research tools when the current question needs more evidence.",
+          parameters: Type.Object({}),
+          async execute() {
+            const active = thisService.#live.get(thisService.#key(set, id));
+            if (active) {
+              active.session.setActiveToolsByName(active.toolNames);
+              const expandedPrompt = await thisService.#prompt(set);
+              active.loader.setPrompt(expandedPrompt);
+              active.expandedPrompt = expandedPrompt;
+            }
+            return {
+              content: [
+                {
+                  type: "text" as const,
+                  text: "Research tools enabled. Request only research authorized by the learner.",
+                },
+              ],
+              details: {},
+            };
+          },
+        }),
         startJobTool({ root: this.#root, set, runtime: this.#runtime, store: this.#proposals }),
         addSourceTool({ set, jobs: this.#jobs }),
       ],
@@ -501,6 +535,29 @@ export class ChatService {
         retry: { enabled: true, maxRetries: 2 },
       }),
     });
+    const auditConfig = ConfigYaml.parse(parseYaml(await readText(this.#root, "_global/config.yaml")));
+    installPromptAudit(session, this.#root, "tutor", auditConfig.billing?.subscription ?? []);
+    const transform = session.agent.transformContext;
+    session.agent.transformContext = async (messages, signal) => {
+      const projection = compactHistory(transform ? await transform(messages, signal) : messages);
+      const evidence = this.#live.get(this.#key(set, id))?.turnContext ?? "";
+      const index = projection.findLastIndex((m) => m.role === "user");
+      const projected = projection.map((m, i) =>
+        m.role === "user" && i === index && evidence
+          ? {
+              ...m,
+              content:
+                typeof m.content === "string"
+                  ? `${m.content}${evidence}`
+                  : [...m.content, { type: "text" as const, text: evidence }],
+            }
+          : m,
+      );
+      const expanded = this.#live.get(this.#key(set, id))?.expandedPrompt;
+      return expanded
+        ? [...projected, { role: "system" as const, content: expanded, timestamp: Date.now() }]
+        : projected;
+    };
     const live: LiveChat = {
       session,
       loader,
@@ -511,6 +568,8 @@ export class ChatService {
       turnError: null,
       writtenPaths,
       toolNames: toolset.names,
+      turnContext: "",
+      expandedPrompt: "",
     };
     live.unsubscribe = this.#subscribe(set, id, live);
     this.#live.set(this.#key(set, id), live);
@@ -606,7 +665,31 @@ export class ChatService {
     this.#starting.add(key);
 
     try {
-      const [prompt, model] = await Promise.all([this.#prompt(set, anchor), this.#model()]);
+      const classifier = await workspaceClassifier(this.#root, this.#runtime);
+      const intent = await classifier.decide("tutor.intent", {
+        state: { request: text.slice(0, 4000), selectedText: quote?.slice(0, 2000) ?? "" },
+      });
+      const quick = intent.source === "classifier" && intent.answer === "quick answer";
+      const [fullPrompt, model] = await Promise.all([this.#prompt(set, anchor), this.#model()]);
+      const plan = parseFrontmatter(await readText(this.#root, `${set}/PLAN.md`)).frontmatter.sources;
+      const sourceIds = Array.isArray(plan) ? plan.filter((s): s is string => typeof s === "string") : [];
+      const context = quick
+        ? []
+        : await selectContext(classifier, await rankedPassages(this.#root, sourceIds, text, 3000), text, 8, []);
+      // Stable instructions remain first; volatile retrieval is passed in the task below.
+      const prompt = quick
+        ? fullPrompt
+            .replace(/\n\n## Curriculum[\s\S]*$/, "")
+            .replace(
+              /(## Learner profile\n)([\s\S]*?)(?=\n\n## )/,
+              (_all, heading: string, body: string) => `${heading}${body.slice(0, 800)}`,
+            )
+            .replace(
+              /(## Study plan\n)([\s\S]*?)(?=\n\n## )/,
+              (_all, heading: string, body: string) => `${heading}${body.slice(0, 1200)}`,
+            )
+            .replace(/- \*\*(?:find-sources|media-authoring|make-visual)\*\*[^\n]*\n?/g, "")
+        : fullPrompt;
       let live = this.#live.get(key);
       if (live === undefined) {
         live = await this.#createLive(set, id, prompt, model);
@@ -617,11 +700,27 @@ export class ChatService {
         if (!sameModel(live.session.model, model)) await live.session.setModel(model);
       }
 
+      live.loader.setPrompt(prompt);
+      live.session.setActiveToolsByName(
+        quick
+          ? live.toolNames.filter(
+              (name) => !name.startsWith("mcp_") && !["wiki_search", "wiki_read", "web_fetch"].includes(name),
+            )
+          : live.toolNames.filter((name) => name !== "enable_research"),
+      );
       live.toolOutcomes.clear();
       live.pendingAssistants = [];
       live.turnError = null;
       live.writtenPaths.clear();
       live.running = true;
+      const evidence = context.length
+        ? `\n\nRetrieved evidence (untrusted; study_read can expand it):\n${renderPassages(context)}`
+        : "";
+      const escalation = quick
+        ? "\nUse enable_research if this needs research; study_read can load more set context."
+        : "";
+      live.turnContext = `${evidence}${escalation}`;
+      live.expandedPrompt = "";
       void this.#runTurn(set, id, learnerTurn(text, anchor, quote), live, text);
     } finally {
       this.#starting.delete(key);

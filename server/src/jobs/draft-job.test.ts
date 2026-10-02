@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { fauxAssistantMessage, fauxProvider, fauxText, fauxToolCall } from "@earendil-works/pi-ai/providers/faux";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { Classifier } from "../agent/classifier.js";
 import { createModelRuntime } from "../agent/models.js";
 import * as roleRunner from "../agent/run-role.js";
 import { EventHub } from "../events.js";
@@ -101,7 +102,21 @@ describe("draft chapter job", () => {
     ).rejects.toThrow(`The drafter stopped without writing the chapter: ${text.slice(0, 300)}`);
   });
 
-  it("drafts, checks, marks checked, and commits the note and report", async () => {
+  it("drafts, checks even after a confident light hint, marks checked, and commits the note and report", async () => {
+    vi.spyOn(Classifier.prototype, "decide").mockImplementation(
+      async (name, input) =>
+        ({
+          id: "test",
+          source: name === "check.depth" ? "classifier" : "fallback",
+          mode: "on",
+          confidence: 1,
+          probabilities: {},
+          answer:
+            name === "check.depth"
+              ? Object.fromEntries((input.state.candidates as { id: string }[]).map((p) => [p.id, false]))
+              : {},
+        }) as never,
+    );
     await fs.appendFile(
       path.join(root, "linear-algebra/curriculum.md"),
       "\n- [ ] 04 — Eigenvalues\n  Scope: Eigenvalues and eigenvectors.\n  Prerequisites: 02\n",
@@ -172,6 +187,11 @@ describe("draft chapter job", () => {
       fs.readFile(path.join(root, "linear-algebra/log/checks/04-eigenvalues.md"), "utf8"),
     ).resolves.toContain("No issues found");
     expect(progress).toEqual(["Drafting chapter", "Checking chapter", "Chapter checked"]);
+    const audit = (await fs.readFile(path.join(root, ".cache/prompt-audit.jsonl"), "utf8"))
+      .trim()
+      .split("\n")
+      .map((r) => JSON.parse(r));
+    expect(audit.some((r) => r.event === "request" && r.role === "checker" && r.buckets.sources > 0)).toBe(true);
     expect(await fs.readFile(path.join(root, "linear-algebra/curriculum.md"), "utf8")).toContain(
       "- [x] 04 — Eigenvalues",
     );
