@@ -181,3 +181,15 @@ on-disk migration is needed. Agents create HTML plus a static SVG poster with th
 existing file tools and then append a declaration, preserving existing attachments
 during edits. The existing book compiler appends poster/title/text pointers at the
 chapter end; it never reads or executes interactive HTML. See D31 for behavior.
+
+### Widgets and sketches (D32)
+
+New interactive files use tracked `<set>/visuals/`: widget `.json`, sketch `.html`,
+static `.svg` posters. Attach with `::visual{src="../visuals/name.json" title="…"}` or
+an HTML src, at the chapter end. D31's collection, ordering/deduplication and Visuals-only
+placement apply unchanged. Agent tools validate complete JSON/header/SVG writes and
+cap each at 300 KB. Headers declare only needed local libraries and require static
+posters for new sketches; story headers list `{src,narration}` per scene. Paths stay
+within the same set. `artifacts/`/`::artifact` remain compatible; no migration.
+`_global/config.yaml` has `visuals: {router: off}` by default (no model connection).
+The book shares widget geometry or copies authored sketch stills; it never runs HTML.

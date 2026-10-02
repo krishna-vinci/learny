@@ -123,7 +123,7 @@ export function isWritableByAgent(relFromRoot: string): boolean {
   if (set === "library" || !SET_SLUG_PATTERN.test(set)) {
     return false;
   }
-  if (!["notes", "log", "assets", "artifacts"].includes(kind)) {
+  if (!["notes", "log", "assets", "artifacts", "visuals"].includes(kind)) {
     return false;
   }
   return rest.every((segment) => segment !== "" && segment !== "." && segment !== "..");

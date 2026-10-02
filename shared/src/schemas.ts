@@ -57,6 +57,7 @@ export const StudiumYaml = z.looseObject({
 
 // `_global/config.yaml`.
 export const ConfigYaml = z.looseObject({
+  visuals: z.object({ router: z.literal("off").default("off") }).default({ router: "off" }),
   models: z.looseObject({
     default: z.string(),
     roles: z.record(z.string(), z.string()).default({}),

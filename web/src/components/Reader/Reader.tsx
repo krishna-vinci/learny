@@ -1,6 +1,6 @@
 import { Tabs } from "@base-ui/react/tabs";
 import type { FileView } from "@studium/shared";
-import { chapterVisuals } from "@studium/shared/media";
+import { chapterVisuals } from "@studium/shared/chapter-visuals";
 import {
   HighlighterIcon,
   HistoryIcon,
@@ -11,7 +11,7 @@ import {
   PencilIcon,
   RefreshCwIcon,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import { useHighlights, useSaveFile } from "@/api/queries";
@@ -28,6 +28,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { friendlyMessage } from "@/lib/friendly-errors";
 import { exitImmersive, isImmersive, toggleImmersive, useImmersive } from "@/lib/immersive-store";
@@ -35,10 +36,12 @@ import { toast } from "@/lib/notify";
 import { readingPrefsVars, useReadingPrefs } from "@/lib/reading-prefs";
 import { readScrollPosition, saveScrollPosition } from "@/lib/scroll-memory";
 import { cn } from "@/lib/utils";
-import { ChapterVisuals } from "./ChapterVisuals";
+
 import { ImmersiveExitButton } from "./ImmersiveExitButton";
 import { ReaderPassages } from "./ReaderPassages";
 import { ReadingSettingsControl } from "./ReadingSettings";
+
+const ChapterVisuals = lazy(() => import("./ChapterVisuals").then((module) => ({ default: module.ChapterVisuals })));
 
 const EMPTY_HIGHLIGHTS: import("@studium/shared").Highlight[] = [];
 
@@ -475,11 +478,13 @@ export function Reader({ set, path, file, className }: ReaderProps) {
           </Tabs.Panel>
           <Tabs.Panel value="visuals" hidden={!visualsOpen}>
             <h1 className="text-2xl font-semibold text-foreground">{titleFromFrontmatter(file)}</h1>
-            <ChapterVisuals
-              key={`${set}/${path}/${file.body}`}
-              visuals={chapter.visuals}
-              onRead={() => changeView("reading")}
-            />
+            <Suspense fallback={<Skeleton className="h-[65svh] w-full" aria-label="Opening visuals" />}>
+              <ChapterVisuals
+                key={`${set}/${path}/${file.body}`}
+                visuals={chapter.visuals}
+                onRead={() => changeView("reading")}
+              />
+            </Suspense>
           </Tabs.Panel>
         </Tabs.Root>
       </article>

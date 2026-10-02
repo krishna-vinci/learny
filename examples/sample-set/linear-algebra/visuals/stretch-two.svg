@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img">
+<title>A vector 2 unit(s) long</title><rect width="640" height="400" fill="#fafaf9"/>
+<g font-family="system-ui, sans-serif" font-size="28" fill="#292524">
+<text x="100" y="115">Length: 2 unit(s)</text>
+<line x1="100" x2="560" y1="220" y2="220" stroke="#d6d3d1" stroke-width="2"/>
+<line x1="100" x2="406.6666666666667" y1="180" y2="180" stroke="#0072B2" stroke-width="8"/>
+<path d="M390.6666666666667,168 L406.6666666666667,180 L390.6666666666667,192" fill="none" stroke="#0072B2" stroke-width="6"/>
+<text x="100.0" y="265" text-anchor="middle">0</text><text x="253.33333333333334" y="265" text-anchor="middle">1</text><text x="406.6666666666667" y="265" text-anchor="middle">2</text><text x="560.0" y="265" text-anchor="middle">3</text>
+<text x="330" y="318" text-anchor="middle">Position along the vector (units)</text>
+</g></svg>

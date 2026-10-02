@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en"><head><meta name="viewport" content="width=device-width, initial-scale=1">
+<script type="application/json" id="studium-visual">{"libs": ["d3"], "story": true, "aspect": "16:10", "posters": [{"src": "stretch-one.svg", "narration": "Begin with a vector one unit long."}, {"src": "stretch-two.svg", "narration": "Multiplying by two doubles its length and keeps its direction."}]}</script>
+</head><body>
+<script>
+const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+svg.setAttribute('viewBox','0 0 640 400');
+svg.setAttribute('role','img'); svg.setAttribute('aria-label','A vector stretches from one to two units.');
+svg.style.width='100%'; svg.style.height='100%';
+document.addEventListener('DOMContentLoaded',()=>document.getElementById('studium-stage').append(svg));
+studium.mount({
+  scenes:[{state:{stretch:1},narration:'Begin with the unit vector.'},{state:{stretch:2},narration:'Stretch doubles its length without changing direction.'}],
+  draw:({state,theme})=>{
+    const x = d3.scaleLinear([0,3],[100,560]);
+    const length = state.stretch || 1;
+    svg.replaceChildren();
+    const element=(tag,attrs,text)=>{
+      const node=document.createElementNS(svg.namespaceURI,tag);
+      for(const [key,value] of Object.entries(attrs))node.setAttribute(key,value);
+      if(text)node.textContent=text; svg.append(node);
+    };
+    element('title',{},'Scalar multiplication preserves direction.');
+    element('line',{x1:x(0),x2:x(3),y1:220,y2:220,stroke:theme.grid||'#d6d3d1','stroke-width':2});
+    for(const tick of [0,1,2,3]){
+      element('line',{x1:x(tick),x2:x(tick),y1:212,y2:228,stroke:theme.fg||'#292524'});
+      element('text',{x:x(tick),y:265,fill:theme.fg||'#292524','font-size':28,'text-anchor':'middle'},String(tick));
+    }
+    element('line',{x1:x(0),x2:x(length),y1:180,y2:180,stroke:studium.palette[0],'stroke-width':8});
+    element('path',{d:`M${x(length)-16},168 L${x(length)},180 L${x(length)-16},192`,fill:'none',stroke:studium.palette[0],'stroke-width':6});
+    element('text',{x:100,y:115,fill:theme.fg||'#292524','font-size':30},`Length: ${length} unit(s)`);
+    element('text',{x:330,y:318,fill:theme.muted||'#57534e','font-size':28,'text-anchor':'middle'},'Position along the vector (units)');
+  }
+});
+</script></body></html>

@@ -39,9 +39,9 @@ export default defineConfig({
         // in particular must pass through untouched (no response buffering, no timeout).
         globPatterns: ["**/*.{js,css,html,svg,png,ico,woff,woff2}"],
         // Chart libraries download only when a chart is opened, including in the PWA.
-        globIgnores: ["**/vega-loader-*.js"],
+        globIgnores: ["**/vega-loader-*.js", "visual-runtime/**"],
         navigateFallback: "/index.html",
-        navigateFallbackDenylist: [/^\/api\//],
+        navigateFallbackDenylist: [/^\/api\//, /^\/visual-runtime\//],
         runtimeCaching: [
           // Offline reading (docs/UX.md section 6): the last-opened sets' notes, source summaries and
           // highlights, plus the session/set/Today reads the app shell needs to start. Network first, so
@@ -87,6 +87,19 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    // Keep only the statically required app shell together for compression; visuals stay lazy.
+    rolldownOptions: {
+      output: {
+        codeSplitting: { groups: [{ name: "app-shell", tags: ["$initial"], includeDependenciesRecursively: false }] },
+      },
+    },
+    modulePreload: {
+      // Visuals load only when opened; native imports load their dependencies.
+      resolveDependencies: (filename, dependencies) =>
+        /(?:ChapterVisuals|VisualBlock)-/.test(filename) ? [] : dependencies,
+    },
+  },
   server: {
     // Loopback only: the dev proxy forwards to a server that may run without a password.
     host: "127.0.0.1",

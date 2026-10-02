@@ -1,4 +1,6 @@
 import { type Dirent, promises as fs } from "node:fs";
+import { parseWidget } from "@studium/shared/visuals";
+import { parseSketchHeader } from "@studium/shared/visuals/sketch";
 import { canonicalRel, resolveInRoot } from "./paths.js";
 export const IMAGE_MIME: Record<string, string> = {
   png: "image/png",
@@ -16,10 +18,18 @@ export const MEDIA_HEADERS = {
 
 /** Validate the complete edited document, including content outside the replacement. */
 export function validateAgentMedia(rel: string, content: string): void {
-  if (!/^[^/]+\/(assets|artifacts)\//.test(rel)) return;
+  if (!/^[^/]+\/(assets|artifacts|visuals)\//.test(rel)) return;
   const ext = rel.split(".").pop()?.toLowerCase();
-  if (ext === "svg" || ext === "html") {
-    if (Buffer.byteLength(content) > 300 * 1024) throw new Error("SVG and artifact HTML must be at most 300 KB");
+  if (ext === "svg" || ext === "html" || (ext === "json" && /^[^/]+\/visuals\//.test(rel))) {
+    if (Buffer.byteLength(content) > 300 * 1024) throw new Error("SVG, HTML and visual JSON must be at most 300 KB");
+  }
+  if (/^[^/]+\/visuals\//.test(rel)) {
+    if (ext === "json") parseWidget(content);
+    else if (ext === "html") {
+      const header = parseSketchHeader(content);
+      if (!header.poster && !header.posters) throw new Error("New sketches require a poster or scene posters");
+      if (header.story && !header.posters) throw new Error("Story sketches require scene posters");
+    } else if (ext !== "svg") throw new Error("Visuals must be JSON, HTML or SVG");
   }
   if (ext !== "svg") return;
   if (

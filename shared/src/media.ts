@@ -1,33 +1,4 @@
-/** Resolve Markdown paths against a note, keeping media within its original set. */
-export function resolveNoteMedia(
-  notePath: string | undefined,
-  src: string,
-  kind: "image" | "html" | "poster" = "image",
-): { set: string; path: string } | null {
-  if (!notePath || /[\\\0?#]/.test(src) || /^(?:[a-z][a-z0-9+.-]*:|\/)/i.test(src)) return null;
-  const set = notePath.split("/")[0];
-  if (!set || set === "library" || !/^[a-z0-9][a-z0-9-]*$/.test(set)) return null;
-  const segments = notePath.split("/").slice(0, -1);
-  for (const part of src.split("/")) {
-    if (part === "..") {
-      if (segments.length <= 1) return null;
-      segments.pop();
-    } else if (part !== "." && part !== "") segments.push(part);
-  }
-  if (segments[0] !== set) return null;
-  const rel = segments.slice(1).join("/");
-  const pattern =
-    kind === "html"
-      ? /^artifacts\/.+\.html$/
-      : kind === "poster"
-        ? /^artifacts\/.+\.svg$/
-        : /^(assets|artifacts)\/.+\.(png|jpe?g|gif|webp|svg)$/i;
-  return pattern.test(rel) ? { set, path: rel } : null;
-}
-
-export function assetUrl(media: { set: string; path: string }): string {
-  return `/api/sets/${encodeURIComponent(media.set)}/asset?path=${encodeURIComponent(media.path)}`;
-}
+export { assetUrl, mediaAttributes, resolveNoteMedia } from "./media-paths.js";
 
 export interface YouTubeVideo {
   id: string;
@@ -134,61 +105,7 @@ export function formatMediaTime(seconds: number): string {
   return `${hours ? `${hours}:` : ""}${hours ? String(minutes).padStart(2, "0") : minutes}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
-/** Leaf attribute subset used by the book preprocessor and note-write warnings. */
-export function mediaAttributes(text: string): Record<string, string> | null {
-  const attrs: Record<string, string> = {};
-  let remainder = text;
-  while (remainder.trim()) {
-    const match = /^\s*([\w-]+)=(?:"([^"\n]*)"|'([^'\n]*)'|([^\s"'{}]+))\s*/.exec(remainder);
-    if (!match?.[1] || match[1] in attrs) return null;
-    attrs[match[1]] = match[2] ?? match[3] ?? match[4] ?? "";
-    remainder = remainder.slice(match[0].length);
-  }
-  return attrs;
-}
-
-export interface ChapterVisual {
-  title: string;
-  /** Root-relative, already confined to this chapter's set; absent for invalid declarations. */
-  src?: string;
-  poster?: string;
-}
-
-/** Standalone leaf declarations are chapter attachments, not prose. Code examples stay code. */
-export function chapterVisuals(body: string, notePath: string): { body: string; visuals: ChapterVisual[] } {
-  const visuals: ChapterVisual[] = [];
-  const seen = new Set<string>();
-  let fence = "";
-  let fenceLength = 0;
-  const lines = body.split("\n").map((line) => {
-    const marker = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
-    if (fence) {
-      if (marker?.[1]?.[0] === fence && marker[1].length >= fenceLength && !marker[2]?.trim()) fence = "";
-      return line;
-    }
-    if (marker?.[1]) {
-      fence = marker[1][0] ?? "";
-      fenceLength = marker[1].length;
-      return line;
-    }
-    const declaration = /^ {0,3}::artifact\{(.*)\}\s*$/.exec(line);
-    if (!declaration) return line;
-    const attrs = mediaAttributes(declaration[1] ?? "");
-    const media = attrs?.src ? resolveNoteMedia(notePath, attrs.src, "html") : null;
-    const poster = attrs?.poster ? resolveNoteMedia(notePath, attrs.poster, "poster") : null;
-    const src = media && (!attrs?.poster || poster) ? `${media.set}/${media.path}` : undefined;
-    if (!src || !seen.has(src)) {
-      visuals.push({
-        title: attrs?.title?.trim().slice(0, 200) || "Interactive figure",
-        ...(src ? { src } : {}),
-        ...(src && poster ? { poster: `${poster.set}/${poster.path}` } : {}),
-      });
-      if (src) seen.add(src);
-    }
-    return "";
-  });
-  return { body: lines.join("\n"), visuals };
-}
+export { type ChapterVisual, chapterVisuals } from "./chapter-visuals.js";
 
 /** Charts are local computations: every declared data source must be inline. */
 export function parseInlineChart(json: string): Record<string, unknown> {

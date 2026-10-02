@@ -40,7 +40,7 @@ const CHAT_JOB_TOOLS = ["start_job", "add_source", "record_quiz_result"] as cons
 
 function setPath(
   set: string | null,
-  directory: "notes" | "log/checks" | "cards" | "assets" | "artifacts",
+  directory: "notes" | "log/checks" | "cards" | "assets" | "artifacts" | "visuals",
   rel: string,
 ): boolean {
   return set !== null && rel.startsWith(`${set}/${directory}/`) && rel.length > `${set}/${directory}/`.length;
@@ -74,7 +74,7 @@ export const ROLES: Record<RoleName, RoleSpec> = {
     modelRole: "tutor",
     tools: [...STUDY_TOOLS, ...RESEARCH_TOOLS, ...SKILL_TOOLS, ...CHAT_JOB_TOOLS, "save_asset"],
     mcpServers: ["searxng", "papers", "context7"],
-    skills: ["explain", "evolve-note", "note-authoring", "quiz-me", "find-sources", "media-authoring"],
+    skills: ["explain", "evolve-note", "note-authoring", "quiz-me", "find-sources", "media-authoring", "make-visual"],
     requiresSet: true,
     scope: (set) => ({ set, library: true }),
     write: (_set, rel) => isWritableByAgent(rel),
@@ -97,11 +97,13 @@ export const ROLES: Record<RoleName, RoleSpec> = {
     modelRole: "drafter",
     tools: [...STUDY_TOOLS, ...RESEARCH_TOOLS, ...SKILL_TOOLS, "save_asset"],
     mcpServers: ["searxng", "papers", "context7"],
-    skills: ["draft-chapter", "note-authoring", "media-authoring"],
+    skills: ["draft-chapter", "note-authoring", "media-authoring", "make-visual"],
     requiresSet: true,
     scope: (set) => ({ set, library: true }),
     write: (set, rel) =>
-      ["notes", "assets", "artifacts"].some((dir) => setPath(set, dir as "notes" | "assets" | "artifacts", rel)),
+      ["notes", "assets", "artifacts", "visuals"].some((dir) =>
+        setPath(set, dir as "notes" | "assets" | "artifacts" | "visuals", rel),
+      ),
     promptBuilder: ({ root, set, skills }) => buildBatchRolePrompt({ role: "drafter", root, set, skills }),
   },
   outliner: {

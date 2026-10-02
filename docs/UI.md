@@ -123,3 +123,15 @@ Books use local images, YouTube thumbnails with times/links, light chart SVGs an
 a chapter-end “Visuals in Studium” section with artifact posters/titles and a
 pointer to that chapter’s Visuals tab. Missing posters become text pointers. Mermaid’s
 existing diagram-in-the-app caption remains until mmdc rendering is implemented.
+
+### Teaching visuals (D32)
+
+The existing Reader Visuals tab gains auto-starting built-in widgets and local sketches.
+Widgets supply labelled SVG geometry, sliders/selection and the same story chrome as
+sketches: Play/Pause, Previous/Next, scrub, scene buttons and a narration sentence.
+Controls are ≥44 px; phone canvases use viewport height with controls below. Loading
+reserves canvas space; errors offer a retry; chapters without visuals keep D31's empty
+state. Legacy artifacts keep Run. At ≥50% visibility visuals autoplay and pause when
+hidden/offscreen; reduced motion starts paused. Phones run only the most visible sketch.
+Leaving the tab unmounts frames. Theme/accent changes recolour visuals using the app's
+system font and contrast-mapped Okabe-Ito palette. No scroll-synced scenes in this version.

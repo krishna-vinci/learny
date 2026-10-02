@@ -33,3 +33,8 @@ $b$. Checking that is what elimination is for, in the next note.
 :::
 
 [^src:lib-strang-la#p12]: Strang, *Introduction to Linear Algebra*, ch. 1.
+
+Changing a scalar changes how far we travel along a vector. In Visuals, adjust the slope, then step through the vector stretch.
+
+::visual{src="../visuals/slope.json" title="Slope and stretch"}
+::visual{src="../visuals/stretch.html" title="Stretch a vector"}

@@ -160,7 +160,7 @@ export function setsRoutes(deps: SetsDeps): Hono {
     const rel = c.req.query("path") ?? "";
     if (!(await setExists(root, set))) return notFound(c);
     try {
-      const valid = (value: string) => /^(assets|artifacts)\/.+\.(png|jpe?g|gif|webp|svg)$/i.test(value);
+      const valid = (value: string) => /^(assets|artifacts|visuals)\/.+\.(png|jpe?g|gif|webp|svg)$/i.test(value);
       if (
         !valid(rel) ||
         !valid(canonicalRel(root, `${set}/${rel}`).slice(set.length + 1)) ||
@@ -193,7 +193,10 @@ export function setsRoutes(deps: SetsDeps): Hono {
         if ((error as NodeJS.ErrnoException).code === "ENOENT") return notFound(c);
         throw error;
       }
-      if (/^artifacts\/.+\.html$/.test(rel)) return c.json({ path: rel, raw: await fs.readFile(abs, "utf8") });
+      if (/^visuals\//.test(rel) && !canonicalRel(root, `${set}/${rel}`).startsWith(`${set}/visuals/`))
+        return invalidPath(c);
+      if (/^(?:artifacts\/.+\.html|visuals\/.+\.(?:html|json))$/.test(rel))
+        return c.json({ path: rel, raw: await fs.readFile(abs, "utf8") });
       const view = await readSetFile(root, set, rel);
       if (view === null) return notFound(c);
       return c.json(view);
