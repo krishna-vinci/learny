@@ -11,7 +11,7 @@ description: Draft a cited, learner-shaped chapter from registered library sourc
 2. Treat the plan's `level` as the main-path depth and the profile as tone/prerequisite guidance.
 3. Use only source IDs registered under `library/`. If an operator names an unregistered source, stop and report it rather than adding an ad hoc citation.
 4. Load `references/subject-<subject>.md` for the `PLAN.md` subject; use `general` if missing or unknown. Load note-authoring and its `references/teaching.md`.
-5. Read each cited `source.md` summary and the relevant parsed section. Record useful page markers before drafting.
+5. Read each cited `source.md` summary and the relevant parsed section. Record useful page or transcript timestamp markers before drafting. For video sources, load media-authoring, retain the exact registered URL, and plan a descriptive watch link near each supported concept.
 
 ## Outline before prose
 
@@ -82,7 +82,7 @@ Never manufacture a citation, page number, DOI, quotation, or source title.
 ## Review the draft
 
 1. Check numbering, status, frontmatter, heading hierarchy, fenced directives, math, and footnote definitions.
-2. Verify every listed source ID is used and every used ID is listed.
+2. Verify every listed source ID is used and every used ID is listed. For each video source used, include its actual registered watch link; use a timed URL and `#tN` citation only when the relevant transcript provides `<!-- t:N -->`. Never substitute an example ID or a search result.
 3. Reread the worked example line by line.
 4. Keep the note at `status: draft`; approval and acceptance are separate learner actions.
 

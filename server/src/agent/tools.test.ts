@@ -191,3 +191,40 @@ it("returns teaching warnings on creation and editing without failing writes", a
     warnings: expect.arrayContaining([expect.stringContaining("internal files")]),
   });
 });
+
+it("warns when a cited video loses its watch link and accepts a timed Markdown link", async () => {
+  const sourcePath = path.join(root, "library/lib-strang-la/source.md");
+  const source = await fs.readFile(sourcePath, "utf8");
+  await fs.writeFile(sourcePath, source.replace("type: book", "type: video\nurl: https://youtu.be/dQw4w9WgXcQ"));
+  const note =
+    "---\ntitle: Video chapter\nsources: [lib-strang-la]\n---\nClaim.[^src:lib-strang-la]\n\n```md\nhttps://youtu.be/dQw4w9WgXcQ\n```\n";
+  const missing = await execute("study_create", { path: "notes/98-video.md", content: note });
+  expect(missing.details).toMatchObject({
+    isError: false,
+    warnings: expect.arrayContaining([expect.stringContaining("Video source lib-strang-la needs a watch link")]),
+  });
+  const linked = await execute("study_create", {
+    path: "notes/99-video.md",
+    content: `${note}\n[Lecture at 14:03](https://music.youtube.com/watch?v=dQw4w9WgXcQ&t=843s)\n`,
+  });
+  expect(linked.details).toMatchObject({ isError: false });
+  expect(JSON.stringify(linked.details)).not.toContain("needs a watch link");
+});
+
+it.each([
+  "[Fake](https://evil.youtube.com/watch?v=dQw4w9WgXcQ)",
+  "`https://youtu.be/dQw4w9WgXcQ`",
+  "````md\n```\nhttps://youtu.be/dQw4w9WgXcQ\n```\n````",
+  '<iframe src="https://youtu.be/dQw4w9WgXcQ"></iframe>\n<!-- https://youtu.be/dQw4w9WgXcQ -->',
+])("does not count inert or hostile video text as a usable source link: %s", async (content) => {
+  const sourcePath = path.join(root, "library/lib-strang-la/source.md");
+  const source = await fs.readFile(sourcePath, "utf8");
+  await fs.writeFile(sourcePath, source.replace("type: book", "type: video\nurl: https://youtu.be/dQw4w9WgXcQ"));
+  const result = await execute("study_create", {
+    path: "notes/99-fake-video.md",
+    content: `---\nsources: [lib-strang-la]\nurl: https://youtu.be/dQw4w9WgXcQ\n---\n${content}\n`,
+  });
+  expect(result.details).toMatchObject({
+    warnings: expect.arrayContaining([expect.stringContaining("needs a watch link")]),
+  });
+});

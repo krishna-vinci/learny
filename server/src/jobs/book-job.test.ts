@@ -287,6 +287,13 @@ it("turns YouTube moments into a local thumbnail, time and link", async () => {
   expect(text).toContain("media/image-1.jpg");
   expect(text).toContain("https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=843s");
   expect(await fs.readFile(path.join(temp, "media/image-1.jpg"))).toEqual(Buffer.from([255, 216, 255]));
+  const timed = await createBookMedia(root, temp)(
+    '::youtube{src="https://music.youtube.com/watch?v=dQw4w9WgXcQ&t=14m3s"}',
+    "linear-algebra/notes/x.md",
+  );
+  expect(timed).toContain("Video: Lecture at 14:03");
+  expect(timed).toContain("media/image-1.jpg");
+  expect(timed).toContain("https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=843s");
 });
 
 it("replaces inline Vega-Lite fences with a local SVG and keeps invalid specs readable", async () => {

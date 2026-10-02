@@ -20,7 +20,7 @@ All run: **detect → dedupe → fetch → extract → clean → register**.
 | DOCX / PPTX | mammoth / officeparser | MinerU |
 | Web page | readability → turndown | Firecrawl (`FIRECRAWL_API_URL`, `FIRECRAWL_API_KEY`) |
 | Wikipedia | REST API → MD | |
-| YouTube | captions | |
+| YouTube | captions by validated video ID | |
 | Image | Librarian model, if it accepts images | |
 | Audio | Librarian model, if it accepts audio | |
 | MD / TXT / HTML | direct | |
@@ -79,3 +79,11 @@ panel.
 
 Originals are never sent to a cloud parser by default. LLM providers see the text agents
 read — stated in the docs.
+
+YouTube watch/share/shorts/live/embed/mobile/music forms use the shared video parser.
+Detection includes apex youtube.com and youtube-nocookie.com. Caption extraction
+passes only the validated ID to the transcript library. Dedupe canonicalizes these
+forms to the same watch URL, ignoring tracking parameters and viewing timestamps.
+Transcripts keep `<!-- t:N -->` paragraph markers in integer seconds; drafters use
+them for nearby timed watch links and `[^src:<id>#tN]` citations. Old transcripts
+without markers still support whole-video links; no timestamp is guessed.

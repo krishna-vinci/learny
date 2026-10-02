@@ -81,6 +81,8 @@ A real $m \times n$ matrix has $r = \operatorname{rank}(A)$ nonnegative singular
 [^src:lib-strang-la]: Strang, *Introduction to Linear Algebra*.
 ```
 
+For every video source used, include a descriptive Markdown watch link near the supported concept using the exact registered URL. Load media-authoring. If the parsed transcript has `<!-- t:N -->`, use that time in the URL (`&t=Ns`) and citation (`[^src:<id>#tN]`); otherwise link the whole video and never invent timestamps. Preserve these links during edits.
+
 Use a page or section locator when the parsed source preserves one, for example `[^src:lib-strang-la#p132]`. Preserve every existing citation while editing. If a claim has no source, label it explicitly with `**Uncertain:**` and say what verification is needed.
 
 A Context7 page counts as a source only after it is registered in `library/`. Use `add_source` when available; otherwise report the documentation URL to the owner for registration before citing it.

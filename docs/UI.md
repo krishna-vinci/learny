@@ -82,6 +82,17 @@ Images resolve relative to the note and stay inside the set's assets/artifacts,
 with lazy decoding/loading and a descriptive caption. Unsaved HTTPS images remain
 images in the app, but only caption + URL text in the book. Raw note HTML is blocked.
 
+Valid YouTube video links in ordinary Markdown (bare/autolink, labelled or reference
+links) also receive a player after their paragraph/heading or within a table cell,
+keeping the original text and
+links usable. Supported forms include watch/share/shorts/live/embed/v, mobile,
+music and nocookie URLs, with optional tracking/playlist parameters. Times use
+`t`, `start`, `time_continue` or `#t=`, in seconds or `1h2m3s` form. Invalid URL times
+fall back to the whole video; explicit directive times must be safe nonnegative
+integers and end must follow start. Exact known hosts/video paths and 11-character
+IDs are required; credentials, unusual ports, lookalike hosts, channel/playlist
+pages and code examples never become players. Chat continues to show plain links.
+
 A YouTube moment starts as a local library thumbnail or neutral placeholder with
 Play video. Only a tap creates the nocookie iframe with start/end; Watch on YouTube
 is always available. Timestamp citations show “at 14:03” and a timed YouTube link.

@@ -1,14 +1,15 @@
 // Studium-specific markdown extensions: directive callouts (`:::definition`, `:::theorem`,
 // `:::example`, `:::deeper`) and source citations (`[^src:<id>#p<n>]`). Not derived from Memos,
 // which has no equivalent syntax.
-import { resolveNoteMedia, youtubeDirective } from "@studium/shared/media";
-import { visit } from "unist-util-visit";
+import { parseYoutubeVideo, resolveNoteMedia, type YouTubeVideo, youtubeDirective } from "@studium/shared/media";
+import { SKIP, visit } from "unist-util-visit";
 
 // `unist-util-visit`'s own `Node` type comes from `@types/unist`, a nested dependency not
 // resolvable as a direct import here; this minimal shape is structurally compatible with it
 // (every mdast/hast node has at least a `type` string) and is all the plugins below need.
 interface MinimalNode {
   type: string;
+  children?: MinimalNode[];
   [key: string]: unknown;
 }
 
@@ -92,6 +93,104 @@ export function remarkStudiumDirectives(options: { plainLinks?: boolean; notePat
         directive.data.hName = "div";
         directive.data.hProperties = { "data-deeper": "true", ...titleProps };
       }
+    });
+  };
+}
+
+/** Preserve links/labels and add block players outside prose/heading phrasing. */
+export function remarkStudiumVideos() {
+  return (tree: MinimalNode) => {
+    const definitions = new Map<string, string>();
+    visit(tree, (node) => {
+      if (node.type !== "definition") return;
+      if (typeof node.identifier === "string" && typeof node.url === "string")
+        definitions.set(node.identifier.toUpperCase(), node.url);
+    });
+    // Footnotes and table cells keep plain links: a player there clutters citations and breaks
+    // narrow tables on phones.
+    const plainOnly = new WeakSet<MinimalNode>();
+    visit(tree, (node) => {
+      if (node.type !== "footnoteDefinition" && node.type !== "table") return;
+      visit(node, (child) => {
+        plainOnly.add(child as MinimalNode);
+      });
+    });
+    visit(tree, (node, index, parent) => {
+      if (!["paragraph", "heading"].includes(node.type) || plainOnly.has(node)) return;
+      const block = parent as MinimalNode | undefined;
+      if (index === undefined || !block || !Array.isArray(block.children)) return;
+      const videos = new Map<string, YouTubeVideo>();
+      function add(url: string): YouTubeVideo | null {
+        const video = parseYoutubeVideo(url);
+        if (video) videos.set(`${video.id}/${video.start}/${video.end ?? ""}`, video);
+        return video;
+      }
+      function scan(node: MinimalNode): void {
+        if (node.type === "link" && typeof node.url === "string") {
+          add(node.url);
+          return;
+        }
+        if (node.type === "linkReference" && typeof node.identifier === "string") {
+          add(definitions.get(node.identifier.toUpperCase()) ?? "");
+          return;
+        }
+        if (!Array.isArray(node.children)) return;
+        const children = node.children as MinimalNode[];
+        for (let i = 0; i < children.length; i++) {
+          const child = children[i];
+          if (!child) continue;
+          if (child.type !== "text" || typeof child.value !== "string") {
+            scan(child);
+            continue;
+          }
+          // GFM handles http(s)/www autolinks; this also covers scheme-less pasted shares.
+          const text = child.value;
+          const parts: MinimalNode[] = [];
+          let offset = 0;
+          for (const match of text.matchAll(
+            /(?:^|[\s(])((?:(?:https?:)?\/\/)?(?:(?:www|m|music)\.)?(?:youtube(?:-nocookie)?\.com|youtu\.be)\/[^\s<>"']+)/gi,
+          )) {
+            const raw = (match[1] ?? "").replace(/[.,!?:;)\]]+$/, "");
+            const video = add(raw);
+            if (!video) continue;
+            const start = match.index + match[0].indexOf(match[1] ?? "");
+            parts.push(
+              { type: "text", value: text.slice(offset, start) },
+              {
+                type: "link",
+                url: `https://www.youtube.com/watch?v=${video.id}&t=${video.start}s`,
+                children: [{ type: "text", value: raw }],
+              },
+            );
+            offset = start + raw.length;
+          }
+          if (parts.length) {
+            parts.push({ type: "text", value: text.slice(offset) });
+            children.splice(i, 1, ...parts);
+            i += parts.length - 1;
+          }
+        }
+      }
+      scan(node);
+      const adjacent = [block.children[index - 1], block.children[index + 1]]
+        .filter((item) => item?.type === "leafDirective" && item.name === "youtube")
+        .map((item) => youtubeDirective((item as DirectiveNode).attributes ?? {}));
+      const embeds = [...videos.values()]
+        .filter((video) => !adjacent.some((directive) => directive?.id === video.id && directive.start === video.start))
+        .map((video) => ({
+          type: "youtubeEmbed",
+          children: [],
+          data: {
+            hName: "div",
+            hProperties: {
+              "data-youtube": video.id,
+              "data-start": String(video.start),
+              ...(video.end === undefined ? {} : { "data-end": String(video.end) }),
+            },
+          },
+        }));
+      block.children.splice(index + 1, 0, ...embeds);
+      return [SKIP, index + 1 + embeds.length];
     });
   };
 }

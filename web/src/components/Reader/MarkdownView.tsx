@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 import { SANITIZE_SCHEMA } from "./constants";
 import { Callout, Deeper } from "./Directives";
 import { NoteImage } from "./NoteImage";
-import { remarkStudiumCitations, remarkStudiumDirectives } from "./remarkStudium";
+import { remarkStudiumCitations, remarkStudiumDirectives, remarkStudiumVideos } from "./remarkStudium";
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from "./Table";
 
 const Citation = lazy(() => import("./Citation").then((module) => ({ default: module.Citation })));
@@ -136,6 +136,7 @@ function MarkdownViewComponent({ content, className, notePath }: MarkdownViewPro
             remarkGfm,
             remarkDirective,
             [remarkStudiumDirectives, { notePath }],
+            remarkStudiumVideos,
             remarkStudiumCitations,
           ]}
           rehypePlugins={[[rehypeSanitize, SANITIZE_SCHEMA], ...katexPlugins]}

@@ -80,3 +80,13 @@ it("keeps the transcript when the local thumbnail download fails", async () => {
   vi.mocked(safeFetch).mockRejectedValueOnce(new Error("offline"));
   expect((await extractYoutube("https://youtu.be/dQw4w9WgXcQ")).markdown).toContain("<!-- t:0 -->");
 });
+
+it.each([
+  "https://music.youtube.com/watch?v=dQw4w9WgXcQ&list=abc",
+  "https://youtube.com/shorts/dQw4w9WgXcQ?si=abc",
+  "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?start=12",
+  "https://youtu.be/dQw4w9WgXcQ?t=843",
+])("fetches captions by validated ID for %s", async (url) => {
+  await extractYoutube(url);
+  expect(mocks.fetchTranscript).toHaveBeenCalledWith("dQw4w9WgXcQ", expect.objectContaining({ videoDetails: true }));
+});
