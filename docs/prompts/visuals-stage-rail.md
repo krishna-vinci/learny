@@ -1,0 +1,25 @@
+# Visuals view: stage + rail (accepted with amendments)
+
+Run in `/home/krishna/learny-worktrees/visuals-fixes` (branch `codex/visuals-fixes`) **after** `docs/prompts/visuals-review-fixes.md` is finished — this builds on its shared `VisualFrame` (CSS full screen without reparenting), its error states and its component tests. Do not load orchestration skills; do not spawn sub-agents.
+
+Read `AGENTS.md`, `AGENT_MEMORY.md`, D29/D31/D32 in `docs/decisions/LOG.md`, `docs/UX.md`, then `web/src/components/Reader/{ChapterVisuals,Reader,VisualBlock,SketchBlock,WidgetBlock,ArtifactBlock,StoryControls}.tsx`, `web/src/visual-runtime/{runtime.js,sandbox.ts,playback.ts}`, `shared/src/chapter-visuals.ts`, `skills/make-visual/SKILL.md`.
+
+## Non-negotiables
+Sandbox and CSP unchanged (exactly `allow-scripts`, CSP first, no `allow-same-origin`); notes stay plain Markdown; no new dependencies; scoped tests; no commits; never edit `AGENT_MEMORY.md`, `.env*`, `.claude/`; `data/` read-only; only stop processes you started; biome via `rtk proxy pnpm exec biome check <files>`. If a step doesn't fit the real code, stop that item, report file:line, continue.
+
+## Decisions (orchestrator rulings on the proposal)
+- **A. Stage + rail — accepted, amended.** One visual mounted at a time (fixes desktop off-stage playback). **With exactly one visual there is no rail** — just the stage. Rail = horizontal thumbnail strip (desktop and phone), active highlighted and kept in view.
+- **Thumbnails / poster-first — amended.** Sketch posters are declared inside the sketch HTML header, so they are not known before fetching the HTML; fetching every sketch (≤ 300 KB each) to draw a rail is too heavy on phones. Use, in order: (1) the `poster="…"` attribute on the `::visual{…}` declaration (already parsed by `chapterVisuals()` — no format change; update `skills/make-visual` to always write it for sketches and run `scripts/skill-history.mjs` + biome format of the JSON); (2) for widgets, the widget's own static SVG at its default state (pure layout from `shared/src/visuals`, fetch only the small JSON); (3) otherwise a titled card with a kind icon. On the stage, show the poster (or widget static SVG) at final size immediately and cross-fade the live visual in when ready; no blank skeleton when a poster exists, no layout shift.
+- **Uniform control strip — amended.** Parent-side strip on every kind with: restart (remounts the frame/widget), expand (the `VisualFrame` from the fixes pass), prev/next visual. Play/pause and scene stepping: widgets use the strip directly; **sketches keep the in-frame runtime chrome** (scrub, scenes, narration) — the parent may add play/pause only by extending the existing validated control message (`{type:"studium-visual-control", …}`) with `playing: boolean`, handled in `runtime.js`, and nothing more (no new capabilities into the frame). Legacy `::artifact`: restart + expand only.
+- **Keyboard — amended.** ←/→ already step scenes inside widgets and sketches (`WidgetBlock.tsx:66–67`, runtime chrome); don't steal them. Prev/next *visual* = strip buttons and `Shift+←/→` when focus is in the Visuals view but not inside a frame or a text input.
+- **B. Reading-view whisper — accepted, amended.** The tab label already shows "Visuals (N)" when a chapter has visuals, so a line at the top would repeat it. Put it at the **end of the reading panel** instead: one muted line "Explore this chapter's N visuals →" switching to the Visuals tab. Nothing when N = 0.
+- **C. URL `?view=visuals&v=<id>` — accepted.** `<id>` = file name without extension from the declaration's `src` (e.g. `svd-steps`), falling back to the 1-based index; unknown id → first visual. Staging pushes history so Back walks the stage; deep links work.
+- **D. Sequencing — defects first.** This pass reuses `VisualFrame`, the three error states and the new component tests; extend those tests rather than replacing them.
+- **Motion:** ≤ 250 ms fades, none with `prefers-reduced-motion`; crossfaded tab switch. Mobile: context bar → stage → strip → rail stacked; ≥ 44 px targets; no horizontal page scroll (only the rail scrolls).
+
+## Tests and verification
+- Component tests: rail hidden for one visual; staging via rail, `Shift+←/→`, URL `v=`; Back restores the previous stage; only one visual mounted; poster/static SVG shown before the live visual; strip present for all kinds with kind-appropriate buttons; ←/→ still step scenes in a widget; expand keeps iframe identity; whisper appears only when N > 0; runtime `playing` control message honoured and malformed messages ignored.
+- `pnpm --filter @studium/web exec vitest run src/components/Reader src/visual-runtime`, `pnpm --filter @studium/web exec tsc --noEmit`, web build, biome on changed files.
+- Browser (temp copy of `examples/sample-set` with 1, 3 and 6 visuals; admin from env; `STUDIUM_FAUX=1`; own port; real clicks): 390×844 and 1440×900, light/dark, reduced motion.
+
+Final report: changed files, tests with pass/fail counts, browser results, deviations, 5-line log entry.
