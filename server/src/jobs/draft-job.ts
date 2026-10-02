@@ -436,14 +436,16 @@ function createChapterJob(deps: DraftJobDeps, rewriting: boolean): JobHandler {
     const reportPath = `log/checks/${path.basename(notePath)}`;
     const reportRootPath = `${input.set}/${reportPath}`;
 
-    const validateCurrentRewrite = async (reviseShallow = false): Promise<string[]> => {
+    let replacementRevisionUsed = false;
+    const validateCurrentRewrite = async (): Promise<string[]> => {
       if (original === null) return [];
       const current = await readText(deps.root, noteRootPath);
       try {
         validateRewrite(original, current);
       } catch (error) {
         let failure = error;
-        if (reviseShallow && error instanceof RewriteReplacementError) {
+        if (!replacementRevisionUsed && error instanceof RewriteReplacementError) {
+          replacementRevisionUsed = true;
           try {
             ctx.signal.throwIfAborted();
             ctx.progress("Revising shallow rewrite");
@@ -538,7 +540,7 @@ function createChapterJob(deps: DraftJobDeps, rewriting: boolean): JobHandler {
         throw new Error(`drafter must create exactly ${notePath}`);
       }
 
-      draft.written.push(...(await validateCurrentRewrite(true)));
+      draft.written.push(...(await validateCurrentRewrite()));
 
       // Commit the draft as the drafter before the checker edits its status, so the
       // checker's commit below carries the report and the `status: checked` edit.
@@ -657,7 +659,7 @@ function createChapterJob(deps: DraftJobDeps, rewriting: boolean): JobHandler {
         if (revision.written.some((file) => !canWriteNote(file))) {
           throw new Error("revision must only edit the reserved note");
         }
-        await validateCurrentRewrite();
+        mediaWritten.push(...(await validateCurrentRewrite()).filter((rel) => rel !== noteRootPath));
         blocked = await check(true);
       }
 

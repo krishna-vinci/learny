@@ -1,5 +1,195 @@
 # M11 rewrite verification
 
+## Follow-up acceptance
+
+See [the complete follow-up report](2026-10-02-m11-followup-report.md) for changed files, exact checks, openings, limitations and the five-line memory log. Total follow-up usage: **86 requests** (60 rewrite + 26 visual), all result events recorded. The following totals sum both ledgers and exclude the earlier M11 run.
+
+| Provider | Fresh | Output | Cache read | Cache write |
+| --- | --- | --- | --- | --- |
+| github-copilot | 96 | 25,634 | 1,615,363 | 545,347 |
+| openai-codex | 330,724 | 21,792 | 1,302,656 | 0 |
+
+| Target | Before | Follow-up |
+| --- | --- | --- |
+| History | FAIL, 35.1% new / 15.3% replaced; 10/11 assertions | PASS, 100% / 100%; 11/11 |
+| Non-history | Vectors BLOCKED: missing Strang parsed evidence | PCA substituted; PASS, 100% / 100%; 11/11 |
+
+PCA checker caveat: retained legacy anchors do not match several parsed headings; the underlying claims were verified by inspection. The task required preserving those IDs. No NumPy execution was performed.
+
+Stage: Finished. Evidence: /tmp/studium-m11-followup-rewrite. Shared ledger: 60 calls recorded (no fixed subscription cap).
+
+The actual createRewriteJob handler runs against temporary study-tree copies. Drafter: openai-codex/gpt-6.1-sol; checker: github-copilot/gpt-6-luna (different subscription providers). Classifier/MCP services are off in the temp config. Automatic study-tree snapshot/drafter/checker commits occur only in temp repos.
+
+Sentence comparison normalizes whitespace/case, removes frontmatter, citation markers, footnote definitions, media declarations and fenced code, then splits on sentence-ending punctuation. New-after fraction and replaced-before fraction must both be >=40%, so merely appending cannot pass.
+
+Follow-up uses PCA in practice instead of Vectors: the original Strang source still has no parsed.md/parsed/ evidence. PCA's two cited sources have parsed text. The real job permits one shallow-rewrite revision before restoring/failing; checker blocker revision remains independently bounded. A case stops after three identical provider/tool failures, with no fixed subscription request cap.
+
+## hyderabad-history
+
+Result: PASS.
+
+```json
+{
+  "set": "hyderabad-history",
+  "note": "notes/02-before-hyderabad-deccan-and-golconda.md",
+  "root": "/tmp/studium-m11-followup-rewrite/hyderabad-history",
+  "sourceHistory": "4018f01 Studium Tutor tutor: ok go ahead\ne036634 Studium Tutor tutor: visuals seems little messy and not intuitive to understand\n5c98ac9 Studium Tutor tutor: make some visuals for visual tab\nbad86f1 Studium User user: accept notes/02-before-hyderabad-deccan-and-golconda.md\n024a787 Studium Tutor tutor: Lets do 2,4,6. Find deep sources with pictures and do svgs if you want\n244626f Studium system: quote note title (invalid YAML)\n6d63810 Studium Drafter drafter: Before Hyderabad: Deccan and Golconda",
+  "parsedSources": [
+    "lib-unesco-the-qutb-shahi-monuments-of-hyderabad",
+    "lib-unesco-monuments-and-forts-of-the-deccan",
+    "lib-wikipedia-history-of-hyderabad"
+  ],
+  "beforeCommit": "95a549eedf478ec2692d746ce465c70658672145",
+  "progress": [
+    "Rewriting chapter",
+    "Checking chapter",
+    "Revising blocker issues",
+    "Re-checking revised chapter",
+    "Chapter checked"
+  ],
+  "providers": [
+    "openai-codex",
+    "github-copilot"
+  ],
+  "result": {
+    "notePath": "notes/02-before-hyderabad-deccan-and-golconda.md",
+    "commitSha": "a01cc2b64485c7a12c6d574399b8c522193e967b"
+  },
+  "sentences": {
+    "before": 59,
+    "after": 92,
+    "newAfterRatio": 1,
+    "replacedBeforeRatio": 1
+  },
+  "openings": {
+    "before": "Before Hyderabad was founded, Golconda had already accumulated centuries of political and architectural history. This chapter asks how a hill fort associated with the Kakatiyas passed through Bahmani rule and became the fortified capital and commercial centre from which the Qutb Shahis emerged.",
+    "after": "Picture yourself looking up at Golconda's walls: are you seeing one ruler's fort, or several histories fitted together? The Kakatiyas established the stronghold, and later Qutb Shahi builders reshaped it into a capital.[^src:lib-wikipedia-history-of-hyderabad#golconda][^src:lib-wikipedia-history-of-hyderabad#capital] Learning to separate those layers will help you see more than impressive stonework when you visit."
+  },
+  "metadataPreserved": true,
+  "citationIdsPreserved": true,
+  "footnotesHumanReadable": true,
+  "figuresDeclarationsPreserved": true,
+  "mediaBytesPreserved": true,
+  "noteLint": [],
+  "commits": [
+    {
+      "sha": "a01cc2b64485c7a12c6d574399b8c522193e967b",
+      "date": "2026-10-02T22:48:30+05:30",
+      "author": "checker",
+      "subject": "checker: Before Hyderabad: Deccan and Golconda"
+    },
+    {
+      "sha": "119a67b5b9d678eb46a218c1520fe23a153ae366",
+      "date": "2026-10-02T22:46:15+05:30",
+      "author": "drafter",
+      "subject": "drafter: Before Hyderabad: Deccan and Golconda"
+    },
+    {
+      "sha": "95a549eedf478ec2692d746ce465c70658672145",
+      "date": "2026-10-02T22:41:35+05:30",
+      "author": "system",
+      "subject": "system: init study tree"
+    }
+  ],
+  "statusAfter": "checked",
+  "statusAtDrafterCommit": "draft",
+  "oldTextRecoverable": true,
+  "assertions": {
+    "passed": 11,
+    "total": 11
+  },
+  "verdict": "PASS"
+}
+```
+
+## linear-algebra
+
+Result: PASS.
+
+```json
+{
+  "set": "linear-algebra",
+  "note": "notes/05-pca-in-practice.md",
+  "root": "/tmp/studium-m11-followup-rewrite/linear-algebra",
+  "sourceHistory": "0bfb2ff Studium User user: accept notes/05-pca-in-practice.md\ne3760e0 Studium Checker checker: PCA in practice\n5382808 Studium Drafter drafter: PCA in practice",
+  "parsedSources": [
+    "lib-en-wikipedia-org-singular-value",
+    "lib-wikipedia-principal-component-analysis"
+  ],
+  "beforeCommit": "ea02ef4ff0d5c767d4a0eb8db3373434b69f80a9",
+  "progress": [
+    "Rewriting chapter",
+    "Checking chapter",
+    "Chapter checked"
+  ],
+  "providers": [
+    "openai-codex",
+    "github-copilot"
+  ],
+  "result": {
+    "notePath": "notes/05-pca-in-practice.md",
+    "commitSha": "a7b336c80a6c071f346f2e7aad97f6e610356ac2"
+  },
+  "sentences": {
+    "before": 64,
+    "after": 118,
+    "newAfterRatio": 1,
+    "replacedBeforeRatio": 1
+  },
+  "openings": {
+    "before": "How does PCA turn a table of correlated features into a smaller set of useful coordinates? This chapter separates the geometric idea—rotate a centered point cloud toward its widest directions—from the practical recipe implemented with an SVD. We will carry one small dataset from centering through scores and explained variance, then repeat the procedure in NumPy.",
+    "after": "Imagine a table with two sensor readings for every observation, and suppose the readings tend to rise together. Could we describe that shared movement with one coordinate instead of carrying both columns? PCA gives us new, orthogonal coordinates ordered by how much variation they capture—a useful way to reduce correlated features before further analysis.[^src:lib-wikipedia-principal-component-analysis#overview] Let's turn that picture into a calculation you can follow by hand, then try in NumPy."
+  },
+  "metadataPreserved": true,
+  "citationIdsPreserved": true,
+  "footnotesHumanReadable": true,
+  "figuresDeclarationsPreserved": true,
+  "mediaBytesPreserved": true,
+  "noteLint": [],
+  "commits": [
+    {
+      "sha": "a7b336c80a6c071f346f2e7aad97f6e610356ac2",
+      "date": "2026-10-02T22:55:38+05:30",
+      "author": "checker",
+      "subject": "checker: PCA in practice"
+    },
+    {
+      "sha": "05de607c078c135af88434962b33bad24e50df2b",
+      "date": "2026-10-02T22:53:25+05:30",
+      "author": "drafter",
+      "subject": "drafter: PCA in practice"
+    },
+    {
+      "sha": "ea02ef4ff0d5c767d4a0eb8db3373434b69f80a9",
+      "date": "2026-10-02T22:48:30+05:30",
+      "author": "system",
+      "subject": "system: init study tree"
+    }
+  ],
+  "statusAfter": "checked",
+  "statusAtDrafterCommit": "draft",
+  "oldTextRecoverable": true,
+  "assertions": {
+    "passed": 11,
+    "total": 11
+  },
+  "verdict": "PASS"
+}
+```
+
+## Observed tokens per provider
+
+| Provider | Fresh | Output | Cache read | Cache write |
+| --- | --- | --- | --- | --- |
+| openai-codex | 139923 | 16445 | 1302656 | 0 |
+| github-copilot | 69 | 20261 | 1615363 | 387459 |
+
+Totals below belong to the specified follow-up usage ledger, shared with visual eval when that ledger is used. Historical results and their incomplete interrupted telemetry are preserved separately below.
+
+## Previous M11 run (before follow-up)
+
+# M11 rewrite verification
+
 Stage: Finished. Evidence: /tmp/studium-m11-rewrite-WLVHlI. Shared ledger: 200/200 calls reserved.
 
 Verdicts below describe the real runs **before the replacement fix**. History fails substantial replacement, with 10/11 assertions passing. Math is blocked during recheck by missing source evidence and the exhausted shared call cap. The prompt/guard fix passes regression tests, but no post-fix live rerun was made. This report does not claim Part 4 is proven.

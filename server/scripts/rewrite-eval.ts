@@ -1,5 +1,5 @@
 /** Real rewrite jobs on read-only-source copies. Run with node --env-file=... --import tsx.
- * --ledger shares the visual eval's <=200 request cap; never uses the app's live tree as a write root.
+ * --ledger shares the visual eval's usage ledger and three-identical-failures guard; never uses the app's live tree as a write root.
  */
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
@@ -24,12 +24,14 @@ const arg = (flag: string, fallback = "") => {
   return i < 0 ? fallback : process.argv[i + 1] || fallback;
 };
 const source = arg("--source", "/home/krishna/learny/data/users/krishna");
-const out = await fs.mkdtemp(path.join(os.tmpdir(), "studium-m11-rewrite-"));
+const out = arg("--out") || (await fs.mkdtemp(path.join(os.tmpdir(), "studium-m11-rewrite-")));
+await fs.mkdir(out, { recursive: true });
+const previous = arg("--previous-report") ? await fs.readFile(arg("--previous-report"), "utf8") : "";
 const adapter = await evalRuntime(arg("--ledger", "/tmp/studium-m11-evidence/calls.json"));
 const git = promisify(execFile);
 const cases = [
   { set: "hyderabad-history", note: "notes/02-before-hyderabad-deccan-and-golconda.md" },
-  { set: "linear-algebra", note: "notes/01-vectors.md" },
+  { set: arg("--non-history-set", "linear-algebra"), note: arg("--non-history-note", "notes/05-pca-in-practice.md") },
 ];
 const rows: Record<string, unknown>[] = [];
 let stage = "Copying study trees";
@@ -40,11 +42,13 @@ function checkpoint() {
     const lines = [
       "# M11 rewrite verification",
       "",
-      `Stage: ${stage}. Evidence: ${out}. Shared ledger: ${adapter.state.calls}/200 calls reserved.`,
+      `Stage: ${stage}. Evidence: ${out}. Shared ledger: ${adapter.state.calls} calls recorded (no fixed subscription cap).`,
       "",
       "The actual createRewriteJob handler runs against temporary study-tree copies. Drafter: openai-codex/gpt-6.1-sol; checker: github-copilot/gpt-6-luna (different subscription providers). Classifier/MCP services are off in the temp config. Automatic study-tree snapshot/drafter/checker commits occur only in temp repos.",
       "",
       "Sentence comparison normalizes whitespace/case, removes frontmatter, citation markers, footnote definitions, media declarations and fenced code, then splits on sentence-ending punctuation. New-after fraction and replaced-before fraction must both be >=40%, so merely appending cannot pass.",
+      "",
+      "Follow-up uses PCA in practice instead of Vectors: the original Strang source still has no parsed.md/parsed/ evidence. PCA's two cited sources have parsed text. The real job permits one shallow-rewrite revision before restoring/failing; checker blocker revision remains independently bounded. A case stops after three identical provider/tool failures, with no fixed subscription request cap.",
       "",
     ];
     for (const row of rows) {
@@ -69,9 +73,10 @@ function checkpoint() {
       lines.push(`| ${p} | ${u.fresh} | ${u.output} | ${u.cacheRead} | ${u.cacheWrite} |`);
     lines.push(
       "",
-      "Totals include visual eval and interrupted prototype requests where usage was observed; interrupted pre-lock usage is incomplete.",
+      "Totals below belong to the specified follow-up usage ledger, shared with visual eval when that ledger is used. Historical results and their incomplete interrupted telemetry are preserved separately below.",
       "",
     );
+    if (previous) lines.push("## Previous M11 run (before follow-up)", "", previous);
     await fs.writeFile(path.join(repo, "docs/plans/2026-10-02-m11-rewrite-report.md"), lines.join("\n"));
   });
   return checkpointTail;
@@ -130,6 +135,14 @@ try {
           recursive: true,
           filter: (src) => !path.basename(src).startsWith("original."),
         });
+      row.parsedSources = await Promise.all(
+        (fm.sources as string[]).map(async (id) => {
+          const dir = path.join(root, "library", id);
+          const entries = await fs.readdir(dir);
+          assert(entries.includes("parsed.md") || entries.includes("parsed"), `Missing parsed source: ${id}`);
+          return id;
+        }),
+      );
       await fs.writeFile(
         path.join(root, "_global/config.yaml"),
         stringify({
@@ -149,7 +162,8 @@ try {
       await fs.writeFile(path.join(root, "before.md"), before);
       const providers = new Set<string>(),
         progress: string[] = [];
-      adapter.beginTurn(200 - adapter.state.calls);
+      row.progress = progress;
+      adapter.beginTurn();
       await checkpoint();
       const result = await createRewriteJob({
         root,
@@ -168,7 +182,10 @@ try {
             void checkpoint();
           },
           addUsage: () => {},
-          useProvider: (p) => providers.add(p),
+          useProvider: (p) => {
+            providers.add(p);
+            row.providers = [...providers];
+          },
         },
       );
       row.progress = progress;

@@ -1,8 +1,19 @@
 # M11 visual eval report
 
-Updated 2026-10-02T16:50:02.717Z. Evidence directory: /tmp/studium-m11-evidence. Calls reserved: 200/200.
+## Follow-up acceptance
 
-The existing drafter role system-prompt builder receives a preloaded skill/reference pack and returns one JSON file bundle with tools disabled. The harness writes it through the real study-tree writer. Each case gets at most one drafter request and one independent strong-model judge verdict; no retries. Judge requests can batch up to three PNG/spec pairs to reserve budget for rewrite jobs. This controls the 200-call budget; it measures first-pass output, not tool-mediated repair.
+See [the complete follow-up report](2026-10-02-m11-followup-report.md) for changed files, exact checks, openings, limitations and the five-line memory log. Total follow-up usage: **86 requests** (60 rewrite + 26 visual), all result events recorded. The following totals sum both ledgers and exclude the earlier M11 run.
+
+| Provider | Fresh | Output | Cache read | Cache write |
+| --- | --- | --- | --- | --- |
+| github-copilot | 96 | 25,634 | 1,615,363 | 545,347 |
+| openai-codex | 330,724 | 21,792 | 1,302,656 | 0 |
+
+Final reruns: 18/18 valid, form-correct and rendered; Sol required one repair for empty point labels (original failure retained below). Combined renders: Luna 12/20→20/20, Sol 11/20→20/20; quality 3.38→3.38 and 3.43→3.48. Combined totals carry forward cases not rerun.
+
+Updated 2026-10-02T17:23:35.478Z. Evidence directory: /tmp/studium-m11-followup-evidence. Calls reserved: 26 (no fixed subscription cap).
+
+The existing drafter role system-prompt builder receives a preloaded skill/reference pack and returns one JSON file bundle with tools disabled. The harness writes it through the real study-tree writer. A first pass gets one drafter request and one strong-model judge verdict. Optional --repair-failures gives a failed case at most two revision attempts with the prior bundle and exact errors; every earlier failure stays in row.attempts and below. Judge requests can batch up to three PNG/spec pairs. Subscription providers have no fixed request cap; a case stops after three identical provider/tool failures. Repairs are reported separately from first-pass reliability.
 
 Sketches use the real sketchDocument builder, bundled runtime and opaque allow-scripts iframe in Chrome. Widget scenes use the real shared SVG layouts in that same sandbox; React widget controls are outside this eval. Charts use the existing chartToSvg compiler. The judge sees the 360px default-state PNG plus the full spec; quality is model opinion, not a proof of correctness.
 
@@ -114,6 +125,44 @@ A provider failure is recorded as unavailable, not evidence about visual quality
 | github-copilot/gpt-6-luna | 21 | 21 | 21 | 12 | 3.38 |
 | openai-codex/gpt-6.1-sol | 21 | 21 | 21 | 11 | 3.43 |
 
+## followup
+
+| Case | Model | Valid | Form | Renders | Quality | PNG | Failure / judge |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| math-basic | github-copilot/gpt-6-luna | true | true | true | 4 | /tmp/studium-m11-followup-evidence/followup/math-basic/github-copilot_gpt-6-luna/scene-0.png | Readable, unit-labelled axes and correct narrated values explain slope, but marked comparison points would improve clarity. |
+| math-basic | openai-codex/gpt-6.1-sol | true | true | true | 4 | /tmp/studium-m11-followup-evidence/followup/math-basic/openai-codex_gpt-6.1-sol/scene-0.png | The correct slope comparison has readable axes with units, but the plotted line lacks explicit slope and comparison-point labels. |
+| math-intermediate | github-copilot/gpt-6-luna | true | true | true | 4 | /tmp/studium-m11-followup-evidence/followup/math-intermediate/github-copilot_gpt-6-luna/scene-0.png | The correct transformation and labelled basis vectors support understanding, though an overlaid before-and-after view would clarify the stretch. |
+| math-intermediate | openai-codex/gpt-6.1-sol | true | true | true | 2 | /tmp/studium-m11-followup-evidence/followup/math-intermediate/openai-codex_gpt-6.1-sol/scene-0.png | The labelled unit circle is readable, but the stretched circle and transformed basis vectors are not shown. |
+| math-advanced | github-copilot/gpt-6-luna | true | true | true | 2 | /tmp/studium-m11-followup-evidence/followup/math-advanced/github-copilot_gpt-6-luna/scene-0.png | The readable starting diagram does not display or explain the three cumulative SVD stages. |
+| math-advanced | openai-codex/gpt-6.1-sol | true | true | true | 2 | /tmp/studium-m11-followup-evidence/followup/math-advanced/openai-codex_gpt-6.1-sol/scene-0.png | The stage specifications are mathematically correct, but only the unchanged starting diagram is visible. |
+| science-intermediate | github-copilot/gpt-6-luna | true | true | true | 4 | /tmp/studium-m11-followup-evidence/followup/science-intermediate/github-copilot_gpt-6-luna/scene-0.png | The correct inverse curve and unit-labelled values add clarity, but the equation overlaps the first point label. |
+| science-intermediate | openai-codex/gpt-6.1-sol | true | true | true | 4 | /tmp/studium-m11-followup-evidence/followup/science-intermediate/openai-codex_gpt-6.1-sol/repair-1/scene-0.png | The correct inverse curve, unit-labelled axes and supplied points add value, but some point labels overlap at 360 px. |
+| science-intermediate (earlier attempt) | openai-codex/gpt-6.1-sol | false | true | false |  |  | points[0].label: Too small: expected string to have >=1 characters; use "y = a x". points[1].label: Too small: expected string to have >=1 characters; use "y = a x". points[2].label: Too small: expected string to have >=1 characters; use "y = a x". points[3].label: Too small: expected string to have >=1 characters; use "y = a x". points[4].label: Too small: expected string to have >=1 characters; use "y = a x". |
+| science-advanced | github-copilot/gpt-6-luna | true | true | true | 4 | /tmp/studium-m11-followup-evidence/followup/science-advanced/github-copilot_gpt-6-luna/scene-0.png | Readable, correct curves clearly compare decay and shared frequency, but the damping labels omit units. |
+| science-advanced | openai-codex/gpt-6.1-sol | true | true | true | 5 | /tmp/studium-m11-followup-evidence/followup/science-advanced/openai-codex_gpt-6.1-sol/scene-0.png | Readable curves with complete unit labels clearly show faster amplitude decay and unchanged frequency. |
+| history-intermediate | github-copilot/gpt-6-luna | true | true | true | 2 | /tmp/studium-m11-followup-evidence/followup/history-intermediate/github-copilot_gpt-6-luna/scene-0.png | Correct era dates are specified, but overlapping and truncated labels make the transitions unreadable at 360 px. |
+| history-intermediate | openai-codex/gpt-6.1-sol | true | true | true | 2 | /tmp/studium-m11-followup-evidence/followup/history-intermediate/openai-codex_gpt-6.1-sol/scene-0.png | The chronology is correct, but crowded labels obscure the short Mughal era and key event dates at 360 px. |
+| finance-basic | github-copilot/gpt-6-luna | true | true | true | 2 | /tmp/studium-m11-followup-evidence/followup/finance-basic/github-copilot_gpt-6-luna/scene-0.png | Time and amount have units, but the displayed flat line contradicts the specified 5% rate and the amount label is clipped. |
+| finance-basic | openai-codex/gpt-6.1-sol | true | true | true | 3 | /tmp/studium-m11-followup-evidence/followup/finance-basic/openai-codex_gpt-6.1-sol/scene-0.png | Units are labelled, but the displayed flat line does not demonstrate the specified default 5% growth or changing slope. |
+| finance-intermediate | github-copilot/gpt-6-luna | true | true | true | 4 | /tmp/studium-m11-followup-evidence/followup/finance-intermediate/github-copilot_gpt-6-luna/scene-0.png | Correct curves clearly show the widening growth gap, though the vertical axis label crowds the tick labels at 360 px. |
+| finance-intermediate | openai-codex/gpt-6.1-sol | true | true | true | 4 | /tmp/studium-m11-followup-evidence/followup/finance-intermediate/openai-codex_gpt-6.1-sol/scene-0.png | Correct curves and concise legends make the comparison clear, though the vertical axis label crowds the tick labels at 360 px. |
+| finance-advanced | github-copilot/gpt-6-luna | true | true | true | 3 | /tmp/studium-m11-followup-evidence/followup/finance-advanced/github-copilot_gpt-6-luna/scene-0.png | Axes and units are readable, but the single curve lacks a correlation label or comparison showing variance reduction. |
+| finance-advanced | openai-codex/gpt-6.1-sol | true | true | true | 3 | /tmp/studium-m11-followup-evidence/followup/finance-advanced/openai-codex_gpt-6.1-sol/scene-0.png | Readable labels and correct units support the plot, but coincident curves do not demonstrate how lower correlation reduces variance. |
+
+| Model | Cases | Valid | Form | Renders | Mean quality |
+| --- | --- | --- | --- | --- | --- |
+| github-copilot/gpt-6-luna | 9 | 9 | 9 | 9 | 3.22 |
+| openai-codex/gpt-6.1-sol | 9 | 9 | 9 | 9 | 3.22 |
+
+## Follow-up summary
+
+Only previously failing cases were generated again, for both models. The combined totals replace those case/model rows and carry the other after rows forward; they are not a new full-suite generation run. Follow-up browser checks also inspect SVG elements against the mapped viewBox, not just the taller sandbox stage. Token totals below are this follow-up ledger only; historical token totals remain in the original evidence ledger.
+
+| Model | Rerun rows | Rerun first-pass valid/renders | Rerun final valid/renders | Valid combined | Form combined | Renders before→combined | Quality before→combined |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| github-copilot/gpt-6-luna | 9 | 9/9, 9/9 | 9/9, 9/9 | 21/21 | 21/21 | 12/20→20/20 | 3.38→3.38 |
+| openai-codex/gpt-6.1-sol | 9 | 8/9, 8/9 | 9/9, 9/9 | 21/21 | 21/21 | 11/20→20/20 | 3.43→3.48 |
+
 ## Delta (after minus baseline)
 
 | Model | Valid | Form | Renders | Quality |
@@ -125,5 +174,5 @@ A provider failure is recorded as unavailable, not evidence about visual quality
 
 | Provider | Fresh | Output | Cache read | Cache write |
 | --- | --- | --- | --- | --- |
-| github-copilot | 192 | 47495 | 814395 | 636180 |
-| openai-codex | 627165 | 32427 | 317696 | 0 |
+| github-copilot | 27 | 5373 | 0 | 157888 |
+| openai-codex | 190801 | 5347 | 0 | 0 |

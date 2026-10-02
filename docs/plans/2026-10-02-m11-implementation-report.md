@@ -1,5 +1,7 @@
 # M11 implementation report
 
+Latest: [M11 follow-up report](2026-10-02-m11-followup-report.md) fixes renderer/p5 issues, adds a bounded rewrite revision, and records successful real history/PCA rewrites plus the failed-case visual reruns. Sections below describe the original M11 run and its former 200-call cap.
+
 Implementation and scoped validation finished. Visual reliability and a successful post-fix live rewrite remain unproven; failures and blocked items are recorded below. No repository commits, pushes, branch changes, new app dependencies, live data writes, or AGENT_MEMORY edits.
 
 ## Baseline (Part 3 first)
