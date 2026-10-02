@@ -1,6 +1,95 @@
 import { expect, it } from "vitest";
+import functionTemplate from "../../../skills/make-visual/references/templates/function-plot.json";
+import matrixTemplate from "../../../skills/make-visual/references/templates/matrix-transform.json";
+import stepTemplate from "../../../skills/make-visual/references/templates/step-through.json";
+import timelineTemplate from "../../../skills/make-visual/references/templates/timeline.json";
+import type { Scene } from "./common.js";
 import { compileExpression } from "./expression.js";
 import { layoutWidget, parseWidget, widgetScenes, widgetToSvg } from "./index.js";
+
+function expectLabelsInside(s: Scene) {
+  for (const n of s.nodes.filter((n) => n.tag === "text")) {
+    const size = Number(n.attrs["font-size"] ?? 26);
+    const length = Number(n.attrs.textLength ?? (n.text?.length ?? 0) * size * 0.65);
+    const x = Number(n.attrs.x),
+      y = Number(n.attrs.y);
+    const anchor = n.attrs["text-anchor"];
+    if (n.attrs.transform) {
+      expect(x - size, n.text).toBeGreaterThanOrEqual(0);
+      expect(x + size * 0.3, n.text).toBeLessThanOrEqual(s.width);
+      expect(y - length / 2, n.text).toBeGreaterThanOrEqual(0);
+      expect(y + length / 2, n.text).toBeLessThanOrEqual(s.height);
+    } else {
+      const offset = anchor === "middle" ? length / 2 : anchor === "end" ? length : 0;
+      expect(x - offset, n.text).toBeGreaterThanOrEqual(0);
+      expect(x - offset + length, n.text).toBeLessThanOrEqual(s.width);
+      expect(y - size, n.text).toBeGreaterThanOrEqual(0);
+      expect(y + size * 0.3, n.text).toBeLessThanOrEqual(s.height);
+    }
+  }
+}
+it.each(["function-plot", "matrix-transform", "step-through", "timeline"])(
+  "keeps every %s template scene label in the viewBox at 360px",
+  (type) => {
+    const templates = {
+      "function-plot": functionTemplate,
+      "matrix-transform": matrixTemplate,
+      "step-through": stepTemplate,
+      timeline: timelineTemplate,
+    };
+    const spec = parseWidget(JSON.stringify(templates[type as keyof typeof templates]));
+    for (const s of widgetScenes(spec)) {
+      const geometry = layoutWidget(spec, s.state);
+      expectLabelsInside(geometry);
+      for (const path of geometry.nodes.filter((n) => n.tag === "path")) {
+        for (const point of String(path.attrs.d).matchAll(/[ML](-?[\d.]+),(-?[\d.]+)/g)) {
+          expect(Number(point[1])).toBeGreaterThanOrEqual(0);
+          expect(Number(point[1])).toBeLessThanOrEqual(geometry.width);
+          expect(Number(point[2])).toBeGreaterThanOrEqual(0);
+          expect(Number(point[2])).toBeLessThanOrEqual(geometry.height);
+        }
+      }
+    }
+  },
+);
+it("bounds long endpoint/point labels, zoomed eras and step values without moving data coordinates", () => {
+  const timeline = parseWidget(
+    JSON.stringify({
+      type: "timeline",
+      title: "History",
+      events: [
+        { date: 1591, title: "Hyderabad founded near Golconda under the Qutb Shahis", category: "City" },
+        { date: 1948, title: "Integration into India after a long political transition", category: "Rule" },
+      ],
+      eras: [{ start: 1591, end: 1948, title: "A very long era label that extends across the visible interval" }],
+    }),
+  );
+  expectLabelsInside(layoutWidget(timeline));
+  const zoomed = layoutWidget(timeline, { zoom: 10, center: 1724 });
+  expectLabelsInside(zoomed);
+  for (const n of zoomed.nodes.filter((n) => n.tag === "rect")) {
+    expect(Number(n.attrs.x)).toBeGreaterThanOrEqual(56);
+    expect(Number(n.attrs.x) + Number(n.attrs.width)).toBeLessThanOrEqual(608);
+  }
+  const spec = plot();
+  if (spec.type === "function-plot")
+    spec.points = [{ x: 3, y: 2, label: "Point at the top right endpoint of the plot" }];
+  const plotted = layoutWidget(spec);
+  expectLabelsInside(plotted);
+  expect(plotted.nodes.find((n) => n.tag === "circle")?.attrs.cx).toBe(608);
+  const trace = parseWidget(
+    JSON.stringify({
+      type: "step-through",
+      title: "Process",
+      view: "graph",
+      steps: [
+        { caption: "Trace", items: ["Coordinator with a very long role label", "Participant receives a message"] },
+      ],
+    }),
+  );
+  expectLabelsInside(layoutWidget(trace));
+  expect(layoutWidget(trace).nodes.find((n) => n.tag === "text")?.attrs.textLength).toBeLessThanOrEqual(72);
+});
 
 const plot = () =>
   parseWidget(

@@ -15,7 +15,7 @@ export const StorySchema = z
 export const base = { title: text, caption: text.optional(), story: StorySchema.optional() };
 export type VisualState = Record<string, number | string | boolean>;
 export interface SvgNode {
-  tag: "g" | "line" | "path" | "circle" | "rect" | "text";
+  tag: "g" | "line" | "path" | "circle" | "rect" | "text" | "title";
   attrs: Record<string, string | number>;
   text?: string;
   children?: SvgNode[];

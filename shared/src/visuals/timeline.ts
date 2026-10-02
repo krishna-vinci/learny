@@ -33,7 +33,7 @@ export type TimelineSpec = z.infer<typeof TimelineSchema>;
 
 import { scaleLinear } from "d3";
 import { color, node, type VisualState } from "./common.js";
-import { scene } from "./scene.js";
+import { label, scene } from "./scene.js";
 export function layout(spec: TimelineSpec, state: VisualState = {}) {
   const dates = [...spec.events.map((e) => year(e.date)), ...spec.eras.flatMap((e) => [year(e.start), year(e.end)])];
   const min = Math.min(...dates),
@@ -50,16 +50,19 @@ export function layout(spec: TimelineSpec, state: VisualState = {}) {
       node("text", { x: x(tick), y: 348, "text-anchor": "middle" }, tick < 0 ? `${Math.abs(tick)} BCE` : String(tick)),
     );
   for (const era of spec.eras) {
+    const start = Math.max(56, x(year(era.start))),
+      end = Math.min(608, x(year(era.end)));
+    if (end <= start) continue;
     nodes.push(
       node("rect", {
-        x: x(year(era.start)),
+        x: start,
         y: 40,
-        width: x(year(era.end)) - x(year(era.start)),
+        width: end - start,
         height: 28,
         fill: color(4),
         opacity: 0.25,
       }),
-      node("text", { x: x(year(era.start)) + 4, y: 60 }, era.title),
+      label(era.title, start + 4, 60, Math.max(26, end - start - 8)),
     );
   }
   spec.events.forEach((e, i) => {
@@ -74,7 +77,7 @@ export function layout(spec: TimelineSpec, state: VisualState = {}) {
         r: i === Number(state.selected ?? 0) ? 9 : 6,
         fill: color(categories.indexOf(e.category)),
       }),
-      node("text", { x: position, y: y - 14, "text-anchor": "middle" }, e.title),
+      label(e.title, position, y - 14, 240, { "text-anchor": "middle" }),
     );
   });
   return scene(

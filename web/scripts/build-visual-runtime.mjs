@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { build } from "vite";
+import { disableP5Motion } from "./p5-sandbox.mjs";
 
 const web = path.resolve(import.meta.dirname, "..");
 const out = path.join(web, "public/visual-runtime");
@@ -35,7 +36,7 @@ try {
           });
     const code =
       name === "p5"
-        ? await fs.readFile(path.join(web, "node_modules/p5/lib/p5.min.js"), "utf8")
+        ? disableP5Motion(await fs.readFile(path.join(web, "node_modules/p5/lib/p5.min.js"), "utf8"))
         : (Array.isArray(result) ? result[0] : result).output.find((asset) => asset.type === "chunk").code;
     const hash = createHash("sha256").update(code).digest("hex").slice(0, 12);
     const file = `${name}.${hash}.js`;

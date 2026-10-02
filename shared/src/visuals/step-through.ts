@@ -32,7 +32,7 @@ export const StepThroughSchema = z
 export type StepThroughSpec = z.infer<typeof StepThroughSchema>;
 
 import { color, node, type VisualState } from "./common.js";
-import { scene } from "./scene.js";
+import { label, scene } from "./scene.js";
 export function layout(spec: StepThroughSpec, state: VisualState = {}) {
   const step =
     spec.steps[Math.max(0, Math.min(spec.steps.length - 1, Math.floor(Number(state.step ?? 0))))] ?? spec.steps[0];
@@ -70,11 +70,10 @@ export function layout(spec: StepThroughSpec, state: VisualState = {}) {
         stroke: color(0),
         "stroke-width": 2,
       }),
-      node(
-        "text",
-        { x, y: y + 6, "text-anchor": "middle", fill: step.active.includes(i) ? "#fff" : "var(--visual-fg, #292524)" },
-        String(value),
-      ),
+      label(String(value), x, y + 6, spec.view === "boxes" ? 500 : 72, {
+        "text-anchor": "middle",
+        fill: step.active.includes(i) ? "#fff" : "var(--visual-fg, #292524)",
+      }),
     );
   });
   nodes.push(node("text", { x: 320, y: 376, "text-anchor": "middle" }, `Step ${Number(state.step ?? 0) + 1}`));

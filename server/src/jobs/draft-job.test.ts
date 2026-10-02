@@ -556,11 +556,54 @@ describe("rewrite chapter job", () => {
           { signal: new AbortController().signal, progress: vi.fn(), addUsage: vi.fn() },
         ),
       ).rejects.toThrow("at least 40%");
-      expect(runRole).toHaveBeenCalledTimes(1);
+      expect(runRole).toHaveBeenCalledTimes(2);
       expect(await fs.readFile(path.join(root, rel), "utf8")).toBe(original);
       expect(await log(root)).toEqual(beforeCommits);
     },
   );
+  it("gives a shallow drafter one measured revision turn, then commits and checks the replacement", async () => {
+    const rel = "linear-algebra/notes/03-svd.md";
+    const original =
+      "---\ntitle: SVD\nstatus: accepted\nsources: [lib-strang-la]\n---\nThe horizontal vector points to the right. The vertical vector points upwards in the plane. A basis lets us describe every vector in the plane.[^src:lib-strang-la]\n\n[^src:lib-strang-la]: Strang, *Linear Algebra*, chapter 1.\n";
+    const shallow = original.replace("status: accepted", "status: draft");
+    const good = shallow.replace(
+      "The horizontal vector points to the right. The vertical vector points upwards in the plane. A basis lets us describe every vector in the plane.",
+      "Imagine taking one step to the right and another step upwards. We use these independent directions as a basis for the plane. Their coordinates let us describe where any combination of steps ends.",
+    );
+    await fs.writeFile(path.join(root, rel), original);
+    let turns = 0;
+    const runRole = vi.spyOn(roleRunner, "runRole").mockImplementation(async (role, opts) => {
+      if (role === "drafter") {
+        turns++;
+        if (turns === 2) {
+          expect(opts.task).toContain("0.0% new result, 0.0% original sentences replaced");
+          expect(opts.task).toContain("one replacement revision turn");
+          expect(await fs.readFile(path.join(root, rel), "utf8")).toBe(shallow);
+          expect(opts.canWrite?.("linear-algebra/notes/99-other.md")).toBe(false);
+        }
+        await fs.writeFile(path.join(root, rel), turns === 1 ? shallow : good);
+        return { text: "Rewritten", written: [rel], messages: [] };
+      }
+      expect(turns).toBe(2);
+      expect(await fs.readFile(path.join(root, rel), "utf8")).toBe(good);
+      await fs.mkdir(path.join(root, "linear-algebra/log/checks"), { recursive: true });
+      await fs.writeFile(path.join(root, "linear-algebra/log/checks/03-svd.md"), "## No issues found\n");
+      return { text: "Checked", written: ["linear-algebra/log/checks/03-svd.md"], messages: [] };
+    });
+    await createRewriteJob({
+      root,
+      locks: new FileLocks(),
+      mcp: new McpManager([]),
+      runtime: await createModelRuntime(),
+      hub: new EventHub(),
+    })(
+      { set: "linear-algebra", path: "notes/03-svd.md" },
+      { signal: new AbortController().signal, progress: vi.fn(), addUsage: vi.fn() },
+    );
+    expect(runRole.mock.calls.map(([role]) => role)).toEqual(["drafter", "drafter", "checker"]);
+    expect(await fs.readFile(path.join(root, rel), "utf8")).toBe(good.replace("status: draft", "status: checked"));
+    expect((await log(root, { limit: 2 })).map((c) => c.author)).toEqual(["checker", "drafter"]);
+  });
   it("does not count new metadata, source text or media as replaced prose", () => {
     const original =
       "---\ntitle: SVD\nstatus: accepted\n---\nA vector represents a direction in the plane.[^src:lib-strang-la]\n![Figure](../assets/x.svg)\n[^src:lib-strang-la]: parsed.md, lines 1–3.\n";

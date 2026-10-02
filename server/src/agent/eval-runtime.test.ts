@@ -10,32 +10,31 @@ afterEach(async () => {
   vi.restoreAllMocks();
   await Promise.all(roots.splice(0).map((root) => fs.rm(root, { recursive: true, force: true })));
 });
-it("reserves each model request before sending and preserves the budget across restarts", async () => {
+it("reserves each request and resumes telemetry beyond the old 200-call limit", async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "eval-budget-"));
   roots.push(root);
   const file = path.join(root, "calls.json");
+  await fs.writeFile(file, JSON.stringify({ calls: 200, usage: {} }));
   const message = {
     usage: { input: 7, output: 3, cacheRead: 11, cacheWrite: 0 },
     content: [{ type: "text", text: "ok" }],
     stopReason: "stop",
   };
   const stream = vi.fn(() => ({ result: async () => message }));
-  const runtime = { streamSimple: stream, getModel: () => ({ provider: "subscription", id: "test" }) };
+  const runtime = { streamSimple: stream, getModel: () => ({ provider: "github-copilot", id: "test" }) };
   vi.spyOn(models, "createModelRuntime").mockResolvedValue(runtime as never);
-  const adapter = await evalRuntime(file, 1);
-  expect(await adapter.judge("subscription/test", "judge")).toBe("ok");
-  await Promise.resolve();
-  const stored = JSON.parse(await fs.readFile(file, "utf8"));
-  expect(stored).toEqual({ calls: 1, usage: { subscription: { fresh: 7, output: 3, cacheRead: 11, cacheWrite: 0 } } });
-  expect(() => adapter.runtime.streamSimple({ provider: "subscription" } as never, {} as never)).toThrow("cap");
-  expect(stream).toHaveBeenCalledTimes(1);
+  const adapter = await evalRuntime(file);
+  expect(await adapter.judge("github-copilot/test", "judge")).toBe("ok");
+  expect(adapter.state).toEqual({
+    calls: 201,
+    usage: { "github-copilot": { fresh: 7, output: 3, cacheRead: 11, cacheWrite: 0 } },
+  });
   adapter.close();
-  const freshStream = vi.fn();
-  const freshRuntime = { streamSimple: freshStream, getModel: runtime.getModel };
-  vi.mocked(models.createModelRuntime).mockResolvedValue(freshRuntime as never);
-  const resumed = await evalRuntime(file, 1);
-  await expect(resumed.judge("subscription/test", "again")).rejects.toThrow("cap");
-  expect(freshStream).not.toHaveBeenCalled();
+  vi.mocked(models.createModelRuntime).mockResolvedValue({ ...runtime, streamSimple: stream } as never);
+  const resumed = await evalRuntime(file);
+  expect(await resumed.judge("github-copilot/test", "again")).toBe("ok");
+  expect(resumed.state.calls).toBe(202);
+  resumed.close();
 });
 it("counts provider errors as attempts and keeps judge images in the request", async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "eval-error-"));
@@ -52,13 +51,16 @@ it("counts provider errors as attempts and keeps judge images in the request", a
   });
   vi.spyOn(models, "createModelRuntime").mockResolvedValue({
     streamSimple: stream,
-    getModel: () => ({ provider: "p", id: "m" }),
+    getModel: () => ({ provider: "openai-codex", id: "m" }),
   } as never);
   const adapter = await evalRuntime(path.join(root, "calls.json"));
-  adapter.beginTurn(1);
-  await expect(adapter.judge("p/m", "rubric", "fake-image")).rejects.toThrow("unavailable");
-  await expect(adapter.judge("p/m", "rubric", "fake-image")).rejects.toThrow("cap");
-  expect(adapter.state.calls).toBe(1);
+  adapter.beginTurn();
+  await expect(adapter.judge("openai-codex/m", "rubric", "fake-image")).rejects.toThrow("unavailable");
+  await expect(adapter.judge("openai-codex/m", "rubric", "fake-image")).rejects.toThrow("unavailable");
+  await expect(adapter.judge("openai-codex/m", "rubric", "fake-image")).rejects.toThrow("unavailable");
+  await expect(adapter.judge("openai-codex/m", "rubric", "fake-image")).rejects.toThrow("three identical failures");
+  expect(adapter.state.calls).toBe(3);
+  adapter.close();
 });
 
 it("rejects simultaneous ownership and corrupted ledgers without sending a request", async () => {
@@ -73,4 +75,63 @@ it("rejects simultaneous ownership and corrupted ledgers without sending a reque
   await fs.writeFile(file, "broken JSON");
   await expect(evalRuntime(file)).rejects.toThrow();
   expect(stream).not.toHaveBeenCalled();
+});
+
+it("stops repeated tool errors without recounting old context messages", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "eval-loop-"));
+  roots.push(root);
+  const stream = vi.fn(() => ({
+    result: async () => ({
+      usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      stopReason: "stop",
+      content: [],
+    }),
+  }));
+  vi.spyOn(models, "createModelRuntime").mockResolvedValue({ streamSimple: stream } as never);
+  const adapter = await evalRuntime(path.join(root, "calls.json"));
+  const errors = [1, 2, 3].map((i) => ({
+    role: "toolResult",
+    toolCallId: String(i),
+    toolName: "study_edit",
+    isError: true,
+    content: [{ type: "text", text: "no match" }],
+    timestamp: 0,
+  }));
+  const send = (messages: unknown[]) =>
+    adapter.runtime.streamSimple({ provider: "openai-codex" } as never, { messages } as never);
+  send(errors.slice(0, 1));
+  send(errors.slice(0, 1));
+  send(errors.slice(0, 2));
+  expect(() => send(errors)).toThrow("three identical failures");
+  expect(stream).toHaveBeenCalledTimes(3);
+  adapter.beginTurn();
+  expect(() => send([])).not.toThrow();
+  expect(() => adapter.runtime.streamSimple({ provider: "paid" } as never, { messages: [] } as never)).toThrow(
+    "authorized subscription",
+  );
+  adapter.close();
+});
+
+it.each(["throw", "reject"])("counts a provider %s toward the three-identical-failures guard", async (kind) => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "eval-provider-loop-"));
+  roots.push(root);
+  const stream = vi.fn(() => {
+    if (kind === "throw") throw new Error("provider unavailable");
+    return {
+      result: async () => {
+        throw new Error("provider unavailable");
+      },
+    };
+  });
+  vi.spyOn(models, "createModelRuntime").mockResolvedValue({
+    streamSimple: stream,
+    getModel: () => ({ provider: "openai-codex", id: "test" }),
+  } as never);
+  const adapter = await evalRuntime(path.join(root, "calls.json"));
+  for (let i = 0; i < 3; i++)
+    await expect(adapter.judge("openai-codex/test", "judge")).rejects.toThrow("provider unavailable");
+  await expect(adapter.judge("openai-codex/test", "judge")).rejects.toThrow("three identical failures");
+  expect(stream).toHaveBeenCalledTimes(3);
+  expect(adapter.state.calls).toBe(3);
+  adapter.close();
 });

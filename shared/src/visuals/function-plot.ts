@@ -47,7 +47,7 @@ export type FunctionPlotSpec = z.infer<typeof FunctionPlotSchema>;
 
 import { line } from "d3";
 import { color, node, type VisualState } from "./common.js";
-import { axes, scene } from "./scene.js";
+import { axes, label, scene } from "./scene.js";
 export function layout(spec: FunctionPlotSpec, state: VisualState = {}) {
   const { x, y, nodes } = axes(spec.x, spec.y, spec.xLabel, spec.yLabel);
   const params: Record<string, number> = {};
@@ -65,13 +65,15 @@ export function layout(spec: FunctionPlotSpec, state: VisualState = {}) {
     const d = line<[number, number]>().defined((p) => Number.isFinite(p[1]) && p[1] >= 32 && p[1] <= 336)(points) ?? "";
     nodes.push(
       node("path", { d, fill: "none", stroke: color(i), "stroke-width": 3 }),
-      node("text", { x: 80, y: 48 + i * 24, fill: color(i) }, curve.label),
+      label(curve.label, 80, 48 + i * 28, 520, { fill: color(i) }),
     );
   });
-  for (const p of spec.points)
+  for (const p of spec.points) {
+    if (p.x < spec.x[0] || p.x > spec.x[1] || p.y < spec.y[0] || p.y > spec.y[1]) continue;
     nodes.push(
       node("circle", { cx: x(p.x), cy: y(p.y), r: 5, fill: color(1) }),
-      node("text", { x: x(p.x) + 8, y: y(p.y) - 8 }, p.label),
+      label(p.label, x(p.x) + 8, y(p.y) - 8, 200),
     );
+  }
   return scene(nodes, spec.caption);
 }

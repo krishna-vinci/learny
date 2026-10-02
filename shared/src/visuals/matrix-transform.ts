@@ -47,8 +47,45 @@ export function layout(spec: MatrixTransformSpec, state: VisualState = {}) {
     c = (target[1]?.[0] ?? 0) * progress + (start[1]?.[0] ?? 0) * (1 - progress),
     d = (target[1]?.[1] ?? 1) * progress + (start[1]?.[1] ?? 1) * (1 - progress);
   const transform = (v: [number, number]): [number, number] => [x(a * v[0] + b * v[1]), y(c * v[0] + d * v[1])];
-  const path = (points: [number, number][], stroke: string, width: number) =>
-    node("path", { d: line()(points.map(transform)) ?? "", fill: "none", stroke, "stroke-width": width });
+  const visible = ([px, py]: [number, number]) => px >= 64 && px <= 608 && py >= 32 && py <= 336;
+  const path = (points: [number, number][], stroke: string, width: number) => {
+    let mapped = points.map(transform);
+    // Clip each grid segment parametrically; discarding outside endpoints would hide crossing lines.
+    if (mapped.length === 2) {
+      const [p, q] = mapped as [[number, number], [number, number]];
+      const dx = q[0] - p[0],
+        dy = q[1] - p[1];
+      let start = 0,
+        end = 1;
+      for (const [direction, distance] of [
+        [-dx, p[0] - 64],
+        [dx, 608 - p[0]],
+        [-dy, p[1] - 32],
+        [dy, 336 - p[1]],
+      ] as const) {
+        if (direction === 0 && distance < 0) {
+          start = 1;
+          end = 0;
+          break;
+        }
+        if (direction < 0) start = Math.max(start, distance / direction);
+        if (direction > 0) end = Math.min(end, distance / direction);
+      }
+      mapped =
+        start > end
+          ? []
+          : [
+              [p[0] + start * dx, p[1] + start * dy],
+              [p[0] + end * dx, p[1] + end * dy],
+            ];
+    }
+    return node("path", {
+      d: line<[number, number]>().defined(visible)(mapped) ?? "",
+      fill: "none",
+      stroke,
+      "stroke-width": width,
+    });
+  };
   for (let i = -3; i <= 3; i++)
     nodes.push(
       path(
@@ -85,6 +122,7 @@ export function layout(spec: MatrixTransformSpec, state: VisualState = {}) {
     ] as [number, number][]
   ).entries()) {
     const end = transform(v);
+    if (!visible(end)) continue;
     nodes.push(
       node("line", { x1: x(0), y1: y(0), x2: end[0], y2: end[1], stroke: color(i), "stroke-width": 4 }),
       node("circle", { cx: end[0], cy: end[1], r: 5, fill: color(i) }),

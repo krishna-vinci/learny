@@ -90,14 +90,16 @@
     "3fddcf32018dbbf5966e5a6bdb70863f5cf36c5e5d3dd4f7d35783770c59cf11"
   ],
   "make-visual/references/templates/function-plot.svg": [
-    "8ed4793e571d044c62ceb3c56094ad21e6869c000194b934985b4e6e3dced046"
+    "8ed4793e571d044c62ceb3c56094ad21e6869c000194b934985b4e6e3dced046",
+    "2aa9dddcba0fd197dd0a98d01dfaf28da62d34f6dbbcb33579be690a8d92c748"
   ],
   "make-visual/references/templates/matrix-transform.json": [
     "b5a7d1b7f32abe0aac3b01fbb3da514ad86e4452f63cb59c0f8d35937e0a3f5d",
     "c76b10e704cde1a2e7e8dc618b9fdce73afa82ccb9f65ded6e215f8c18cc3d0a"
   ],
   "make-visual/references/templates/matrix-transform.svg": [
-    "15559a62b3c3c56e09a4d1bbb9ff860a9f7a8a69157f717b2ecbc65d3f6b923f"
+    "15559a62b3c3c56e09a4d1bbb9ff860a9f7a8a69157f717b2ecbc65d3f6b923f",
+    "1d7c2a2e39b92bb29bb60f849e954fbd641e3c1739bf711f015b02a761688de3"
   ],
   "make-visual/references/templates/p5-animation.html": [
     "a1361c7c725c763538458759128e7c74ca0e989f4c045ada493ecbdb7a6dffca"
@@ -110,7 +112,8 @@
     "6dc9766bec9d9f2aa6af1eca834ebfacf75b4b6821a2b27358c8aef73216be20"
   ],
   "make-visual/references/templates/step-through.svg": [
-    "b7db0c821de7a81d175c74084c39b633336cc05bff68eca5873c47e861069867"
+    "b7db0c821de7a81d175c74084c39b633336cc05bff68eca5873c47e861069867",
+    "c3f1920776464166f7d9cc26394fabf19342611c18cb115e32d19a8aed16e0ba"
   ],
   "make-visual/references/templates/svg-labelled-diagram.html": [
     "03bee76b6c467e37ed58e839ddecac9d8afb872e6b207560a4169db09aecf51f"
@@ -134,7 +137,10 @@
     "3e47a8e29950892641c8fa6350758bcff7db96e6318fd113e45349762669cb40",
     "fdc6f4ff811f14f0e87193167a21fa61571775d6565bf335a3549484548177ae"
   ],
-  "make-visual/references/templates/timeline.svg": ["ce35cc2c424e91f970589437b33fcf770112f4238d99f3ee10df074b0ffa97d8"],
+  "make-visual/references/templates/timeline.svg": [
+    "ce35cc2c424e91f970589437b33fcf770112f4238d99f3ee10df074b0ffa97d8",
+    "8c3f7c26426fa09d0acd41ea627b14d4cdff45e24cb673f32355186dd0eb5908"
+  ],
   "make-visual/references/three.md": [
     "6950e950fc74e58b091e8ddef02799217777b5e3a0750e6f552e421ef93679f9",
     "ef548c2b564ffe82b67987c8c82476c6b3f80a2bd4260c8f49dee63e6fb23c81"

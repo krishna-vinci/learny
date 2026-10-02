@@ -2,6 +2,33 @@ import { scaleLinear } from "d3";
 import { node, type Scene, type SvgNode } from "./common.js";
 export const W = 640,
   H = 400;
+/** Explicit glyph length keeps labels inside their reserved space in browser and book SVGs. */
+export function label(value: string, x: number, y: number, width = W - 24, attrs: SvgNode["attrs"] = {}) {
+  const size = Number(attrs["font-size"] ?? 26);
+  const available = Math.max(size, Math.min(W - 24, width));
+  const estimate = (text: string) =>
+    [...text].reduce((sum, c) => sum + (/[\u0020-\u007e]/.test(c) ? 0.65 : 1), 0) * size;
+  let text = value;
+  while (text.length > 1 && estimate(text) > available) text = text.slice(0, -1);
+  if (text !== value) text = `${text.slice(0, -1)}…`;
+  const length = Math.min(available, estimate(text));
+  const anchor = attrs["text-anchor"] ?? "start";
+  const offset = anchor === "middle" ? length / 2 : anchor === "end" ? length : 0;
+  const result = node(
+    "text",
+    {
+      ...attrs,
+      x: attrs.transform ? x : Math.max(12 + offset, Math.min(W - 12 - length + offset, x)),
+      y: Math.max(size + 4, Math.min(H - 12, y)),
+      "font-size": size,
+      textLength: length,
+      lengthAdjust: "spacingAndGlyphs",
+    },
+    text,
+  );
+  if (text !== value) result.children = [node("title", {}, value)];
+  return result;
+}
 export function axes(xDomain: [number, number], yDomain: [number, number], xLabel: string, yLabel: string) {
   const x = scaleLinear(xDomain, [64, W - 32]),
     y = scaleLinear(yDomain, [H - 64, 32]);
@@ -19,13 +46,22 @@ export function axes(xDomain: [number, number], yDomain: [number, number], xLabe
     );
   }
   nodes.push(
-    node("text", { x: W / 2, y: H - 10, "text-anchor": "middle" }, xLabel),
-    node("text", { x: 18, y: H / 2, transform: `rotate(-90 18 ${H / 2})`, "text-anchor": "middle" }, yLabel),
+    label(xLabel, W / 2, H - 12, W - 96, { "text-anchor": "middle" }),
+    label(yLabel, 30, H / 2, H - 72, { transform: `rotate(-90 30 ${H / 2})`, "text-anchor": "middle" }),
   );
   return { x, y, nodes };
 }
 export function scene(nodes: SvgNode[], caption?: string): Scene {
-  return { width: W, height: H, nodes, caption };
+  return {
+    width: W,
+    height: H,
+    nodes: nodes.map((n) =>
+      n.tag === "text" && n.attrs.textLength === undefined
+        ? label(n.text ?? "", Number(n.attrs.x), Number(n.attrs.y), W - 24, n.attrs)
+        : n,
+    ),
+    caption,
+  };
 }
 export function escapeXml(value: string) {
   return value.replace(

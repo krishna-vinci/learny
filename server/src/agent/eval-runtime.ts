@@ -8,8 +8,7 @@ import { createModelRuntime } from "./models.js";
 import { buildBatchRolePrompt } from "./prompt.js";
 import { ROLES } from "./roles.js";
 
-export async function evalRuntime(ledger: string, limit = 200) {
-  if (!Number.isInteger(limit) || limit < 1 || limit > 200) throw new Error("Eval limit must be 1–200 calls");
+export async function evalRuntime(ledger: string) {
   const lock = `${ledger}.lock`;
   try {
     const pid = Number(readFileSync(lock, "utf8"));
@@ -54,14 +53,26 @@ export async function evalRuntime(ledger: string, limit = 200) {
     close();
     throw new Error("Invalid eval ledger; refusing to reset the model-call budget");
   }
-  let turnCalls = 0;
-  let turnLimit = limit;
+  const failures = new Map<string, number>();
+  const seenToolErrors = new Set<string>();
+  let stopped = false;
+  const failed = (message: string) => {
+    const count = (failures.get(message) ?? 0) + 1;
+    failures.set(message, count);
+    if (count >= 3) stopped = true;
+  };
   const save = () => writeFileSync(ledger, JSON.stringify(state, null, 2));
   const stream = runtime.streamSimple.bind(runtime);
   runtime.streamSimple = (model, context, options) => {
-    if (state.calls >= limit || turnCalls >= turnLimit) throw new Error("Eval model-call cap reached");
+    if (!["github-copilot", "openai-codex"].includes(model.provider))
+      throw new Error("Eval uses only the authorized subscription providers");
+    for (const message of context.messages) {
+      if (message.role !== "toolResult" || !message.isError || seenToolErrors.has(message.toolCallId)) continue;
+      seenToolErrors.add(message.toolCallId);
+      failed(`${message.toolName}: ${JSON.stringify(message.content)}`);
+    }
+    if (stopped) throw new Error("Eval loop guard: three identical failures in this case");
     state.calls++;
-    turnCalls++;
     save();
     const id = randomUUID();
     appendFileSync(
@@ -69,10 +80,17 @@ export async function evalRuntime(ledger: string, limit = 200) {
       `${JSON.stringify({ id, event: "request", model: `${model.provider}/${model.id}`, call: state.calls })}\n`,
       { mode: 0o600 },
     );
-    const result = stream(model, context, options);
+    let result: ReturnType<typeof stream>;
+    try {
+      result = stream(model, context, options);
+    } catch (error) {
+      failed(error instanceof Error ? error.message : String(error));
+      throw error;
+    }
     void result
       .result()
       .then((message) => {
+        if (message.stopReason === "error") failed(message.errorMessage ?? "Provider error");
         const u = state.usage[model.provider] ?? { fresh: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
         state.usage[model.provider] = u;
         u.fresh += message.usage.input;
@@ -86,16 +104,17 @@ export async function evalRuntime(ledger: string, limit = 200) {
         );
         save();
       })
-      .catch(() => undefined);
+      .catch((error) => failed(error instanceof Error ? error.message : String(error)));
     return result;
   };
   return {
     runtime,
     state,
     close,
-    beginTurn(maxCalls: number) {
-      turnCalls = 0;
-      turnLimit = maxCalls;
+    beginTurn() {
+      failures.clear();
+      seenToolErrors.clear();
+      stopped = false;
     },
     async draft(root: string, set: string, modelString: string, task: string) {
       const slash = modelString.indexOf("/");
