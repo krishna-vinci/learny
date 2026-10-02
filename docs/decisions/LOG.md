@@ -360,3 +360,41 @@ HTML is a sketch. Legacy artifacts/`::artifact` keep their Run button and sandbo
   `_global/config.yaml` defaults to `visuals.router: off`, with no model wiring.
 - Deferred: scroll-synced scrollytelling (phone/list scroll conflicts), automatic
   headless poster capture and Mermaid-to-SVG (Chrome dependency).
+
+## D33 — Classifier layer · locked · 2026-10-02
+
+Extends D9/D15 and fills D32's optional visual router. C1–C4:
+
+- **C1:** Pi's classifier catalog (`getModelsOfType("classifier", "opencode")`),
+  `models.classifier: opencode/jev-1.13-free`; absent/null = off. Key only in
+  `OPENCODE_API_KEY`. Missing key, unavailable model, 429/error, oversized input or
+  a request beyond 2 seconds silently falls back and is logged. Models settings
+  show configured/working/off and read-only decision modes; no key entry.
+- **C2:** One typed `decide(name, {state, questions})` boundary. Each decision logs
+  a hash, ≤200-character excerpt, proposed/applied answer, confidence, latency,
+  usage and fallback reason to workspace `.cache/classifier-log.jsonl`. Known
+  later outcomes append a linked row. Classifier usage is included in job usage.
+- **C3:** off = no call; shadow = classify/log but preserve behavior; on = apply
+  only above the per-decision confidence threshold. Report agreement/calibration
+  from known outcomes with `server/scripts/classifier-report.ts`. Unknown labels
+  remain unknown. Do not infer claim presence from a clean checker verdict.
+- **C4:** **Checker and critic always run on every draft/card.** A classifier may
+  change evidence depth, priority or hints, never remove a safety check. Cited
+  checker passages are never filtered. Tutor tool reduction has an explicit
+  same-turn research escalation tool. Grader and librarian still run.
+
+| Decision | Question | Applied effect | Default / threshold |
+|---|---|---|---|
+| tutor.intent | quick answer / explain from note / needs research / start a job / quiz me / other | quick context/tools, with escalation | shadow / 0.8 |
+| context.relevance | bool per candidate, batched | top-K evidence by confidence; protect citations | on / 0.6 |
+| check.depth | bool per section: checkable claims? | light consistency vs full evidence; every section checked | shadow / 0.85 |
+| cards.prescreen | reject / revise / ok + issue bools | critic order and likely-issue hints | shadow / 0.8 |
+| visual.router | none / widget / sketch / chart + widget type | M9 authoring hint only | on / 0.7 |
+| grade.triage | score 0–2: wrong / unclear / correct | grader hint; independent assessment | shadow / 0.8 |
+| ingest.kind | kind / language / worth full summary | librarian variant, short/full summary | shadow / 0.8 |
+
+Classifier modes govern the new visual factory; legacy `nullRouter` and
+`visuals.router: off` remain compatible. Existing trees opt in by configuring a
+classifier model. Tokens are reported separately as fresh input / output / cache
+read / cache write, per provider/model. Subscription additional charge is $0;
+catalog costs are estimates. Prompt audits live in `.cache/prompt-audit.jsonl`.

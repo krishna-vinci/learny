@@ -149,6 +149,12 @@ describe("role system", () => {
     expect(result.text).toBe("done");
     expect(result.messages.some((message) => (message as Message).role === "assistant")).toBe(true);
     expect(result.written).toEqual([]);
+    const audit = (await fs.readFile(path.join(root, ".cache/prompt-audit.jsonl"), "utf8"))
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+    expect(audit.find((row) => row.event === "request")).toMatchObject({ role, estimate: "characters/4" });
+    expect(audit.find((row) => row.event === "request").buckets.tools).toBeGreaterThan(0);
   });
 
   it("lets the tutor read source image lists but never write library files", async () => {

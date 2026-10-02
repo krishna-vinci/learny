@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { FrontmatterError, parseFrontmatter } from "./frontmatter.js";
-import { PlanFrontmatter } from "./schemas.js";
+import { ConfigYaml, PlanFrontmatter } from "./schemas.js";
 
 describe("parseFrontmatter", () => {
   it("splits a leading frontmatter block from the body", () => {
@@ -34,4 +34,21 @@ describe("plan subject", () => {
       subject: "general",
     });
   });
+});
+
+it("accepts optional classifier config, null off, and validates modes/thresholds", () => {
+  expect(ConfigYaml.parse({ models: { default: "faux/echo" } }).models.classifier).toBeUndefined();
+  expect(ConfigYaml.parse({ models: { default: "faux/echo", classifier: null } }).models.classifier).toBeNull();
+  expect(
+    ConfigYaml.parse({
+      models: { default: "faux/echo", classifier: "opencode/jev-1.13-free" },
+      classifier: { decisions: { "context.relevance": { mode: "on", threshold: 0.6 } } },
+    }).classifier?.decisions["context.relevance"],
+  ).toEqual({ mode: "on", threshold: 0.6 });
+  expect(() =>
+    ConfigYaml.parse({
+      models: { default: "faux/echo" },
+      classifier: { decisions: { x: { mode: "on", threshold: 2 } } },
+    }),
+  ).toThrow();
 });

@@ -217,3 +217,33 @@ job ID. Once it finishes, a new build may be requested.
 The compiler timeout is 120 seconds per executable. These input/output limits do
 not impose a compiler memory or intermediate scratch-disk quota; use container
 resource/disk quotas when running a shared host with untrusted accounts.
+
+## Optional classifier (M10 / D33)
+
+Set `OPENCODE_API_KEY` in the server environment and explicitly configure
+`models.classifier: opencode/jev-1.13-free` in the workspace's `_global/config.yaml`.
+Absent/null model or missing key leaves it off. No credentials are entered in the
+UI. Models settings show off/configured/working; working means a successful call
+in this server process, not a paid health probe. Modes/thresholds are read-only
+there; edit workspace YAML for calibration experiments (see AGENT_ROLES.md).
+
+Requests have a 2-second deadline and conservatively bounded state; errors/rate
+limits/low confidence preserve the ordinary pipeline. Checker and critic remain
+mandatory. The configured classifier receives passage/answer/source excerpts in
+its decision state, so enabling it opts into sharing those with OpenCode.
+
+Workspace `.cache/classifier-log.jsonl` and `.cache/prompt-audit.jsonl` are private
+telemetry (hashes/excerpts in classifier logs, counts only in prompt audit); they
+are disposable and excluded from git/exports. Report tools make no model calls:
+
+```sh
+pnpm --filter @studium/server exec tsx scripts/classifier-report.ts /path/to/workspace/.cache/classifier-log.jsonl
+pnpm --filter @studium/server exec tsx scripts/prompt-audit.ts /path/to/workspace/.cache/prompt-audit.jsonl
+```
+
+Without a path, classifier-report discovers users under `STUDIUM_DATA_DIR`
+(default `../data` from the server package), or `STUDIUM_STUDY_ROOT` when set.
+Usage includes classifier tokens/costs in jobs; distinguish catalog estimates
+from subscription charge. Always report fresh input/output/cache read/cache write
+separately per provider/model. Pi's long cache retention is requested where its
+provider adapter supports it; the observed cache share is not guaranteed.

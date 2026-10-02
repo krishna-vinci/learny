@@ -42,6 +42,16 @@ const SELECT_CLASSES = cn(
   "md:h-8 md:text-sm",
 );
 
+const DECISION_LABELS: Record<string, string> = {
+  "tutor.intent": "Quick answers",
+  "context.relevance": "Relevant passages",
+  "check.depth": "Check depth",
+  "cards.prescreen": "Card screening",
+  "visual.router": "Visual suggestions",
+  "grade.triage": "Answer triage",
+  "ingest.kind": "Source summaries",
+};
+
 interface Draft {
   default: string;
   roles: Record<string, string>;
@@ -171,6 +181,34 @@ const ModelsSection = () => {
             />
           </div>
         </div>
+
+        {data.classifier && (
+          <div className="min-w-0 rounded-md border border-border/70 p-3">
+            <div className="flex flex-wrap items-center gap-2 font-medium text-foreground">
+              Classifier
+              <Badge variant={data.classifier.status === "working" ? "success" : "muted"} caps>
+                {data.classifier.status}
+              </Badge>
+            </div>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              Routes routine choices. Fact-checking and card reviews always run.
+            </p>
+            <p className="mt-2 break-all text-sm">{data.classifier.model ?? "No classifier configured"}</p>
+            <dl className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 text-sm">
+              {Object.entries(data.classifier.decisions).map(([name, setting]) => (
+                <div key={name} className="contents">
+                  <dt className="min-w-0 text-muted-foreground">{DECISION_LABELS[name] ?? name}</dt>
+                  <dd className="text-right">
+                    {setting.mode} · {setting.threshold}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Decision modes and confidence thresholds are read-only here.
+            </p>
+          </div>
+        )}
 
         {ROLES.map((role) => (
           <div key={role.key} className="rounded-md border border-border/70 p-3">

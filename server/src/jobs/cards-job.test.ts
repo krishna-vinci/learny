@@ -5,7 +5,8 @@ import { fileURLToPath } from "node:url";
 import type { Message, TranscriptContext } from "@earendil-works/pi-ai";
 import { fauxAssistantMessage, fauxProvider, fauxText, fauxToolCall } from "@earendil-works/pi-ai/providers/faux";
 import { parseCardFile } from "@studium/shared";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { Classifier } from "../agent/classifier.js";
 import { createModelRuntime } from "../agent/models.js";
 import { EventHub } from "../events.js";
 import { McpManager } from "../mcp/bridge.js";
@@ -29,6 +30,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   if (previousAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
   else process.env.PI_CODING_AGENT_DIR = previousAgentDir;
   await Promise.all([fs.rm(root, { recursive: true, force: true }), fs.rm(agentDir, { recursive: true, force: true })]);
@@ -167,7 +169,15 @@ describe("make-cards job", () => {
     ]);
   });
 
-  it("uses count zero for Critic-only review and preserves an approved clean card", async () => {
+  it("uses count zero for Critic-only review despite a confident clean prescreen and preserves approval", async () => {
+    vi.spyOn(Classifier.prototype, "decide").mockResolvedValue({
+      id: "test",
+      source: "classifier",
+      mode: "on",
+      confidence: 1,
+      probabilities: {},
+      answer: { "c-1234abcd": { verdict: "ok", unsupported: false, duplicate: false } },
+    } as never);
     const cardRootPath = "linear-algebra/cards/03-svd.md";
     await fs.mkdir(path.dirname(path.join(root, cardRootPath)), { recursive: true });
     await fs.writeFile(

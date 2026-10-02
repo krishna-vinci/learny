@@ -150,3 +150,32 @@ describe("settings routes", () => {
     expect(commits[0]?.author).toBe("user");
   });
 });
+
+it("shows classifier status without network calls and preserves classifier config when role models are saved", async () => {
+  await ensureRepo(root);
+  await writeConfig(
+    CONFIG.replace("  default: faux/echo", "  default: faux/echo\n  classifier: opencode/jev-1.13-free") +
+      "\nclassifier:\n  decisions:\n    tutor.intent: {mode: on, threshold: 0.9}\n",
+  );
+  const runtime = fakeRuntime(["faux/echo"]);
+  const app = makeApp({ runtime, env: { OPENCODE_API_KEY: "test-only" } });
+  const view = (await (await app.request("/api/settings")).json()) as SettingsView;
+  expect(view.classifier).toMatchObject({
+    model: "opencode/jev-1.13-free",
+    status: "configured",
+    decisions: { "tutor.intent": { mode: "on", threshold: 0.9 }, "visual.router": { mode: "on", threshold: 0.7 } },
+  });
+  const response = await app.request("/api/settings/models", {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ default: "faux/echo", roles: { checker: "faux/echo" } }),
+  });
+  expect(response.status).toBe(200);
+  const config = await fs.readFile(path.join(root, "_global/config.yaml"), "utf8");
+  expect(config).toContain("classifier: opencode/jev-1.13-free");
+  expect(config).toContain("threshold: 0.9");
+  expect(config).not.toContain("test-only");
+  const missingKey = makeApp({ runtime, env: {} });
+  const offView = (await (await missingKey.request("/api/settings")).json()) as SettingsView;
+  expect(offView.classifier?.status).toBe("off");
+});

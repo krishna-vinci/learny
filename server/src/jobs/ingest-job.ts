@@ -4,6 +4,7 @@ import type { ImageContent } from "@earendil-works/pi-ai";
 import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
 import { ConfigYaml, type JobResult, PlanFrontmatter, parseFrontmatter } from "@studium/shared";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
+import { workspaceClassifier } from "../agent/classifier-workspace.js";
 import { resolveRoleModel } from "../agent/models.js";
 import { RoleModelError, runRole } from "../agent/run-role.js";
 import type { EventHub } from "../events.js";
@@ -15,6 +16,7 @@ import {
   findDuplicate,
   type IngestJobInput,
   isSourcePending,
+  readParsedFile,
   readSource,
   withDedupeLock,
   writeSource,
@@ -297,12 +299,21 @@ async function runLibrarian(
   const writtenByLibrarian = new Set<string>();
   const view = await readSource(deps.root, sourceId);
   if (view === null) throw new Error(`library source disappeared: ${sourceId}`);
+  const classifier = await workspaceClassifier(deps.root, deps.runtime, ctx.signal, ctx);
+  const parsed = view.parsedFiles[0] ? await readParsedFile(deps.root, sourceId, view.parsedFiles[0]) : "";
+  const kind = await classifier.decide("ingest.kind", {
+    state: { title: view.source.title, text: (parsed ?? "").slice(0, 6000), detectedKind: view.source.type },
+  });
+  const variant =
+    kind.source === "classifier"
+      ? `Summary routing hint: kind ${kind.answer.kind}, language ${kind.answer.language}. ${kind.answer.worthSummary ? "Use the full summary depth." : "Use a short summary of at most 80 words."} Keep the TOC, credibility check and original metadata.`
+      : "";
   let result: Awaited<ReturnType<typeof runRole>>;
   try {
     result = await runRole("librarian", {
       root: deps.root,
       set: null,
-      task: librarianTask(sourceId, view.parsedFiles, images !== undefined),
+      task: librarianTask(sourceId, view.parsedFiles, images !== undefined) + (variant ? `\n${variant}` : ""),
       locks: deps.locks,
       mcp: deps.mcp,
       runtime: deps.runtime,
@@ -321,6 +332,7 @@ async function runLibrarian(
     throw error;
   }
   ctx.addUsage(usageFromPiMessages(result.messages));
+  await classifier.outcome("ingest.kind", kind.id, { kind: view.source.type });
   if (!writtenByLibrarian.has(sourceRel)) return summaryPending("Librarian did not update source.md");
   ctx.signal.throwIfAborted();
   const commitSha = await commitPaths(deps.root, [sourceRel], `librarian: summarize ${sourceId}`, "librarian");

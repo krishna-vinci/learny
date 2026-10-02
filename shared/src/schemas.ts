@@ -56,12 +56,19 @@ export const StudiumYaml = z.looseObject({
 });
 
 // `_global/config.yaml`.
+export const ClassifierDecisionSchema = z.object({
+  mode: z.enum(["off", "shadow", "on"]),
+  threshold: z.number().finite().min(0).max(1).optional(),
+});
+
 export const ConfigYaml = z.looseObject({
   visuals: z.object({ router: z.literal("off").default("off") }).default({ router: "off" }),
   models: z.looseObject({
     default: z.string(),
+    classifier: z.string().nullable().optional(),
     roles: z.record(z.string(), z.string()).default({}),
   }),
+  classifier: z.object({ decisions: z.record(z.string(), ClassifierDecisionSchema).default({}) }).optional(),
   // Providers (model-string prefixes) the learner pays a flat subscription for.
   billing: z
     .looseObject({

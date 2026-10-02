@@ -1,0 +1,22 @@
+{
+  "source": "classifier",
+  "answer": "quick answer",
+  "confidence": 0.99,
+  "reason": "accepted",
+  "model": "opencode/jev-1.13-free",
+  "latencyMs": 1425.3679149999998,
+  "usage": {
+    "input": 397,
+    "output": 68,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "totalTokens": 465,
+    "cost": {
+      "input": 0,
+      "output": 0,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "total": 0
+    }
+  }
+}

@@ -21,6 +21,7 @@ import { saveAssetTool } from "./builtins/save-asset.js";
 import { listSkills, skillTools } from "./builtins/skills.js";
 import { webFetchTool } from "./builtins/web-fetch.js";
 import { wikiTools } from "./builtins/wiki.js";
+import { installPromptAudit } from "./prompt-audit.js";
 import { ROLES, type RoleName } from "./roles.js";
 import { studyTools } from "./tools.js";
 
@@ -277,6 +278,7 @@ async function runSession(
   prompt: string,
   model: Model<Api>,
   modelString: string,
+  subscriptionProviders: readonly string[],
 ): Promise<{ text: string; messages: unknown[]; written: string[] }> {
   const written = new Set<string>();
   const toolset = roleToolset(role, {
@@ -308,6 +310,8 @@ async function runSession(
       retry: { enabled: true, maxRetries: 2 },
     }),
   });
+
+  installPromptAudit(session, opts.root, role, subscriptionProviders);
 
   const abort = () => {
     void session.abort().catch(() => undefined);
@@ -358,7 +362,14 @@ export async function runRole(
   const attempt = (modelString: string) => {
     const slash = modelString.indexOf("/");
     opts.onModel?.(slash > 0 ? modelString.slice(0, slash) : modelString);
-    return runSession(role, opts, prompt, resolveConfiguredModel(opts.runtime, modelString), modelString);
+    return runSession(
+      role,
+      opts,
+      prompt,
+      resolveConfiguredModel(opts.runtime, modelString),
+      modelString,
+      config.billing?.subscription ?? [],
+    );
   };
 
   try {
