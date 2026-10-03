@@ -60,7 +60,10 @@ export type KatexState = { plugin: RehypeKatex | null; failed: boolean };
 /** The KaTeX rehype plugin once loaded. `failed` turns true when it couldn't be downloaded, so the
  * caller renders the note with math as source text instead of waiting forever. */
 export function useKatex(needed: boolean): KatexState {
-  const [plugin, setPlugin] = useState<RehypeKatex | null>(cached);
+  // Lazy initialiser: `cached` is itself a function, and `useState(fn)` would *call* it, storing the
+  // plugin's transformer instead of the plugin. That broke every math render after the first
+  // (the "`children` in undefined" crash, first seen on iPhone in tutor answers).
+  const [plugin, setPlugin] = useState<RehypeKatex | null>(() => cached);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     if (!needed || plugin) return;
