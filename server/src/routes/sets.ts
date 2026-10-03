@@ -112,6 +112,29 @@ export function setsRoutes(deps: SetsDeps): Hono {
     }
   });
 
+  app.get("/:set/visuals", async (c) => {
+    const set = c.req.param("set");
+    if (!(await setExists(root, set))) return notFound(c);
+    try {
+      const dir = resolveInRoot(root, `${set}/visuals`);
+      let entries: import("node:fs").Dirent[];
+      try {
+        entries = await fs.readdir(dir, { withFileTypes: true });
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") return c.json({ files: [] });
+        throw error;
+      }
+      const files = entries
+        .filter((entry) => entry.isFile() && /\.(json|html)$/.test(entry.name))
+        .map((entry) => entry.name)
+        .sort();
+      return c.json({ files });
+    } catch (error) {
+      if (error instanceof PathError) return invalidPath(c);
+      throw error;
+    }
+  });
+
   app.get("/:set/sources", async (c) => {
     const set = c.req.param("set");
     if (!(await setExists(root, set))) return notFound(c);

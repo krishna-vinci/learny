@@ -65,8 +65,12 @@ function conflictCurrent(body: unknown): string | null {
   return b.error === "changed" && typeof b.current === "string" ? b.current : null;
 }
 
-/** Plain-textarea editor for a note's exact file text (`FileView.raw`, frontmatter + body);
- * a concurrent change on disk surfaces as `PUT /file`'s 409 conflict. */
+const CodeMirrorNoteEditor = lazy(() => import("@/components/NoteEditor/CodeMirrorNoteEditor"));
+
+/** CodeMirror editor for a note's exact file text (`FileView.raw`, frontmatter + body),
+ * with a plain-textarea fallback while the editor chunk loads and for notes with `\r\n`
+ * line endings (CodeMirror normalises those, which would make a save rewrite them); a
+ * concurrent change on disk surfaces as `PUT /file`'s 409 conflict. */
 function NoteEditor({ set, path, file, onDone }: { set: string; path: string; file: FileView; onDone: () => void }) {
   const initial = file.raw;
   const [draft, setDraft] = useState(initial);
@@ -157,13 +161,19 @@ function NoteEditor({ set, path, file, onDone }: { set: string; path: string; fi
         </div>
       )}
 
-      <textarea
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        spellCheck={false}
-        className="min-h-0 flex-1 resize-none border-0 bg-background px-4 py-3 font-mono text-sm text-foreground outline-none"
-        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}
-      />
+      <Suspense
+        fallback={
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            spellCheck={false}
+            className="min-h-0 flex-1 resize-none border-0 bg-background px-4 py-3 font-mono text-sm text-foreground outline-none"
+            style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}
+          />
+        }
+      >
+        <CodeMirrorNoteEditor set={set} value={draft} onChange={setDraft} />
+      </Suspense>
     </div>
   );
 }

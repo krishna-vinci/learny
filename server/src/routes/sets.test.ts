@@ -275,6 +275,20 @@ describe("sets authoring routes", () => {
     expect((await app.request("/api/sets/alpha/file?path=notes/large.md")).status).toBe(413);
   });
 
+  it("lists a set's visuals files, sorted, ignoring symlinks and non json/html entries", async () => {
+    expect((await app.request("/api/sets/missing/visuals")).status).toBe(404);
+    expect(await (await app.request("/api/sets/alpha/visuals")).json()).toEqual({ files: [] });
+
+    await fs.mkdir(path.join(root, "alpha/visuals"), { recursive: true });
+    await fs.writeFile(path.join(root, "alpha/visuals/b.json"), "{}");
+    await fs.writeFile(path.join(root, "alpha/visuals/a.html"), "<div></div>");
+    await fs.writeFile(path.join(root, "alpha/visuals/notes.txt"), "ignored");
+    await fs.symlink(path.join(root, "alpha/visuals/b.json"), path.join(root, "alpha/visuals/alias.json"));
+    expect(await (await app.request("/api/sets/alpha/visuals")).json()).toEqual({
+      files: ["a.html", "b.json"],
+    });
+  });
+
   describe("revert scope", () => {
     async function twoSets(): Promise<void> {
       await fs.mkdir(path.join(root, "beta/notes"), { recursive: true });
