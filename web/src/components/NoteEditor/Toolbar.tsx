@@ -1,6 +1,7 @@
 import type { EditorView } from "@codemirror/view";
 import {
   BoldIcon,
+  CodeIcon,
   Heading1Icon,
   ItalicIcon,
   LinkIcon,
@@ -89,7 +90,19 @@ const CALLOUT_LABELS: Record<CalloutName, string> = {
  * the live CodeMirror view and refocus it. Phones: fixed to the bottom of the overlay,
  * above the on-screen keyboard (`useKeyboardInset`) and `env(safe-area-inset-bottom)`.
  * Desktop (≥768px): a static row under the header, back in the normal flow. */
-export function Toolbar({ view, className }: { view: EditorView | null; className?: string }) {
+export function Toolbar({
+  view,
+  className,
+  showMarkdown,
+  onToggleShowMarkdown,
+}: {
+  view: EditorView | null;
+  className?: string;
+  /** Whether live preview (items 2–4: hidden markup, math/citation/visual widgets) is off,
+   * showing raw markdown instead. Item 1's styling stays either way. */
+  showMarkdown?: boolean;
+  onToggleShowMarkdown?: () => void;
+}) {
   const keyboardInset = useKeyboardInset();
 
   function run(command: FormattingCommand, calloutName?: CalloutName) {
@@ -154,6 +167,18 @@ export function Toolbar({ view, className }: { view: EditorView | null; classNam
           { label: "Table", onClick: () => run("table") },
         ]}
       />
+      {onToggleShowMarkdown && (
+        <button
+          type="button"
+          aria-label="Show markdown"
+          aria-pressed={!!showMarkdown}
+          title="Show markdown"
+          className={cn(buttonClass, "ms-auto", showMarkdown && "bg-accent text-accent-foreground")}
+          onClick={onToggleShowMarkdown}
+        >
+          <CodeIcon className="size-4" />
+        </button>
+      )}
     </div>
   );
 }

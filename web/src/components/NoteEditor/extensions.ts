@@ -40,13 +40,16 @@ const formattingKeys: KeyBinding[] = [
 ];
 
 /** Build the editor's extensions. `completions` is the autocompletion extension built from
- * data fetched once per editor open (see completions.ts / CodeMirrorNoteEditor.tsx). */
-export function buildNoteEditorExtensions(completions: Extension): Extension[] {
+ * data fetched once per editor open; `livePreview` is livePreview.ts's extension (empty
+ * when the "Show markdown" toggle is on) — both live in their own Compartment and are
+ * reconfigured from CodeMirrorNoteEditor.tsx, not rebuilt here. */
+export function buildNoteEditorExtensions(completions: Extension, livePreview: Extension): Extension[] {
   return [
     history(),
     markdown(),
     EditorView.lineWrapping,
     noteSyntaxDecorations,
+    livePreview,
     noteEditorTheme,
     completions,
     search({ top: true }),
