@@ -55,6 +55,7 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - The study tree git repo auto-commits per role author (tutor/librarian/drafter/checker/cardsmith/critic/user/system).
 
 ## Gotchas learned the hard way
+- Never pass a cached function to `useState(x)` — React calls it as an initializer. `useKatex` did this and broke every math render after the first chapter (the old iPhone "`children` in e" crash). Use `useState(() => fn)`.
 - Classifier layer (D33): `models.classifier` in `_global/config.yaml` (krishna: `opencode/jev-1.13-free`, key `OPENCODE_API_KEY` from `.env`); decisions off/shadow/on per `classifier.decisions`; log at `<workspace>/.cache/classifier-log.jsonl`, calibration via the report script in `server/scripts/`. Never let a decision skip checker/critic/grader. Report tokens as fresh/output/cache-read/cache-write per provider.
 - Visuals (D32): `::visual` in `<set>/visuals/` — `.json` widgets = pure SVG layouts in `shared/src/visuals/` (reader + book share them); `.html` sketches load libs from public `/visual-runtime/<lib>.<hash>.js` (no auth, strict filename allowlist) inside the unchanged `allow-scripts` sandbox. Use `expr-eval-fork`, never `expr-eval` (code-exec advisories).
 - Visuals (D31): `::artifact` declarations render only in the reader's Visuals tab (collected by `chapterVisuals()` in `shared/src/media.ts`), never in prose; tabs show only when a chapter has visuals. YouTube/images/charts stay inline.
