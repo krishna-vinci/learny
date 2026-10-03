@@ -17,7 +17,7 @@ interface MessageMarkdownProps {
 
 function MessageMarkdown({ text, notePath }: MessageMarkdownProps) {
   const math = hasMath(text);
-  const katex = useKatex(math);
+  const { plugin: katex } = useKatex(math);
   return (
     <div className="studium-prose studium-prose-compact min-w-0 break-words">
       <RenderBoundary fallbackText={text} resetKey={text}>

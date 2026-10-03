@@ -8,6 +8,24 @@ import "@/index.css";
 import { clearOfflineCaches } from "@/lib/offline";
 import { router } from "@/router";
 
+// After a deploy, an open tab or installed PWA still runs the previous build and asks for lazy
+// chunks (KaTeX, Mermaid, visuals…) that no longer exist. Vite reports that as
+// `vite:preloadError`: reload once to pick up the new build. The timestamp guard stops a loop
+// when the failure is real (e.g. offline).
+window.addEventListener("vite:preloadError", (event) => {
+  const key = "studium:chunk-reload";
+  let last = 0;
+  try {
+    last = Number(sessionStorage.getItem(key) ?? 0);
+  } catch {}
+  if (Date.now() - last < 60_000) return;
+  try {
+    sessionStorage.setItem(key, String(Date.now()));
+  } catch {}
+  event.preventDefault();
+  window.location.reload();
+});
+
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
     onError: (error) => {

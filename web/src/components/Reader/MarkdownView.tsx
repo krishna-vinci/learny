@@ -114,9 +114,11 @@ const markdownComponents: Components = {
 function MarkdownViewComponent({ content, className, notePath }: MarkdownViewProps) {
   // KaTeX loads only for notes that contain math; others never pay for it.
   const math = hasMath(content);
-  const katex = useKatex(math);
+  const { plugin: katex, failed: katexFailed } = useKatex(math);
   const katexPlugins: MarkdownRehypePlugins = katex ? [katex] : [];
-  if (math && !katex) return <div className={cn("studium-prose h-24 w-full", className)} aria-busy="true" />;
+  // While KaTeX downloads, hold the layout; if it can't load, show the note with math as source.
+  if (math && !katex && !katexFailed)
+    return <div className={cn("studium-prose h-24 w-full", className)} aria-busy="true" />;
   return (
     <div className={cn("studium-prose w-full break-words text-foreground", className)}>
       <RenderBoundary fallbackText={content} resetKey={content}>

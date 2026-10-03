@@ -35,10 +35,18 @@ let cached: RehypeKatex | null = null;
 let pending: Promise<RehypeKatex> | null = null;
 
 export function loadKatex(): Promise<RehypeKatex> {
-  pending ??= Promise.all([import("rehype-katex"), import("katex/dist/katex.min.css")]).then(([module]) => {
-    cached = safe(module.default);
-    return cached;
-  });
+  pending ??= Promise.all([import("rehype-katex"), import("katex/dist/katex.min.css")]).then(
+    ([module]) => {
+      cached = safe(module.default);
+      return cached;
+    },
+    (error: unknown) => {
+      // A failed chunk download (offline, or an old app version after a deploy) must not stick:
+      // forget it so the next note retries.
+      pending = null;
+      throw error;
+    },
+  );
   return pending;
 }
 
@@ -47,18 +55,28 @@ export function hasMath(text: string): boolean {
   return /\$[^$\n]+\$|\$\$|\\\(|\\\[/.test(text);
 }
 
-/** The KaTeX rehype plugin once loaded; `null` until then (and forever when `needed` is false). */
-export function useKatex(needed: boolean): RehypeKatex | null {
+export type KatexState = { plugin: RehypeKatex | null; failed: boolean };
+
+/** The KaTeX rehype plugin once loaded. `failed` turns true when it couldn't be downloaded, so the
+ * caller renders the note with math as source text instead of waiting forever. */
+export function useKatex(needed: boolean): KatexState {
   const [plugin, setPlugin] = useState<RehypeKatex | null>(cached);
+  const [failed, setFailed] = useState(false);
   useEffect(() => {
     if (!needed || plugin) return;
     let cancelled = false;
-    void loadKatex().then((loaded) => {
-      if (!cancelled) setPlugin(() => loaded);
-    });
+    loadKatex().then(
+      (loaded) => {
+        if (!cancelled) setPlugin(() => loaded);
+      },
+      (error: unknown) => {
+        console.warn("studium: math renderer unavailable; showing math as text", error);
+        if (!cancelled) setFailed(true);
+      },
+    );
     return () => {
       cancelled = true;
     };
   }, [needed, plugin]);
-  return needed ? plugin : null;
+  return { plugin: needed ? plugin : null, failed: needed && !plugin && failed };
 }
