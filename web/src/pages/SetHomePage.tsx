@@ -20,6 +20,7 @@ import { openChatDock } from "@/components/ChatDock/openChatDock";
 import { CoursePlan } from "@/components/CoursePlan";
 import { AddSourceSheet } from "@/components/Library/AddSourceSheet";
 import { RowsSkeleton } from "@/components/ListSkeleton";
+import { planHref } from "@/components/Navigation/nav";
 import { NewChapterSheet } from "@/components/NewChapterSheet";
 import { NewNoteDialog } from "@/components/NewNoteDialog";
 import { PlanSetSheet } from "@/components/PlanSetSheet";
@@ -252,8 +253,13 @@ export default function SetHomePage() {
     <div className="mx-auto w-full max-w-3xl px-4 py-6 md:px-6">
       <div>
         <h1 className="text-xl font-semibold text-foreground">{summary?.title ?? set}</h1>
-        {goal && <p className="mt-1 line-clamp-3 text-sm text-muted-foreground">{goal}</p>}
-        {!goal && nextAction && <p className="mt-1 text-sm text-muted-foreground">{nextAction}</p>}
+        <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          {goal && <p className="line-clamp-3 text-sm text-muted-foreground">{goal}</p>}
+          {!goal && nextAction && <p className="text-sm text-muted-foreground">{nextAction}</p>}
+          <Link to={planHref(set)} className="shrink-0 text-sm text-primary underline-offset-2 hover:underline">
+            View plan
+          </Link>
+        </div>
       </div>
 
       {runningJobCount > 0 && (

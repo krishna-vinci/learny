@@ -10,6 +10,7 @@ import {
   BookOpenIcon,
   ListChecksIcon,
   LogOutIcon,
+  MapIcon,
   MonitorIcon,
   MoonIcon,
   NotebookTextIcon,
@@ -26,7 +27,7 @@ import { useCardFiles, useCurrentUser, useInbox, useJobs, useNotes } from "@/api
 import { DesktopActivityIndicator, MobileActivityIndicator } from "@/components/Activity/ActivityIndicator";
 import { openActivityPanel } from "@/components/Activity/activity-store";
 import { AddSourceSheet } from "@/components/Library/AddSourceSheet";
-import { cardsHref, pageTitleFor, practiceHref, toReviewHref } from "@/components/Navigation/nav";
+import { cardsHref, pageTitleFor, planHref, practiceHref, toReviewHref } from "@/components/Navigation/nav";
 import { NewChapterSheet } from "@/components/NewChapterSheet";
 import { NewNoteDialog } from "@/components/NewNoteDialog";
 import { SearchButton } from "@/components/Search/SearchPalette";
@@ -175,6 +176,12 @@ const StudySection = ({ set }: { set?: string }) => {
       />
       {set && (
         <>
+          <SidebarRow
+            icon={MapIcon}
+            label="Plan"
+            state={location.pathname === planHref(set) ? "current" : "idle"}
+            onClick={() => goTo(planHref(set))}
+          />
           <SidebarRow
             icon={TargetIcon}
             label="Practice"

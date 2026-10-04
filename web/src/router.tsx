@@ -117,6 +117,7 @@ export const router = createBrowserRouter([
       { path: "settings/:section", ...page(() => import("@/pages/SettingsPage")) },
       { path: "jobs", ...page(() => import("@/pages/JobsPage")) },
       { path: "s/:set", ...page(() => import("@/pages/SetHomePage")) },
+      { path: "s/:set/plan", ...page(() => import("@/pages/PlanPage")) },
       { path: "s/:set/practice", ...page(() => import("@/pages/PracticePage")) },
       { path: "s/:set/inbox", ...page(() => import("@/pages/InboxPage")) },
       { path: "s/:set/cards", ...page(() => import("@/pages/CardsPage")) },

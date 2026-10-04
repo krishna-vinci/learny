@@ -7,6 +7,7 @@ import {
   LayersIcon,
   LibraryBigIcon,
   LogOutIcon,
+  MapIcon,
   MonitorIcon,
   MoonIcon,
   PlusIcon,
@@ -23,7 +24,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { isActiveJob } from "@/lib/job-transitions";
 import { setReadingPrefs, type Theme, useReadingPrefs } from "@/lib/reading-prefs";
 import { useSignOut } from "@/pages/useSignOut";
-import { cardsHref, toReviewHref } from "./nav";
+import { cardsHref, planHref, toReviewHref } from "./nav";
 
 function Row({
   icon: Icon,
@@ -92,6 +93,7 @@ export function MoreSheet({
             Sources, reviews, activity, settings and your account.
           </DialogDescription>
           <Row icon={BookOpenIcon} label="Sources" onClick={() => go("/library")} />
+          {set && <Row icon={MapIcon} label="Plan" onClick={() => go(planHref(set))} />}
           {set && <Row icon={LayersIcon} label="Cards" onClick={() => go(cardsHref(set))} />}
           {set && (
             <Row icon={ArchiveIcon} label="To review" count={inbox.length} onClick={() => go(toReviewHref(set))} />

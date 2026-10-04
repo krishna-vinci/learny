@@ -9,6 +9,7 @@ import { openActivityPanel } from "@/components/Activity/activity-store";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { FirstUseHint } from "@/components/FirstUseHint";
 import { RowsSkeleton } from "@/components/ListSkeleton";
+import { planHref } from "@/components/Navigation/nav";
 import { RewriteChapterDialog } from "@/components/RewriteChapterDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,13 +51,25 @@ export function nextDrafts(chapters: readonly CourseChapter[]): CourseChapter[] 
     .slice(0, 3);
 }
 
-const STATE_LABELS = {
+export const STATE_LABELS = {
   planned: "Planned",
   drafting: "Drafting",
   drafted: "Drafted",
   checked: "Checked",
   accepted: "Accepted",
 } as const;
+
+/** The chapter state badge, shared with PlanPage.tsx so both pages agree on labels/colours. */
+export function ChapterStateBadge({ state }: { state: CourseChapter["state"] }) {
+  return (
+    <Badge
+      variant={state === "checked" || state === "accepted" ? "success" : state === "drafting" ? "tint" : "muted"}
+      className={state === "accepted" ? "border-success/40 bg-success/25 font-semibold" : undefined}
+    >
+      {STATE_LABELS[state]}
+    </Badge>
+  );
+}
 
 export function CoursePlan({ set, jobs, onReplan }: { set: string; jobs: readonly JobView[]; onReplan: () => void }) {
   const course = useCourse(set);
@@ -128,9 +141,17 @@ export function CoursePlan({ set, jobs, onReplan }: { set: string; jobs: readonl
         <h2 id="course-plan-title" className="text-sm font-semibold text-foreground">
           Course plan
         </h2>
-        <Button variant="quiet" size="sm" className="h-11" onClick={onReplan}>
-          Re-plan
-        </Button>
+        <div className="flex items-center gap-1">
+          <Link
+            to={planHref(set)}
+            className="flex h-11 min-h-11 items-center px-2 text-sm text-primary underline-offset-2 hover:underline"
+          >
+            View plan
+          </Link>
+          <Button variant="quiet" size="sm" className="h-11" onClick={onReplan}>
+            Re-plan
+          </Button>
+        </div>
       </div>
       {course.isLoading ? (
         <RowsSkeleton rows={3} className="mt-2" />
@@ -176,18 +197,7 @@ export function CoursePlan({ set, jobs, onReplan }: { set: string; jobs: readonl
                       ) : (
                         <span className="min-w-0 flex-1 text-sm font-medium text-foreground">{chapter.title}</span>
                       )}
-                      <Badge
-                        variant={
-                          state === "checked" || state === "accepted"
-                            ? "success"
-                            : state === "drafting"
-                              ? "tint"
-                              : "muted"
-                        }
-                        className={state === "accepted" ? "border-success/40 bg-success/25 font-semibold" : undefined}
-                      >
-                        {STATE_LABELS[state]}
-                      </Badge>
+                      <ChapterStateBadge state={state} />
                     </div>
                     {chapter.scope && (
                       <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground" title={chapter.scope}>

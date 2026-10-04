@@ -15,6 +15,11 @@ export function toReviewHref(set: string): string {
   return `/s/${set}/inbox`;
 }
 
+/** The set's full plan: goal, scope, sources and every chapter (PLAN.md + curriculum.md). */
+export function planHref(set: string): string {
+  return `/s/${set}/plan`;
+}
+
 /** The set a phone "Notes"/"Practice" tab should open: the current one, else the last visited, else none. */
 export function setHomeHref(set: string | null | undefined): string {
   return set ? `/s/${set}` : "/sets";

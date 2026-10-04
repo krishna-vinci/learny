@@ -1,0 +1,70 @@
+import { cleanup, render, screen } from "@testing-library/react";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { afterEach, expect, it, vi } from "vitest";
+import PlanPage from "./PlanPage";
+
+let planBody = "## Goal\nLearn linear algebra for ML.\n\n## Scope\nIn: vectors, matrices.";
+let chapters: unknown[] = [
+  { order: 1, title: "Vectors", scope: "Dot products and norms.", prerequisites: "none", state: "accepted" },
+  { order: 2, title: "Matrices", scope: "Elimination and rank.", prerequisites: "01", state: "planned" },
+];
+
+vi.mock("@/api/queries", () => ({
+  useSets: () => ({
+    data: [{ slug: "linear-algebra", title: "Linear algebra", status: "active", level: 2, deadline: "2026-12-01" }],
+  }),
+  useNoteFile: () => ({ data: { body: planBody, frontmatter: { subject: "math" } }, isLoading: false }),
+  useCourse: () => ({ data: { subject: "math", chapters }, isLoading: false }),
+  useSetSources: () => ({ data: [{ id: "lib-strang", title: "Introduction to Linear Algebra" }], isLoading: false }),
+}));
+vi.mock("@/components/Reader/MarkdownView", () => ({
+  MarkdownView: ({ content }: { content: string }) => <div data-testid="plan-body">{content}</div>,
+}));
+vi.mock("@/components/PlanSetSheet", () => ({ PlanSetSheet: () => <p>Plan form</p> }));
+
+afterEach(() => {
+  cleanup();
+  planBody = "## Goal\nLearn linear algebra for ML.\n\n## Scope\nIn: vectors, matrices.";
+  chapters = [
+    { order: 1, title: "Vectors", scope: "Dot products and norms.", prerequisites: "none", state: "accepted" },
+    { order: 2, title: "Matrices", scope: "Elimination and rank.", prerequisites: "01", state: "planned" },
+  ];
+});
+
+function setup() {
+  render(
+    <MemoryRouter initialEntries={["/s/linear-algebra/plan"]}>
+      <Routes>
+        <Route path="/s/:set/plan" element={<PlanPage />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
+
+it("renders header facts, the plan body, sources and chapters", () => {
+  setup();
+  const facts = screen.getByTestId("plan-facts");
+  expect(facts.textContent).toContain("Level 2");
+  expect(facts.textContent).toContain("Math");
+  expect(facts.textContent).toContain("Active");
+
+  expect(screen.getByTestId("plan-body").textContent).toContain("Learn linear algebra for ML.");
+
+  const sourceLink = screen.getByRole("link", { name: "Introduction to Linear Algebra" });
+  expect(sourceLink.getAttribute("href")).toBe("/library/lib-strang");
+
+  expect(screen.getByText("Vectors")).toBeTruthy();
+  expect(screen.getByText("Dot products and norms.")).toBeTruthy();
+  expect(screen.getByText("Prerequisites: 01")).toBeTruthy();
+  expect(screen.getByText("Accepted")).toBeTruthy();
+  expect(screen.getByText("Planned")).toBeTruthy();
+});
+
+it("shows the empty state with a Plan with agent button when PLAN.md has no body", () => {
+  planBody = "";
+  chapters = [];
+  setup();
+  expect(screen.getByText("No plan yet")).toBeTruthy();
+  expect(screen.getByRole("button", { name: /Plan with agent/ })).toBeTruthy();
+  expect(screen.queryByTestId("plan-body")).toBeNull();
+});
