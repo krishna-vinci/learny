@@ -1,6 +1,7 @@
 import type { CourseView } from "@studium/shared";
 import { PlanFrontmatter, parseFrontmatter } from "@studium/shared";
 import { slugify } from "../ingest/ids.js";
+import { coverageKey, loadCoverage } from "../search/coverage.js";
 import { chapterExists, parseCurriculum } from "../tree/curriculum.js";
 import { readText } from "../tree/edit.js";
 import { resolveInRoot } from "../tree/paths.js";
@@ -35,6 +36,7 @@ export async function buildCourse(
   } catch {
     // Broken user-edited YAML must not hide the curriculum.
   }
+  const coverage = await loadCoverage(root);
   const chapters = parseCurriculum(curriculum)
     .map((chapter, index) => {
       const note = notes.find((candidate) => chapterExists(chapter, [candidate.path]));
@@ -47,6 +49,9 @@ export async function buildCourse(
         order: chapter.number ?? index + 1,
         title: chapter.title,
         scope: chapter.scope,
+        ...(coverage.has(coverageKey(set, chapter.title, chapter.scope))
+          ? { evidence: coverage.get(coverageKey(set, chapter.title, chapter.scope)) }
+          : {}),
         prerequisites: chapter.prerequisites,
         state: job
           ? ("drafting" as const)

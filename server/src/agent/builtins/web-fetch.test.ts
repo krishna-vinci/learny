@@ -119,6 +119,42 @@ describe("webFetchTool", () => {
     expect(outcome.content[0]).toMatchObject({ type: "text", text: expect.stringContaining("Advanced extraction") });
   });
 
+  it("reports both failures and remembers blocked hosts for this tool instance", async () => {
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock
+      .mockResolvedValueOnce(json({ success: false, error: "renderer failed" }))
+      .mockResolvedValueOnce(new Response("blocked", { status: 403 }));
+    const definition = tool({ firecrawlUrl: "https://firecrawl.example" });
+    const first = await definition.execute(
+      "1",
+      { url: "https://93.184.216.34/a" },
+      undefined,
+      undefined,
+      undefined as never,
+    );
+    expect(first.content[0]).toMatchObject({
+      text: expect.stringMatching(/Firecrawl.*renderer failed.*direct: HTTP 403/),
+    });
+    const second = await definition.execute(
+      "2",
+      { url: "https://93.184.216.34/b" },
+      undefined,
+      undefined,
+      undefined as never,
+    );
+    expect(second.content[0]).toMatchObject({ text: expect.stringContaining("Host blocked earlier") });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries a 429 exactly once", async () => {
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock
+      .mockResolvedValueOnce(new Response("rate limit", { status: 429, headers: { "retry-after": "0" } }))
+      .mockResolvedValueOnce(new Response("<html><body><p>Recovered</p></body></html>"));
+    expect((await execute("https://93.184.216.34/a")).details).toMatchObject({ isError: false });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it("caps a Firecrawl response before falling back to the built-in fetch", async () => {
     vi.stubGlobal("fetch", fetchMock);
     fetchMock

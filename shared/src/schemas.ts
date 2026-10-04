@@ -46,6 +46,12 @@ export const SourceFrontmatter = z.looseObject({
   url: z.string().optional(),
   credibility: z.string(),
   parse_tier: ParseTier,
+  quality: z
+    .object({
+      score: z.number().int().min(0).max(100),
+      signals: z.record(z.string(), z.union([z.number(), z.boolean()])),
+    })
+    .optional(),
   sha256: z.string().optional(),
   added: z.string(),
 });

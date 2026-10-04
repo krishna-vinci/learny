@@ -1,5 +1,6 @@
 import { defineTool, type ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+import { isImageSourceUrl } from "../../ingest/image-url.js";
 import type { JobRunner } from "../../jobs/runner.js";
 
 function jobTitle(url: URL): string {
@@ -30,6 +31,7 @@ export function addSourceTool(opts: { set: string; jobs: Pick<JobRunner, "enqueu
         if (url.protocol !== "http:" && url.protocol !== "https:") {
           throw new Error("Only http and https URLs are allowed");
         }
+        if (isImageSourceUrl(url)) throw new Error("this is an image — save it with save_asset");
         const job = opts.jobs.enqueue(
           "ingest",
           { url: url.toString(), set: opts.set },

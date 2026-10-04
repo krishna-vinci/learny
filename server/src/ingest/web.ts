@@ -3,8 +3,12 @@ import { parseHTML } from "linkedom";
 import TurndownService from "turndown";
 import { cleanMarkdown } from "./clean.js";
 import { firecrawlScrape } from "./firecrawl.js";
+import { preserveTex, structureRules } from "./html-structure.js";
 import { collectImages, type SourceImage } from "./images.js";
-import { decodeBody, SAFE_FETCH_MAX_BYTES, safeFetch } from "./safe-fetch.js";
+import { politeFetch } from "./polite-fetch.js";
+import { MIN_PARSE_QUALITY, scoreParseQuality } from "./quality.js";
+import { decodeBody, SAFE_FETCH_MAX_BYTES } from "./safe-fetch.js";
+import { fetchStrategy } from "./strategies.js";
 import type { Extracted } from "./types.js";
 
 export interface WebExtractOptions {
@@ -29,6 +33,7 @@ export function createTurndown(): TurndownService {
     emDelimiter: "*",
   });
   service.remove(["script", "style", "noscript"]);
+  structureRules(service);
   return service;
 }
 
@@ -44,15 +49,45 @@ export function htmlToMarkdown(html: string, url?: string): MarkdownConversion {
     document.head?.prepend(base);
   }
 
+  const captions = new Map<string, string>();
+  for (const figure of document.querySelectorAll("figure")) {
+    const caption = figure.querySelector("figcaption")?.textContent?.trim();
+    const src = figure.querySelector("img")?.getAttribute("src");
+    if (caption && src && url) {
+      try {
+        captions.set(new URL(src, url).href, caption);
+      } catch {
+        /* Ignore invalid image URLs. */
+      }
+    }
+  }
+  const math = preserveTex(document);
+  for (const pre of document.querySelectorAll("pre")) {
+    const token = `STUDIUMCODE${math.size}END`;
+    math.set(token, createTurndown().turndown(pre.outerHTML));
+    pre.replaceWith(document.createTextNode(token));
+  }
+  for (const node of document.querySelectorAll("nav, footer, script, style, noscript")) node.remove();
   const readability = new Readability(document as unknown as ConstructorParameters<typeof Readability>[0]);
   const article = readability.parse();
   const title = firstNonEmpty(article?.title, document.title);
   const byline = firstNonEmpty(article?.byline);
   const sourceHtml = article?.content ?? document.body?.innerHTML ?? html;
-  const markdown = createTurndown().turndown(sourceHtml);
+  let markdown = createTurndown().turndown(sourceHtml);
+  for (const [token, tex] of math) markdown = markdown.replaceAll(token, () => tex);
   // Readability strips the article's own <h1>; re-add it so the source keeps its title.
   const withTitle = title !== null && !hasHeading(markdown, title) ? `# ${title}\n\n${markdown}` : markdown;
-  return { title, byline, markdown: cleanMarkdown(withTitle), images: url ? collectImages(withTitle, url) : [] };
+  return {
+    title,
+    byline,
+    markdown: cleanMarkdown(withTitle),
+    images: url
+      ? collectImages(withTitle, url).map((image) => ({
+          ...image,
+          ...(captions.has(image.url) ? { caption: captions.get(image.url) } : {}),
+        }))
+      : [],
+  };
 }
 
 /**
@@ -61,33 +96,56 @@ export function htmlToMarkdown(html: string, url?: string): MarkdownConversion {
  */
 export async function extractWeb(url: string, options: WebExtractOptions = {}): Promise<Extracted> {
   let firecrawlWarning: string | null = null;
+  let first: Extracted | null = null;
+  if (fetchStrategy(url).kind === "wiki-api") {
+    try {
+      return await (await import("./wikipedia.js")).extractWikipedia(url, options);
+    } catch (error) {
+      options.signal?.throwIfAborted();
+      firecrawlWarning = `Wiki API failed: ${messageOf(error)}`;
+    }
+  }
   if (options.firecrawlUrl !== undefined && options.firecrawlUrl !== "") {
     try {
       const scraped = await firecrawlScrape(url, {
         baseUrl: options.firecrawlUrl,
         apiKey: options.firecrawlKey,
         signal: options.signal,
+        includeHtml: true,
+        waitFor: fetchStrategy(url).waitFor,
       });
-      return {
+      const converted = scraped.html ? htmlToMarkdown(scraped.html, scraped.url ?? url) : null;
+      const rich =
+        converted && scoreParseQuality(converted.markdown).score >= scoreParseQuality(scraped.markdown).score
+          ? converted.markdown
+          : scraped.markdown;
+      first = {
         title: scraped.title,
         authors: [],
-        markdown: cleanMarkdown(scraped.markdown),
-        images: collectImages(scraped.markdown, scraped.url ?? url),
+        markdown: cleanMarkdown(rich),
+        images: converted?.images ?? collectImages(rich, scraped.url ?? url),
         pages: null,
         parseTier: "firecrawl",
         warning: null,
         url: scraped.url,
         originalExt: null,
       };
+      if (scoreParseQuality(first.markdown).score >= MIN_PARSE_QUALITY) return first;
     } catch (error) {
       firecrawlWarning = `Firecrawl failed: ${messageOf(error)}`;
     }
   }
 
-  const response = await safeFetch(url, { signal: options.signal, maxBytes: SAFE_FETCH_MAX_BYTES });
+  let response: Awaited<ReturnType<typeof politeFetch>>;
+  try {
+    response = await politeFetch(fetchStrategy(url).url, { signal: options.signal, maxBytes: SAFE_FETCH_MAX_BYTES });
+  } catch (error) {
+    if (first) return first;
+    throw new Error(`${firecrawlWarning ? `${firecrawlWarning}; direct: ` : ""}${messageOf(error)}`);
+  }
   const converted = htmlToMarkdown(decodeBody(response.bytes, response.contentType), response.url);
   const warning = firecrawlWarning ?? (converted.markdown.trim() === "" ? "no readable content found" : null);
-  return {
+  const direct: Extracted = {
     title: converted.title,
     authors: bylineAuthors(converted.byline),
     markdown: converted.markdown,
@@ -98,6 +156,7 @@ export async function extractWeb(url: string, options: WebExtractOptions = {}): 
     url: response.url,
     originalExt: null,
   };
+  return first && scoreParseQuality(first.markdown).score >= scoreParseQuality(direct.markdown).score ? first : direct;
 }
 
 function firstNonEmpty(...values: (string | null | undefined)[]): string | null {

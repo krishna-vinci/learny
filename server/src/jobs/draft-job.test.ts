@@ -34,7 +34,7 @@ beforeEach(async () => {
   await fs.cp(SAMPLE_SET, root, { recursive: true });
   await fs.writeFile(
     path.join(root, "library/lib-strang-la/parsed.md"),
-    "<!-- p:1 -->\nEigenvalues satisfy Av = lambda v.\n",
+    "<!-- p:1 -->\nEigenvalues and eigenvectors satisfy Av = lambda v.\n",
   );
   await ensureRepo(root);
 });

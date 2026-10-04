@@ -1,7 +1,10 @@
 import { defineTool, type ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+import { publicErrorReason } from "../../ingest/error-reason.js";
 import { firecrawlScrape } from "../../ingest/firecrawl.js";
-import { assertPublicUrl, decodeBody, safeFetch } from "../../ingest/safe-fetch.js";
+import { paywallHint, politeFetch } from "../../ingest/polite-fetch.js";
+import { assertPublicUrl, decodeBody } from "../../ingest/safe-fetch.js";
+import { htmlToMarkdown as convertHtml } from "../../ingest/web.js";
 
 const DOWNLOAD_TIMEOUT_MS = 15_000;
 const MAX_DOWNLOAD_BYTES = 5 * 1024 * 1024;
@@ -15,6 +18,7 @@ interface ToolDetails {
 export interface WebFetchOptions {
   firecrawlUrl?: string;
   firecrawlKey?: string;
+  blockedHosts?: Map<string, string>;
 }
 
 function result(summary: string, text: string) {
@@ -40,63 +44,62 @@ function truncateBytes(text: string, maxBytes: number): string {
   return `${text.slice(0, length)}\n\n[Truncated at 200 KB]`;
 }
 
-async function htmlToMarkdown(html: string, fallbackUrl: URL): Promise<string> {
-  const { parseHTML } = await import("linkedom");
-  const { document } = parseHTML(html);
-  const { Readability } = await import("@mozilla/readability");
-  const article = new Readability<string>(document as never).parse();
-  const { default: TurndownService } = await import("turndown");
-  const turndown = new TurndownService({
-    headingStyle: "atx",
-    bulletListMarker: "-",
-    codeBlockStyle: "fenced",
-  });
-  if (article !== null && article.content !== null && article.content !== undefined) {
-    const title = article.title ?? fallbackUrl.hostname;
-    return `# ${title}\n\n${turndown.turndown(article.content).trim()}\n`;
-  }
-
-  const bodyText = document.body?.textContent?.trim() ?? "";
-  if (bodyText === "") throw new Error("Page contains no readable text");
-  return `${turndown.turndown(html).trim()}\n`;
-}
-
-async function firecrawlMarkdown(url: URL, opts: WebFetchOptions): Promise<string | null> {
-  if (opts.firecrawlUrl === undefined || opts.firecrawlUrl === "") return null;
-  try {
-    const scraped = await firecrawlScrape(url.toString(), {
-      baseUrl: opts.firecrawlUrl,
-      ...(opts.firecrawlKey === undefined ? {} : { apiKey: opts.firecrawlKey }),
-    });
-    return scraped.markdown;
-  } catch {
-    return null;
-  }
-}
-
 export function webFetchTool(opts: WebFetchOptions = {}): ToolDefinition {
+  // Tool instance lives for a job/chat; never share the blocklist between learners.
+  const blocked = opts.blockedHosts ?? new Map<string, string>();
   return defineTool({
     name: "web_fetch",
     label: "Fetch web page",
     description: "Fetch a public http(s) page and return readable markdown.",
     parameters: Type.Object({ url: Type.String({ minLength: 1 }) }),
-    async execute(_toolCallId, params) {
+    async execute(_toolCallId, params, signal) {
+      let firecrawlError: string | null = null;
+      let currentUrl: URL | null = null;
       try {
         // Validate before Firecrawl too, so both paths share one SSRF guard.
         const url = await assertPublicUrl(params.url);
-        const firecrawl = await firecrawlMarkdown(url, opts);
-        if (firecrawl !== null) {
-          return result(`fetched ${url.hostname} with Firecrawl`, truncateBytes(firecrawl, MAX_MARKDOWN_BYTES));
+        currentUrl = url;
+        const previous = blocked.get(url.hostname);
+        if (previous) throw new Error(`Host blocked earlier in this job/chat: ${previous}`);
+        if (opts.firecrawlUrl) {
+          try {
+            const scraped = await firecrawlScrape(url.toString(), {
+              baseUrl: opts.firecrawlUrl,
+              apiKey: opts.firecrawlKey,
+              signal,
+              includeHtml: true,
+            });
+            return result(
+              `fetched ${url.hostname} with Firecrawl`,
+              truncateBytes(
+                scraped.html ? convertHtml(scraped.html, scraped.url ?? url.toString()).markdown : scraped.markdown,
+                MAX_MARKDOWN_BYTES,
+              ),
+            );
+          } catch (error) {
+            firecrawlError = publicErrorReason(error);
+          }
         }
-        const response = await safeFetch(url.toString(), {
+        const response = await politeFetch(url.toString(), {
           headers: { accept: "text/html,application/xhtml+xml,text/plain;q=0.9", "user-agent": "Studium/0.0" },
           timeoutMs: DOWNLOAD_TIMEOUT_MS,
           maxBytes: MAX_DOWNLOAD_BYTES,
+          signal,
         });
-        const markdown = await htmlToMarkdown(decodeBody(response.bytes, response.contentType), url);
-        return result(`fetched ${url.hostname}`, truncateBytes(markdown, MAX_MARKDOWN_BYTES));
+        const markdown = convertHtml(decodeBody(response.bytes, response.contentType), response.url).markdown;
+        return result(
+          `fetched ${url.hostname}`,
+          truncateBytes(
+            `${firecrawlError ? `Firecrawl failed: ${firecrawlError}\n\n` : ""}${markdown}`,
+            MAX_MARKDOWN_BYTES,
+          ),
+        );
       } catch (error) {
-        return errorResult(error);
+        const direct = publicErrorReason(error);
+        if (currentUrl && /HTTP (?:401|403|451)\b/.test(direct)) blocked.set(currentUrl.hostname, direct);
+        return errorResult(
+          `${firecrawlError ? `Firecrawl failed: ${firecrawlError}; direct: ` : ""}${direct}${currentUrl ? paywallHint(currentUrl) : ""}`,
+        );
       }
     },
   });

@@ -2,6 +2,7 @@ export interface SourceImage {
   url: string;
   alt: string;
   nearHeading: string;
+  caption?: string;
 }
 
 /** Collect before cleaning; discovery never downloads an image. */

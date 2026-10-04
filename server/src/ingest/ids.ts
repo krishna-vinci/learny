@@ -126,6 +126,10 @@ export function normalizeUrl(value: string): string {
     return value.trim();
   }
   url.hash = "";
+  // Explicit AMP variants are mirrors of the same article.
+  url.pathname = url.pathname.replace(/\/amp\/?$/, "");
+  url.searchParams.delete("amp");
+  if (url.hostname.startsWith("amp.")) url.hostname = url.hostname.slice(4);
   for (const key of [...url.searchParams.keys()]) {
     if (key.toLowerCase().startsWith("utm_") || TRACKING_PARAMS.has(key.toLowerCase())) {
       url.searchParams.delete(key);
@@ -152,7 +156,7 @@ export function arxivIdOf(value: string): string | null {
       return null;
     }
     if (url.hostname.toLowerCase() !== "arxiv.org") return null;
-    const path = /^\/(?:abs|pdf)\/([^?#]+)$/.exec(url.pathname);
+    const path = /^\/(?:abs|pdf|html)\/([^?#]+)$/.exec(url.pathname);
     if (path?.[1] === undefined) return null;
     candidate = decodeArxivSegment(path[1]);
   } else {

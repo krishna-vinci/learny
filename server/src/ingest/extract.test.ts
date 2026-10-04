@@ -29,15 +29,17 @@ describe("extract", () => {
     expect(extracted.parseTier).toBe("basic");
   });
 
-  it("downloads arXiv URLs as PDFs but keeps the abstract URL", async () => {
-    const fetchMock = vi.fn(
-      async (_input: unknown, _init?: RequestInit) =>
-        new Response(makePdf([DENSE]), { headers: { "content-type": "application/pdf" } }),
+  it("falls back from unavailable arXiv HTML to PDF and keeps the abstract URL", async () => {
+    const fetchMock = vi.fn(async (input: unknown, _init?: RequestInit) =>
+      String(input).includes("/html/")
+        ? new Response("unavailable", { status: 404 })
+        : new Response(makePdf([DENSE]), { headers: { "content-type": "application/pdf" } }),
     );
     vi.stubGlobal("fetch", fetchMock);
 
     const extracted = await extract("arxiv", { url: "https://arxiv.org/abs/1706.03762" });
-    expect(String(fetchMock.mock.calls[0]?.[0])).toBe("https://arxiv.org/pdf/1706.03762");
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe("https://arxiv.org/html/1706.03762");
+    expect(String(fetchMock.mock.calls[1]?.[0])).toBe("https://arxiv.org/pdf/1706.03762");
     expect(extracted.url).toBe("https://arxiv.org/abs/1706.03762");
     expect(extracted.markdown).toContain("<!-- p:1 -->");
     expect(extracted.originalExt).toBe("pdf");

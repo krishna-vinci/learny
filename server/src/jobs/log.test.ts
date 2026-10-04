@@ -37,6 +37,19 @@ describe("formatJobLogLine", () => {
     },
   );
 
+  it("round-trips short failure reasons and strips secrets", () => {
+    const line = formatJobLogLine(
+      makeJob({
+        status: "failed",
+        error: "HTTP 403 https://user:password@example.com/page?token=secret\nBearer bearer-secret-value",
+      }),
+    );
+    expect(line).not.toContain("password");
+    expect(line).not.toContain("secret");
+    expect(line).not.toContain("bearer-secret-value");
+    expect(parseJobLogLine(line, "linear-algebra")?.error).toContain("HTTP 403 https://example.com/page");
+  });
+
   it("omits the commit segment when there is no commit and normalizes quotes", () => {
     const line = formatJobLogLine(
       makeJob({

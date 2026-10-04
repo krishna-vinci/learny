@@ -48,6 +48,22 @@ describe("addSourceTool", () => {
     ]);
   });
 
+  it.each(["https://commons.wikimedia.org/wiki/File:Diagram.svg", "https://example.com/photo.png?download=1"])(
+    "rejects image sources %s",
+    async (url) => {
+      const definition = addSourceTool({
+        set: "math",
+        jobs: {
+          enqueue: () => {
+            throw new Error("must not enqueue");
+          },
+        },
+      });
+      const result = await definition.execute("1", { url }, undefined, undefined, undefined as never);
+      expect(result.details).toMatchObject({ isError: true, summary: "this is an image — save it with save_asset" });
+    },
+  );
+
   it("rejects non-http URLs", async () => {
     const tool = addSourceTool({
       set: "linear-algebra",

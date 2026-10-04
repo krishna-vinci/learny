@@ -44,3 +44,13 @@ prefer a named educator or institution. A channel/playlist page is not a video U
 Register the actual watch/share/shorts URL, then inspect the ingested transcript
 before selecting it as evidence. Once registered, copy its exact `source.md` URL;
 use transcript `<!-- t:N -->` markers for moments and never guess IDs or times.
+
+## Recipe scouting (D34)
+
+Load `references/recipes.md` for subject × level slots before searching. Use
+10–20 candidates per slot; rank with `scout_sources` when available. The supplied
+score/reason is your LLM judgment if the classifier is off/shadow. Fetch top text
+candidates and keep those above parse-health 65 with substantive text; reject thin
+SEO pages. Do not repeatedly fetch a host already blocked in this job/chat. On
+paywalls seek an open copy or a textbook/explainer. Domain outcome history is a
+bounded hint, not authority. Report breadth, selected/dropped candidates and gaps.

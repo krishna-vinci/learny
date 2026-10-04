@@ -136,3 +136,15 @@ it("shows the server's conflict error and retains accepted links and prerequisit
   fireEvent.click(screen.getByRole("button", { name: "Accept Chapter 2" }));
   await waitFor(() => expect(toast.error).toHaveBeenCalledWith("note must be draft or checked"));
 });
+
+it("shows measured evidence counts and gaps without implying verification", () => {
+  setup([
+    {
+      ...chapter(1, "planned"),
+      evidence: { covered: 1, total: 2, weakest: ["Eigenvectors"], measuredAt: "2026-10-04T00:00:00Z" },
+    },
+  ]);
+  expect(screen.getByText("Evidence: 1/2 concepts matched")).toBeTruthy();
+  expect(screen.getByText("Needs support: Eigenvectors")).toBeTruthy();
+  expect(screen.getByRole("meter", { name: "Evidence for Chapter 1" }).getAttribute("value")).toBe("1");
+});

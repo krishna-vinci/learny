@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { JobKind, JobStatus, JobView } from "@studium/shared";
+import { publicErrorReason } from "../ingest/error-reason.js";
 import { resolveInRoot } from "../tree/paths.js";
 import { listSets } from "../tree/read.js";
 
@@ -38,6 +39,7 @@ export function formatJobLogLine(job: JobView): string {
   if (job.result?.commitSha !== undefined) {
     parts.push(`commit ${job.result.commitSha.slice(0, 7)}`);
   }
+  if (job.status === "failed" && job.error) parts.push(`reason: ${publicErrorReason(job.error)}`);
   return parts.join(" · ");
 }
 
@@ -57,7 +59,7 @@ export async function appendJobLog(root: string, job: JobView): Promise<string> 
 export type ParsedJobLogLine = Omit<JobView, "id">;
 
 const JOB_LINE =
-  /^- (\S+) · (ingest|draft-chapter|rewrite-chapter|make-cards|compile-book|plan-set|make-quiz|make-problems|grade-answer) · "(.*)" · (done|failed|cancelled) · ([0-9]+(?:\.[0-9]+)?k?) in \/ ([0-9]+(?:\.[0-9]+)?k?) out · \$([0-9]+(?:\.[0-9]+)?)(?: · commit ([0-9a-f]+))?$/;
+  /^- (\S+) · (ingest|draft-chapter|rewrite-chapter|make-cards|compile-book|plan-set|make-quiz|make-problems|grade-answer) · "(.*)" · (done|failed|cancelled) · ([0-9]+(?:\.[0-9]+)?k?) in \/ ([0-9]+(?:\.[0-9]+)?k?) out · \$([0-9]+(?:\.[0-9]+)?)(?: · commit ([0-9a-f]+))?(?: · reason: (.*))?$/;
 
 function parseTokens(raw: string): number {
   return Math.round(Number.parseFloat(raw) * (raw.endsWith("k") ? 1000 : 1));
@@ -66,7 +68,7 @@ function parseTokens(raw: string): number {
 export function parseJobLogLine(line: string, set: string | null): ParsedJobLogLine | null {
   const match = JOB_LINE.exec(line.trim());
   if (match === null) return null;
-  const [, timestamp, kind, title, status, input, output, cost, commitSha] = match;
+  const [, timestamp, kind, title, status, input, output, cost, commitSha, reason] = match;
   if (
     timestamp === undefined ||
     kind === undefined ||
@@ -96,6 +98,7 @@ export function parseJobLogLine(line: string, set: string | null): ParsedJobLogL
       costUsd: Number.parseFloat(cost),
     },
     billing: "metered",
+    ...(reason === undefined ? {} : { error: reason }),
     ...(commitSha === undefined ? {} : { result: { commitSha } }),
   };
 }

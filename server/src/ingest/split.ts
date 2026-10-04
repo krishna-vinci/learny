@@ -49,6 +49,7 @@ export function splitParsed(markdown: string, maxBytes = PARSED_MAX_BYTES): Spli
 function sectionize(content: string): Section[] {
   const sections: Section[] = [];
   let title: string | null = null;
+  let fence: string | undefined;
   let buffer: string[] = [];
 
   const flush = (): void => {
@@ -58,7 +59,12 @@ function sectionize(content: string): Section[] {
   };
 
   for (const line of content.split("\n")) {
-    const heading = /^#\s+(.+?)\s*#*\s*$/.exec(line);
+    const marker = /^\s{0,3}(`{3,}|~{3,})/.exec(line)?.[1];
+    if (marker) {
+      if (!fence) fence = marker;
+      else if (marker[0] === fence[0] && marker.length >= fence.length) fence = undefined;
+    }
+    const heading = !fence ? /^#{1,2}\s+(.+?)\s*#*\s*$/.exec(line) : null;
     if (heading !== null) {
       flush();
       title = heading[1] ?? null;

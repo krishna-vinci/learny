@@ -199,6 +199,23 @@ export function CoursePlan({ set, jobs, onReplan }: { set: string; jobs: readonl
                       )}
                       <ChapterStateBadge state={state} />
                     </div>
+                    {chapter.evidence && chapter.evidence.total > 0 && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        <span>
+                          Evidence: {chapter.evidence.covered}/{chapter.evidence.total} concepts matched
+                        </span>
+                        <meter
+                          className="ml-2 h-2 w-16 align-middle accent-primary"
+                          min={0}
+                          max={chapter.evidence.total}
+                          value={chapter.evidence.covered}
+                          aria-label={`Evidence for ${chapter.title}`}
+                        />
+                        {chapter.evidence.weakest.length > 0 && (
+                          <p className="mt-0.5 break-words">Needs support: {chapter.evidence.weakest.join(", ")}</p>
+                        )}
+                      </div>
+                    )}
                     {chapter.scope && (
                       <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground" title={chapter.scope}>
                         {chapter.scope}

@@ -19,6 +19,8 @@ import {
   uniqueSourceId,
 } from "./ids.js";
 import { collectImages } from "./images.js";
+import { scoreParseQuality } from "./quality.js";
+import { sourceSections } from "./sections.js";
 import { type ParsedPart, splitParsed } from "./split.js";
 import type { Extracted } from "./types.js";
 
@@ -247,6 +249,7 @@ export async function writeSource(
     ...(extracted.url === null ? {} : { url: extracted.url }),
     credibility: unreadable ? "unreadable" : PENDING_CREDIBILITY,
     parse_tier: extracted.parseTier,
+    quality: scoreParseQuality(unreadable ? "" : extracted.markdown),
     ...(sha256 === null ? {} : { sha256 }),
     added: new Date().toISOString().slice(0, 10),
     ...(extracted.warning === null ? {} : { parse_warning: extracted.warning }),
@@ -284,7 +287,19 @@ export async function writeSource(
     tracked.push(imagesRel);
   }
 
-  if (!unreadable) for (const part of split.parts) tracked.push(await writePart(root, dir, part));
+  if (!unreadable) {
+    for (const part of split.parts) tracked.push(await writePart(root, dir, part));
+    const sectionsRel = `${dir}/sections.json`;
+    await fs.writeFile(
+      resolveInRoot(root, sectionsRel),
+      JSON.stringify(
+        sourceSections(extracted.markdown).map(({ anchor, summary }) => ({ anchor, summary })),
+        null,
+        2,
+      ),
+    );
+    tracked.push(sectionsRel);
+  }
 
   if (original !== undefined) {
     await fs.writeFile(resolveInRoot(root, `${dir}/original.${original.ext}`), original.bytes);
