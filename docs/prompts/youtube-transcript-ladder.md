@@ -1,0 +1,33 @@
+# YouTube transcripts: get them when obtainable, never fail the add
+
+Local rules for this run: work in your own worktree/branch from current `main`; don't commit/push/merge; never edit `AGENT_MEMORY.md` (5-line log entry in your report); never touch `.env*`, `data/`, `.claude/`; only stop processes you started; `pnpm install --frozen-lockfile --prefer-offline` first; biome via `rtk proxy pnpm exec biome check <files>`. Note (orchestrator, 2026-10-04): `yt-dlp` is **not installed** on this host yet and no cookie file exists — build and unit-test the ladder with fakes; mark the yt-dlp/cookie browser checks "pending operator setup" if they're still missing when you get there. Line numbers below may have drifted (e.g. `fetchTranscript` is now ≈ `youtube.ts:16`).
+
+---
+
+## Problem
+Video transcripts are load-bearing in Studium: their `<!-- t:N -->` markers in the ingested `source.md` are what let chapters cite moments (`[^src:id]`) and embed exact segments (`::youtube{src=… start=… end=…}`). Today a transcript failure aborts adding the source entirely and shows the library's raw message ("Couldn't add this source" / "No transcripts are available…"). Measured coverage of the current module on a 7-video educational sample (TED-Ed, 3Blue1Brown, freeCodeCamp, Traversy, TED, plus two controls): 2 of 7 — the app's YouTube ingest fails on most real study content.
+
+## Verified facts (2026-10-04, empirical — build on these, do not re-derive)
+- Root cause: YouTube applies selective per-video bot-attestation ("Sign in to confirm you're not a bot") that withholds all caption data from unauthenticated server requests. The failing sample video (`UwRVj9rz2QQ`, TED-Ed) is public and captioned; `youtube-transcript-plus@2.0.3` (`server/src/ingest/youtube.ts`) correctly fails but mislabels it. User-agent, consent cookies, and client rotation (ANDROID / ANDROID_VR / WEB) do not clear it.
+- `yt-dlp` (tested 2026.08.19, external binary, `--js-runtimes node`) extracts strictly more than the module: captions via clients the module doesn't try, title recovery from walled pages, `json3` subs whose events (start/duration/text) map directly onto our segments. Alone it also fails strict-tier videos (1/7 on the same sample).
+- Cookies are the strict-tier unlock: yt-dlp with an operator-supplied cookie file transcribed the failing video completely (21 tracks, reproduced twice with fresh exports).
+- Cookie sessions are fragile: exports go stale when the browser profile keeps using the account (dead within ~10 minutes, observed), and rapid-fire bursts re-trip the wall even with valid cookies. yt-dlp rewrites the cookie jar it is given.
+- YouTube's oEmbed endpoint and the `i.ytimg.com` thumbnail CDN keep working under the block — honest title/author/thumbnail are always obtainable.
+- ASR cannot cross the wall (audio download is gated by the same player check) — out of scope.
+- The designed soft path (`warning: "no transcript available"` in `youtube.ts`) is unreachable because the module's throw isn't caught.
+
+## Goal (open)
+A ladder the operator configures, each rung optional and degrading cleanly to the next: current module → `yt-dlp` as an optional operator-installed engine (env-pointed like MinerU/SearXNG/Firecrawl; absent = current behavior) → operator-supplied YouTube cookie file for strict-tier videos → always: the source is still added for embedding with honest metadata (oEmbed/thumbnail fallback) and a truthful warning distinguishing "transcript blocked — retryable" from "no captions" from "disabled" — never the library's raw message. Agents must see an untranscribed video as unreadable rather than citable text.
+
+The engine treats the cookie file as a fragile, operator-owned credential: it reads a copy, never rewrites the master; it detects the stale/invalid-cookie condition and tells the operator to re-export instead of silently failing; and transcript retrieval is paced and retried with backoff — never a rapid-fire loop.
+
+The transcript's markdown output (paragraph shape, `<!-- t:N -->` markers, parse tier) must stay exactly what chapters and citations already consume, whichever engine produced it. Track selection matters: the original-English track has finer timing (better moment citations) but carries translator-credit lines and `[Music]` markers needing a cleaning pass; curated tracks are cleaner but coarser; never ingest every language variant. Engine interfaces, subprocess handling, env/secrets shape, and how warnings surface in the jobs UI are the implementer's to design.
+
+## Non-negotiables
+No new npm dependencies — `yt-dlp` is an external binary the server invokes, never bundled; the cookie file is an operator secret read from env, never committed, never logged, never rewritten; sources stay plain markdown in the existing schema; SSRF/safe-fetch discipline unchanged; tests fake the module, yt-dlp, oEmbed and all network — no YouTube access from tests; no commits; scoped tests only; if a step doesn't fit the real code, stop that item, report file:line, continue.
+
+## Verify
+Unit: each rung and failure mode (module success; escalation; strict-tier via cookies; engine/cookies absent → embed-only + honest warning; stale-cookie detection; blocked-vs-no-captions-vs-disabled wording) with pass/fail counts. Browser (temp copy of `examples/sample-set`, own port, `STUDIUM_FAUX=1`): add a normal video — transcript lands; with the operator's cookies configured, add `UwRVj9rz2QQ` — a timestamped transcript lands; without configuration — the embed-only source with real title/thumbnail and the honest warning.
+
+## Operator prerequisites (not the agent's work)
+`yt-dlp` installed on the server; cookie file exported from a signed-in throwaway account (dedicated browser profile, left untouched after export), `chmod 600`, pointed at by the app's env var; re-export when the app reports the cookies stale.
