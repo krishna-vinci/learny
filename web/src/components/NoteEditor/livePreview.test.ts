@@ -112,3 +112,46 @@ describe("live preview toggle", () => {
     destroy(view, container);
   });
 });
+
+describe("live preview: list markers", () => {
+  const doc = "First line.\n\n- one\n- two\n";
+
+  it("renders a bullet widget off the active line and stays raw on it", () => {
+    // Cursor on line 1: the bullet list (lines 3-4) starts out inactive.
+    const { view, container } = mount(doc, 0);
+    expect(container.textContent).not.toContain("- one");
+    expect(container.querySelectorAll(".cm-sm-bullet-marker")).toHaveLength(2);
+    expect(container.textContent).toContain("• one");
+
+    // Move the cursor onto the first bullet line: its marker goes raw (dimmed), the
+    // second bullet (still inactive) keeps its widget.
+    const line3 = doc.indexOf("- one");
+    view.dispatch({ selection: { anchor: line3 + 1 } });
+    expect(container.textContent).toContain("- one");
+    expect(container.querySelectorAll(".cm-sm-bullet-marker")).toHaveLength(1);
+
+    destroy(view, container);
+  });
+});
+
+describe("live preview: frontmatter", () => {
+  const doc = "---\ntitle: Chapter two\norder: 2\nstatus: draft\n---\n\n# Chapter two\n\nBody text.\n";
+
+  it("collapses off-cursor and expands on-cursor", () => {
+    // Cursor on the body line: the frontmatter block starts out collapsed.
+    const bodyPos = doc.indexOf("Body text.");
+    const { view, container } = mount(doc, bodyPos);
+    expect(container.textContent).not.toContain("title: Chapter two");
+    const chip = container.querySelector(".cm-sm-frontmatter-chip");
+    expect(chip).not.toBeNull();
+    expect(chip?.textContent).toBe("title Chapter two · order 2 · status draft");
+
+    // Move the cursor inside the frontmatter: it expands to raw dimmed mono text.
+    view.dispatch({ selection: { anchor: doc.indexOf("order: 2") } });
+    expect(container.querySelector(".cm-sm-frontmatter-chip")).toBeNull();
+    expect(container.textContent).toContain("title: Chapter two");
+    expect(container.textContent).toContain("order: 2");
+
+    destroy(view, container);
+  });
+});

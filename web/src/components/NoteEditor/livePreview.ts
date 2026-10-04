@@ -13,7 +13,7 @@ import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate
 import { formatMediaTime } from "@studium/shared/media";
 import { HEADING_LINE } from "./formatting";
 import { ensureKatexLoaded, katexReadyEffect, MathWidget } from "./mathWidget";
-import { findInlineMarks, type InlineMarkMatch } from "./syntax";
+import { findInlineMarks, frontmatterEnd, type InlineMarkMatch } from "./syntax";
 
 const CALLOUT_LABELS: Record<string, string> = { definition: "Definition", theorem: "Theorem", example: "Example" };
 function calloutLabel(name: string): string {
@@ -68,6 +68,29 @@ class ChipWidget extends WidgetType {
     return false;
   }
 }
+
+/** A non-interactive glyph standing in for a list/task marker. Clicks fall through to the
+ * editor's normal cursor-placement (the default `ignoreEvent`), unlike ChipWidget — there's
+ * nowhere more useful for a bullet/checkbox click to jump to than wherever it lands. */
+class MarkerWidget extends WidgetType {
+  constructor(
+    readonly text: string,
+    readonly className: string,
+  ) {
+    super();
+  }
+  override eq(other: MarkerWidget): boolean {
+    return other.text === this.text && other.className === this.className;
+  }
+  toDOM(): HTMLElement {
+    const span = document.createElement("span");
+    span.className = this.className;
+    span.textContent = this.text;
+    return span;
+  }
+}
+
+const BULLET_MARK = /^[-*+]$/;
 
 function visualChipText(body: string): string {
   const attrs = parseAttrs(body);
@@ -168,6 +191,55 @@ function build(view: EditorView, citationTitles: Map<string, string>): Decoratio
       from,
       to,
       enter: (node) => {
+        if (node.name === "ListItem") {
+          // A bullet/`*`/`+` marker becomes a `•` widget, a task marker becomes ☐/☑, an
+          // ordered marker (`1.`) stays as muted text (never replaced) — all off the
+          // active line; on it, the raw marker shows dimmed like other markup.
+          let listMark: { from: number; to: number } | null = null;
+          let taskMarker: { from: number; to: number } | null = null;
+          for (let child = node.node.firstChild; child; child = child.nextSibling) {
+            if (child.name === "ListMark") listMark = { from: child.from, to: child.to };
+            if (child.name === "Task") {
+              for (let t = child.firstChild; t; t = t.nextSibling) {
+                if (t.name === "TaskMarker") taskMarker = { from: t.from, to: t.to };
+              }
+            }
+          }
+          if (!listMark) return;
+          const lineActive = touchesRange(state, doc.lineAt(listMark.from).from, doc.lineAt(listMark.from).to);
+          if (taskMarker) {
+            if (lineActive) {
+              entries.push(markupEntry(true, listMark.from, taskMarker.to));
+            } else {
+              const checked = /x/i.test(state.sliceDoc(taskMarker.from, taskMarker.to));
+              entries.push({
+                from: listMark.from,
+                to: taskMarker.to,
+                deco: Decoration.replace({ widget: new MarkerWidget(checked ? "☑" : "☐", "cm-sm-task-marker") }),
+              });
+            }
+            return;
+          }
+          const markText = state.sliceDoc(listMark.from, listMark.to);
+          if (BULLET_MARK.test(markText)) {
+            if (lineActive) entries.push(markupEntry(true, listMark.from, listMark.to));
+            else {
+              entries.push({
+                from: listMark.from,
+                to: listMark.to,
+                deco: Decoration.replace({ widget: new MarkerWidget("•", "cm-sm-bullet-marker") }),
+              });
+            }
+            return;
+          }
+          // Ordered marker ("1."): stays as text, just muted — never replaced/hidden.
+          entries.push({
+            from: listMark.from,
+            to: listMark.to,
+            deco: Decoration.mark({ class: lineActive ? "cm-sm-markup-dim" : "cm-sm-ordered-marker" }),
+          });
+          return;
+        }
         if (node.name === "StrongEmphasis" || node.name === "Emphasis" || node.name === "Strikethrough") {
           const markName = node.name === "Strikethrough" ? "StrikethroughMark" : "EmphasisMark";
           const lineActive = touchesRange(state, doc.lineAt(node.from).from, doc.lineAt(node.to).to);
@@ -276,6 +348,46 @@ const multilineMathField = StateField.define<DecorationSet>({
   provide: (field) => EditorView.decorations.from(field),
 });
 
+/** "key value" for each top-level `key: value` line in the frontmatter, values truncated
+ * to 40 chars, at most 6 pairs then "…". Falls back to "Properties" if none parse (e.g. an
+ * empty or YAML-list-only block). */
+function frontmatterSummary(state: EditorState, fmEnd: number): string {
+  const closeLineNumber = state.doc.lineAt(fmEnd).number;
+  const pairs: string[] = [];
+  for (let n = 2; n < closeLineNumber; n++) {
+    const m = /^([a-zA-Z_][\w-]*):\s*(.*)$/.exec(state.doc.line(n).text);
+    if (!m) continue;
+    const key = m[1] ?? "";
+    let value = (m[2] ?? "").trim();
+    if (value.length > 40) value = `${value.slice(0, 40)}…`;
+    pairs.push(`${key} ${value}`.trim());
+  }
+  if (pairs.length === 0) return "Properties";
+  const shown = pairs.slice(0, 6).join(" · ");
+  return pairs.length > 6 ? `${shown} …` : shown;
+}
+
+function buildFrontmatter(state: EditorState): DecorationSet {
+  const fmEnd = frontmatterEnd(state.doc);
+  if (fmEnd === null || touchesRange(state, 0, fmEnd)) return Decoration.none;
+  const builder = new RangeSetBuilder<Decoration>();
+  const closeLineNumber = state.doc.lineAt(fmEnd).number;
+  const firstKeyLine = closeLineNumber > 2 ? state.doc.line(2).from : 0;
+  const widget = new ChipWidget(frontmatterSummary(state, fmEnd), "cm-sm-frontmatter-chip", true, firstKeyLine);
+  builder.add(0, fmEnd, Decoration.replace({ widget, block: true }));
+  return builder.finish();
+}
+
+/** The leading `---…---` block (item 2 of the lists/frontmatter follow-up), collapsed to a
+ * one-line "Properties" summary whenever the cursor/selection is outside it. A multi-line
+ * block replace, so — like `multilineMathField` — it has to be a `StateField`. */
+const frontmatterField = StateField.define<DecorationSet>({
+  create: (state) => buildFrontmatter(state),
+  update: (value, tr: Transaction) =>
+    tr.docChanged || tr.selection ? buildFrontmatter(tr.state) : value.map(tr.changes),
+  provide: (field) => EditorView.decorations.from(field),
+});
+
 /** Builds the live-preview extension. `citationTitles` (id → title) comes from the same
  * data completions.ts uses, reconfigured into the same Compartment whenever it changes. */
 export function buildLivePreview(citationTitles: Map<string, string>): Extension {
@@ -298,5 +410,5 @@ export function buildLivePreview(citationTitles: Map<string, string>): Extension
     },
     { decorations: (v) => v.decorations },
   );
-  return [viewportScoped, multilineMathField];
+  return [viewportScoped, multilineMathField, frontmatterField];
 }

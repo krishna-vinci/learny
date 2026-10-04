@@ -134,6 +134,16 @@ export const noteEditorTheme = EditorView.theme({
     cursor: "text",
   },
   ".cm-sm-callout-close": { color: "var(--muted-foreground)" },
+  ".cm-sm-bullet-marker, .cm-sm-task-marker": { color: "var(--muted-foreground)" },
+  ".cm-sm-ordered-marker": { color: "var(--muted-foreground)" },
+  ".cm-sm-frontmatter-chip": {
+    display: "block",
+    color: "var(--muted-foreground)",
+    fontFamily: "var(--font-mono)",
+    fontSize: "0.8125em",
+    padding: "0.25em 0",
+    cursor: "text",
+  },
 
   "@media (max-width: 767px)": {
     ".cm-content": { fontSize: "16px" },
