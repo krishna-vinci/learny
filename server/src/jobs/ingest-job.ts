@@ -11,6 +11,7 @@ import { RoleModelError, runRole } from "../agent/run-role.js";
 import type { EventHub } from "../events.js";
 import { cleanMarkdown } from "../ingest/clean.js";
 import { detectInput } from "../ingest/detect.js";
+import { recordDomainOutcome } from "../ingest/domain-outcomes.js";
 import { type DedupeKey, dedupeKeyFromUrl, sha256Hex } from "../ingest/ids.js";
 import {
   dedupeLockKeys,
@@ -23,6 +24,7 @@ import {
   withDedupeLock,
   writeSource,
 } from "../ingest/library.js";
+import { MIN_PARSE_QUALITY, scoreParseQuality } from "../ingest/quality.js";
 import { SAFE_FETCH_MAX_BYTES, safeFetch } from "../ingest/safe-fetch.js";
 import { splitParsed } from "../ingest/split.js";
 import type { Extracted, InputKind } from "../ingest/types.js";
@@ -327,6 +329,7 @@ async function runLibrarian(
   let result: Awaited<ReturnType<typeof runRole>>;
   try {
     result = await runRole("librarian", {
+      jobContext: ctx,
       root: deps.root,
       set: null,
       task: librarianTask(sourceId, view.parsedFiles, images !== undefined) + (variant ? `\n${variant}` : ""),
@@ -622,6 +625,8 @@ export function createIngestJob(deps: IngestJobDeps): JobHandler {
         ctx.progress("Cleaning extracted text");
         const extracted = { ...extraction.extracted, markdown: cleanMarkdown(extraction.extracted.markdown) };
 
+        if (extracted.url && scoreParseQuality(extracted.markdown).score < MIN_PARSE_QUALITY)
+          await recordDomainOutcome(deps.root, extracted.url, "low-quality");
         ctx.progress("Writing library source");
         ctx.signal.throwIfAborted();
         const written = await writeSource(deps.root, extracted, extraction.original);
@@ -663,6 +668,8 @@ export function createIngestJob(deps: IngestJobDeps): JobHandler {
           ...(summary.warning === null ? {} : { warning: summary.warning }),
         };
       } catch (error) {
+        if (input.url && error instanceof Error && /HTTP (401|403|451)/.test(error.message))
+          await recordDomainOutcome(deps.root, input.url, "blocked");
         // Only failures before the source exists discard the drop into failed/.
         if (inbox !== null && !sourceExists) await moveInboxToFailed(deps.root, inbox).catch(() => undefined);
         throw error;

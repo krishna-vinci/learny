@@ -1,6 +1,7 @@
 import { DatabaseSync } from "node:sqlite";
 import { selectedPassage } from "../agent/passage.js";
 import { readParsedFile, readSource } from "../ingest/library.js";
+import { sourceSections } from "../ingest/sections.js";
 import { plaintext } from "./plaintext.js";
 
 export interface Passage {
@@ -11,52 +12,22 @@ export interface Passage {
   text: string;
   cited: boolean;
   score: number;
+  summary?: string;
 }
 
 const sourceId = /^lib-[a-z0-9][a-z0-9-]*$/;
-const slug = (s: string) =>
-  s
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, "-")
-    .replace(/^-|-$/g, "");
-
-/** Keep real headings, PDF page markers, transcript times and explicit HTML anchors. */
-export function splitPassages(text: string): { anchor: string; text: string }[] {
-  const sections: { anchor: string; text: string }[] = [];
-  let anchor = "start";
-  let lines: string[] = [];
-  let fence: string | undefined;
-  const flush = () => {
-    const value = lines.join("\n").trim();
-    if (value) sections.push({ anchor, text: value });
-    lines = [];
-  };
-  for (const line of text.split("\n")) {
-    const marker = /^\s{0,3}(`{3,}|~{3,})/.exec(line)?.[1];
-    if (marker) {
-      if (!fence) fence = marker;
-      else if (marker[0] === fence[0] && marker.length >= fence.length) fence = undefined;
-    }
-    const heading = !fence ? /^#{1,6}\s+(.+)$/.exec(line)?.[1] : undefined;
-    const location = !fence ? /<!--\s*([pt]):\s*(\d+)\s*-->|<a\s+(?:id|name)=["']([^"']+)["']/.exec(line) : null;
-    if (heading || location) {
-      flush();
-      anchor = heading ? slug(heading) : (location?.[3] ?? `${location?.[1]}${location?.[2]}`);
-    }
-    lines.push(line);
-  }
-  flush();
-  return sections;
-}
+/** Shared with ingest so citation anchors and summaries are identical. */
+export const splitPassages = sourceSections;
 
 export async function sourcePassages(root: string, sources: readonly string[]): Promise<Passage[]> {
   const result: Passage[] = [];
   for (const source of [...new Set(sources)].filter((s) => sourceId.test(s))) {
     const view = await readSource(root, source);
+    const anchors = new Map<string, number>();
     for (const file of view?.parsedFiles ?? []) {
       const text = await readParsedFile(root, source, file);
       if (text === null) continue;
-      for (const [index, section] of splitPassages(text).entries()) {
+      for (const [index, section] of splitPassages(text, anchors).entries()) {
         result.push({ id: `${source}/${file}#${index}`, source, file, ...section, cited: false, score: 0 });
       }
     }
@@ -91,15 +62,17 @@ export function boundPassages(passages: readonly Passage[], maxTokens = 12_000):
   let remaining = Math.max(0, Math.floor(maxTokens * 4));
   const result: Passage[] = [];
   for (const p of passages) {
-    const overhead = selectedPassage("", `${p.source}/${p.file}#${p.anchor}`).length + 2;
+    let summary = p.summary;
+    if (renderPassages([{ ...p, text: "" }]).length + 2 >= remaining) summary = undefined;
+    const packedSize = (text: string) => renderPassages([{ ...p, text, summary }]).length + 2;
+    const overhead = packedSize("");
     if (remaining <= overhead) break;
     // Account for delimiter escaping, which can increase the packed size.
     let text = p.text.slice(0, remaining - overhead);
-    while (text && selectedPassage(text, `${p.source}/${p.file}#${p.anchor}`).length + 2 > remaining)
-      text = text.slice(0, Math.floor(text.length * 0.9));
+    while (text && packedSize(text) > remaining) text = text.slice(0, Math.floor(text.length * 0.9));
     if (!text) continue;
-    remaining -= selectedPassage(text, `${p.source}/${p.file}#${p.anchor}`).length + 2;
-    result.push({ ...p, text });
+    remaining -= packedSize(text);
+    result.push({ ...p, text, summary });
   }
   return result;
 }
@@ -149,5 +122,12 @@ export async function evidencePack(
 }
 
 export function renderPassages(passages: readonly Passage[]): string {
-  return passages.map((p) => selectedPassage(p.text, `${p.source}/${p.file}#${p.anchor}`)).join("\n\n");
+  return passages
+    .map((p) =>
+      selectedPassage(
+        `${p.summary ? `Section summary: ${p.summary}\n\n` : ""}${p.text}`,
+        `${p.source}/${p.file}#${p.anchor}`,
+      ),
+    )
+    .join("\n\n");
 }

@@ -11,10 +11,13 @@ import { mediaWarnings } from "../agent/media-warnings.js";
 import { noteLint } from "../agent/note-lint.js";
 import { selectedPassage } from "../agent/passage.js";
 import { rethrowRoleModelError, runRole } from "../agent/run-role.js";
+import { reviewVideoEvidence } from "../agent/video-evidence.js";
 import { classifierVisualRouter } from "../agent/visual-router.js";
 import type { EventHub } from "../events.js";
 import { resolveDraftSources } from "../inbox/plan-sources.js";
+import { recordDomainOutcome } from "../ingest/domain-outcomes.js";
 import { slugify } from "../ingest/ids.js";
+import { listSetSources, readSource } from "../ingest/library.js";
 import type { McpManager } from "../mcp/bridge.js";
 import { evidencePack, rankedPassages, renderPassages, splitPassages } from "../search/passages.js";
 import { chapterExists, parseCurriculum } from "../tree/curriculum.js";
@@ -23,9 +26,11 @@ import { commitPaths } from "../tree/git.js";
 import type { FileLocks } from "../tree/lock.js";
 import { isWritableByAgent, resolveInRoot } from "../tree/paths.js";
 import { isSetSlug } from "../tree/read.js";
+import type { YoutubeTranscriptEngine } from "../youtube/types.js";
 import type { DraftChapterInput } from "./proposals.js";
 import type { JobContext, JobHandler } from "./runner.js";
 import { usageFromPiMessages } from "./runner.js";
+import { sourcePreflight } from "./source-preflight.js";
 
 const NOTE_PATH = /^notes\/[0-9]{2,}-[a-z0-9][a-z0-9-]*\.md$/;
 const SOURCE_ID = /^lib-[a-z0-9][a-z0-9-]*$/;
@@ -39,6 +44,7 @@ export interface DraftJobDeps {
   mcp: McpManager;
   runtime: ModelRuntime;
   hub: EventHub;
+  youtube?: YoutubeTranscriptEngine;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -189,6 +195,8 @@ async function setChecked(
     throw new Error("cannot mark a note checked while teaching lint hits remain");
   if ((await mediaWarnings(deps.root, noteRootPath, note)).some((warning) => warning.startsWith("Video source ")))
     throw new Error("cannot mark a note checked while a cited video is missing its watch link");
+  const videoReview = await reviewVideoEvidence(deps.root, noteRootPath.split("/")[0] ?? "", note);
+  if (videoReview.blockers.length) throw new Error(videoReview.blockers.join(" "));
   if (noteStatus(note) === "checked") return;
   if (noteStatus(note) !== "draft") throw new Error("only a draft note can be marked checked");
   const oldLine = frontmatterStatusLine(note);
@@ -315,6 +323,7 @@ function draftTask(
     "You may also write assets/, artifacts/ and visuals/ for this chapter. Do not modify other notes or files.",
     "Use the ranked source passages below first. Read source.md or more parsed text with study_read when support is missing; you need not read every parse.",
     videoInstructions,
+    "Choose transcript moments from ranked tN passages matching each adjacent concept. ::youtube{src=... start=N end=M} goes immediately after the supporting paragraph, never before the opening. M must be greater than N and no more than 180 seconds later; cite [^src:id#tN]. One moment per concept. Definitions/lists need no video. Untranscribed videos are watch-only with a muted no-transcript line, never claims evidence.",
     "",
     "## PLAN.md",
     plan,
@@ -392,8 +401,16 @@ function createChapterJob(deps: DraftJobDeps, rewriting: boolean): JobHandler {
       readText(deps.root, `${input.set}/PLAN.md`),
       optionalText(deps.root, `${input.set}/curriculum.md`),
     ]);
-    const sources = await resolveDraftSources(deps.root, plan, input.sources);
-    const videoInstructions = await videoSourceInstructions(deps.root, sources);
+    let sources = await resolveDraftSources(deps.root, plan, input.sources);
+    const preflight =
+      rewriting || sources.length === 0 ? null : await sourcePreflight(deps, input, plan, curriculum, sources, ctx);
+    if (preflight) sources = preflight.sources;
+    const watchOnly = [];
+    for (const source of await listSetSources(deps.root, input.set)) {
+      if (source.type === "video" && !(await readSource(deps.root, source.id))?.parsedFiles.length)
+        watchOnly.push(source);
+    }
+    const videoInstructions = `${await videoSourceInstructions(deps.root, sources)}\n${watchOnly.length ? selectedPassage(JSON.stringify(watchOnly.map((s) => ({ title: s.title, url: s.url, warning: s.warning }))), "Watch-only videos: no transcript, no claim citations. Link as Watch with a muted no-transcript line only.") : ""}`;
 
     if (sources.length === 0) {
       throw new Error(
@@ -451,6 +468,7 @@ function createChapterJob(deps: DraftJobDeps, rewriting: boolean): JobHandler {
             ctx.signal.throwIfAborted();
             ctx.progress("Revising shallow rewrite");
             const revision = await runRole("drafter", {
+              jobContext: ctx,
               root: deps.root,
               set: input.set,
               task: [
@@ -502,6 +520,7 @@ function createChapterJob(deps: DraftJobDeps, rewriting: boolean): JobHandler {
       ctx.signal.throwIfAborted();
       ctx.progress(rewriting ? "Rewriting chapter" : "Drafting chapter");
       const draft = await runRole("drafter", {
+        jobContext: ctx,
         root: deps.root,
         set: input.set,
         task: rewriting
@@ -522,7 +541,7 @@ function createChapterJob(deps: DraftJobDeps, rewriting: boolean): JobHandler {
               "## curriculum.md",
               curriculum,
             ].join("\n")
-          : `${draftTask(input, notePath, plan, curriculum, sources, videoInstructions)}\n\n## Ranked source passages\n${renderPassages(passages)}\n${visualHint}`,
+          : `${draftTask(input, notePath, plan, curriculum, sources, videoInstructions)}\n\n## Ranked source passages\n${renderPassages(passages)}\n${preflight ? `Evidence coverage: ${preflight.coverage.covered}/${preflight.coverage.total}. Uncovered: ${preflight.coverage.weakest.join(", ")}. Do not fabricate support; the checker verifies every claim.` : ""}\n${visualHint}`,
         locks: deps.locks,
         mcp: deps.mcp,
         runtime: deps.runtime,
@@ -574,6 +593,7 @@ function createChapterJob(deps: DraftJobDeps, rewriting: boolean): JobHandler {
           ? await evidencePack(deps.root, fullSections.map((p) => p.text).join("\n"), noteSources(currentNote))
           : { passages: [], missing: [] };
         const selectedEvidence = await selectContext(classifier, evidence.passages, input.title);
+        const videoReview = await reviewVideoEvidence(deps.root, input.set, currentNote, classifier);
         const depthHint =
           depth.source === "classifier"
             ? `Check every section. Full evidence check: ${fullSections.map((p) => p.id).join(", ") || "none"}. Other sections: quick consistency read; study_read more whenever a factual claim is found. Cited sections always get full evidence. Section numbering is zero-based in note order.`
@@ -588,6 +608,7 @@ function createChapterJob(deps: DraftJobDeps, rewriting: boolean): JobHandler {
           onWrite: () => {},
         });
         const result = await runRole("checker", {
+          jobContext: ctx,
           root: deps.root,
           set: input.set,
           task: [
@@ -595,6 +616,9 @@ function createChapterJob(deps: DraftJobDeps, rewriting: boolean): JobHandler {
             "Use this cited evidence pack first; study_read can expand any source. Unresolved/unanchored citations require source inspection, never assume the pack is complete.",
             `Unresolved: ${evidence.missing.join(", ") || "none"}`,
             depthHint,
+            "Video review: check semantic alignment of each transcript moment with its adjacent paragraph. Flag unrelated moments and suitable unused videos for demonstrations/processes; definitions/lists do not need video.",
+            ...videoReview.blockers,
+            ...videoReview.hints,
             renderPassages(selectedEvidence),
           ].join("\n\n"),
           locks: deps.locks,
@@ -612,6 +636,7 @@ function createChapterJob(deps: DraftJobDeps, rewriting: boolean): JobHandler {
         const checkedNote = await readText(deps.root, noteRootPath);
         const lint = [
           ...noteLint(noteRootPath, checkedNote),
+          ...(await reviewVideoEvidence(deps.root, input.set, checkedNote)).blockers,
           ...(await mediaWarnings(deps.root, noteRootPath, checkedNote)).filter((warning) =>
             warning.startsWith("Video source "),
           ),
@@ -637,6 +662,7 @@ function createChapterJob(deps: DraftJobDeps, rewriting: boolean): JobHandler {
         ctx.signal.throwIfAborted();
         ctx.progress("Revising blocker issues");
         const revision = await runRole("drafter", {
+          jobContext: ctx,
           root: deps.root,
           set: input.set,
           task: [
@@ -674,6 +700,14 @@ function createChapterJob(deps: DraftJobDeps, rewriting: boolean): JobHandler {
       );
       if (checkerSha !== null) {
         deps.hub.publish({ type: "commit", sha: checkerSha, subject: `checker: ${input.title}`, author: "checker" });
+      }
+      if (!blocked) {
+        const checked = await readText(deps.root, noteRootPath);
+        const cited = [...new Set([...checked.matchAll(/\[\^src:(lib-[a-z0-9-]+)/g)].map((m) => m[1] ?? ""))];
+        for (const id of cited) {
+          const view = await readSource(deps.root, id);
+          if (view?.source.url) await recordDomainOutcome(deps.root, view.source.url, "cited-checked");
+        }
       }
       const commitSha = checkerSha ?? drafterSha;
       return { notePath, commitSha };

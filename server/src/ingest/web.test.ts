@@ -80,3 +80,17 @@ describe("extractWeb", () => {
     expect(extracted.markdown).toContain("explains the topic");
   });
 });
+
+it("preserves exact TeX, GFM tables, code languages and figure captions", () => {
+  const result = htmlToMarkdown(
+    `<html><body><article><h1>Math</h1><p>Inline <span class="katex"><math><semantics><mi>garbled</mi><annotation encoding="application/x-tex">x^2 + \\alpha</annotation></semantics></math></span>.</p><script type="math/tex; mode=display">E=mc^2</script><table><tr><th>A</th><th>B</th></tr><tr><td>1</td><td>2</td></tr></table><pre><code class="language-python">print(1)</code></pre><figure><img src="https://example.com/a.png" alt="Experiment"><figcaption>A measured result.</figcaption></figure></article></body></html>`,
+    "https://example.com/a",
+  );
+  expect(result.markdown).toContain("$x^2 + \\alpha$");
+  expect(result.markdown).toContain("$$\nE=mc^2\n$$");
+  expect(result.markdown).toContain("| A | B |\n| --- | --- |\n| 1 | 2 |");
+  expect(result.markdown).toContain("```python\nprint(1)");
+  expect(result.markdown).toContain("A measured result.");
+  expect(result.images[0]?.alt).toBe("Experiment");
+  expect(result.markdown).not.toContain("garbled");
+});

@@ -4,7 +4,9 @@ import { arxivPdfUrl } from "./detect.js";
 import { extractDocx } from "./docx.js";
 import { extractEpub } from "./epub.js";
 import { extractPdf } from "./pdf.js";
+import { MIN_PARSE_QUALITY, scoreParseQuality } from "./quality.js";
 import { decodeBody, INGEST_MAX_BYTES, SAFE_FETCH_MAX_BYTES, safeFetch } from "./safe-fetch.js";
+import { fetchStrategy } from "./strategies.js";
 import { extractWeb, htmlToMarkdown } from "./web.js";
 import { extractWikipedia } from "./wikipedia.js";
 import { extractYoutube } from "./youtube.js";
@@ -121,6 +123,12 @@ export async function extract(kind: InputKind, input: ExtractInput, options: Ext
     }
     case "arxiv": {
       const url = requireUrl(kind, input);
+      try {
+        const html = await extractWeb(fetchStrategy(url).url, { signal: options.signal });
+        if (scoreParseQuality(html.markdown).score >= MIN_PARSE_QUALITY) return { ...html, url };
+      } catch {
+        options.signal?.throwIfAborted();
+      }
       const pdfUrl = arxivPdfUrl(url);
       const response = await safeFetch(pdfUrl, { signal: options.signal, maxBytes: INGEST_MAX_BYTES });
       return extractPdf(response.bytes, {

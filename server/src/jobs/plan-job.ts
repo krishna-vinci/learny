@@ -64,6 +64,7 @@ export function createPlanJob(deps: DraftJobDeps): JobHandler {
         ctx.signal.throwIfAborted();
         ctx.progress("Planning study set");
         const result = await runRole("outliner", {
+          jobContext: ctx,
           ...deps,
           set: input.set,
           task: [

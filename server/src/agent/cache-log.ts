@@ -25,3 +25,26 @@ export async function appendCacheLog(root: string, name: string, row: unknown): 
     // Telemetry must not prevent teaching or change a job's result.
   }
 }
+
+/** Private cache read, separate from agent paths (which deliberately forbid .cache). */
+export async function readCacheLog(root: string, name: string): Promise<string[]> {
+  if (!/^[a-z0-9-]+\.jsonl$/.test(name)) return [];
+  try {
+    const realRoot = await fs.realpath(root);
+    const cache = path.join(realRoot, ".cache");
+    if ((await fs.lstat(cache)).isSymbolicLink() || (await fs.realpath(cache)) !== cache) return [];
+    const handle = await fs.open(path.join(cache, name), constants.O_RDONLY | constants.O_NOFOLLOW);
+    try {
+      const size = (await handle.stat()).size;
+      const offset = Math.max(0, size - 2 * 1024 * 1024);
+      const buffer = Buffer.alloc(Math.min(size, 2 * 1024 * 1024));
+      const { bytesRead } = await handle.read(buffer, 0, buffer.length, offset);
+      const lines = buffer.subarray(0, bytesRead).toString("utf8").split("\n");
+      return (offset ? lines.slice(1) : lines).slice(-2000);
+    } finally {
+      await handle.close();
+    }
+  } catch {
+    return [];
+  }
+}

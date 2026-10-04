@@ -13,17 +13,23 @@ import {
 import { ConfigYaml } from "@studium/shared";
 import { parse as parseYaml } from "yaml";
 import type { EventHub } from "../events.js";
+import type { JobContext } from "../jobs/runner.js";
 import type { McpManager } from "../mcp/bridge.js";
 import { readText } from "../tree/edit.js";
 import type { FileLocks } from "../tree/lock.js";
 import { addCardTool, recordQuizResultTool, reviewCardTool } from "./builtins/cards.js";
 import { saveAssetTool } from "./builtins/save-asset.js";
+import { scoutSourcesTool } from "./builtins/scout-sources.js";
 import { listSkills, skillTools } from "./builtins/skills.js";
 import { webFetchTool } from "./builtins/web-fetch.js";
 import { wikiTools } from "./builtins/wiki.js";
+import type { Classifier } from "./classifier.js";
+import { workspaceClassifier } from "./classifier-workspace.js";
 import { installPromptAudit } from "./prompt-audit.js";
 import { ROLES, type RoleName } from "./roles.js";
 import { studyTools } from "./tools.js";
+
+const jobBlockedHosts = new WeakMap<JobContext, Map<string, string>>();
 
 class RolePromptLoader implements ResourceLoader {
   readonly #prompt: string;
@@ -85,6 +91,8 @@ export interface RoleToolsetOptions {
   onWrite?: (path: string) => void;
   extraTools?: ToolDefinition[];
   quizResults?: boolean;
+  classifier?: Classifier;
+  blockedHosts?: Map<string, string>;
   cards?: {
     rootPath: string;
     maxAdds?: number;
@@ -119,7 +127,9 @@ export function roleToolset(role: RoleName, opts: RoleToolsetOptions): { tools: 
           }),
         ]),
     ...wikiTools(),
+    scoutSourcesTool({ root: opts.root, classifier: opts.classifier }),
     webFetchTool({
+      blockedHosts: opts.blockedHosts,
       ...(process.env.FIRECRAWL_API_URL === undefined ? {} : { firecrawlUrl: process.env.FIRECRAWL_API_URL }),
       ...(process.env.FIRECRAWL_API_KEY === undefined ? {} : { firecrawlKey: process.env.FIRECRAWL_API_KEY }),
     }),
@@ -248,6 +258,7 @@ function resolveConfiguredModel(runtime: ModelRuntime, configured: string): Mode
 }
 
 interface RunRoleOptions {
+  jobContext?: JobContext;
   root: string;
   set: string | null;
   task: string;
@@ -281,7 +292,15 @@ async function runSession(
   subscriptionProviders: readonly string[],
 ): Promise<{ text: string; messages: unknown[]; written: string[] }> {
   const written = new Set<string>();
+  const classifier = await workspaceClassifier(opts.root, opts.runtime, opts.signal, opts.jobContext);
+  let blockedHosts: Map<string, string> | undefined;
+  if (opts.jobContext) {
+    blockedHosts = jobBlockedHosts.get(opts.jobContext) ?? new Map();
+    jobBlockedHosts.set(opts.jobContext, blockedHosts);
+  }
   const toolset = roleToolset(role, {
+    classifier,
+    blockedHosts,
     root: opts.root,
     set: opts.set,
     locks: opts.locks,

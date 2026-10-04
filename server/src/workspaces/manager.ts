@@ -178,7 +178,17 @@ export class WorkspaceManager {
       aiAllowed: () => getUserById(this.#db, user.id)?.aiEnabled === true,
       subscriptionProviders: await this.#subscriptionProvidersFor(root),
     });
-    jobs.register("draft-chapter", createDraftJob({ root, locks, mcp, runtime: this.#runtime, hub }));
+    jobs.register(
+      "draft-chapter",
+      createDraftJob({
+        root,
+        locks,
+        mcp,
+        runtime: this.#runtime,
+        hub,
+        ...(this.#youtube === undefined ? {} : { youtube: this.#youtube }),
+      }),
+    );
     jobs.register("rewrite-chapter", createRewriteJob({ root, locks, mcp, runtime: this.#runtime, hub }));
     jobs.register("plan-set", createPlanJob({ root, locks, mcp, runtime: this.#runtime, hub }));
     jobs.register("make-cards", createCardsJob({ root, locks, mcp, runtime: this.#runtime, hub }));

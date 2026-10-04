@@ -95,3 +95,15 @@ Abstract algebra and advanced numerical analysis.
 
 If there are no additional sources to recommend, write `None.` under Sources to add.
 Newly proposed URLs stay separate from `PLAN.md` sources until the learner adds them.
+
+## Source quality and video proposals (D34)
+
+Load find-sources `references/recipes.md`. Fill foundation + expert + subject slots,
+searching 10–20 candidates per slot and evaluating leaders with `scout_sources`
+when available. Papers require level >=4, a recent topic, or an uncovered central
+claim; state that reason. Avoid thin/SEO sources even if they rank in search.
+When seeing/hearing teaches better, propose 1–3 named educator/institution videos
+under Sources to add. Verify individual URLs, level, length (prefer 5–30 minutes),
+and caption type; prefer manual captions. Unknown metadata stays unknown. Explain
+which concept each demonstration would teach. Never propose decorative videos.
+The approval kickoff ingests proposed video URLs via the transcript ladder.

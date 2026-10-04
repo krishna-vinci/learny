@@ -76,7 +76,7 @@ attributes. Keep a descriptive Markdown link beside it for portability:
 The app uses a local thumbnail or placeholder until Play; no request to YouTube
 occurs before that tap. The existing Typst book shows directive thumbnails, times
 and links; ordinary Markdown links remain readable timed links in the book.
-Old ingests may lack timestamp markers; re-ingest is not currently available.
+Old ingests may lack timestamp markers; use Retry transcript in the Library.
 Before finishing, check every used video source has its correct link and review
 write warnings for missing watch links or unregistered directive videos.
 
@@ -100,3 +100,18 @@ static book forms. It owns all interactive authoring guidance. New files go in
 `visuals/`, attached by standalone `::visual{…}` at the chapter end. Existing
 `::artifact`/`artifacts/` files and declarations keep working; preserve them on edits.
 Prose must stand alone. Chat keeps plain links; Anki media remains deferred.
+
+
+## Video moments that teach (D34)
+
+Video beats text for motion/process, physical demos/labs, spatial manipulation,
+a teacher working a problem step by step, pronunciation/language, real/historical
+footage, performance and practical skills. Skip definitions, lists and text-heavy
+facts that prose already teaches as well. One moment per concept at most.
+Search the registered transcript sections for the concept; use the best matching
+`<!-- t:N -->` marker. Put `::youtube{src="<exact registered URL>" start=N end=M}`
+immediately after the supporting paragraph, with its `[^src:id#tN]` citation and
+human footnote. Start at or after that marker within its section; end no more than
+180 seconds later. Never use a video at the top as decoration. Do not invent times.
+For blocked/no-transcript videos, use a “Watch” link and a muted line saying no
+transcript is available; never cite, quote or summarize it as claim evidence.

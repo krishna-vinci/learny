@@ -189,7 +189,15 @@ export type JobKind =
   | "make-quiz"
   | "make-problems"
   | "grade-answer";
+export interface EvidenceCoverage {
+  covered: number;
+  total: number;
+  weakest: string[];
+  measuredAt: string;
+}
+
 export interface CourseChapter {
+  evidence?: EvidenceCoverage;
   order: number;
   title: string;
   scope: string;

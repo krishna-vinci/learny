@@ -12,10 +12,13 @@ export interface FirecrawlOptions {
   apiKey?: string;
   signal?: AbortSignal;
   timeoutMs?: number;
+  includeHtml?: boolean;
+  waitFor?: number;
 }
 
 export interface FirecrawlResult {
   markdown: string;
+  html?: string;
   title: string | null;
   url: string | null;
 }
@@ -38,6 +41,8 @@ interface FirecrawlPayload {
   links?: unknown;
   data?: {
     markdown?: unknown;
+    html?: unknown;
+    rawHtml?: unknown;
     url?: unknown;
     metadata?: { title?: unknown; sourceURL?: unknown; url?: unknown };
   };
@@ -69,7 +74,17 @@ export function firecrawlScrapeEndpoint(baseUrl: string): string {
  */
 export async function firecrawlScrape(url: string, options: FirecrawlOptions): Promise<FirecrawlResult> {
   await assertPublicUrl(url);
-  const root = await firecrawlRequest(url, "scrape", { url, formats: ["markdown"], onlyMainContent: true }, options);
+  const root = await firecrawlRequest(
+    url,
+    "scrape",
+    {
+      url,
+      formats: options.includeHtml ? ["markdown", "html"] : ["markdown"],
+      onlyMainContent: true,
+      ...(options.waitFor ? { waitFor: options.waitFor } : {}),
+    },
+    options,
+  );
   const markdown = root.data?.markdown;
   if (typeof markdown !== "string" || markdown.trim() === "") {
     throw new FirecrawlError(`Firecrawl returned no markdown for ${url}`);
@@ -85,6 +100,11 @@ export async function firecrawlScrape(url: string, options: FirecrawlOptions): P
   }
   return {
     markdown,
+    ...(typeof root.data?.html === "string"
+      ? { html: root.data.html }
+      : typeof root.data?.rawHtml === "string"
+        ? { html: root.data.rawHtml }
+        : {}),
     title: typeof metadata?.title === "string" ? metadata.title : null,
     url: typeof finalUrl === "string" ? finalUrl : url,
   };

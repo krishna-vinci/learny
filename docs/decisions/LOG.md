@@ -398,3 +398,35 @@ Classifier modes govern the new visual factory; legacy `nullRouter` and
 classifier model. Tokens are reported separately as fresh input / output / cache
 read / cache write, per provider/model. Subscription additional charge is $0;
 catalog costs are estimates. Prompt audits live in `.cache/prompt-audit.jsonl`.
+
+## D34 — Source quality · locked · 2026-10-04
+
+- Parse health is a pure 0–100 score with recorded signals (boilerplate, headings,
+  damaged characters/math, tables, truncation and length), stored in source.md.
+  It never certifies credibility. Extraction preserves TeX annotations, tables,
+  language fences, captions and stable section anchors. Low-quality results get
+  one alternate-strategy attempt; retain the better parse. Existing data stays valid.
+- Recipes fill textbook/OER + expert + discipline-specific slots by subject and
+  level, searching 10–20 candidates per slot. Papers are used at level >=4, for
+  recent topics, or for central claims missing textbook support. Candidate scores
+  consider authority/depth/level/type/recency/relevance; drop thin/SEO/broken parses,
+  canonicalize mirrors and use bounded disposable domain outcomes as hints.
+  `sources.rank` is shadow until known-outcome calibration warrants enabling it;
+  off/shadow uses the scouting LLM's reasoned ranking.
+- Approved plans ingest sources before drafts. Every new chapter assesses scope
+  concepts against imported sections with FTS, scouts gaps and imports healthy
+  candidates through the Librarian before drafting. Coverage and weakest concepts
+  are disposable cache data displayed on Course plan rows as concept matches,
+  distinct from factual verification. The independent checker always runs.
+- Video is for motion/process, labs/demos, spatial manipulation, worked problems,
+  pronunciation, footage and practical performance; skip definitions/lists and
+  facts taught equally well in prose. Planner proposes 1–3 suitable named-educator
+  videos when useful (manual captions preferred; unknown metadata stays unknown).
+  `video.useful` remains shadow. Choose real transcript tN moments, one per concept,
+  immediately after supporting prose, bounded to <=180 seconds; cite the matching
+  tN. Embed-only sources are watch-only with an honest no-transcript line, never
+  claim evidence. Checker inspects adjacent relevance and suitable unused videos.
+- Fetch failures report Firecrawl and direct reasons, retry 429 once honoring
+  bounded Retry-After, remember blocked hosts per job/chat, and suggest accessible
+  alternatives for paywalls. Images belong to save_asset. Job-history failures
+  retain a short secret-redacted reason. SSRF/evidence trust boundaries unchanged.

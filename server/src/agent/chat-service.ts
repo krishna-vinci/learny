@@ -482,6 +482,7 @@ export class ChatService {
     const writtenPaths = new Set<string>();
     const thisService = this;
     const toolset = roleToolset("tutor", {
+      classifier: await workspaceClassifier(this.#root, this.#runtime),
       root: this.#root,
       set,
       locks: this.#locks,
@@ -704,7 +705,8 @@ export class ChatService {
       live.session.setActiveToolsByName(
         quick
           ? live.toolNames.filter(
-              (name) => !name.startsWith("mcp_") && !["wiki_search", "wiki_read", "web_fetch"].includes(name),
+              (name) =>
+                !name.startsWith("mcp_") && !["wiki_search", "wiki_read", "web_fetch", "scout_sources"].includes(name),
             )
           : live.toolNames.filter((name) => name !== "enable_research"),
       );
