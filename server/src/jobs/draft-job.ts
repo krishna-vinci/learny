@@ -294,6 +294,7 @@ async function videoSourceInstructions(root: string, sources: string[]): Promise
     "Choose a timestamp only from a <!-- t:N --> marker in the relevant parsed transcript; never invent timestamps.",
     "Use a timed link and [^src:<id>#tN] with a human-readable footnote when supported; otherwise link the whole video and cite [^src:<id>].",
     "Ordinary Markdown links also render as click-to-load players. Use ::youtube only when explicit start/end bounds are useful, and keep a Markdown link for portability.",
+    "Only the sources listed above are readable. Never cite, quote or summarise a video that is not listed (for example an embed-only video with no transcript).",
   ].join("\n");
 }
 

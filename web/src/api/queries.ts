@@ -39,6 +39,7 @@ export const queryKeys = {
   adminInstance: ["admin", "instance"] as const,
   adminIdentityProviders: ["admin", "identityProviders"] as const,
   adminBackups: ["admin", "backups"] as const,
+  adminYoutube: ["admin", "youtube"] as const,
   adminBackupStatus: ["admin", "backups", "status"] as const,
   adminBackupSnapshots: ["admin", "backups", "snapshots"] as const,
   today: ["today"] as const,
@@ -324,6 +325,54 @@ export function useRestoreBackup() {
 
 export function useSftpKey() {
   return useMutation({ mutationFn: () => api.admin.backups.sftpKey() });
+}
+
+// --- YouTube integration (Settings → Integrations) --------------------------------------
+
+export function useYoutubeStatus() {
+  return useQuery({
+    queryKey: queryKeys.adminYoutube,
+    queryFn: () => api.admin.youtube.status(),
+    // Self-heal while Settings is open: stale credentials are resolved by a
+    // re-export on the server, with no restart, so poll while stale.
+    refetchInterval: (query) => (query.state.data?.cookies.stale ? 10_000 : false),
+  });
+}
+
+function useYoutubeMutation<TArgs>(mutationFn: (args: TArgs) => Promise<unknown>) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.adminYoutube }),
+  });
+}
+
+export function useInstallYoutubeEngine() {
+  return useYoutubeMutation(() => api.admin.youtube.install());
+}
+
+export function useUpdateYoutubeEngine() {
+  return useYoutubeMutation(() => api.admin.youtube.update());
+}
+
+export function useUploadYoutubeCookies() {
+  return useYoutubeMutation((file: File) => api.admin.youtube.uploadCookies(file));
+}
+
+export function useRemoveYoutubeCookies() {
+  return useYoutubeMutation(() => api.admin.youtube.removeCookies());
+}
+
+/** Retry the transcript ladder for one blocked source; invalidates its detail + Activity. */
+export function useRetryTranscript() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.library.retryTranscript(id),
+    onSuccess: (_result, id) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.librarySource(id) });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === "jobs" });
+    },
+  });
 }
 
 // --- Notifications + export (slice d) ----------------------------------------------------
@@ -627,6 +676,10 @@ export function useLiveStudiumUpdates() {
       // list and, once we know the source id, its detail page too.
       if (job.kind === "ingest" && finished) {
         queryClient.invalidateQueries({ queryKey: queryKeys.library });
+        // A stale-cookie outcome flips Settings → Integrations while it is open.
+        if (job.result?.transcriptStatus !== undefined) {
+          queryClient.invalidateQueries({ queryKey: queryKeys.adminYoutube });
+        }
         if (job.set) queryClient.invalidateQueries({ queryKey: queryKeys.sources(job.set) });
         const sourceId = job.result?.sourceId;
         if (sourceId) queryClient.invalidateQueries({ queryKey: queryKeys.librarySource(sourceId) });

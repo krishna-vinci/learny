@@ -1,5 +1,6 @@
 import { promises as fs } from "node:fs";
 import type { ParsedFileView, SiteImportResponse, SiteMapResponse } from "@studium/shared";
+import { youtubeVideoId } from "@studium/shared/media";
 import type { Context } from "hono";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
@@ -102,6 +103,25 @@ export function libraryRoutes(input: LibraryRoutesDeps): Hono {
     if (markdown === null) return c.json({ error: "not found" }, 404);
     const view: ParsedFileView = { file, markdown };
     return c.json(view);
+  });
+
+  // Retry transcript (owner's beginner bar): reuse the ingest job, keep the id.
+  app.post("/:id/retry-transcript", async (c) => {
+    const id = c.req.param("id");
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) return c.json({ error: "not found" }, 404);
+    const view = await readSource(root, id);
+    if (view === null) return c.json({ error: "not found" }, 404);
+    const status = view.source.transcriptStatus;
+    const hasVideo = view.source.url !== null && youtubeVideoId(view.source.url) !== null;
+    if (!hasVideo || (status !== "blocked" && status !== "unavailable")) {
+      return c.json({ error: "This source does not have a retryable transcript." }, 400);
+    }
+    const job = deps.jobs.enqueue(
+      "ingest",
+      { url: view.source.url, set: null, retrySourceId: id },
+      { set: null, title: view.source.title },
+    );
+    return c.json({ jobId: job.id }, 202);
   });
 
   // Cap the whole request body while it streams, before any parser buffers it.

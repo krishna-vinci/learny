@@ -20,3 +20,24 @@ it("unions input and plan sources, deduplicating and dropping missing library ID
     await fs.rm(root, { recursive: true, force: true });
   }
 });
+
+it("excludes embed-only unreadable videos from drafter evidence while keeping readable sources", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "studium-plan-sources-"));
+  try {
+    await fs.mkdir(path.join(root, "library/lib-readable"), { recursive: true });
+    await fs.writeFile(
+      path.join(root, "library/lib-readable/source.md"),
+      "---\ncredibility: B\n---\n\n# Notes\n\nReadable text.\n",
+    );
+    await fs.mkdir(path.join(root, "library/lib-blocked-video"), { recursive: true });
+    await fs.writeFile(
+      path.join(root, "library/lib-blocked-video/source.md"),
+      "---\ncredibility: unreadable\ntranscript_status: blocked\n---\n\n# Video\n\nThis source is embedded for watching only.\n",
+    );
+    expect(await resolveDraftSources(root, PROPOSED_PLAN, ["lib-blocked-video", "lib-readable"])).toEqual([
+      "lib-readable",
+    ]);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});

@@ -28,6 +28,7 @@ import { commitAll, ensureRepo } from "../tree/git.js";
 import { initStudyTree } from "../tree/init.js";
 import { FileLocks } from "../tree/lock.js";
 import { startWatcher } from "../watcher.js";
+import type { YoutubeTranscriptEngine } from "../youtube/types.js";
 
 export interface WorkspaceManagerDeps {
   dataDir: string;
@@ -37,6 +38,8 @@ export interface WorkspaceManagerDeps {
   subscriptionProvidersFor(root: string): Promise<readonly string[]>;
   /** When set, finished jobs notify their owner through this notifier. */
   notifier?: Notifier;
+  /** Optional instance-wide YouTube integration threaded into ingest jobs. */
+  youtube?: YoutubeTranscriptEngine;
 }
 
 export interface Workspace {
@@ -59,6 +62,7 @@ export class WorkspaceManager {
   readonly #maxParallelJobs: number;
   readonly #subscriptionProvidersFor: WorkspaceManagerDeps["subscriptionProvidersFor"];
   readonly #notifier: Notifier | undefined;
+  readonly #youtube: YoutubeTranscriptEngine | undefined;
   readonly #workspaces = new Map<string, Promise<Workspace>>();
 
   constructor(deps: WorkspaceManagerDeps) {
@@ -68,6 +72,7 @@ export class WorkspaceManager {
     this.#maxParallelJobs = deps.maxParallelJobs ?? 3;
     this.#subscriptionProvidersFor = deps.subscriptionProvidersFor;
     this.#notifier = deps.notifier;
+    this.#youtube = deps.youtube;
   }
 
   async for(user: User): Promise<Workspace> {
@@ -177,7 +182,17 @@ export class WorkspaceManager {
     jobs.register("rewrite-chapter", createRewriteJob({ root, locks, mcp, runtime: this.#runtime, hub }));
     jobs.register("plan-set", createPlanJob({ root, locks, mcp, runtime: this.#runtime, hub }));
     jobs.register("make-cards", createCardsJob({ root, locks, mcp, runtime: this.#runtime, hub }));
-    jobs.register("ingest", createIngestJob({ root, locks, mcp, runtime: this.#runtime, hub }));
+    jobs.register(
+      "ingest",
+      createIngestJob({
+        root,
+        locks,
+        mcp,
+        runtime: this.#runtime,
+        hub,
+        ...(this.#youtube === undefined ? {} : { youtube: this.#youtube }),
+      }),
+    );
     jobs.register("compile-book", createBookJob({ root, locks }));
     jobs.register("make-quiz", createPracticeJob({ root, locks, mcp, runtime: this.#runtime, hub }, "make-quiz"));
     jobs.register(

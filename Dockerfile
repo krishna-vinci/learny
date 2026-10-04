@@ -61,6 +61,25 @@ RUN set -eu; \
     pandoc --version; typst --version; \
     rm -rf /tmp/book-tools /tmp/pandoc.tar.gz /tmp/typst.tar.xz
 
+# yt-dlp for YouTube transcripts, pinned and SHA-256-verified against the release's
+# own checksums file. Node (for `--js-runtimes node`) is already in this image.
+ARG YTDLP_VERSION=2026.08.19
+RUN set -eu; \
+    case "${TARGETARCH:-$(dpkg --print-architecture)}" in \
+      amd64) ytdlp_asset=yt-dlp_linux ;; \
+      arm64) ytdlp_asset=yt-dlp_linux_aarch64 ;; \
+      *) exit 1 ;; \
+    esac; \
+    base="https://github.com/yt-dlp/yt-dlp/releases/download/${YTDLP_VERSION}"; \
+    curl -fsSL --connect-timeout 20 --max-time 300 --retry 3 "$base/$ytdlp_asset" -o /tmp/yt-dlp; \
+    curl -fsSL --connect-timeout 20 --max-time 60 --retry 3 "$base/SHA2-256SUMS" -o /tmp/yt-dlp.sums; \
+    expected="$(awk -v f="$ytdlp_asset" '$2 == f { print $1 }' /tmp/yt-dlp.sums)"; \
+    test -n "$expected"; \
+    printf '%s  %s\n' "$expected" /tmp/yt-dlp | sha256sum -c -; \
+    install -m 0755 /tmp/yt-dlp /usr/local/bin/yt-dlp; \
+    rm -f /tmp/yt-dlp /tmp/yt-dlp.sums; \
+    yt-dlp --version
+
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./

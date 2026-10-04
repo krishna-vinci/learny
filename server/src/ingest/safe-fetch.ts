@@ -143,6 +143,13 @@ async function resolvePublicUrl(rawUrl: string): Promise<ResolvedPublicUrl> {
 export interface SafeFetchOptions {
   /** Refuse protocol downgrades on every redirect hop. */
   httpsOnly?: boolean;
+  /**
+   * When set, every hop (including redirects) must resolve to one of these
+   * hostnames. Used by the YouTube engine updater so a redirect cannot escape
+   * the official GitHub release hosts. Defaults to unrestricted, preserving
+   * the existing agent/web-fetch behaviour.
+   */
+  allowedHosts?: readonly string[];
   method?: string;
   headers?: Record<string, string>;
   body?: RequestInit["body"];
@@ -170,6 +177,10 @@ export interface SafeFetchResponse {
 export async function safeFetch(rawUrl: string, options: SafeFetchOptions = {}): Promise<SafeFetchResponse> {
   const timeoutMs = options.timeoutMs ?? SAFE_FETCH_TIMEOUT_MS;
   const maxBytes = options.maxBytes ?? SAFE_FETCH_MAX_BYTES;
+  const allowedHosts =
+    options.allowedHosts === undefined
+      ? null
+      : new Set(options.allowedHosts.map((host) => host.trim().toLowerCase()).filter((host) => host !== ""));
   let currentUrl = rawUrl;
   const deadline = new AbortController();
   const timer = setTimeout(() => deadline.abort(new Error("timeout")), timeoutMs);
@@ -181,6 +192,9 @@ export async function safeFetch(rawUrl: string, options: SafeFetchOptions = {}):
         throw new SafeFetchError("timeout", `Request timed out after ${timeoutMs}ms: ${currentUrl}`);
       }
       const resolved = await resolvePublicUrl(currentUrl);
+      if (allowedHosts !== null && !allowedHosts.has(resolved.url.hostname.toLowerCase())) {
+        throw new SafeFetchError("blocked_host", `Host is not on the allowlist: ${resolved.url.hostname}`);
+      }
       if (options.httpsOnly && resolved.url.protocol !== "https:")
         throw new SafeFetchError("unsupported_protocol", "Only HTTPS image URLs are allowed, including redirects");
       const dispatcher = pinnedDispatcher(resolved);

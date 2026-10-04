@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { YoutubeTranscriptEngine } from "../youtube/types.js";
 import { extractYoutube, transcriptToMarkdown, youtubeVideoId } from "./youtube.js";
 
 const mocks = vi.hoisted(() => ({ fetchTranscript: vi.fn() }));
@@ -89,4 +90,169 @@ it.each([
 ])("fetches captions by validated ID for %s", async (url) => {
   await extractYoutube(url);
   expect(mocks.fetchTranscript).toHaveBeenCalledWith("dQw4w9WgXcQ", expect.objectContaining({ videoDetails: true }));
+});
+
+function fakeEngine(overrides: Partial<YoutubeTranscriptEngine> = {}): YoutubeTranscriptEngine {
+  return {
+    hasCredentials: () => false,
+    transcript: vi.fn(async () => ({ ok: false as const, kind: "blocked" as const, retryable: true })),
+    metadata: vi.fn(async () => ({ title: "Honest Title", author: "Honest Author", thumbnail: null })),
+    ...overrides,
+  };
+}
+
+describe("extractYoutube transcript ladder", () => {
+  it.each(["engine", "metadata"] as const)("preserves cancellation during %s retrieval", async (stage) => {
+    mocks.fetchTranscript.mockRejectedValue(new Error("blocked"));
+    const controller = new AbortController();
+    const engine = fakeEngine({
+      transcript: vi.fn(async () => {
+        if (stage === "engine") {
+          controller.abort();
+          throw new DOMException("Aborted", "AbortError");
+        }
+        return { ok: false as const, kind: "blocked" as const, retryable: true };
+      }),
+      metadata: vi.fn(async () => {
+        controller.abort();
+        throw new DOMException("Aborted", "AbortError");
+      }),
+    });
+    await expect(
+      extractYoutube("https://youtu.be/dQw4w9WgXcQ", { youtube: engine, signal: controller.signal }),
+    ).rejects.toMatchObject({ name: "AbortError" });
+  });
+  beforeEach(() => {
+    // Rung 1 fails so each test exercises the escalation path.
+    mocks.fetchTranscript.mockRejectedValue(new Error("sign in to confirm you're not a bot"));
+  });
+
+  it("escalates to anonymous yt-dlp when the module fails", async () => {
+    const engine = fakeEngine({
+      transcript: vi.fn(async () => ({
+        ok: true as const,
+        segments: [{ text: "Recovered from yt-dlp.", offset: 12, duration: 1 }],
+        title: "Engine Title",
+        author: "Engine Author",
+      })),
+    });
+    const extracted = await extractYoutube("https://youtu.be/dQw4w9WgXcQ", { youtube: engine });
+    expect(extracted.parseTier).toBe("transcript");
+    expect(extracted.title).toBe("Engine Title");
+    expect(extracted.markdown).toContain("Recovered from yt-dlp.");
+    expect(extracted.markdown).toContain("<!-- t:12 -->");
+    expect(extracted.warning).toBeNull();
+    expect(extracted.transcriptStatus).toBeNull();
+    expect(extracted.unreadable).toBeUndefined();
+  });
+
+  it("does not try signed-in runs when no credentials exist", async () => {
+    const transcript = vi.fn(async () => ({ ok: false as const, kind: "blocked" as const, retryable: true }));
+    const engine = fakeEngine({ transcript, hasCredentials: () => false });
+    await extractYoutube("https://youtu.be/dQw4w9WgXcQ", { youtube: engine });
+    expect(transcript).toHaveBeenCalledTimes(1);
+  });
+
+  it("escalates from anonymous to signed-in when credentials exist", async () => {
+    const transcript = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false as const, kind: "blocked" as const, retryable: true })
+      .mockResolvedValueOnce({
+        ok: true as const,
+        segments: [{ text: "Signed in transcript.", offset: 0, duration: 1 }],
+      });
+    const engine = fakeEngine({ transcript, hasCredentials: () => true });
+    const extracted = await extractYoutube("https://youtu.be/dQw4w9WgXcQ", { youtube: engine });
+    expect(extracted.parseTier).toBe("transcript");
+    expect(transcript).toHaveBeenNthCalledWith(2, "dQw4w9WgXcQ", expect.objectContaining({ mode: "signed-in" }));
+  });
+
+  it("adds an embed-only source with honest metadata and a blocked warning", async () => {
+    const engine = fakeEngine({
+      transcript: vi.fn(async () => ({ ok: false as const, kind: "blocked" as const, retryable: true })),
+    });
+    const extracted = await extractYoutube("https://www.youtube.com/watch?v=dQw4w9WgXcQ", { youtube: engine });
+    expect(extracted.parseTier).toBe("basic");
+    expect(extracted.unreadable).toBe(true);
+    expect(extracted.transcriptStatus).toBe("blocked");
+    expect(extracted.title).toBe("Honest Title");
+    expect(extracted.authors).toEqual(["Honest Author"]);
+    expect(extracted.warning).toBe(
+      "YouTube blocked the transcript for this video — try again later, or set up YouTube sign-in in Settings",
+    );
+    expect(extracted.markdown).toBe("");
+    expect(extracted.url).toBe("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+  });
+
+  it.each([
+    ["no-captions", "This video has no captions"],
+    ["disabled", "Captions are turned off by the uploader"],
+  ] as const)("maps %s to its own plain warning", async (kind, copy) => {
+    const engine = fakeEngine({
+      transcript: vi.fn(async () => ({ ok: false as const, kind, retryable: false })),
+    });
+    const extracted = await extractYoutube("https://youtu.be/dQw4w9WgXcQ", { youtube: engine });
+    expect(extracted.transcriptStatus).toBe(kind);
+    expect(extracted.warning).toBe(copy);
+    expect(extracted.unreadable).toBe(true);
+  });
+
+  it("never throws when the engine and metadata both fail", async () => {
+    const engine = fakeEngine({
+      transcript: vi.fn(async () => {
+        throw new Error("yt-dlp exploded");
+      }),
+      metadata: vi.fn(async () => {
+        throw new Error("offline");
+      }),
+    });
+    const extracted = await extractYoutube("https://youtu.be/dQw4w9WgXcQ", { youtube: engine });
+    expect(extracted.unreadable).toBe(true);
+    expect(extracted.markdown).toBe("");
+  });
+
+  it.each([
+    ["YoutubeTranscriptDisabledError", "disabled", "Captions are turned off by the uploader"],
+    [
+      "YoutubeTranscriptVideoUnavailableError",
+      "unavailable",
+      "YouTube couldn't provide the transcript for this video — try again later, or set up YouTube sign-in in Settings",
+    ],
+  ] as const)("preserves the module's explicit %s verdict", async (name, status, copy) => {
+    mocks.fetchTranscript.mockRejectedValue(Object.assign(new Error("typed"), { name }));
+    const engine = fakeEngine({
+      transcript: vi.fn(async () => ({ ok: false as const, kind: "blocked" as const, retryable: true })),
+    });
+    const extracted = await extractYoutube("https://youtu.be/dQw4w9WgXcQ", { youtube: engine });
+    expect(extracted.transcriptStatus).toBe(status);
+    expect(extracted.warning).toBe(copy);
+    expect(extracted.unreadable).toBe(true);
+  });
+
+  it("treats the module's generic not-available error as ambiguous and retryable", async () => {
+    mocks.fetchTranscript.mockRejectedValue(
+      Object.assign(new Error("no transcripts"), { name: "YoutubeTranscriptNotAvailableError" }),
+    );
+    const engine = fakeEngine({
+      transcript: vi.fn(async () => ({ ok: false as const, kind: "blocked" as const, retryable: true })),
+    });
+    const extracted = await extractYoutube("https://youtu.be/dQw4w9WgXcQ", { youtube: engine });
+    expect(extracted.transcriptStatus).toBe("blocked");
+  });
+
+  it("escalates when the module returns only blank segments", async () => {
+    mocks.fetchTranscript.mockResolvedValue({
+      videoDetails: { title: "Blank", author: "Chan" },
+      segments: [{ text: "   ", duration: 1, offset: 0, lang: "en" }],
+    });
+    const engine = fakeEngine({
+      transcript: vi.fn(async () => ({
+        ok: true as const,
+        segments: [{ text: "Real text.", offset: 3, duration: 1 }],
+      })),
+    });
+    const extracted = await extractYoutube("https://youtu.be/dQw4w9WgXcQ", { youtube: engine });
+    expect(extracted.parseTier).toBe("transcript");
+    expect(extracted.markdown).toContain("Real text.");
+  });
 });

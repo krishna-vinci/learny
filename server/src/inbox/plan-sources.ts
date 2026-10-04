@@ -11,7 +11,10 @@ export async function resolveDraftSources(root: string, plan: string, inputSourc
   const sources: string[] = [];
   for (const source of candidates) {
     try {
-      await readText(root, `library/${source}/source.md`);
+      const text = await readText(root, `library/${source}/source.md`);
+      // An embed-only video has no readable text: it is browsable but never
+      // evidence, so it must not be offered to drafters as a citable source.
+      if (parseFrontmatter(text).frontmatter.credibility === "unreadable") continue;
       sources.push(source);
     } catch (error) {
       if (!(error instanceof Error && "code" in error && error.code === "not_found")) throw error;

@@ -30,6 +30,7 @@ import type {
   SiteMapResponse,
   SourceSummary,
   TodayView,
+  YoutubeIntegrationStatus,
 } from "@studium/shared";
 import { clearOfflineCaches, isOffline, OfflineError } from "@/lib/offline";
 
@@ -530,6 +531,25 @@ export const api = {
         return request("/api/admin/backups/sftp-key", { method: "POST" });
       },
     },
+    youtube: {
+      status(): Promise<YoutubeIntegrationStatus> {
+        return request("/api/admin/youtube/status");
+      },
+      install(): Promise<YoutubeIntegrationStatus> {
+        return request("/api/admin/youtube/install", { method: "POST" });
+      },
+      update(): Promise<YoutubeIntegrationStatus> {
+        return request("/api/admin/youtube/update", { method: "POST" });
+      },
+      uploadCookies(file: File): Promise<YoutubeIntegrationStatus> {
+        const form = new FormData();
+        form.append("file", file);
+        return request("/api/admin/youtube/cookies", { method: "POST", body: form });
+      },
+      removeCookies(): Promise<YoutubeIntegrationStatus> {
+        return request("/api/admin/youtube/cookies", { method: "DELETE" });
+      },
+    },
   },
 
   sets: {
@@ -644,6 +664,10 @@ export const api = {
     },
     parsed(id: string, file: string): Promise<ParsedFileView> {
       return request(`/api/library/${encodeURIComponent(id)}/parsed${qs({ file })}`);
+    },
+    /** Retry the transcript ladder for a blocked/unavailable YouTube source. */
+    retryTranscript(id: string): Promise<{ jobId: string }> {
+      return request(`/api/library/${encodeURIComponent(id)}/retry-transcript`, { method: "POST" });
     },
   },
 

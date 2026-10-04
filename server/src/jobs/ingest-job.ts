@@ -3,6 +3,7 @@ import path from "node:path";
 import type { ImageContent } from "@earendil-works/pi-ai";
 import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
 import { ConfigYaml, type JobResult, PlanFrontmatter, parseFrontmatter } from "@studium/shared";
+import { youtubeVideoId } from "@studium/shared/media";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { workspaceClassifier } from "../agent/classifier-workspace.js";
 import { resolveRoleModel } from "../agent/models.js";
@@ -16,12 +17,14 @@ import {
   findDuplicate,
   type IngestJobInput,
   isSourcePending,
+  PENDING_CREDIBILITY,
   readParsedFile,
   readSource,
   withDedupeLock,
   writeSource,
 } from "../ingest/library.js";
 import { SAFE_FETCH_MAX_BYTES, safeFetch } from "../ingest/safe-fetch.js";
+import { splitParsed } from "../ingest/split.js";
 import type { Extracted, InputKind } from "../ingest/types.js";
 import { extract } from "../ingest/types.js";
 import type { McpManager } from "../mcp/bridge.js";
@@ -30,6 +33,7 @@ import { commitPaths } from "../tree/git.js";
 import type { FileLocks } from "../tree/lock.js";
 import { resolveInRoot } from "../tree/paths.js";
 import { isSetSlug } from "../tree/read.js";
+import type { YoutubeTranscriptEngine } from "../youtube/types.js";
 import type { JobContext, JobHandler } from "./runner.js";
 import { usageFromPiMessages } from "./runner.js";
 
@@ -39,6 +43,8 @@ export interface IngestJobDeps {
   mcp: McpManager;
   runtime: ModelRuntime;
   hub: EventHub;
+  /** Optional instance-wide YouTube integration for the transcript ladder. */
+  youtube?: YoutubeTranscriptEngine;
 }
 
 const IMAGE_MIME_BY_EXT: Record<string, string> = {
@@ -66,12 +72,20 @@ export function parseIngestJobInput(value: unknown): IngestJobInput {
   const bytes = value.bytes instanceof Uint8Array && value.bytes.length > 0 ? new Uint8Array(value.bytes) : undefined;
   const set = value.set === null || value.set === undefined ? null : value.set;
   const inboxPath = typeof value.inboxPath === "string" && value.inboxPath !== "" ? value.inboxPath : undefined;
+  const retrySourceId =
+    typeof value.retrySourceId === "string" && /^[a-z0-9][a-z0-9-]*$/.test(value.retrySourceId)
+      ? value.retrySourceId
+      : undefined;
+  if (value.retrySourceId !== undefined && retrySourceId === undefined) throw new Error("invalid retrySourceId");
 
   if (set !== null && (typeof set !== "string" || !isSetSlug(set))) throw new Error("invalid set");
   if ((url === undefined || url === "") && bytes === undefined) {
     throw new Error("a URL or file bytes are required");
   }
   if (bytes !== undefined && filename === undefined) throw new Error("a filename is required for file bytes");
+  if (retrySourceId !== undefined && (url === undefined || url === "")) {
+    throw new Error("a URL is required to retry a transcript");
+  }
   return {
     ...(url === undefined || url === "" ? {} : { url }),
     ...(filename === undefined ? {} : { filename }),
@@ -79,6 +93,7 @@ export function parseIngestJobInput(value: unknown): IngestJobInput {
     ...(bytes === undefined ? {} : { bytes }),
     set,
     ...(inboxPath === undefined ? {} : { inboxPath }),
+    ...(retrySourceId === undefined ? {} : { retrySourceId }),
   };
 }
 
@@ -194,6 +209,7 @@ async function extractInput(
       ...(process.env.MINERU_URL === undefined ? {} : { mineruUrl: process.env.MINERU_URL }),
       ...(process.env.FIRECRAWL_API_URL === undefined ? {} : { firecrawlUrl: process.env.FIRECRAWL_API_URL }),
       ...(process.env.FIRECRAWL_API_KEY === undefined ? {} : { firecrawlKey: process.env.FIRECRAWL_API_KEY }),
+      ...(deps.youtube === undefined ? {} : { youtube: deps.youtube }),
       signal,
     });
     const ext = originalExt(input);
@@ -356,6 +372,175 @@ async function storedSourceTitle(root: string, sourceId: string): Promise<string
   }
 }
 
+function unreadableBody(title: string, warning: string): string {
+  return `${[`# ${title}`, "", warning, "", "This source is embedded for watching only."].join("\n")}\n`;
+}
+
+/** Parsed files currently committed for a source (`parsed.md` and `parsed/*.md`). */
+async function currentParsedFiles(root: string, dir: string): Promise<string[]> {
+  const paths: string[] = [];
+  if (
+    await fs
+      .stat(resolveInRoot(root, `${dir}/parsed.md`))
+      .then(() => true)
+      .catch(() => false)
+  ) {
+    paths.push(`${dir}/parsed.md`);
+  }
+  const entries = await fs.readdir(resolveInRoot(root, `${dir}/parsed`)).catch(() => []);
+  for (const entry of entries) {
+    if (entry.endsWith(".md")) paths.push(`${dir}/parsed/${entry}`);
+  }
+  return paths;
+}
+
+type RetryOutcome =
+  | { kind: "unchanged" }
+  | { kind: "failed"; tracked: string[]; warning: string; status: string }
+  | { kind: "ok"; tracked: string[] };
+
+/**
+ * Retry the transcript ladder for one existing blocked/unavailable YouTube
+ * source, replacing its status in place. The stored URL is authoritative: the
+ * caller may not swap in a different video. Frontmatter is re-read inside the
+ * source lock so a concurrent edit or successful retry is never overwritten,
+ * a failed retry never downgrades a good transcript, and new transcript files
+ * are written before the source metadata is updated.
+ */
+async function retryTranscript(
+  deps: IngestJobDeps,
+  ctx: JobContext,
+  sourceId: string,
+  suppliedUrl: string,
+): Promise<JobResult> {
+  const view = await readSource(deps.root, sourceId);
+  if (view === null) throw new Error(`library source disappeared: ${sourceId}`);
+  const status = view.source.transcriptStatus ?? null;
+  if (status !== "blocked" && status !== "unavailable") {
+    throw new Error("This source does not have a retryable transcript.");
+  }
+  const storedVideoId = view.source.url === null ? null : youtubeVideoId(view.source.url);
+  if (storedVideoId === null) throw new Error("This source is not a YouTube video.");
+  const suppliedVideoId = youtubeVideoId(suppliedUrl);
+  if (suppliedVideoId === null || suppliedVideoId !== storedVideoId) {
+    throw new Error("The retry URL does not match this source.");
+  }
+  const canonicalUrl = `https://www.youtube.com/watch?v=${storedVideoId}`;
+
+  ctx.setTitle?.(view.source.title);
+  ctx.progress("Retrying transcript");
+  ctx.signal.throwIfAborted();
+  const extracted = await extract(
+    "youtube",
+    { url: canonicalUrl },
+    { ...(deps.youtube === undefined ? {} : { youtube: deps.youtube }), signal: ctx.signal },
+  );
+  ctx.signal.throwIfAborted();
+
+  const sourceRel = `library/${sourceId}/source.md`;
+  const dir = `library/${sourceId}`;
+  const outcome = await deps.locks.withLock(sourceRel, "user", async (): Promise<RetryOutcome> => {
+    ctx.signal.throwIfAborted();
+    const latestText = await readText(deps.root, sourceRel);
+    const latest = parseFrontmatter(latestText);
+    // A concurrent successful retry or re-ingest won the race: leave it alone.
+    if (latest.frontmatter.parse_tier === "transcript") return { kind: "unchanged" };
+    const latestTitle =
+      typeof latest.frontmatter.title === "string" && latest.frontmatter.title.trim() !== ""
+        ? latest.frontmatter.title.trim()
+        : view.source.title;
+
+    if (extracted.parseTier !== "transcript") {
+      const nextStatus = (extracted.transcriptStatus ?? "blocked") as string;
+      const warning = extracted.warning ?? "YouTube blocked the transcript for this video.";
+      const next = {
+        ...latest.frontmatter,
+        parse_tier: "basic",
+        credibility: "unreadable",
+        parse_warning: warning,
+        transcript_status: nextStatus,
+      };
+      await fs.writeFile(
+        resolveInRoot(deps.root, sourceRel),
+        `---\n${stringifyYaml(next, { lineWidth: 0 })}---\n\n${unreadableBody(latestTitle, warning)}`,
+        "utf8",
+      );
+      return { kind: "failed", tracked: [sourceRel], warning, status: nextStatus };
+    }
+
+    const title = extracted.title ?? latestTitle;
+    const split = splitParsed(cleanMarkdown(extracted.markdown));
+    const tracked: string[] = [];
+    const wanted = new Set<string>();
+    // New transcript files land first, so a crash cannot leave metadata
+    // pointing at transcript content that does not exist.
+    for (const part of split.parts) {
+      const rel = `${dir}/${part.path}`;
+      const abs = resolveInRoot(deps.root, rel);
+      await fs.mkdir(path.dirname(abs), { recursive: true });
+      await fs.writeFile(abs, part.content, "utf8");
+      tracked.push(rel);
+      wanted.add(rel);
+    }
+    if (extracted.thumb !== undefined) {
+      const thumbRel = `${dir}/thumb.jpg`;
+      await fs.writeFile(resolveInRoot(deps.root, thumbRel), extracted.thumb);
+      tracked.push(thumbRel);
+    }
+    const nextFrontmatter: Record<string, unknown> = {
+      ...latest.frontmatter,
+      title,
+      authors: extracted.authors,
+      type: "video",
+      parse_tier: "transcript",
+      credibility: PENDING_CREDIBILITY,
+    };
+    delete nextFrontmatter.parse_warning;
+    delete nextFrontmatter.transcript_status;
+    await fs.writeFile(
+      resolveInRoot(deps.root, sourceRel),
+      `---\n${stringifyYaml(nextFrontmatter, { lineWidth: 0 })}---\n\n# ${title} - summary\n\nSummary pending.\n`,
+      "utf8",
+    );
+    tracked.push(sourceRel);
+    // Remove only parsed files that the new split no longer produces.
+    for (const obsolete of await currentParsedFiles(deps.root, dir)) {
+      if (wanted.has(obsolete)) continue;
+      await fs.rm(resolveInRoot(deps.root, obsolete), { force: true });
+      tracked.push(obsolete);
+    }
+    return { kind: "ok", tracked };
+  });
+
+  if (outcome.kind === "unchanged") return { sourceId };
+  const commitSha = await commitPaths(deps.root, outcome.tracked, `user: retry transcript ${sourceId}`, "user");
+  if (commitSha !== null) {
+    deps.hub.publish({
+      type: "commit",
+      sha: commitSha,
+      subject: `user: retry transcript ${sourceId}`,
+      author: "user",
+    });
+  }
+  if (outcome.kind === "failed") {
+    ctx.progress("Source ready");
+    return {
+      sourceId,
+      ...(commitSha === null ? {} : { commitSha }),
+      warning: outcome.warning,
+      transcriptStatus: outcome.status as JobResult["transcriptStatus"],
+    };
+  }
+
+  const summary = await runLibrarian(deps, sourceId, ctx);
+  const finalSha = summary.commitSha ?? commitSha;
+  ctx.progress("Source ready");
+  return {
+    sourceId,
+    ...(finalSha === null ? {} : { commitSha: finalSha }),
+    ...(summary.warning === null ? {} : { warning: summary.warning }),
+  };
+}
 /**
  * Finish an ingest that matched an existing source: link it to the target set,
  * clear the inbox file, and resume the Librarian when the summary is still pending.
@@ -407,6 +592,13 @@ export function createIngestJob(deps: IngestJobDeps): JobHandler {
     const inbox = inboxFile(deps.root, input.inboxPath);
     ctx.signal.throwIfAborted();
 
+    // Retry transcript: revalidate and replace one source in place, no dedupe.
+    if (input.retrySourceId !== undefined && input.url !== undefined) {
+      const retrySourceId = input.retrySourceId;
+      const retryUrl = input.url;
+      return withDedupeLock([`source:${retrySourceId}`], () => retryTranscript(deps, ctx, retrySourceId, retryUrl));
+    }
+
     // Serialize lookup → extract → write (and the Librarian completion) for this
     // dedupe bucket, so two concurrent jobs cannot create duplicate sources.
     return withDedupeLock(ingestLockKeys(input), async () => {
@@ -440,6 +632,21 @@ export function createIngestJob(deps: IngestJobDeps): JobHandler {
           ctx.progress("Linking source to set");
           ctx.signal.throwIfAborted();
           await linkSourceToSet(deps, set, sourceId);
+        }
+
+        // An embed-only YouTube source has no readable text; skip the Librarian
+        // so agents never get a fabricated summary, and surface the warning.
+        if (extracted.unreadable === true) {
+          if (inbox !== null) await removeInbox(inbox);
+          ctx.progress("Source ready");
+          return {
+            sourceId,
+            ...(written.commitSha === null ? {} : { commitSha: written.commitSha }),
+            ...(extracted.warning === null ? {} : { warning: extracted.warning }),
+            ...(extracted.transcriptStatus === null || extracted.transcriptStatus === undefined
+              ? {}
+              : { transcriptStatus: extracted.transcriptStatus }),
+          };
         }
 
         const summary = await runLibrarian(deps, sourceId, ctx, extraction.images);

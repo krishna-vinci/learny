@@ -114,6 +114,35 @@ in `.env` and restart.
 
 Extra MCP servers (stdio inside the container, or HTTP) go in the study tree's `mcp.json`.
 
+### YouTube transcripts
+
+Videos are always added even when YouTube refuses to hand over captions: you still get the
+real title, channel and thumbnail, and the video embeds for watching. A transcript is needed
+only for moment citations and chapter drafting.
+
+**Docker already includes yt-dlp.** Nothing else is required for the "improved" tier.
+
+For native installs, open **Settings → Integrations → YouTube**:
+
+1. The panel shows **Transcripts: basic** with an **Install** button when yt-dlp is missing.
+   **Install** downloads the latest official yt-dlp release for this server, checks its
+   published SHA-256 checksum, and installs it under the data directory (no pip, no SSH, no
+   restart). **Update** does the same when a newer release fixes an extraction error. If the
+   server is an unsupported platform the panel says so instead of failing.
+2. To read videos YouTube blocks, upload a `cookies.txt` (optional). The panel lists the
+   steps: make a throwaway Google account → use a separate browser profile → install a
+   cookies.txt exporter → sign in to YouTube → export → upload here → don't use that profile
+   again. The file is stored encrypted and never shown again. Uploading a wrong file tells
+   you it should start with `# Netscape HTTP Cookie File`.
+3. Headless installs can point at a cookie file with `YOUTUBE_COOKIES_PATH` instead; the
+   panel says when the cookies come from the server environment.
+
+When the cookie session expires the panel flips to **Sign-in expired — re-export cookies**
+and the admin is notified once. Re-export from the untouched profile and upload again.
+
+yt-dlp is resolved as `YTDLP_PATH`, then `<data dir>/bin/yt-dlp`, then `yt-dlp` on `PATH`.
+An invalid `YTDLP_PATH` is reported rather than silently ignored.
+
 ## 7. Troubleshooting
 
 - **Blank page or 502 after an upgrade:** rebuild the web app (`pnpm --filter @studium/web build`)
@@ -122,4 +151,6 @@ Extra MCP servers (stdio inside the container, or HTTP) go in the study tree's `
   image includes both; for systemd, put them in `~/.local/bin`.
 - **Agents do nothing:** check the provider login or key, then the job log at
   `<set>/.cache/jobs/<id>.log`.
+- **"YouTube blocked the transcript":** the video needs sign-in; upload cookies in
+  Settings → Integrations → YouTube, then use **Retry transcript** on the source page.
 - **Lost the setup code:** restart the app and read it from the log again.

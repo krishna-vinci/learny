@@ -1,3 +1,5 @@
+import type { YoutubeTranscriptStatus } from "@studium/shared";
+import type { YoutubeTranscriptEngine } from "../youtube/types.js";
 import { arxivPdfUrl } from "./detect.js";
 import { extractDocx } from "./docx.js";
 import { extractEpub } from "./epub.js";
@@ -34,6 +36,13 @@ export interface Extracted {
   originalExt: string | null;
   thumb?: Uint8Array;
   images?: import("./images.js").SourceImage[];
+  /**
+   * True when the input carries metadata but no readable text (an embed-only
+   * YouTube video). Downstream agents must treat such a source as unreadable.
+   */
+  unreadable?: boolean;
+  /** YouTube transcript ladder outcome for embed-only video sources. */
+  transcriptStatus?: YoutubeTranscriptStatus | null;
 }
 
 export interface ExtractInput {
@@ -48,6 +57,8 @@ export interface ExtractOptions {
   firecrawlUrl?: string;
   firecrawlKey?: string;
   signal?: AbortSignal;
+  /** Instance YouTube integration used by the transcript ladder. */
+  youtube?: YoutubeTranscriptEngine;
 }
 
 /** Thrown for inputs T4 deliberately cannot handle (images, audio, PPTX). */
@@ -103,7 +114,10 @@ export async function extract(kind: InputKind, input: ExtractInput, options: Ext
     }
     case "youtube": {
       const url = requireUrl(kind, input);
-      return extractYoutube(url, { signal: options.signal });
+      return extractYoutube(url, {
+        signal: options.signal,
+        ...(options.youtube === undefined ? {} : { youtube: options.youtube }),
+      });
     }
     case "arxiv": {
       const url = requireUrl(kind, input);

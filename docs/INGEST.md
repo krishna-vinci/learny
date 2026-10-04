@@ -87,3 +87,12 @@ forms to the same watch URL, ignoring tracking parameters and viewing timestamps
 Transcripts keep `<!-- t:N -->` paragraph markers in integer seconds; drafters use
 them for nearby timed watch links and `[^src:<id>#tN]` citations. Old transcripts
 without markers still support whole-video links; no timestamp is guessed.
+
+When the built-in caption module can't read a video (YouTube's per-video bot attestation),
+ingest tries an operator-installed `yt-dlp` and, if configured, an operator-supplied cookie
+file. If the transcript still can't be obtained the source is still added with honest
+oEmbed/thumbnail metadata, marked `transcript_status: blocked|no-captions|disabled|unavailable`,
+and written with no parsed text, so agents see it as unreadable rather than citable. The
+source page shows the plain warning and a **Retry transcript** action; retries reuse the
+ingest job and keep the source id and set links. See "YouTube transcripts" in
+[INSTALL.md](INSTALL.md) for setup.

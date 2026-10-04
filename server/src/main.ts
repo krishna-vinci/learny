@@ -19,6 +19,7 @@ import { createServer } from "./server.js";
 import { readText } from "./tree/edit.js";
 import { WorkspaceManager } from "./workspaces/manager.js";
 import { migrateLegacyTree } from "./workspaces/migrate-legacy.js";
+import { YoutubeService } from "./youtube/service.js";
 
 // pnpm runs this with server/ as cwd: resolve relative paths and .env against the repo root.
 const repoRoot = fileURLToPath(new URL("../../", import.meta.url));
@@ -38,6 +39,12 @@ migrate(db);
 const instanceSecret = loadInstanceSecret(dataDir, process.env);
 const backupKey = deriveBackupKey(instanceSecret);
 const notifier = new Notifier({ db, secretsKey: deriveKey(instanceSecret, "studium-secrets-v1") });
+const youtube = new YoutubeService({
+  dataDir,
+  secretsKey: deriveKey(instanceSecret, "studium-secrets-v1"),
+  env: process.env,
+  notifier,
+});
 const { setupRequired } = await bootstrapAccounts(db, process.env);
 const localHosts = new Set(["127.0.0.1", "::1", "localhost"]);
 const setupCode = setupRequired && !localHosts.has(host) ? randomBytes(6).toString("hex") : null;
@@ -62,6 +69,7 @@ const workspaces = new WorkspaceManager({
   maxParallelJobs: Number.isFinite(maxParallelJobs) && maxParallelJobs > 0 ? maxParallelJobs : 3,
   subscriptionProvidersFor,
   notifier,
+  youtube,
 });
 
 const backupService = new BackupService({
@@ -124,6 +132,7 @@ const app = createServer({
   notifier,
   authOpts: { trustProxy, baseUrl, setupCode },
   backups: { service: backupService, db, key: backupKey },
+  youtube,
   ...(existsSync(webDist) ? { webDist } : {}),
 });
 await workspaces.startAll();

@@ -238,3 +238,33 @@ it("refuses HTTPS image redirects to HTTP before following the insecure hop", as
   });
   expect(fetchMock).toHaveBeenCalledTimes(1);
 });
+
+describe("safeFetch allowedHosts", () => {
+  it("blocks a host outside the allowlist before any fetch", async () => {
+    const fetchMock = vi.fn(async () => new Response("ok"));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(safeFetch("https://93.184.216.34/x", { allowedHosts: ["api.github.com"] })).rejects.toMatchObject({
+      code: "blocked_host",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("allows a host on the allowlist", async () => {
+    const fetchMock = vi.fn(async () => new Response("ok"));
+    vi.stubGlobal("fetch", fetchMock);
+    const response = await safeFetch("https://93.184.216.34/x", { allowedHosts: ["93.184.216.34"] });
+    expect(response.ok).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("re-validates the allowlist on every redirect hop", async () => {
+    const fetchMock = vi.fn(
+      async () => new Response(null, { status: 302, headers: { location: "https://1.1.1.1/escape" } }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(safeFetch("https://93.184.216.34/start", { allowedHosts: ["93.184.216.34"] })).rejects.toMatchObject({
+      code: "blocked_host",
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});

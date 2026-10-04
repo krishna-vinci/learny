@@ -10,6 +10,7 @@ import {
   LogOutIcon,
   type LucideIcon,
   PaletteIcon,
+  PlugIcon,
   ServerIcon,
   Settings2Icon,
   UserIcon,
@@ -22,6 +23,7 @@ import BackupsSection from "./BackupsSection";
 import DataSection from "./DataSection";
 import GeneralSection from "./GeneralSection";
 import InstanceSection from "./InstanceSection";
+import IntegrationsSection from "./IntegrationsSection";
 import MembersSection from "./MembersSection";
 import ModelsSection from "./ModelsSection";
 import MyAccountSection from "./MyAccountSection";
@@ -39,6 +41,7 @@ export type SettingSectionKey =
   | "data"
   | "models"
   | "services"
+  | "integrations"
   | "general"
   | "members"
   | "instance"
@@ -115,6 +118,14 @@ export const SETTINGS_SECTIONS: SettingSectionDefinition[] = [
     label: "Services",
     icon: ServerIcon,
     component: ServicesSection,
+  },
+  {
+    key: "integrations",
+    scope: "admin",
+    group: "admin",
+    label: "Integrations",
+    icon: PlugIcon,
+    component: IntegrationsSection,
   },
   { key: "members", scope: "admin", group: "admin", label: "Members", icon: UsersIcon, component: MembersSection },
   {

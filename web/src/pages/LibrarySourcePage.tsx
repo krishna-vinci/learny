@@ -3,15 +3,19 @@
 // parsed file fetches its markdown via `GET /api/library/:id/parsed?file=<file>` (see
 // server/src/routes/library.ts) and renders it: a full-screen sheet on phones (same pattern
 // as NoteHistory's mobile sheet), an inline panel below the list on desktop.
-import { ArrowLeftIcon, ChevronLeftIcon, FileTextIcon, XIcon } from "lucide-react";
+
+import { youtubeVideoId } from "@studium/shared/media";
+import { ArrowLeftIcon, ChevronLeftIcon, FileTextIcon, RotateCcwIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { useLibraryParsedFile, useLibrarySource } from "@/api/queries";
+import { useCurrentUser, useLibraryParsedFile, useLibrarySource, useRetryTranscript } from "@/api/queries";
 import { PageSkeleton, RowsSkeleton } from "@/components/ListSkeleton";
 import { MarkdownView } from "@/components/Reader";
+import { YouTubeEmbed } from "@/components/Reader/YouTubeEmbed";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { isRetryableTranscript, youtubeTranscriptWarning } from "@/lib/youtube-warning";
 import { parseTierLabel, tierBadge } from "./library-utils";
 
 function ParsedFileContent({ id, file }: { id: string; file: string }) {
@@ -67,6 +71,8 @@ function ParsedFilePanel({ id, file, onClose }: { id: string; file: string; onCl
 export default function LibrarySourcePage() {
   const { id } = useParams<{ id: string }>();
   const { data, isLoading, isError } = useLibrarySource(id);
+  const { user } = useCurrentUser();
+  const retry = useRetryTranscript();
   const [openFile, setOpenFile] = useState<string | null>(null);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
@@ -79,6 +85,9 @@ export default function LibrarySourcePage() {
 
   const { source, body, parsedFiles } = data;
   const badge = tierBadge(source.credibility);
+  const warning = youtubeTranscriptWarning(source.transcriptStatus, user?.role === "ADMIN", source.warning);
+  const videoId = source.url === null ? null : youtubeVideoId(source.url);
+  const needsSignIn = source.transcriptStatus === "blocked" || source.transcriptStatus === "unavailable";
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 p-4 sm:p-6">
@@ -114,8 +123,37 @@ export default function LibrarySourcePage() {
           )}
         </p>
         {source.sets.length > 0 && <p className="text-xs text-muted-foreground">In sets: {source.sets.join(", ")}</p>}
-        {source.warning && <p className="text-xs text-amber-600 dark:text-amber-400">{source.warning}</p>}
+        {warning && (
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-xs text-amber-600 dark:text-amber-400">{warning}</p>
+            {needsSignIn && user?.role === "ADMIN" && (
+              <Link to="/settings/integrations" className="text-xs text-primary underline underline-offset-4">
+                Set up YouTube sign-in
+              </Link>
+            )}
+            {isRetryableTranscript(source.transcriptStatus) && id && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-11 sm:h-7"
+                  onClick={() => retry.mutate(id)}
+                  disabled={retry.isPending}
+                >
+                  <RotateCcwIcon className="size-3.5" aria-hidden="true" />
+                  {retry.isPending ? "Retrying…" : "Retry transcript"}
+                </Button>
+                {retry.isSuccess && <span className="text-xs text-muted-foreground">Retrying in the background…</span>}
+                {retry.isError && (
+                  <span className="text-xs text-destructive">Couldn't start the retry. Try again.</span>
+                )}
+              </>
+            )}
+          </div>
+        )}
       </div>
+
+      {videoId !== null && <YouTubeEmbed id={videoId} start={0} />}
 
       <MarkdownView content={body} />
 

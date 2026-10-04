@@ -1,7 +1,7 @@
 import type { Dirent } from "node:fs";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import type { SourceSummary, SourceType } from "@studium/shared";
+import type { SourceSummary, SourceType, YoutubeTranscriptStatus } from "@studium/shared";
 import { parseFrontmatter, SourceFrontmatter } from "@studium/shared";
 import { stringify as stringifyYaml } from "yaml";
 import { readText } from "../tree/edit.js";
@@ -53,6 +53,11 @@ export interface IngestJobInput {
   set?: string | null;
   /** Root-relative path of the dropped file in library/_inbox/; the ingest job removes it on success. */
   inboxPath?: string;
+  /**
+   * Explicit retry target: re-run the transcript ladder for this existing
+   * source in place, keeping its id and set links (never a new JobKind).
+   */
+  retrySourceId?: string;
 }
 
 /** Stored `source.md` marker while the librarian has not summarised the source yet. */
@@ -153,6 +158,8 @@ function dedupeKeyFor(extracted: Extracted, sha256: string | null): DedupeKey {
 /** Map an extractor result onto the STUDY_TREE `type` field. */
 export function sourceTypeOf(extracted: Extracted): SourceType {
   if (extracted.parseTier === "transcript") return "video";
+  // Embed-only YouTube sources keep an honest video type so the UI embeds them.
+  if (extracted.unreadable === true && isYoutubeUrl(extracted.url)) return "video";
   switch ((extracted.originalExt ?? "").toLowerCase()) {
     case "epub":
       return "book";
@@ -168,6 +175,25 @@ export function sourceTypeOf(extracted: Extracted): SourceType {
   }
 }
 
+function isYoutubeUrl(url: string | null): boolean {
+  if (url === null) return false;
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    return (
+      host === "youtube.com" ||
+      host === "www.youtube.com" ||
+      host === "m.youtube.com" ||
+      host === "music.youtube.com" ||
+      host === "youtube-nocookie.com" ||
+      host === "www.youtube-nocookie.com" ||
+      host === "youtu.be" ||
+      host === "www.youtu.be"
+    );
+  } catch {
+    return false;
+  }
+}
+
 function frontmatterBlock(frontmatter: Record<string, unknown>): string {
   return `---\n${stringifyYaml(frontmatter, { lineWidth: 0 })}---`;
 }
@@ -177,6 +203,16 @@ function renderBody(title: string, toc: string | null): string {
   const lines = [`# ${title} - summary`, "", "Summary pending.", ""];
   if (toc !== null) lines.push("## Contents", "", toc, "");
   return `${lines.join("\n").replace(/\n+$/, "")}\n`;
+}
+
+/**
+ * Placeholder for an embed-only source with no readable text: the warning is
+ * surfaced in frontmatter and here, and no parsed files are written, so agents
+ * cannot cite invented prose.
+ */
+function renderUnreadableBody(title: string, warning: string | null): string {
+  const note = warning ?? "No transcript is available for this video.";
+  return `${[`# ${title}`, "", note, "", "This source is embedded for watching only."].join("\n")}\n`;
 }
 
 /**
@@ -201,6 +237,7 @@ export async function writeSource(
   const dir = `${LIBRARY_DIR}/${id}`;
   const title = extracted.title ?? "Untitled source";
   const split = splitParsed(extracted.markdown);
+  const unreadable = extracted.unreadable === true;
 
   const frontmatter: Record<string, unknown> = {
     id,
@@ -208,11 +245,14 @@ export async function writeSource(
     authors: extracted.authors,
     type: sourceTypeOf(extracted),
     ...(extracted.url === null ? {} : { url: extracted.url }),
-    credibility: PENDING_CREDIBILITY,
+    credibility: unreadable ? "unreadable" : PENDING_CREDIBILITY,
     parse_tier: extracted.parseTier,
     ...(sha256 === null ? {} : { sha256 }),
     added: new Date().toISOString().slice(0, 10),
     ...(extracted.warning === null ? {} : { parse_warning: extracted.warning }),
+    ...(extracted.transcriptStatus === null || extracted.transcriptStatus === undefined
+      ? {}
+      : { transcript_status: extracted.transcriptStatus }),
   };
 
   // Commit only the tracked paths: `original.<ext>` is intentionally gitignored
@@ -222,7 +262,7 @@ export async function writeSource(
   const sourceRel = `${dir}/source.md`;
   await fs.writeFile(
     resolveInRoot(root, sourceRel),
-    `${frontmatterBlock(frontmatter)}\n\n${renderBody(title, split.toc)}`,
+    `${frontmatterBlock(frontmatter)}\n\n${unreadable ? renderUnreadableBody(title, extracted.warning) : renderBody(title, split.toc)}`,
     "utf8",
   );
   tracked.push(sourceRel);
@@ -232,8 +272,9 @@ export async function writeSource(
     tracked.push(thumbRel);
   }
   if (
-    extracted.images !== undefined ||
-    (extracted.url && extracted.originalExt === null && extracted.parseTier !== "transcript")
+    !unreadable &&
+    (extracted.images !== undefined ||
+      (extracted.url && extracted.originalExt === null && extracted.parseTier !== "transcript"))
   ) {
     const imagesRel = `${dir}/images.json`;
     await fs.writeFile(
@@ -243,7 +284,7 @@ export async function writeSource(
     tracked.push(imagesRel);
   }
 
-  for (const part of split.parts) tracked.push(await writePart(root, dir, part));
+  if (!unreadable) for (const part of split.parts) tracked.push(await writePart(root, dir, part));
 
   if (original !== undefined) {
     await fs.writeFile(resolveInRoot(root, `${dir}/original.${original.ext}`), original.bytes);
@@ -314,6 +355,7 @@ function summaryFrom(id: string, frontmatter: Record<string, unknown>, sets: str
   const parsed = SourceFrontmatter.safeParse(frontmatter);
   const data = parsed.success ? parsed.data : null;
   const warning = frontmatter.parse_warning;
+  const transcriptStatus = frontmatter.transcript_status;
   return {
     id,
     title: data?.title ?? id,
@@ -325,7 +367,14 @@ function summaryFrom(id: string, frontmatter: Record<string, unknown>, sets: str
     addedAt: typeof data?.added === "string" ? data.added : "",
     sets: [...sets].sort(),
     warning: typeof warning === "string" && warning !== "" ? warning : null,
+    transcriptStatus: isTranscriptStatus(transcriptStatus) ? transcriptStatus : null,
   };
+}
+
+const TRANSCRIPT_STATUSES = new Set<YoutubeTranscriptStatus>(["blocked", "no-captions", "disabled", "unavailable"]);
+
+function isTranscriptStatus(value: unknown): value is YoutubeTranscriptStatus {
+  return typeof value === "string" && TRANSCRIPT_STATUSES.has(value as YoutubeTranscriptStatus);
 }
 
 /** Summaries for every `library/<src-id>/source.md`, newest first. */

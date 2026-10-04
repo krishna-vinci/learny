@@ -84,6 +84,39 @@ describe("draft chapter job", () => {
     },
   );
 
+  it("excludes an embed-only unreadable video from the drafter's allowed sources", async () => {
+    const planPath = path.join(root, "linear-algebra/PLAN.md");
+    const plan = await fs.readFile(planPath, "utf8");
+    await fs.mkdir(path.join(root, "library/lib-blocked-video"), { recursive: true });
+    await fs.writeFile(
+      path.join(root, "library/lib-blocked-video/source.md"),
+      "---\ncredibility: unreadable\ntranscript_status: blocked\n---\n\n# Video\n\nThis source is embedded for watching only.\n",
+    );
+    await fs.writeFile(planPath, plan.replace(/sources: \[[^\n]*\]/, "sources: [lib-strang-la, lib-blocked-video]"));
+    const runRole = vi
+      .spyOn(roleRunner, "runRole")
+      .mockResolvedValue({ text: "no evidence", written: [], messages: [] });
+    const handler = createDraftJob({
+      root,
+      locks: new FileLocks(),
+      mcp: new McpManager([]),
+      runtime: await createModelRuntime(),
+      hub: new EventHub(),
+    });
+    await expect(
+      handler(
+        { set: "linear-algebra", title: "Eigenvalues" },
+        { signal: new AbortController().signal, progress: vi.fn(), addUsage: vi.fn() },
+      ),
+    ).rejects.toThrow();
+    const task = runRole.mock.calls[0]?.[1].task ?? "";
+    expect(task).toContain("Allowed source ids: lib-strang-la");
+    const allowedLine = task.split("\n").find((line) => line.startsWith("Allowed source ids:")) ?? "";
+    expect(allowedLine).not.toContain("lib-blocked-video");
+    expect(task).not.toContain('selected_passage source="lib-blocked-video');
+    runRole.mockRestore();
+  });
+
   it("reports the drafter's last assistant text, trimmed to 300 characters", async () => {
     const runtime = await createModelRuntime();
     const faux = fauxProvider({ provider: "faux", models: [{ id: "echo" }] });

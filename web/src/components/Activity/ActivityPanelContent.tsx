@@ -4,10 +4,10 @@
 // desktop popover or a phone bottom sheet.
 import type { JobKind, JobStatus, JobView } from "@studium/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { BookOpenIcon, LayersIcon, LinkIcon, ListTreeIcon, NotebookTextIcon } from "lucide-react";
+import { BookOpenIcon, LayersIcon, LinkIcon, ListTreeIcon, NotebookTextIcon, TriangleAlertIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api } from "@/api/client";
-import { useJobs, useSets } from "@/api/queries";
+import { useCurrentUser, useJobs, useSets } from "@/api/queries";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -16,6 +16,7 @@ import { formatDuration } from "@/lib/job-format";
 import { isActiveJob, isRecentlyFinishedJob } from "@/lib/job-transitions";
 import { toast } from "@/lib/notify";
 import { cn } from "@/lib/utils";
+import { youtubeTranscriptWarning } from "@/lib/youtube-warning";
 import { closeActivityPanel } from "./activity-store";
 
 const STATUS_VARIANTS: Record<JobStatus, BadgeVariant> = {
@@ -54,6 +55,7 @@ function JobRow({
   onRetry,
   retrying,
   focused,
+  isAdmin,
 }: {
   job: JobView;
   setTitle: string;
@@ -62,9 +64,11 @@ function JobRow({
   onRetry: (() => void) | null;
   retrying: boolean;
   focused: boolean;
+  isAdmin: boolean;
 }) {
   const active = isActiveJob(job);
   const KindIcon = KIND_ICONS[job.kind];
+  const warning = youtubeTranscriptWarning(job.result?.transcriptStatus, isAdmin, job.result?.warning);
   return (
     <li
       className={cn(
@@ -91,6 +95,27 @@ function JobRow({
           <p className="mt-0.5 truncate text-sm text-muted-foreground">
             {job.progress || (job.kind === "rewrite-chapter" ? "Rewriting chapter" : active ? "Working…" : "")}
           </p>
+          {job.status === "done" && warning && (
+            <div className="mt-1 flex items-start gap-1.5 text-xs text-warning-ink">
+              <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden="true" />
+              <span className="min-w-0">
+                {warning}
+                {isAdmin &&
+                  (job.result?.transcriptStatus === "blocked" || job.result?.transcriptStatus === "unavailable") && (
+                    <>
+                      {" "}
+                      <Link
+                        to="/settings/integrations"
+                        onClick={closeActivityPanel}
+                        className="text-primary underline underline-offset-4"
+                      >
+                        Set up YouTube sign-in
+                      </Link>
+                    </>
+                  )}
+              </span>
+            </div>
+          )}
           {job.status === "failed" && job.error && (
             <details className="mt-1 text-xs text-destructive">
               <summary className="min-h-11 cursor-pointer py-2 md:min-h-0 md:py-1">Show error</summary>
@@ -120,6 +145,8 @@ function JobRow({
 export function ActivityPanelContent({ focusJobId }: { focusJobId?: string }) {
   const { data: jobs = [] } = useJobs();
   const { data: sets } = useSets();
+  const { user } = useCurrentUser();
+  const isAdmin = user?.role === "ADMIN";
   const queryClient = useQueryClient();
 
   const cancelJob = useMutation({
@@ -149,6 +176,14 @@ export function ActivityPanelContent({ focusJobId }: { focusJobId?: string }) {
 
   const active = jobs.filter(isActiveJob);
   const failed = jobs.filter((job) => job.status === "failed" && isRecentlyFinishedJob(job)).slice(0, 3);
+  // Recently finished jobs that carry a warning (e.g. an embed-only video with a
+  // blocked transcript) are surfaced here too, so the operator sees them.
+  const warned = jobs
+    .filter((job) => job.status === "done" && job.result?.warning && isRecentlyFinishedJob(job))
+    .slice(0, 3);
+  const settled = [...failed, ...warned].filter(
+    (job, index, all) => all.findIndex((candidate) => candidate.id === job.id) === index,
+  );
   const setTitleFor = (job: JobView) => {
     if (!job.set) return "All sets";
     return sets?.find((summary) => summary.slug === job.set)?.title ?? job.set;
@@ -157,7 +192,7 @@ export function ActivityPanelContent({ focusJobId }: { focusJobId?: string }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto py-1">
-        {active.length === 0 && failed.length === 0 && (
+        {active.length === 0 && settled.length === 0 && (
           <p className="px-3 py-3 text-sm text-muted-foreground">Nothing running right now.</p>
         )}
         <ul>
@@ -171,9 +206,10 @@ export function ActivityPanelContent({ focusJobId }: { focusJobId?: string }) {
               onRetry={null}
               retrying={false}
               focused={focusJobId === job.id}
+              isAdmin={isAdmin}
             />
           ))}
-          {failed.map((job) => (
+          {settled.map((job) => (
             <JobRow
               key={job.id}
               job={job}
@@ -187,6 +223,7 @@ export function ActivityPanelContent({ focusJobId }: { focusJobId?: string }) {
               }
               retrying={retryJob.isPending && retryJob.variables?.title === job.title}
               focused={focusJobId === job.id}
+              isAdmin={isAdmin}
             />
           ))}
         </ul>

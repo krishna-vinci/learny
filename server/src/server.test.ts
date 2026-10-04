@@ -61,6 +61,65 @@ function cookie(token: string): Record<string, string> {
 }
 
 describe("top-level server", () => {
+  it("restricts the YouTube admin routes to admins", async () => {
+    const member = await createUser(db, { username: "member", password: "member-pass", role: "USER" });
+    const admin = await createUser(db, { username: "owner", password: "owner-pass", role: "ADMIN" });
+    const memberSession = createSession(db, member.id, { userAgent: "", ip: "" });
+    const adminSession = createSession(db, admin.id, { userAgent: "", ip: "" });
+    const status = {
+      engine: {
+        state: "missing" as const,
+        source: null,
+        version: null,
+        asset: "yt-dlp_linux",
+        platformSupported: true,
+        platformLabel: "linux x86_64",
+        nodePresent: true,
+        managedInstalled: false,
+        managedVersion: null,
+        managedShadowed: false,
+        envOverrideInvalid: false,
+      },
+      cookies: {
+        source: "none" as const,
+        configured: false,
+        readable: false,
+        stale: false,
+        lastSuccessAt: null,
+        lastSuccessVideoId: null,
+      },
+      mode: "basic" as const,
+      modeLabel: "Transcripts: basic",
+      updateRecommended: false,
+    };
+    const app = createServer({
+      db,
+      instanceSecret: Buffer.alloc(32, 1),
+      workspaces: {
+        for: async () => ({ app: workspace }),
+        provision: async () => undefined,
+        stop: async () => undefined,
+        rootFor: () => null,
+      },
+      authOpts: { trustProxy: false, baseUrl: null, setupCode: null },
+      youtube: {
+        status: async () => status,
+        install: async () => status,
+        update: async () => status,
+        uploadCookies: async () => status,
+        removeCookies: async () => status,
+      },
+    });
+
+    expect((await app.request("/api/admin/youtube/status")).status).toBe(401);
+    expect((await app.request("/api/admin/youtube/status", { headers: cookie(memberSession.token) })).status).toBe(403);
+    expect(
+      (await app.request("/api/admin/youtube/install", { method: "POST", headers: cookie(memberSession.token) }))
+        .status,
+    ).toBe(403);
+    expect((await app.request("/api/admin/youtube/status", { headers: cookie(adminSession.token) })).status).toBe(200);
+  });
+
   it("requires a session for workspace routes and accepts a PAT bearer", async () => {
     const user = await createUser(db, { username: "learner", role: "USER" });
     const pat = createAccessToken(db, user.id, { description: "test" });

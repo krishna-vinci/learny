@@ -97,6 +97,51 @@ export interface SourceSummary {
   addedAt: string;
   sets: string[];
   warning: string | null;
+  /**
+   * Machine-readable outcome of the YouTube transcript ladder for embed-only
+   * video sources. Null for every other source. Drives Retry eligibility.
+   */
+  transcriptStatus?: YoutubeTranscriptStatus | null;
+}
+
+/** Why the YouTube transcript ladder could not read a video (frontmatter value). */
+export type YoutubeTranscriptStatus = "blocked" | "no-captions" | "disabled" | "unavailable";
+
+/** `GET /api/admin/youtube/status`: engine + credential state, never secrets. */
+export interface YoutubeIntegrationStatus {
+  engine: {
+    state: "found" | "missing";
+    /** How the active binary was resolved; null when missing. */
+    source: "env" | "managed" | "path" | null;
+    version: string | null;
+    /** Official release asset for this host, or null when unsupported. */
+    asset: string | null;
+    platformSupported: boolean;
+    platformLabel: string;
+    /** Node is always present (we run on Node); surfaced for the status copy. */
+    nodePresent: boolean;
+    /** A managed copy exists under the data dir (Install already ran). */
+    managedInstalled: boolean;
+    managedVersion: string | null;
+    /** True when an env/path binary shadows the managed copy. */
+    managedShadowed: boolean;
+    /** YTDLP_PATH was set but unusable; the active engine came from a fallback. */
+    envOverrideInvalid: boolean;
+  };
+  cookies: {
+    source: "none" | "uploaded" | "env";
+    configured: boolean;
+    /** The configured file (env or uploaded) exists and reads as Netscape format. */
+    readable: boolean;
+    stale: boolean;
+    lastSuccessAt: string | null;
+    lastSuccessVideoId: string | null;
+  };
+  /** "basic" → no engine, "improved" → anonymous yt-dlp, "signed-in" → cookies. */
+  mode: "basic" | "improved" | "signed-in";
+  modeLabel: string;
+  /** An extraction failure was seen that a newer yt-dlp release may fix. */
+  updateRecommended: boolean;
 }
 
 // `GET /api/library/:id/parsed?file=<name>`: one of a source's `parsedFiles`.
@@ -182,6 +227,8 @@ export interface JobResult {
   commitSha?: string;
   /** Non-fatal note (e.g. the source was stored but its summary is still pending). */
   warning?: string;
+  /** YouTube transcript ladder outcome for embed-only video sources. */
+  transcriptStatus?: YoutubeTranscriptStatus;
 }
 
 export interface JobView {

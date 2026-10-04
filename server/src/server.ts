@@ -29,6 +29,7 @@ import { visualRuntimeRoutes } from "./http/visual-runtime.js";
 import { NON_AI_JOB_KINDS } from "./jobs/runner.js";
 import { Notifier } from "./notify/notifier.js";
 import { notificationRoutes } from "./notify/routes.js";
+import { type YoutubeAdminService, youtubeRoutes } from "./routes/youtube.js";
 import { identityProviderAdminRoutes, identityRoutes, ssoAuthRoutes } from "./sso/routes.js";
 
 export interface WorkspaceProvider {
@@ -46,6 +47,8 @@ export interface ServerDeps {
   authOpts: Omit<AuthRouteOptions, "db">;
   backups?: BackupRouteDeps;
   notifier?: Notifier;
+  /** Instance-wide YouTube integration backing the admin panel. */
+  youtube?: YoutubeAdminService;
 }
 
 async function jsonBody(c: Context): Promise<Record<string, unknown> | null> {
@@ -314,6 +317,7 @@ export function createServer(deps: ServerDeps): Hono {
   app.route("/api/me", meRoutes(deps.db));
   app.use("/api/admin/*", requireAdmin);
   app.route("/api/admin/identity-providers", identityProviderAdminRoutes(ssoOptions));
+  if (deps.youtube !== undefined) app.route("/api/admin/youtube", youtubeRoutes({ service: deps.youtube }));
   app.route("/api/admin", adminRoutes(deps.db, deps.workspaces));
   if (deps.backups !== undefined) app.route("/api/admin/backups", backupRoutes(deps.backups));
   app.use("/api/*", async (c, next) => {
