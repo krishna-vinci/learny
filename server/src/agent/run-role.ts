@@ -16,6 +16,7 @@ import type { EventHub } from "../events.js";
 import type { JobContext } from "../jobs/runner.js";
 import type { McpManager } from "../mcp/bridge.js";
 import { configuredSearch, type SearchService } from "../search/backends.js";
+import { type SearchContext, withPlanContext } from "../search/options.js";
 import { readText } from "../tree/edit.js";
 import type { FileLocks } from "../tree/lock.js";
 import { addCardTool, recordQuizResultTool, reviewCardTool } from "./builtins/cards.js";
@@ -110,7 +111,14 @@ export interface RoleToolsetOptions {
 export function roleToolset(role: RoleName, opts: RoleToolsetOptions): { tools: ToolDefinition[]; names: string[] } {
   const spec = ROLES[role];
   const holder = opts.holder;
-  const search = opts.search ?? configuredSearch(opts.root);
+  const search =
+    opts.search ??
+    configuredSearch(
+      opts.root,
+      undefined,
+      { set: opts.set },
+      spec.mcpServers.includes("papers") ? opts.mcp : undefined,
+    );
   const builtins: ToolDefinition[] = [
     ...studyTools({
       root: opts.root,
@@ -269,6 +277,8 @@ function resolveConfiguredModel(runtime: ModelRuntime, configured: string): Mode
 }
 
 interface RunRoleOptions {
+  search?: SearchService;
+  searchContext?: SearchContext;
   jobContext?: JobContext;
   root: string;
   set: string | null;
@@ -309,12 +319,29 @@ async function runSession(
     blockedHosts = jobBlockedHosts.get(opts.jobContext) ?? new Map();
     jobBlockedHosts.set(opts.jobContext, blockedHosts);
   }
-  const search = opts.jobContext
-    ? (jobSearch.get(opts.jobContext) ??
-      configuredSearch(opts.root, (requests, costUsd) =>
-        opts.jobContext?.addUsage({ exaRequests: requests, exaCostUsd: costUsd }),
-      ))
-    : configuredSearch(opts.root);
+  const planContext = await withPlanContext(opts.root, { query: "", set: opts.set });
+  const searchContext = {
+    planText: planContext.planText,
+    subject: planContext.subject,
+    brief: opts.task,
+    ...opts.searchContext,
+  };
+  const search =
+    opts.search ??
+    (opts.jobContext
+      ? (jobSearch.get(opts.jobContext) ??
+        configuredSearch(
+          opts.root,
+          (requests, costUsd) => opts.jobContext?.addUsage({ exaRequests: requests, exaCostUsd: costUsd }),
+          searchContext,
+          ROLES[role].mcpServers.includes("papers") ? opts.mcp : undefined,
+        ))
+      : configuredSearch(
+          opts.root,
+          undefined,
+          searchContext,
+          ROLES[role].mcpServers.includes("papers") ? opts.mcp : undefined,
+        ));
   if (opts.jobContext) jobSearch.set(opts.jobContext, search);
   const toolset = roleToolset(role, {
     search,

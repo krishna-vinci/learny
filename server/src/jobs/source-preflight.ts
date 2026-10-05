@@ -5,6 +5,7 @@ import { selectedPassage } from "../agent/passage.js";
 import { rethrowRoleModelError, runRole } from "../agent/run-role.js";
 import { slugify } from "../ingest/ids.js";
 import { readSource } from "../ingest/library.js";
+import { configuredSearch } from "../search/backends.js";
 import { chapterConcepts, measureCoverage, saveCoverage } from "../search/coverage.js";
 import { sourcePassages } from "../search/passages.js";
 import { chapterExists, parseCurriculum } from "../tree/curriculum.js";
@@ -35,9 +36,21 @@ export async function sourcePreflight(
     ctx.progress("Finding evidence for chapter gaps");
     const classifier = await workspaceClassifier(deps.root, deps.runtime, ctx.signal, ctx);
     const selected = new Map<string, ScoutedSource>();
+    const subject = String(parseFrontmatter(plan).frontmatter.subject ?? "general");
+    const search = configuredSearch(
+      deps.root,
+      (exaRequests, exaCostUsd) => ctx.addUsage({ exaRequests, exaCostUsd }),
+      {
+        subject,
+        planText: plan,
+        brief: `${input.title}\n${scope}`,
+      },
+      deps.mcp,
+    );
     const scout = scoutSourcesTool({
       root: deps.root,
       classifier,
+      search,
       onSelected: (items) => {
         for (const s of items) selected.set(s.url, s);
       },
@@ -45,6 +58,7 @@ export async function sourcePreflight(
     const level = parseFrontmatter(plan).frontmatter.level;
     const result = await runRole("outliner", {
       jobContext: ctx,
+      search,
       ...deps,
       set: input.set,
       signal: ctx.signal,
@@ -61,7 +75,10 @@ export async function sourcePreflight(
       onModel: (p) => ctx.useProvider?.(p),
     }).catch(rethrowRoleModelError);
     ctx.addUsage(usageFromPiMessages(result.messages));
-    const ingest = createIngestJob(deps);
+    const ingest = createIngestJob({
+      ...deps,
+      candidateImages: new Map([...selected.values()].map((c) => [c.url, c.images ?? []])),
+    });
     for (const candidate of selected.values()) {
       ctx.signal.throwIfAborted();
       const added = await ingest({ url: candidate.url, set: input.set }, { ...ctx, setTitle: () => {} });

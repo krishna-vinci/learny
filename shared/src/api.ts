@@ -317,7 +317,16 @@ export interface ServiceHealth {
 
 // `GET /api/settings` view: configured role models plus live availability,
 // warnings, and service health.
+export interface ExaBudgetStatus {
+  month: string;
+  spendUsd: number;
+  warnUsd: number;
+  stopUsd: number;
+  status: "off" | "ready" | "warning" | "stopped" | "unavailable";
+}
+
 export interface SettingsView {
+  exa?: ExaBudgetStatus;
   classifier?: {
     model: string | null;
     status: "configured" | "working" | "off";

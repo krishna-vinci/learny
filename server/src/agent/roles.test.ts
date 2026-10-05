@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Message, TranscriptContext } from "@earendil-works/pi-ai";
 import { fauxAssistantMessage, fauxProvider, fauxText } from "@earendil-works/pi-ai/providers/faux";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { McpManager } from "../mcp/bridge.js";
 import { createFakeMcpServer, type FakeMcpServer } from "../mcp/fake-server.test-helper.js";
 import { initStudyTree } from "../tree/init.js";
@@ -99,6 +99,64 @@ async function execute(role: RoleName, name: string, params: Record<string, unkn
   if (tool === undefined) throw new Error(`missing tool ${name}`);
   return tool.execute("call-1", params, undefined, undefined, undefined as never);
 }
+
+it("lets scout_sources reach the role-approved papers MCP through native routing", async () => {
+  const search = vi.fn(async () => ({
+    content: [
+      {
+        type: "text",
+        text: JSON.stringify({
+          papers: [1, 2, 3].map((n) => ({
+            url: `https://arxiv.org/abs/2601.0000${n}`,
+            title: `Paper ${n}`,
+            abstract: "Eigenvalue methods and numerical evidence",
+            source: "arxiv",
+          })),
+        }),
+      },
+    ],
+    details: { isError: false },
+  }));
+  const tools = vi.fn(() => [
+    {
+      name: "mcp_papers_search_papers",
+      label: "Search papers",
+      description: "Search",
+      parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] },
+      execute: search,
+    },
+  ]);
+  vi.stubEnv("EXA_API_KEY", "");
+  vi.stubEnv("SEARXNG_URL", "");
+  try {
+    const toolset = roleToolset("outliner", {
+      root,
+      set: "linear-algebra",
+      locks: new FileLocks(),
+      mcp: { tools } as never,
+      holder: "paper-test",
+    });
+    const scout = toolset.tools.find((t) => t.name === "scout_sources");
+    const result = await scout?.execute(
+      "paper-scout",
+      {
+        brief: "Eigenvalue research",
+        level: 4,
+        researchNeeded: true,
+        candidates: [],
+        search: { query: "eigenvalue methods", slot: "paper" },
+      },
+      undefined,
+      undefined,
+      undefined as never,
+    );
+    expect(result?.details).toMatchObject({ isError: false, summary: "3 leads to rank" });
+    expect(search).toHaveBeenCalledTimes(1);
+    expect(tools).toHaveBeenCalledWith(["papers"]);
+  } finally {
+    vi.unstubAllEnvs();
+  }
+});
 
 describe("role system", () => {
   it("recognizes provider rate/usage limits and leaves other errors alone", () => {

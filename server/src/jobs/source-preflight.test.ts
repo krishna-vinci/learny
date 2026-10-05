@@ -28,6 +28,7 @@ it("passes the configured transcript engine to inline candidate ingestion", asyn
         reason: "A worked demo",
         score: 4,
         type: "video",
+        images: [{ url: "https://example.org/figure.png", alt: "", nearHeading: "" }],
         quality: null,
         readable: false,
       },
@@ -44,7 +45,10 @@ it("passes the configured transcript engine to inline candidate ingestion", asyn
     [],
     { signal: new AbortController().signal, progress: vi.fn(), addUsage: vi.fn() },
   );
-  expect(ingest).toHaveBeenCalledWith(expect.objectContaining({ youtube }));
+  expect(ingest).toHaveBeenCalledWith(expect.objectContaining({ youtube, candidateImages: expect.any(Map) }));
+  expect(ingest.mock.calls[0]?.[0].candidateImages?.get("https://www.youtube.com/watch?v=dQw4w9WgXcQ")).toEqual([
+    { url: "https://example.org/figure.png", alt: "", nearHeading: "" },
+  ]);
 });
 it("scouts gaps before drafting, forbids writes and stores residual coverage", async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "studium-preflight-"));

@@ -39,6 +39,7 @@ const improved: YoutubeIntegrationStatus = {
 
 const state = vi.hoisted(() => ({
   status: null as unknown,
+  exa: { month: "2026-10", spendUsd: 9.51, warnUsd: 8, stopUsd: 9.5, status: "stopped" },
   install: { mutate: () => undefined, isPending: false, isError: false, error: null as Error | null },
   update: { mutate: () => undefined, isPending: false, isError: false, error: null as Error | null },
   upload: {
@@ -51,6 +52,7 @@ const state = vi.hoisted(() => ({
 }));
 
 vi.mock("@/api/queries", () => ({
+  useSettings: () => ({ data: { exa: state.exa }, isLoading: false }),
   useYoutubeStatus: () => ({ data: state.status, isLoading: false, isError: false }),
   useInstallYoutubeEngine: () => state.install,
   useUpdateYoutubeEngine: () => state.update,
@@ -92,4 +94,12 @@ it("shows the friendly validation message for a wrong cookies file and clears th
   fireEvent.change(input, { target: { files: [new File(["nope"], "cookies.txt")] } });
   expect(screen.getByText(friendly)).toBeTruthy();
   expect(input.value).toBe("");
+});
+
+it("shows monthly search spend and why fallback is active", () => {
+  state.status = basic;
+  render(<IntegrationsSection />);
+  expect(screen.getByText("$9.510 this month (2026-10, UTC)")).toBeTruthy();
+  expect(screen.getByText("Monthly limit reached")).toBeTruthy();
+  expect(screen.getByText(/Papers use papers MCP; other searches use SearXNG until next month/)).toBeTruthy();
 });

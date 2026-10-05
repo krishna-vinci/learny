@@ -58,3 +58,19 @@ it("parses the four contested subjects while retaining unknown fallback", () => 
     expect(PlanFrontmatter.parse({ subject }).subject).toBe(subject);
   expect(PlanFrontmatter.parse({ subject: "unknown-discipline" }).subject).toBe("general");
 });
+
+it("keeps legacy configs and tolerates invalid search settings per field", () => {
+  const config = ConfigYaml.parse({
+    models: { default: "faux/echo" },
+    search: { exa: { warnUsd: "bad", stopUsd: 4, detectIndia: false, userLocation: "invalid" }, future: true },
+  });
+  expect(config.search.exa).toMatchObject({
+    warnUsd: 8,
+    stopUsd: 4,
+    detectIndia: false,
+    userLocation: null,
+    fallbackMinResults: 3,
+  });
+  expect(config.search.future).toBe(true);
+  expect(ConfigYaml.parse({ models: { default: "faux/echo" } }).search.exa.stopUsd).toBe(9.5);
+});

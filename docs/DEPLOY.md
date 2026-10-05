@@ -247,3 +247,49 @@ Usage includes classifier tokens/costs in jobs; distinguish catalog estimates
 from subscription charge. Always report fresh input/output/cache read/cache write
 separately per provider/model. Pi's long cache retention is requested where its
 provider adapter supports it; the observed cache share is not guaranteed.
+
+## Exa search budget (M13b / D35)
+
+Configure `EXA_API_KEY` only in the server environment; `_global/config.yaml`
+contains no credentials. Papers use the existing role-approved papers MCP first,
+then Exa publication on unavailable/error/thin MCP; papers never use SearXNG.
+Other slots use Exa first, including videos constrained to real YouTube watch URLs.
+SearXNG fills gaps when Exa is absent, errors, hits its budget, or supplies too few
+usable sources; video fallback uses its youtube engine. Settings → Integrations shows monthly Exa spend and
+status without making a paid health request.
+
+The owner's $10 monthly free-tier allowance is protected by a local soft guard:
+warn at $8 and stop new Exa calls at $9.50 by default. Customize per workspace:
+
+```yaml
+search:
+  exa:
+    warnUsd: 8
+    stopUsd: 9.5
+    fallbackMinResults: 3
+    detectIndia: true
+    userLocation: null # Optional ISO country code override, e.g. IN
+```
+
+Unknown settings survive parsing; absent/invalid fields use their defaults. The
+warning threshold is clamped to stopUsd. Set stopUsd to 0 to disable paid Exa
+requests. India detection uses plan/chapter/subject context and can be disabled.
+No migration is needed for existing configs.
+
+Reported response costs accumulate in private `.cache/exa-budget.json` per workspace
+and UTC calendar month, across restarts; cache hits are not charged. The guard
+serializes concurrent requests in the one server process. Crossing the stop limit
+attempts one notification per workspace/month using the configured ntfy/Web Push
+channels, then other searches use SearXNG until UTC month rollover; papers remain
+MCP-only while Exa is stopped. A last request can
+cross the soft stop; this is not a prepaid reservation or an account-wide cap.
+Exa's reported response cost is an estimate; provider invoicing remains authoritative
+([Exa Search API](https://exa.ai/docs/reference/search)). Other workspaces or external
+uses of the same key are not tracked here. Deleting `.cache` resets this estimate;
+retain the ledger when clearing other caches. First installation starts at zero
+and does not import earlier provider charges.
+
+Missing cost reports, an interrupted in-flight request, or a damaged/unwritable/
+symlinked ledger disables Exa until tracking is restored (or a clean month begins
+for a valid old ledger). Verify provider usage before manually repairing/resetting
+an uncertain ledger. No credentials or raw response bodies are stored in it.
