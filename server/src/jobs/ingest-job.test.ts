@@ -580,7 +580,8 @@ describe("ingest job", () => {
   });
 });
 
-it("persists scout figure candidates in images.json, deduped with extracted images", async () => {
+it("persists relevant scout figure candidates in images.json, deduped with extracted images", async () => {
+  vi.spyOn(await import("../ingest/safe-fetch.js"), "safeFetch").mockRejectedValue(new Error("fake image unavailable"));
   const { runtime, faux } = await fauxRuntime();
   await writeModels("faux/echo", { librarian: "faux/echo" });
   faux.setResponses([fauxAssistantMessage(fauxText("Ready"))]);
@@ -616,7 +617,11 @@ it("persists scout figure candidates in images.json, deduped with extracted imag
   const result = await handler({ url, set: null }, context().ctx);
   const images = JSON.parse(await fs.readFile(path.join(root, `library/${result?.sourceId}/images.json`), "utf8"));
   expect(images).toEqual([
-    { url: "https://example.org/extracted.png", alt: "Diagram", nearHeading: "Eigenvectors" },
-    { url: "https://example.org/scouted.png", alt: "", nearHeading: "" },
+    expect.objectContaining({
+      url: "https://example.org/extracted.png",
+      alt: "Diagram",
+      section: "Eigenvectors",
+      credit: expect.any(String),
+    }),
   ]);
 });

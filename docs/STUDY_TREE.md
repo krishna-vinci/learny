@@ -193,3 +193,38 @@ posters for new sketches; story headers list `{src,narration}` per scene. Paths 
 within the same set. `artifacts/`/`::artifact` remain compatible; no migration.
 `_global/config.yaml` has `visuals: {router: off}` by default (no model connection).
 The book shares widget geometry or copies authored sketch stills; it never runs HTML.
+
+## Chapter media plans (D36)
+
+Curriculum chapters optionally carry repeated indented `Visual: <form> — <concept>`
+lines (normally 1–2) and one `Video: <concept/moment>` line after Scope and
+Prerequisites. Older curricula remain valid; fenced examples are ignored.
+
+After approved source ingests settle, a background `plan-set` media phase refines
+all chapters before the selected drafts start. Draft/rewrite preflight refines the
+same brief again. Tracked `<set>/media/NN-title-slug.md` has YAML frontmatter:
+`chapter`, `scope`, `refinedAt`, `visuals: [{id: visual-1, intent}]`,
+`figures: [{sourceId, path?, url, alt, caption, section, license?, credit}]`,
+`tables: [{sourceId, file, anchor, text}]`, and `video: {intent, status: chosen|none,
+reason?, sourceId?, title?, channel?, url?, moment?, anchor?, watchOnly?}`.
+Figure paths here are root-relative; `images.json` paths are source-relative.
+Tables are evidence candidates, never instructions. Video moments are observed
+`tN` anchors only; high-quality videos without transcripts remain watch-only.
+No passing candidate is recorded as `none` with the concrete reason.
+
+`library/<id>/figures/<24-character-sha256>.<png|jpg|gif|webp>` stores at most twelve
+relevant downloaded figures per capture. `images.json` is an array of
+`{path?, url, alt, caption, section, license?, credit}`. `path` is absent when a
+candidate could not be downloaded. Older `{url, alt, nearHeading, caption?}` arrays
+remain readable without fabricated permission. Explicit page licenses and Commons
+per-file license metadata are retained; unknown or restrictive means redraw.
+Downloads use the existing SSRF-safe HTTPS raster limits (5 MB, 6000×6000 px).
+Refresh preserves previously captured files if a remote download fails.
+
+Notes embed permitted rasters as set-assets copies with visible source/license
+credit. Source-derived redraws cite their evidence. A hidden
+`<!-- media:visual-N -->` immediately precedes each realised image/chart/directive;
+`<!-- media:visual-N unavailable: reason -->` plus a muted visible line records an
+honest omission. Checking blocks silent omissions and non-permissive raster reuse.
+Course and Plan media status derives made/planned from actual note attachments,
+not checkbox ticks or cached claims of completion. No new screen is introduced.

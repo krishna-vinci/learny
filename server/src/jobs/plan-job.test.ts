@@ -13,7 +13,7 @@ import { inboxRoutes } from "../routes/inbox.js";
 import { ensureRepo, log } from "../tree/git.js";
 import { initStudyTree } from "../tree/init.js";
 import { FileLocks } from "../tree/lock.js";
-import { createPlanJob, parsePlanSetInput } from "./plan-job.js";
+import { createPlanJob, parsePlanSetInput, validateMediaIntent } from "./plan-job.js";
 
 const SAMPLE_SET = fileURLToPath(new URL("../../../examples/sample-set", import.meta.url));
 let root: string;
@@ -79,6 +79,10 @@ describe("plan-set job", () => {
     const runtime = await createModelRuntime();
     const faux = fauxProvider({ provider: "faux", models: [{ id: "echo" }] });
     runtime.registerNativeProvider(faux.provider);
+    const planned = proposalText().replace(
+      /( {2}Prerequisites:[^\n]*)/g,
+      "$1\n  Visual: diagram — Geometric intuition\n  Video: A named educator demonstrates the concept",
+    );
     const original = await fs.readFile(path.join(root, "linear-algebra/PLAN.md"), "utf8");
     let proposalPath = "";
     faux.setResponses([
@@ -86,7 +90,7 @@ describe("plan-set job", () => {
         proposalPath = /Create exactly (plan-proposals\/[^\s,]+\.md),/.exec(JSON.stringify(context))?.[1] ?? "";
         expect(proposalPath).not.toBe("");
         return fauxAssistantMessage(
-          fauxToolCall("study_create", { path: proposalPath, content: proposalText() }, { id: "propose" }),
+          fauxToolCall("study_create", { path: proposalPath, content: planned }, { id: "propose" }),
           { stopReason: "toolUse" },
         );
       },
@@ -105,7 +109,7 @@ describe("plan-set job", () => {
       { signal: new AbortController().signal, progress: (text) => progress.push(text), addUsage: () => {} },
     );
     expect(result).toMatchObject({ proposalPath, commitSha: expect.stringMatching(/^[0-9a-f]{40}$/) });
-    expect(await fs.readFile(path.join(root, "linear-algebra", proposalPath), "utf8")).toBe(proposalText());
+    expect(await fs.readFile(path.join(root, "linear-algebra", proposalPath), "utf8")).toBe(planned);
     expect(await fs.readFile(path.join(root, "linear-algebra/PLAN.md"), "utf8")).toBe(original);
     expect((await log(root, { limit: 1 }))[0]).toMatchObject({ author: "outliner", subject: "outliner: propose plan" });
     expect(progress).toEqual(["Planning study set", "Plan awaiting approval"]);
@@ -124,4 +128,13 @@ describe("plan-set job", () => {
       expect(() => parsePlanSetInput({ set: "linear-algebra", goal: "Learn", ...patch })).toThrow();
     }
   });
+});
+
+it("requires 1–2 visual intents and a video need for newly generated plans while the parser accepts legacy plans", () => {
+  expect(() => validateMediaIntent("- [ ] 01 — Legacy\n")).toThrow("Visual intent");
+  expect(() =>
+    validateMediaIntent(
+      "- [ ] 01 — Lesson\n  Visual: figure — Concept\n  Video: no suitable video: No named educator found\n",
+    ),
+  ).not.toThrow();
 });

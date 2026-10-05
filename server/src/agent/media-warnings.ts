@@ -12,6 +12,8 @@ import { listSources } from "../ingest/library.js";
 import { canonicalRel, resolveInRoot } from "../tree/paths.js";
 import { lintVisualHtml } from "../tree/visual-lint.js";
 
+import { figureReuseWarnings } from "./figure-reuse.js";
+
 /** A missing figure is advisory; a valid note write must still succeed. */
 export async function mediaWarnings(root: string, notePath: string, text: string): Promise<string[]> {
   if (/^[^/]+\/visuals\/.+\.html$/.test(notePath)) {
@@ -118,5 +120,6 @@ export async function mediaWarnings(root: string, notePath: string, text: string
         );
     }
   }
+  warnings.push(...(await figureReuseWarnings(root, notePath, text)));
   return [...new Set(warnings)];
 }

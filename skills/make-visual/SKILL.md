@@ -90,3 +90,30 @@ Do not recreate widget controls in HTML. The book uses shared widget SVG layouts
 or authored sketch posters; it never executes HTML. At most six scene stills print.
 The optional visual router supplies a hint; this skill still chooses the form.
 Scroll-synced stories remain deferred because they conflict with phone scrolling.
+
+## Chapter media plan (D36)
+
+Read the supplied chapter media brief (or `<set>/media/NN-slug.md`) before authoring.
+Realise each planned visual using the candidate figures or data tables; cite the
+registered source for every source-derived chart/widget/redraw. Put the brief's
+hidden `<!-- media:visual-N -->` marker immediately before its image, Mermaid/Vega
+fence or standalone `::visual`/`::artifact` declaration. These ids never appear in
+visible prose. If one cannot be made, write
+`<!-- media:visual-N unavailable: concrete reason -->` followed by one muted
+learner-facing line explaining the absence. Silent omissions block checking.
+
+`library/<id>/images.json` v2 stores local `figures/` paths, original URL, alt,
+caption, section, license (when known), and credit; legacy remote-only entries
+remain readable. Inspect the local source figure before using or redrawing it.
+Embed a source raster only when explicitly CC BY, CC BY-SA, CC0 or public domain;
+use `save_asset` with its URL and sourceId to make a set-assets copy for the reader
+and book, retain its credit sidecar, and show author/title + license + source
+citation in the caption. Unknown, NC, ND or other restrictive licenses require an
+original SVG/widget redraw citing the source. A redraw explains the evidence;
+never trace/copy a protected photograph or illustration and call it original.
+When tools are unavailable, return the complete redraw/credit or explain why a
+permitted local copy cannot be saved; never claim a missing asset exists.
+
+Use the brief's chosen video near its supporting concept, with its observed
+transcript moment. Watch-only videos count as a quality video but get only a Watch
+link and an honest no-transcript line, never claim evidence or invented times.

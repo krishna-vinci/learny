@@ -1,0 +1,36 @@
+# Check: notes/01-hyderabad-on-the-map-and-timeline.md
+
+## Summary
+
+No blockers or major factual issues found. The cited evidence was inspected directly, including passages behind citations flagged as unanchored; the two basic-extractor Wikipedia sources were also fetched before relying on them. The note's key geography, city/state distinctions, dates, timeline entries, and both visuals are supported. Teaching requirements are met. One minor presentation suggestion is noted below.
+
+## Issues
+
+### 1. Minor — place the timeline visual nearer its explanation
+
+- **Claim/element:** The interactive timeline is introduced in section 4, but its visual declaration appears after the source notes at the very end of the note.
+- **Source:** Note lines 79–82 explain the timeline; lines 112–119 give source notes; the timeline declaration is at lines 121–122.
+- **Problem:** This placement separates the learning aid from the paragraph that explains its simplified era bands. It does not invalidate any historical claim.
+- **Fix:** Consider moving the declaration, with its existing `visual-2` marker, directly after the explanatory paragraph in section 4. Preserve its data, citations, and marker.
+
+## Claim verification
+
+- **1591 foundation, Charminar, and the earlier Qutb Shahi capital at Golconda — supported.** UNESCO's Tentative List description calls Charminar a ceremonial gateway built to celebrate Hyderabad's foundation in 1591, and identifies Golconda as an early Qutb Shahi capital; it places Golconda west of Hyderabad and Charminar in the Old City (`lib-unesco-the-qutb-shahi-monuments-of-hyderabad/parsed.md#description`). Iranica independently describes Golconda as the former capital and the new city as laid out beside the Musi (`lib-iranicaonline-hyderabad-encyclopaedia/parsed.md`, History).
+- **Deccan setting; Musi, Old City, new Hyderabad, Secunderabad, and Hussain Sagar relationships — supported.** Leonard's article locates the walled Old City south of the Musi, newer Hyderabad north of it, and Secunderabad north of Hussain Sagar; Iranica places the new city beside the river (`lib-encyclopedia-hyderabad-encyclopedia-com/parsed.md#the-influence-of-british-india`; `lib-iranicaonline-hyderabad-encyclopaedia/parsed.md`, History). The UNESCO coordinates confirm the relative monument positions and the close northwest relationship of the tombs to Golconda. The orientation figure correctly labels the broad urban outline, river, lake, and non-monument positions schematic rather than surveyed.
+- **Map scale and north arrow — supported by inspection of the realized figure.** The north arrow is shown. The labelled 0–5 km scale is explicitly limited to the monument dots. Approximate distances inferred from the UNESCO coordinates are consistent with the plotted fort–tombs and fort–Charminar separations; the figure does not misrepresent its schematic city features as measured locations.
+- **Musi flood and reservoirs — supported.** The history source states that the 1908 flood led to flood-prevention planning and that Osman Sagar and Himayat Sagar were constructed west of Hyderabad (`lib-wikipedia-history-of-hyderabad/parsed/06-the-nizams-of-hyderabad-1724-1948.md#asaf-jah-vi`, `#asaf-jah-vii`). The cited Wikipedia page uses a basic extractor, so its live page was fetched and the relevant flood and reservoir statements were confirmed.
+- **Hyderabad State chronology and city/state distinction — supported.** The Hyderabad State article gives Aurangabad as capital from 1724–1763 and Hyderabad from 1763–1948, and identifies the princely state as distinct from the later state and modern Telangana (`lib-wikipedia-hyderabad-state/parsed/01-hyderabad-state.md`). Its live page was fetched, confirming these dates and distinctions. The note's 1948 incorporation, 1956 territorial reorganisation, and Telangana's 2 June 2014 formation/capital status are supported by the History of Hyderabad source (`lib-wikipedia-history-of-hyderabad/parsed/07-post-independence-1948-present.md#hyderabad-state`, `#1956-present`); its live page was also fetched. Leonard's account likewise says that 1956 dismembered the former state and made Hyderabad the Andhra Pradesh capital (`lib-encyclopedia-hyderabad-encyclopedia-com/parsed.md#deccani-and-mughal-origins`). The note correctly avoids treating the modern state of Telangana as restoration of the former princely-state territory.
+- **The 1591–2014 timeline and landmark associations — supported.** UNESCO supports the 1591 and Qutb Shahi monument associations; Iranica supports the 1687 conquest and Asaf Jah's 1724 autonomous province with formal Mughal suzerainty; Leonard supports the 1956 transition; and the fetched Wikipedia history source supports 1918 Osmania University, 1948, 1956, 2014, and 2017 metro milestones. The JSON timeline accurately describes the 1724 authority as autonomous but still formally Mughal, and distinguishes political turns from construction dates.
+- **Tentative List caveat — supported.** The cited UNESCO entry is explicitly a 2010 Tentative List nomination, not an inscription record (`lib-unesco-the-qutb-shahi-monuments-of-hyderabad/source.md`; `parsed.md`). The note correctly cautions that nomination alone is not proof of World Heritage inscription and dates the Andhra Pradesh wording in its historical context.
+- **Unanchored citations — checked, not assumed complete.** The citations flagged unanchored were traced into the registered parsed sources and the exact relevant source passages were inspected. Their support is summarized above; no cited central claim was accepted solely from an evidence-pack excerpt.
+
+## Teaching quality
+
+- **Blockers:** None found. The note includes “Check yourself” questions and a collapsed answer block with five answered retrieval questions, plus four takeaway bullets. No paragraph exceeds six sentences. No copied planning brief, internal file/path or tool references in learner-facing prose, or text addressed to an AI/operator was found.
+- **Visuals:** Both planned visuals are present: the labelled regional/city orientation drawing and the political/landmark timeline. The map includes a north arrow and qualified scale; its schematic elements are explicitly disclosed. The timeline's chronology and source credits are encoded in the data declaration. See the minor placement suggestion above.
+- **Video:** The linked Anuradha Naik talk is explicitly treated as optional watch-only material, with a no-transcript notice and no invented timestamp or evidentiary citation. The broad city/water/buildings prompt is adjacent to the Musi-flood and urban-planning discussion, and no transcript moment is available to check for a more exact alignment. No unrelated timestamp or suitable unused process-demonstration video can be identified from the supplied material.
+- **Citations and figures:** Relevant factual paragraphs carry citations and learner-facing footnotes identify the author/organisation, title, and section. The figures are original schematic/interactive visuals, not reused source rasters; their captions/data identify the evidence used. No apparent loss of a factual claim, citation, or figure was found.
+
+## Result
+
+No blocker remains. The note may be marked checked.

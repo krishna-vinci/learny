@@ -119,3 +119,37 @@ it("sniffs GIF, JPEG and the three WebP dimension encodings", () => {
     expect(sniffImage(b)).toMatchObject({ ext: "webp", width: 2, height: 3 });
   }
 });
+it("copies a captured permitted source figure locally with license/credit without a network fetch", async () => {
+  await fs.mkdir(path.join(root, "library/lib-test/figures"), { recursive: true });
+  await fs.writeFile(path.join(root, "library/lib-test/source.md"), "---\nurl: https://example.org/lesson\n---\n");
+  const local = `figures/${"a".repeat(24)}.png`;
+  await fs.writeFile(path.join(root, "library/lib-test", local), png);
+  await fs.writeFile(
+    path.join(root, "library/lib-test/images.json"),
+    JSON.stringify([
+      {
+        url: "https://example.org/x",
+        path: local,
+        alt: "Figure",
+        caption: "Figure",
+        section: "Lesson",
+        license: "CC BY 4.0",
+        credit: "Teacher, Lesson (CC BY 4.0)",
+      },
+    ]),
+  );
+  expect((await save({ sourceId: "lib-test" })).details).toMatchObject({ isError: false, path: "assets/figure.png" });
+  expect(safeFetch).not.toHaveBeenCalled();
+  expect(assertPublicUrl).not.toHaveBeenCalled();
+  expect(JSON.parse(await fs.readFile(path.join(root, "alpha/assets/figure.json"), "utf8"))).toMatchObject({
+    sourceId: "lib-test",
+    license: "CC BY 4.0",
+    credit: "Teacher, Lesson (CC BY 4.0)",
+  });
+  await fs.unlink(path.join(root, "library/lib-test", local));
+  await fs.symlink(path.join(root, "alpha/assets/figure.png"), path.join(root, "library/lib-test", local));
+  expect((await save({ sourceId: "lib-test" })).details).toMatchObject({
+    isError: true,
+    summary: expect.stringContaining("symlink aliases"),
+  });
+});

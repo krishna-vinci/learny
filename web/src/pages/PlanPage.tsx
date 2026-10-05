@@ -7,6 +7,7 @@ import { ClipboardListIcon, RefreshCwIcon, SparklesIcon } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useCourse, useNoteFile, useSetSources, useSets } from "@/api/queries";
+import { ChapterMediaStatus } from "@/components/ChapterMediaStatus";
 import { ChapterStateBadge } from "@/components/CoursePlan";
 import { RowsSkeleton } from "@/components/ListSkeleton";
 import { PlanSetSheet } from "@/components/PlanSetSheet";
@@ -133,6 +134,7 @@ export default function PlanPage() {
                       <span className="min-w-0 flex-1 text-sm font-medium text-foreground">{chapter.title}</span>
                       <ChapterStateBadge state={chapter.state} />
                     </div>
+                    <ChapterMediaStatus media={chapter.media} />
                     {chapter.scope && <p className="mt-0.5 text-sm text-muted-foreground">{chapter.scope}</p>}
                     {chapter.prerequisites && !/^none$/i.test(chapter.prerequisites) && (
                       <p className="mt-0.5 text-xs text-muted-foreground">Prerequisites: {chapter.prerequisites}</p>

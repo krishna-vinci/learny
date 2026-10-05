@@ -11,6 +11,7 @@ import { sourcePassages } from "../search/passages.js";
 import { chapterExists, parseCurriculum } from "../tree/curriculum.js";
 import type { DraftJobDeps } from "./draft-job.js";
 import { createIngestJob } from "./ingest-job.js";
+import { refineMediaBrief } from "./media-plan.js";
 import { type JobContext, usageFromPiMessages } from "./runner.js";
 
 /** Run inline (never enqueue/wait inside a runner slot). Imported evidence still goes through the Librarian. */
@@ -89,5 +90,9 @@ export async function sourcePreflight(
     coverage = measureCoverage(concepts, await sourcePassages(deps.root, sources));
     await saveCoverage(deps.root, input.set, input.title, scope, coverage);
   }
-  return { sources, coverage };
+  const mediaBrief =
+    chapter && (chapter.visuals.length || chapter.video)
+      ? await refineMediaBrief(deps, input.set, chapter, sources, ctx)
+      : null;
+  return { sources, coverage, mediaBrief };
 }

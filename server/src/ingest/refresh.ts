@@ -9,6 +9,8 @@ import { canonicalRel, resolveInRoot } from "../tree/paths.js";
 import { cleanMarkdown } from "./clean.js";
 import { detectInput } from "./detect.js";
 import { publicErrorReason } from "./error-reason.js";
+import { captureFigures, readSourceFigures } from "./figures.js";
+import { collectImages } from "./images.js";
 import { readParsedFile, readSource, withDedupeLock } from "./library.js";
 import { MIN_PARSE_QUALITY, scoreParseQuality } from "./quality.js";
 import { INGEST_MAX_BYTES } from "./safe-fetch.js";
@@ -101,7 +103,7 @@ export async function refreshSource(
       status: "refreshed",
       disappearedAnchors: preserved.disappeared,
     };
-    const content = new Map<string, string>();
+    const content = new Map<string, string | Uint8Array>();
     for (const part of split.parts) content.set(`${dir}/${part.path}`, part.content);
     content.set(
       `${dir}/sections.json`,
@@ -111,7 +113,25 @@ export async function refreshSource(
         2,
       ),
     );
-    if (extracted.images) content.set(`${dir}/images.json`, JSON.stringify(extracted.images, null, 2));
+    const previousFigures = await readSourceFigures(root, id);
+    const captured = await captureFigures({
+      images: [
+        ...(extracted.images ?? collectImages(extracted.markdown, extracted.url ?? "")),
+        ...previousFigures.map((figure) => ({ ...figure, nearHeading: figure.section })),
+      ],
+      title: view.source.title,
+      authors: view.source.authors,
+      pageUrl: view.source.url,
+      markdown: preserved.markdown,
+      signal: opts.signal,
+    });
+    for (const [file, bytes] of captured.files) content.set(`${dir}/${file}`, bytes);
+    // A failed remote download never discards an already captured local figure.
+    for (const figure of captured.figures) {
+      const previous = previousFigures.find((f) => f.url === figure.url);
+      if (!figure.path && previous?.path) figure.path = previous.path;
+    }
+    content.set(`${dir}/images.json`, JSON.stringify(captured.figures, null, 2));
     const toc = split.toc ?? "| Section | Location |\n| --- | --- |\n| Parsed source | parsed.md |";
     const body = metadata.body.replace(/\n## (?:Contents|Table of contents|TOC)\b[\s\S]*?(?=\n## |$)/i, "").trimEnd();
     const next: Record<string, unknown> = {
@@ -137,12 +157,12 @@ export async function refreshSource(
           if (rel)
             return rel === sourceRel ? lockFiles(index + 1) : locks.withLock(rel, holder, () => lockFiles(index + 1));
           opts.signal?.throwIfAborted();
-          const backups = new Map<string, string | null>();
+          const backups = new Map<string, Buffer | null>();
           for (const p of paths) {
             confined(root, p);
             backups.set(
               p,
-              await fs.readFile(resolveInRoot(root, p), "utf8").catch((e: NodeJS.ErrnoException) => {
+              await fs.readFile(resolveInRoot(root, p)).catch((e: NodeJS.ErrnoException) => {
                 if (e.code === "ENOENT") return null;
                 throw e;
               }),
@@ -152,21 +172,33 @@ export async function refreshSource(
           if (latest !== old)
             return { refresh: { ...base, reason: "Parsed source changed during refresh; try again." } };
           const canWrite = (p: string) => paths.includes(p);
+          const writeContent = async (p: string, value: string | Uint8Array) => {
+            if (typeof value === "string") await writeTextLocked(root, locks, holder, p, value, canWrite);
+            else {
+              const temporary = `${p}.tmp-${crypto.randomUUID()}`;
+              try {
+                await fs.writeFile(confined(root, temporary), value, { flag: "wx" });
+                await fs.rename(confined(root, temporary), confined(root, p));
+              } finally {
+                await fs.unlink(confined(root, temporary)).catch(() => {});
+              }
+            }
+          };
           try {
             // Metadata lands last; every changed file is locked and atomically written.
             for (const [p, text] of content)
               if (p !== sourceRel) {
                 await fs.mkdir(path.dirname(confined(root, p)), { recursive: true });
-                await writeTextLocked(root, locks, holder, p, text, canWrite);
+                await writeContent(p, text);
               }
             for (const p of paths) if (!content.has(p)) await fs.unlink(confined(root, p));
-            await writeTextLocked(root, locks, holder, sourceRel, content.get(sourceRel) ?? "", canWrite);
+            await writeContent(sourceRel, content.get(sourceRel) ?? "");
             const sha = await commitPaths(root, paths, `librarian: refresh ${id}`, "librarian");
             return { refresh, ...(sha ? { commitSha: sha } : {}) };
           } catch (e) {
             for (const [p, text] of backups) {
               if (text === null) await fs.unlink(confined(root, p)).catch(() => {});
-              else await writeTextLocked(root, locks, holder, p, text, canWrite);
+              else await writeContent(p, text);
             }
             throw e;
           }

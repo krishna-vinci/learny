@@ -200,7 +200,21 @@ export interface EvidenceCoverage {
   measuredAt: string;
 }
 
+export interface ChapterMedia {
+  visuals: { intent: string; made: boolean; path?: string; reason?: string }[];
+  video: {
+    intent: string;
+    status: "planned" | "chosen" | "none";
+    title?: string;
+    channel?: string;
+    url?: string;
+    moment?: string;
+    reason?: string;
+  };
+}
+
 export interface CourseChapter {
+  media?: ChapterMedia;
   evidence?: EvidenceCoverage;
   order: number;
   title: string;
@@ -286,6 +300,8 @@ export interface InboxItem {
 }
 
 export interface PlanProposalChapter {
+  visuals?: string[];
+  video?: string;
   number: number;
   title: string;
   scope: string;

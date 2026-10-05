@@ -3,11 +3,13 @@ import { promises as fs } from "node:fs";
 import { PlanFrontmatter, parseFrontmatter } from "@studium/shared";
 import { rethrowRoleModelError, runRole } from "../agent/run-role.js";
 import { parsePlanProposal, SOURCE_ID, validDeadline } from "../inbox/plans.js";
+import { parseCurriculum } from "../tree/curriculum.js";
 import { readText } from "../tree/edit.js";
 import { commitPaths } from "../tree/git.js";
 import { resolveInRoot } from "../tree/paths.js";
 import { isSetSlug } from "../tree/read.js";
 import type { DraftJobDeps } from "./draft-job.js";
+import { prepareSetMedia } from "./media-plan.js";
 import { type JobHandler, usageFromPiMessages } from "./runner.js";
 
 export interface PlanSetInput {
@@ -45,8 +47,28 @@ export function parsePlanSetInput(value: unknown): PlanSetInput {
   };
 }
 
+export function validateMediaIntent(curriculum: string): void {
+  for (const chapter of parseCurriculum(curriculum)) {
+    if (chapter.visuals.length < 1 || chapter.visuals.length > 2 || !chapter.video)
+      throw new Error(
+        `Chapter ${chapter.title} needs 1–2 Visual intent lines and a Video need or no-suitable-video reason`,
+      );
+  }
+}
+
 export function createPlanJob(deps: DraftJobDeps): JobHandler {
   return async (rawInput, ctx) => {
+    if (rawInput && typeof rawInput === "object" && "mediaOnly" in rawInput && rawInput.mediaOnly === true) {
+      const request = rawInput as unknown as { set: string; sources: string[] };
+      if (
+        !isSetSlug(request.set) ||
+        !Array.isArray(request.sources) ||
+        !request.sources.every((id) => SOURCE_ID.test(id))
+      )
+        throw new Error("Invalid chapter media input");
+      await prepareSetMedia(deps, request.set, request.sources, ctx);
+      return {};
+    }
     const input = parsePlanSetInput(rawInput);
     const currentPlan = PlanFrontmatter.parse(
       parseFrontmatter(await readText(deps.root, `${input.set}/PLAN.md`)).frontmatter,
@@ -74,6 +96,7 @@ export function createPlanJob(deps: DraftJobDeps): JobHandler {
             `Deadline: ${input.deadline ?? currentPlan.deadline ?? "none"}`,
             `Chosen library source ids: ${sources.join(", ") || "(none)"}`,
             `Create exactly ${proposalPath}, with the skill's two labeled fences and Sources to add list.`,
+            "Every chapter needs 1–2 indented Visual: <form> — <concept> lines and a Video: <need or no-suitable-video reason> line. Refine these after source ingestion; do not silently omit media intent.",
             "Use only the chosen registered ids in PLAN.md sources. Propose other sources as URLs; never register them.",
             "Do not edit the current plan, curriculum, notes, or any other file.",
           ].join("\n"),
@@ -93,6 +116,7 @@ export function createPlanJob(deps: DraftJobDeps): JobHandler {
         deps.hub.publish({ type: "commit", sha: commitSha, subject, author: "outliner" });
         // Preserve completed agent output even if validation fails, so it can be discarded.
         const proposal = parsePlanProposal(await readText(deps.root, proposalRoot));
+        validateMediaIntent(proposal.curriculum);
         const proposedSources = PlanFrontmatter.parse(parseFrontmatter(proposal.plan).frontmatter).sources ?? [];
         if (proposedSources.some((source) => !sources.includes(source)))
           throw new Error("proposal uses an unchosen source id");

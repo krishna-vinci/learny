@@ -2,7 +2,7 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { parseFrontmatter, SourceFrontmatter } from "@studium/shared";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ensureRepo, log } from "../tree/git.js";
 import { initStudyTree } from "../tree/init.js";
 import { sha256Hex } from "./ids.js";
@@ -199,6 +199,9 @@ describe("listSources and readSource", () => {
 });
 
 it("stores discovered Firecrawl Markdown images with absolute URLs and nearby headings", async () => {
+  const fetch = vi
+    .spyOn(await import("./safe-fetch.js"), "safeFetch")
+    .mockRejectedValue(new Error("fake unavailable image"));
   const { collectImages } = await import("./images.js");
   const markdown =
     "# Geometry\n\n![Vectors](/fig.png)\n![No SVG](/x.svg)\n![Inline](data:image/png;base64,abc)\n![Pixel](/pixel.png)\n![Ref][figure]\n![Short]\n[figure]: /ref.png\n[Short]: /short.webp";
@@ -216,5 +219,16 @@ it("stores discovered Firecrawl Markdown images with absolute URLs and nearby he
     root,
     makeExtracted({ originalExt: null, parseTier: "firecrawl", url: "https://example.org/page", markdown, images }),
   );
-  expect(JSON.parse(await fs.readFile(path.join(root, `library/${id}/images.json`), "utf8"))).toEqual(images);
+  expect(JSON.parse(await fs.readFile(path.join(root, `library/${id}/images.json`), "utf8"))).toEqual(
+    expect.arrayContaining(
+      images.map((image) => ({
+        url: image.url,
+        alt: image.alt,
+        caption: image.alt,
+        section: image.nearHeading,
+        credit: "Gilbert Strang, https://example.org/page (reuse license unknown; redraw)",
+      })),
+    ),
+  );
+  fetch.mockRestore();
 });

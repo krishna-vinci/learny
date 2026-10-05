@@ -1,0 +1,60 @@
+{
+  "type": "timeline",
+  "title": "Political turns and places to recognise",
+  "caption": "Select a milestone. Era bands describe rule; buildings and institutions can outlast it. Dates and landmark associations: UNESCO's Qutb Shahi nomination, Karen Leonard's Hyderabad, and Wikipedia's History of Hyderabad and Hyderabad State.",
+  "events": [
+    {
+      "date": 1591,
+      "title": "Charminar / new city",
+      "category": "Landmark",
+      "description": "Charminar marks Muhammad Quli Qutb Shah's new city. Golconda Fort and the Qutb Shahi Tombs belong to the same broader dynastic layer."
+    },
+    {
+      "date": 1687,
+      "title": "Mughal conquest",
+      "category": "Rule",
+      "description": "Aurangzeb conquered Golconda. A change of ruler did not erase the Qutb Shahi monuments."
+    },
+    {
+      "date": 1724,
+      "title": "Asaf Jahi emergence",
+      "category": "Rule",
+      "description": "Asaf Jah established autonomous provincial power while recognising formal Mughal suzerainty. Hyderabad became the dynasty's capital later, in 1763."
+    },
+    {
+      "date": 1918,
+      "title": "Osmania University",
+      "category": "Landmark",
+      "description": "The university was founded during the last Nizam's reign; institutions as well as palaces belong to this historical layer."
+    },
+    {
+      "date": 1948,
+      "title": "Indian incorporation",
+      "category": "Rule",
+      "description": "Indian military intervention ended the Nizam's rule. Hyderabad State continued within India until the 1956 reorganisation."
+    },
+    {
+      "date": 1956,
+      "title": "State reorganised",
+      "category": "Rule",
+      "description": "Hyderabad city became Andhra Pradesh's capital; the former state's territories were divided, not simply renamed."
+    },
+    {
+      "date": 2014,
+      "title": "Telangana formed",
+      "category": "Rule",
+      "description": "Telangana was created on 2 June 2014 with Hyderabad as its capital."
+    },
+    {
+      "date": 2017,
+      "title": "Metro opens",
+      "category": "Landmark",
+      "description": "Metro operations add a modern transport layer to a city whose older monuments remain visible."
+    }
+  ],
+  "eras": [
+    { "start": 1518, "end": 1687, "title": "Qutb Shahi" },
+    { "start": 1687, "end": 1724, "title": "Mughal administration" },
+    { "start": 1724, "end": 1948, "title": "Asaf Jahi / Nizams" }
+  ]
+}

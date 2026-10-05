@@ -26,6 +26,8 @@ const Kickoff = z.object({
     }),
   ),
   chapters: z.array(z.object({ title: z.string(), brief: z.string() })),
+  mediaJobId: z.string().nullable().optional(),
+  mediaComplete: z.boolean().optional(),
   createdAt: z.string(),
   error: z.string().optional(),
   finishedAt: z.string().optional(),
@@ -68,6 +70,18 @@ export class PlanKickoffs {
       if (event.type !== "job" || event.job.finishedAt === null) return;
       for (const record of this.#records.values()) {
         if (record.error !== undefined) continue;
+        if (record.mediaJobId === event.job.id) {
+          if (event.job.status === "done") {
+            record.mediaComplete = true;
+            this.#save();
+            void this.#settle(record);
+          } else
+            this.#fail(
+              record,
+              "Chapter media planning failed. Retry the approved plan or draft a chapter to retry its media preflight.",
+            );
+          continue;
+        }
         const ingest = record.ingests.find((item) => item.jobId === event.job.id && item.status === "pending");
         if (ingest === undefined) continue;
         if (event.job.status !== "done" && event.job.status !== "failed" && event.job.status !== "cancelled") continue;
@@ -100,6 +114,7 @@ export class PlanKickoffs {
     // Persist URLs before jobs are started; boot can recover even if we crash during enqueue.
     this.#save();
     this.#enqueuePending(record);
+    if (record.ingests.length === 0) void this.#settle(record);
     return [...record.ingestJobIds];
   }
 
@@ -155,6 +170,17 @@ export class PlanKickoffs {
           record,
           "Couldn't add any of the plan's sources. Add a source in the Library, then draft the chapters.",
         );
+        return;
+      }
+      if (!record.mediaComplete) {
+        if (!record.mediaJobId || this.#deps.jobs.get?.(record.mediaJobId) === undefined) {
+          record.mediaJobId = this.#deps.jobs.enqueue(
+            "plan-set",
+            { set: record.set, mediaOnly: true, sources },
+            { set: record.set, title: "Plan chapter media" },
+          ).id;
+          this.#save();
+        }
         return;
       }
       for (const chapter of record.chapters) {

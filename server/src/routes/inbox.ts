@@ -125,9 +125,14 @@ export function inboxRoutes(deps: InboxRoutesDeps): Hono {
               const proposalText = await readText(deps.root, proposalRootPath(deps.root, set, c.req.param("file")));
               const proposal = parsePlanProposal(proposalText);
               const needsIngest = addSources && proposal.sourcesToAdd.length > 0;
-              if (needsIngest && (deps.jobs === undefined || kickoffs === undefined))
+              const needsMedia = parseCurriculum(proposal.curriculum).some(
+                (chapter) => chapter.visuals.length > 0 || chapter.video !== "",
+              );
+              const needsKickoff = needsIngest || needsMedia;
+              if (needsKickoff && (deps.jobs === undefined || kickoffs === undefined))
                 return c.json({ error: "job runner unavailable" }, 503);
               if (needsIngest) deps.jobs?.assertAiAllowed?.("ingest");
+              if (needsMedia) deps.jobs?.assertAiAllowed?.("plan-set");
               kickoffs?.assertAvailable(set);
               const sources = PlanFrontmatter.parse(parseFrontmatter(proposal.plan).frontmatter).sources ?? [];
               for (const source of sources) await readText(deps.root, `library/${source}/source.md`);
@@ -141,6 +146,7 @@ export function inboxRoutes(deps: InboxRoutesDeps): Hono {
               // Recheck immediately before mutations, after asynchronous validation.
               if (draftFirst > 0) deps.jobs?.assertAiAllowed?.("draft-chapter");
               if (needsIngest) deps.jobs?.assertAiAllowed?.("ingest");
+              if (needsMedia) deps.jobs?.assertAiAllowed?.("plan-set");
               let deleted = false;
               const subject = "user: approve plan";
               let sha: string | null;
@@ -172,8 +178,8 @@ export function inboxRoutes(deps: InboxRoutesDeps): Hono {
                 .filter((chapter) => !chapter.checked)
                 .slice(0, draftFirst)
                 .map((chapter) => ({ title: chapter.title, brief: chapter.scope }));
-              if (needsIngest && kickoffs !== undefined) {
-                const ingestJobIds = kickoffs.start(set, proposal.sourcesToAdd, chapters);
+              if (needsKickoff && kickoffs !== undefined) {
+                const ingestJobIds = kickoffs.start(set, needsIngest ? proposal.sourcesToAdd : [], chapters);
                 return c.json({ sha, jobIds: [], ingestJobIds });
               }
               const jobIds = chapters.map(

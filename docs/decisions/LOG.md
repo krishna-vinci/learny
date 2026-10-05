@@ -510,3 +510,21 @@ Uploaded originals must still be present; blocked/unreadable/lower-quality impor
 retain the old parse. Writes are confined, locked, atomic per file and committed
 as librarian, with rollback on mutation failure. Quality before/after is shown,
 without claiming improved factual authority. Refresh extraction calls no model.
+
+## D36 — Per-chapter media planning and credited source figures · locked · 2026-10-06
+
+- Two stages: optional curriculum Visual/Video intent lines during planning, then
+  tracked per-chapter media briefs after sources settle and in draft/rewrite preflight.
+  Briefs offer local figures, source tables and a quality video with an observed moment.
+- Each chapter seeks a named educator/institution or established education channel,
+  appropriate level/language, preferably 3–25 minutes or a focused moment. This
+  supersedes D34's 1–3 videos per set. No passing candidate means an explicit reason;
+  no weak quota fillers. Transcript-free quality videos remain watch-only under D34.
+- Ingest/Refresh capture up to twelve relevant source rasters with explicit license
+  and credit, using existing SSRF and image limits. Legacy remote-only metadata stays valid.
+- Embed source rasters only under CC BY/BY-SA, CC0 or public domain, with visible
+  license/source credit. Otherwise make an original cited redraw. Non-permissive
+  reuse warns at write time and blocks checking; silent planned visual omissions block too.
+- Drafter and rewrite receive the brief. Course plan and Plan rows show actual
+  made/planned visuals and chosen/no-suitable-video status. Files remain the record;
+  evidence is untrusted data and the independent checker always runs.

@@ -148,3 +148,37 @@ it("shows measured evidence counts and gaps without implying verification", () =
   expect(screen.getByText("Needs support: Eigenvectors")).toBeTruthy();
   expect(screen.getByRole("meter", { name: "Evidence for Chapter 1" }).getAttribute("value")).toBe("1");
 });
+
+it("shows made/planned visuals and chosen video metadata or an honest absence reason", () => {
+  setup([
+    {
+      ...chapter(1, "checked"),
+      media: {
+        visuals: [
+          { intent: "figure — Chain motion", made: true },
+          { intent: "chart — Heat response", made: false },
+        ],
+        video: {
+          intent: "Chain motion",
+          status: "chosen",
+          title: "Polymer lab",
+          channel: "University",
+          url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+          moment: "30–90s",
+        },
+      },
+    },
+    {
+      ...chapter(2, "planned"),
+      media: {
+        visuals: [],
+        video: { intent: "History tour", status: "none", reason: "No named historian at this level" },
+      },
+    },
+  ]);
+  expect(screen.getByText("Visuals: 1/2 made")).toBeTruthy();
+  expect(screen.getByText("chart — Heat response · Planned")).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Polymer lab" }).getAttribute("href")).toContain("youtube.com/watch");
+  expect(screen.getByText(/University · 30–90s/)).toBeTruthy();
+  expect(screen.getByText("No suitable video: No named historian at this level")).toBeTruthy();
+});

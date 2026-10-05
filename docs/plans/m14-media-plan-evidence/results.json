@@ -1,0 +1,46 @@
+{
+  "cases": [
+    {
+      "set": "polymers",
+      "chapters": 8,
+      "briefs": 8,
+      "status": "draft",
+      "madeMarkers": ["visual-1"],
+      "omissions": [
+        [
+          "visual-2",
+          "the available foundation text is a catalog record; no verified mixture definition or particle-picture evidence is present in the supplied teaching passages"
+        ]
+      ],
+      "note": "m14-media-plan-evidence/polymers/notes/01-from-familiar-materials-to-atoms-and.md"
+    },
+    {
+      "set": "hyderabad-history",
+      "chapters": 12,
+      "briefs": 12,
+      "status": "checked",
+      "madeMarkers": ["visual-1", "visual-2"],
+      "omissions": [],
+      "note": "m14-media-plan-evidence/hyderabad-history/notes/01-hyderabad-on-the-map-and-timeline.md"
+    }
+  ],
+  "usage": {
+    "calls": 261,
+    "usage": {
+      "openai-codex": {
+        "fresh": 969321,
+        "output": 39408,
+        "cacheRead": 3608832,
+        "cacheWrite": 0
+      },
+      "github-copilot": {
+        "fresh": 6118,
+        "output": 34265,
+        "cacheRead": 2117927,
+        "cacheWrite": 435253
+      }
+    }
+  },
+  "exaRequests": 35,
+  "exaCostUsd": 0.243
+}

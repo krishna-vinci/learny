@@ -75,6 +75,14 @@ describe("PlanKickoffs", () => {
     finish(ids[1] as string, "failed");
     await vi.waitFor(() => expect(jobs.enqueue).toHaveBeenCalledTimes(3));
     expect(jobs.enqueue).toHaveBeenLastCalledWith(
+      "plan-set",
+      expect.objectContaining({ mediaOnly: true }),
+      expect.anything(),
+    );
+    const mediaId = vi.mocked(jobs.enqueue).mock.results.at(-1)?.value.id as string;
+    finish(mediaId, "done");
+    await vi.waitFor(() => expect(jobs.enqueue).toHaveBeenCalledTimes(4));
+    expect(jobs.enqueue).toHaveBeenLastCalledWith(
       "draft-chapter",
       { set, ...chapters[0], sources: ["lib-new", "lib-strang-la"] },
       { set, title: "Vectors" },
@@ -97,6 +105,9 @@ describe("PlanKickoffs", () => {
     await addSource("lib-two");
     second.finish(newId, "done", "lib-two");
     await vi.waitFor(() => expect(second.jobs.enqueue).toHaveBeenCalledTimes(2));
+    const mediaId = vi.mocked(second.jobs.enqueue).mock.results.at(-1)?.value.id as string;
+    second.finish(mediaId, "done");
+    await vi.waitFor(() => expect(second.jobs.enqueue).toHaveBeenCalledTimes(3));
     expect(second.jobs.enqueue).toHaveBeenLastCalledWith(
       "draft-chapter",
       { set, ...chapters[0], sources: ["lib-one", "lib-two"] },
@@ -131,6 +142,14 @@ describe("PlanKickoffs", () => {
     for (const id of ids) finish(id, "failed");
     await vi.waitFor(() => expect(jobs.enqueue).toHaveBeenCalledTimes(3));
     expect(jobs.enqueue).toHaveBeenLastCalledWith(
+      "plan-set",
+      expect.objectContaining({ mediaOnly: true }),
+      expect.anything(),
+    );
+    const mediaId = vi.mocked(jobs.enqueue).mock.results.at(-1)?.value.id as string;
+    finish(mediaId, "done");
+    await vi.waitFor(() => expect(jobs.enqueue).toHaveBeenCalledTimes(4));
+    expect(jobs.enqueue).toHaveBeenLastCalledWith(
       "draft-chapter",
       { set, ...chapters[0], sources: ["lib-strang-la"] },
       { set, title: "Vectors" },
@@ -156,6 +175,7 @@ describe("PlanKickoffs", () => {
       ingested.push((input as { url: string }).url);
       return { sourceId: "lib-strang-la" };
     });
+    jobs.register("plan-set", async () => ({}));
     jobs.register("draft-chapter", async (input) => {
       drafted.push(input);
       return undefined;

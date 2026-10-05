@@ -8,6 +8,7 @@ import { readText } from "../tree/edit.js";
 import { commitPaths } from "../tree/git.js";
 import { canonicalRel, resolveInRoot } from "../tree/paths.js";
 import { isSetSlug } from "../tree/read.js";
+import { captureFigures } from "./figures.js";
 import {
   type DedupeKey,
   dedupeKeyFromSource,
@@ -227,6 +228,7 @@ export async function writeSource(
   root: string,
   extracted: Extracted,
   original?: WriteSourceOriginal,
+  options: { signal?: AbortSignal } = {},
 ): Promise<WriteSourceResult> {
   const sha256 = original === undefined ? null : sha256Hex(original.bytes);
   const existing = await findDuplicate(root, dedupeKeyFor(extracted, sha256));
@@ -279,11 +281,23 @@ export async function writeSource(
     (extracted.images !== undefined ||
       (extracted.url && extracted.originalExt === null && extracted.parseTier !== "transcript"))
   ) {
+    const captured = await captureFigures({
+      images: extracted.images ?? collectImages(extracted.markdown, extracted.url ?? ""),
+      title,
+      authors: extracted.authors,
+      pageUrl: extracted.url,
+      markdown: extracted.markdown,
+      signal: options.signal,
+    });
+    for (const [file, bytes] of captured.files) {
+      const rel = `${dir}/${file}`;
+      if (canonicalRel(root, rel) !== rel) throw new Error("Figure paths may not be symlink aliases");
+      await fs.mkdir(path.dirname(resolveInRoot(root, rel)), { recursive: true });
+      await fs.writeFile(resolveInRoot(root, rel), bytes);
+      tracked.push(rel);
+    }
     const imagesRel = `${dir}/images.json`;
-    await fs.writeFile(
-      resolveInRoot(root, imagesRel),
-      JSON.stringify(extracted.images ?? collectImages(extracted.markdown, extracted.url ?? ""), null, 2),
-    );
+    await fs.writeFile(resolveInRoot(root, imagesRel), JSON.stringify(captured.figures, null, 2));
     tracked.push(imagesRel);
   }
 

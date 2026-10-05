@@ -3,6 +3,8 @@ export interface SourceImage {
   alt: string;
   nearHeading: string;
   caption?: string;
+  license?: string;
+  credit?: string;
 }
 
 /** Collect before cleaning; discovery never downloads an image. */

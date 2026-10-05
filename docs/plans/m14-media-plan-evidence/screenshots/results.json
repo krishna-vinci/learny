@@ -1,0 +1,70 @@
+{
+  "root": "/tmp/studium-m14-trial-lpIKg1/tree",
+  "results": [
+    {
+      "width": 390,
+      "set": "polymers",
+      "page": "Course",
+      "overflow": false,
+      "row": "01\nFrom familiar materials to atoms and molecules\nDrafted\n\nVisuals: 1/2 made\n\ndiagram — Zoom from a familiar object to molecules and atoms, with scale labels · Made\nchart — Element, compound and mixture shown as particle pictures · Unavailable: The particle comparison will be added when the introductory explanations for mixtures can be verified.\n\nVideo chosen: Elements and atoms | Atoms, compounds, and ions | Chemistry | Khan Academy · Khan Academy\n\nEvidence: 8/8 concepts matched\n\nElements, atoms, molecules, compounds and mixtures; read simple formulas using water, carbon and a plastic object as examples.\n\nAccept",
+      "screenshot": "390-polymers-course.png"
+    },
+    {
+      "width": 390,
+      "set": "polymers",
+      "page": "Plan",
+      "overflow": false,
+      "row": "01\nFrom familiar materials to atoms and molecules\nDrafted\n\nVisuals: 1/2 made\n\ndiagram — Zoom from a familiar object to molecules and atoms, with scale labels · Made\nchart — Element, compound and mixture shown as particle pictures · Unavailable: The particle comparison will be added when the introductory explanations for mixtures can be verified.\n\nVideo chosen: Elements and atoms | Atoms, compounds, and ions | Chemistry | Khan Academy · Khan Academy\n\nElements, atoms, molecules, compounds and mixtures; read simple formulas using water, carbon and a plastic object as examples.",
+      "screenshot": "390-polymers-plan.png"
+    },
+    {
+      "width": 390,
+      "set": "hyderabad-history",
+      "page": "Course",
+      "overflow": false,
+      "row": "01\nHyderabad on the Map and Timeline\nChecked\n\nVisuals: 2/2 made\n\nfigure — Labelled regional and city map with scale and north arrow · Made\nchart — Political eras and surviving landmarks on one timeline · Made\n\nVideo chosen: Hyderabad in the Early 20th Century | Anuradha Naik | TEDxVNRVJIET · TEDx Talks\n\nEvidence: 7/8 concepts matched\n\nNeeds support: separating city\n\nLocate the Deccan Plateau, Musi River, Golconda, Old City, Secunderabad, and modern metropolis, separating city and state.\n\nAccept",
+      "screenshot": "390-hyderabad-history-course.png"
+    },
+    {
+      "width": 390,
+      "set": "hyderabad-history",
+      "page": "Plan",
+      "overflow": false,
+      "row": "01\nHyderabad on the Map and Timeline\nChecked\n\nVisuals: 2/2 made\n\nfigure — Labelled regional and city map with scale and north arrow · Made\nchart — Political eras and surviving landmarks on one timeline · Made\n\nVideo chosen: Hyderabad in the Early 20th Century | Anuradha Naik | TEDxVNRVJIET · TEDx Talks\n\nLocate the Deccan Plateau, Musi River, Golconda, Old City, Secunderabad, and modern metropolis, separating city and state.",
+      "screenshot": "390-hyderabad-history-plan.png"
+    },
+    {
+      "width": 1440,
+      "set": "polymers",
+      "page": "Course",
+      "overflow": false,
+      "row": "01\nFrom familiar materials to atoms and molecules\nDrafted\n\nVisuals: 1/2 made\n\ndiagram — Zoom from a familiar object to molecules and atoms, with scale labels · Made\nchart — Element, compound and mixture shown as particle pictures · Unavailable: The particle comparison will be added when the introductory explanations for mixtures can be verified.\n\nVideo chosen: Elements and atoms | Atoms, compounds, and ions | Chemistry | Khan Academy · Khan Academy\n\nEvidence: 8/8 concepts matched\n\nElements, atoms, molecules, compounds and mixtures; read simple formulas using water, carbon and a plastic object as examples.\n\nAccept",
+      "screenshot": "1440-polymers-course.png"
+    },
+    {
+      "width": 1440,
+      "set": "polymers",
+      "page": "Plan",
+      "overflow": false,
+      "row": "01\nFrom familiar materials to atoms and molecules\nDrafted\n\nVisuals: 1/2 made\n\ndiagram — Zoom from a familiar object to molecules and atoms, with scale labels · Made\nchart — Element, compound and mixture shown as particle pictures · Unavailable: The particle comparison will be added when the introductory explanations for mixtures can be verified.\n\nVideo chosen: Elements and atoms | Atoms, compounds, and ions | Chemistry | Khan Academy · Khan Academy\n\nElements, atoms, molecules, compounds and mixtures; read simple formulas using water, carbon and a plastic object as examples.",
+      "screenshot": "1440-polymers-plan.png"
+    },
+    {
+      "width": 1440,
+      "set": "hyderabad-history",
+      "page": "Course",
+      "overflow": false,
+      "row": "01\nHyderabad on the Map and Timeline\nChecked\n\nVisuals: 2/2 made\n\nfigure — Labelled regional and city map with scale and north arrow · Made\nchart — Political eras and surviving landmarks on one timeline · Made\n\nVideo chosen: Hyderabad in the Early 20th Century | Anuradha Naik | TEDxVNRVJIET · TEDx Talks\n\nEvidence: 7/8 concepts matched\n\nNeeds support: separating city\n\nLocate the Deccan Plateau, Musi River, Golconda, Old City, Secunderabad, and modern metropolis, separating city and state.\n\nAccept",
+      "screenshot": "1440-hyderabad-history-course.png"
+    },
+    {
+      "width": 1440,
+      "set": "hyderabad-history",
+      "page": "Plan",
+      "overflow": false,
+      "row": "01\nHyderabad on the Map and Timeline\nChecked\n\nVisuals: 2/2 made\n\nfigure — Labelled regional and city map with scale and north arrow · Made\nchart — Political eras and surviving landmarks on one timeline · Made\n\nVideo chosen: Hyderabad in the Early 20th Century | Anuradha Naik | TEDxVNRVJIET · TEDx Talks\n\nLocate the Deccan Plateau, Musi River, Golconda, Old City, Secunderabad, and modern metropolis, separating city and state.",
+      "screenshot": "1440-hyderabad-history-plan.png"
+    }
+  ],
+  "errors": []
+}

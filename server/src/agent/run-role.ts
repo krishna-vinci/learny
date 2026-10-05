@@ -32,6 +32,9 @@ import { installPromptAudit } from "./prompt-audit.js";
 import { ROLES, type RoleName } from "./roles.js";
 import { studyTools } from "./tools.js";
 
+// Keep new job tools behind the agent's SDK boundary.
+export { defineTool } from "@earendil-works/pi-coding-agent";
+
 const jobSearch = new WeakMap<JobContext, SearchService>();
 
 const jobBlockedHosts = new WeakMap<JobContext, Map<string, string>>();

@@ -4,6 +4,7 @@ import { slugify } from "../ingest/ids.js";
 import { coverageKey, loadCoverage } from "../search/coverage.js";
 import { chapterExists, parseCurriculum } from "../tree/curriculum.js";
 import { readText } from "../tree/edit.js";
+import { readMediaBrief, realisedVisuals } from "../tree/media-brief.js";
 import { resolveInRoot } from "../tree/paths.js";
 import { isSetSlug, listNotes } from "../tree/read.js";
 
@@ -37,35 +38,58 @@ export async function buildCourse(
     // Broken user-edited YAML must not hide the curriculum.
   }
   const coverage = await loadCoverage(root);
-  const chapters = parseCurriculum(curriculum)
-    .map((chapter, index) => {
-      const note = notes.find((candidate) => chapterExists(chapter, [candidate.path]));
-      const job = jobs.find((candidate) =>
-        candidate.kind === "rewrite-chapter"
-          ? candidate.path === note?.path
-          : slugify(candidate.title, 40) === slugify(chapter.title, 40),
-      );
-      return {
-        order: chapter.number ?? index + 1,
-        title: chapter.title,
-        scope: chapter.scope,
-        ...(coverage.has(coverageKey(set, chapter.title, chapter.scope))
-          ? { evidence: coverage.get(coverageKey(set, chapter.title, chapter.scope)) }
-          : {}),
-        prerequisites: chapter.prerequisites,
-        state: job
-          ? ("drafting" as const)
-          : note
-            ? note.status === "accepted"
-              ? ("accepted" as const)
-              : note.status === "checked"
-                ? ("checked" as const)
-                : ("drafted" as const)
-            : ("planned" as const),
-        ...(note ? { path: note.path } : {}),
-        ...(job ? { jobId: job.id } : {}),
-      };
-    })
-    .sort((a, b) => a.order - b.order);
+  const chapters = (
+    await Promise.all(
+      parseCurriculum(curriculum).map(async (chapter, index) => {
+        const note = notes.find((candidate) => chapterExists(chapter, [candidate.path]));
+        const job = jobs.find((candidate) =>
+          candidate.kind === "rewrite-chapter"
+            ? candidate.path === note?.path
+            : slugify(candidate.title, 40) === slugify(chapter.title, 40),
+        );
+        const saved = await readMediaBrief(root, set, chapter);
+        const brief =
+          saved &&
+          saved.scope === chapter.scope &&
+          saved.video.intent === chapter.video &&
+          JSON.stringify(saved.visuals.map((v) => v.intent)) === JSON.stringify(chapter.visuals)
+            ? saved
+            : null;
+        const media = {
+          visuals:
+            brief && note
+              ? await realisedVisuals(
+                  root,
+                  `${set}/${note.path}`,
+                  await readText(root, `${set}/${note.path}`),
+                  brief.visuals,
+                )
+              : chapter.visuals.map((intent) => ({ intent, made: false })),
+          video: brief?.video ?? { intent: chapter.video, status: "planned" as const },
+        };
+        return {
+          order: chapter.number ?? index + 1,
+          title: chapter.title,
+          scope: chapter.scope,
+          media,
+          ...(coverage.has(coverageKey(set, chapter.title, chapter.scope))
+            ? { evidence: coverage.get(coverageKey(set, chapter.title, chapter.scope)) }
+            : {}),
+          prerequisites: chapter.prerequisites,
+          state: job
+            ? ("drafting" as const)
+            : note
+              ? note.status === "accepted"
+                ? ("accepted" as const)
+                : note.status === "checked"
+                  ? ("checked" as const)
+                  : ("drafted" as const)
+              : ("planned" as const),
+          ...(note ? { path: note.path } : {}),
+          ...(job ? { jobId: job.id } : {}),
+        };
+      }),
+    )
+  ).sort((a, b) => a.order - b.order);
   return { subject, chapters };
 }

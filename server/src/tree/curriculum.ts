@@ -8,6 +8,8 @@ export interface CurriculumChapter {
   checked: boolean;
   scope: string;
   prerequisites: string;
+  visuals: string[];
+  video: string;
   line: number;
 }
 
@@ -36,12 +38,18 @@ export function parseCurriculum(text: string | null): CurriculumChapter[] {
         checked: match[1] !== " ",
         scope: "",
         prerequisites: "",
+        visuals: [],
+        video: "",
         line: index,
       };
       chapters.push(current);
     } else if (current !== undefined) {
       const scope = /^\s+(?:[-*]\s+)?Scope:\s*(.+)$/i.exec(line)?.[1]?.trim();
       const prerequisites = /^\s+(?:[-*]\s+)?Prerequisites:\s*(.+)$/i.exec(line)?.[1]?.trim();
+      const visual = /^\s+(?:[-*]\s+)?Visual:\s*(.+)$/i.exec(line)?.[1]?.trim();
+      const video = /^\s+(?:[-*]\s+)?Video:\s*(.+)$/i.exec(line)?.[1]?.trim();
+      if (visual) current.visuals.push(visual);
+      if (video) current.video = video;
       if (scope) current.scope = scope;
       if (prerequisites) current.prerequisites = prerequisites;
     }

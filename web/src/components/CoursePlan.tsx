@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
 import { queryKeys, useCourse } from "@/api/queries";
 import { openActivityPanel } from "@/components/Activity/activity-store";
+import { ChapterMediaStatus } from "@/components/ChapterMediaStatus";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { FirstUseHint } from "@/components/FirstUseHint";
 import { RowsSkeleton } from "@/components/ListSkeleton";
@@ -199,6 +200,7 @@ export function CoursePlan({ set, jobs, onReplan }: { set: string; jobs: readonl
                       )}
                       <ChapterStateBadge state={state} />
                     </div>
+                    <ChapterMediaStatus media={chapter.media} />
                     {chapter.evidence && chapter.evidence.total > 0 && (
                       <div className="mt-1 text-xs text-muted-foreground">
                         <span>

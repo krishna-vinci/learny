@@ -68,3 +68,23 @@ it("shows the empty state with a Plan with agent button when PLAN.md has no body
   expect(screen.getByRole("button", { name: /Plan with agent/ })).toBeTruthy();
   expect(screen.queryByTestId("plan-body")).toBeNull();
 });
+
+it("shows each chapter's planned media and no-video reason on the Plan page", () => {
+  chapters = [
+    {
+      order: 1,
+      title: "Vectors",
+      scope: "",
+      prerequisites: "none",
+      state: "planned",
+      media: {
+        visuals: [{ intent: "diagram — Addition", made: false }],
+        video: { intent: "Addition", status: "none", reason: "No suitable named educator found" },
+      },
+    },
+  ];
+  setup();
+  expect(screen.getByText("Visuals: 0/1 made")).toBeTruthy();
+  expect(screen.getByText("diagram — Addition · Planned")).toBeTruthy();
+  expect(screen.getByText("No suitable video: No suitable named educator found")).toBeTruthy();
+});

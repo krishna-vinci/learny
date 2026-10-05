@@ -71,3 +71,18 @@ it("matches existing title slugs and falls back to general for unknown or absent
   await fs.unlink(path.join(root, "history/curriculum.md"));
   expect((await buildCourse(root, "history")).chapters).toEqual([]);
 });
+it("reads per-chapter media intent and retains legacy chapters and fenced examples", async () => {
+  const curriculum =
+    "```md\n- [ ] 99 — Example\n  Visual: chart — hidden\n```\n- [ ] 01 — City\n  Visual: timeline — Founding\n  Visual: diagram — Trade routes\n  Video: A historian explaining the founding\n- [ ] 02 — Legacy\n";
+  await fs.writeFile(path.join(root, "history/curriculum.md"), curriculum);
+  const course = await buildCourse(root, "history");
+  expect(course.chapters).toHaveLength(2);
+  expect(course.chapters[0]?.media).toEqual({
+    visuals: [
+      { intent: "timeline — Founding", made: false },
+      { intent: "diagram — Trade routes", made: false },
+    ],
+    video: { intent: "A historian explaining the founding", status: "planned" },
+  });
+  expect(course.chapters[1]?.media?.visuals).toEqual([]);
+});

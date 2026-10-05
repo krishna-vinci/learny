@@ -94,3 +94,23 @@ it("preserves exact TeX, GFM tables, code languages and figure captions", () => 
   expect(result.images[0]?.alt).toBe("Experiment");
   expect(result.markdown).not.toContain("garbled");
 });
+it("retains explicit restrictive LibreTexts page licenses rather than assuming host-wide reuse", () => {
+  const html = `<html><head><title>Polymer chains</title><script>["license:ccbync", "licenseversion:30"]</script></head><body><article><h1>Polymer chains</h1><p>${"Polymer chains explain material properties. ".repeat(30)}</p><figure><img src="/chains.png" alt="Polymer chains"><figcaption>Chain structure</figcaption></figure></article></body></html>`;
+  expect(htmlToMarkdown(html, "https://chem.libretexts.org/Bookshelves/Polymers").images[0]).toMatchObject({
+    caption: "Chain structure",
+    license: "CC BY-NC 3.0",
+  });
+  expect(htmlToMarkdown(html, "https://example.org/Polymers").images[0]?.license).toBeUndefined();
+});
+it("keeps individual figure licenses separate and preserves restrictive caption exceptions", () => {
+  const html = `<html><body><article><h1>Polymer chains</h1><p>${"Polymer chains explain material properties. ".repeat(30)}</p>
+    <figure><img src="/chains.png" alt="Polymer chains"><figcaption>Named author, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></figcaption></figure>
+    <figure><img src="/other.png" alt="Other chains"><figcaption>Other example</figcaption></figure>
+    <figure><img src="/reserved.png" alt="Measured chains"><figcaption>All rights reserved</figcaption></figure>
+    </article></body></html>`;
+  const images = htmlToMarkdown(html, "https://example.org/chains").images;
+  expect(images.find((i) => i.url.endsWith("/chains.png"))?.license).toBe("CC BY 4.0");
+  expect(images.find((i) => i.url.endsWith("/chains.png"))?.credit).toContain("Named author");
+  expect(images.find((i) => i.url.endsWith("/other.png"))?.license).toBeUndefined();
+  expect(images.find((i) => i.url.endsWith("/reserved.png"))?.license).toBe("all rights reserved");
+});

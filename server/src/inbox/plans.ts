@@ -82,6 +82,8 @@ export function parsePlanProposal(text: string): PlanProposal {
       scope: chapter.scope,
       prerequisites: chapter.prerequisites,
       ticked: chapter.checked,
+      ...(chapter.visuals.length ? { visuals: chapter.visuals } : {}),
+      ...(chapter.video ? { video: chapter.video } : {}),
     })),
   };
 }

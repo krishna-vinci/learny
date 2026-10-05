@@ -41,7 +41,7 @@ import type { JobContext, JobHandler } from "./runner.js";
 import { usageFromPiMessages } from "./runner.js";
 
 export interface IngestJobDeps {
-  /** Scout-discovered figure URLs; downloads still go through save_asset. */
+  /** Scout-discovered figure URLs; capture uses the same guarded raster limits as save_asset. */
   candidateImages?: ReadonlyMap<string, SourceImage[]>;
   root: string;
   locks: FileLocks;
@@ -646,7 +646,7 @@ export function createIngestJob(deps: IngestJobDeps): JobHandler {
           await recordDomainOutcome(deps.root, extracted.url, "low-quality");
         ctx.progress("Writing library source");
         ctx.signal.throwIfAborted();
-        const written = await writeSource(deps.root, extracted, extraction.original);
+        const written = await writeSource(deps.root, extracted, extraction.original, { signal: ctx.signal });
         const sourceId = written.id;
         sourceExists = true;
         if (written.deduped) return await handleExisting(deps, ctx, sourceId, set, inbox);
