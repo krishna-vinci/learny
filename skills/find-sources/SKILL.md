@@ -17,7 +17,7 @@ MCP names follow `mcp_<server>_<tool>`, with non-alphanumeric characters replace
 
 - **Papers:** use `mcp_papers_*`, such as `mcp_papers_search_papers`, `mcp_papers_search_arxiv`, `mcp_papers_search_semantic`, or `mcp_papers_read_arxiv_paper`. Prefer arXiv or Semantic Scholar records; check venue, year, peer-review status, and citations. An arXiv preprint or a high citation count alone does not establish peer review.
 - **Library/API documentation:** use `mcp_context7_*` to resolve the library id, then retrieve the docs. Note the version checked and prefer documentation matching the learner's version.
-- **General topics:** start with `wiki_search` and `wiki_read` for orientation, then use `mcp_searxng_*` to find specific sources. Search results are discovery leads, not evidence.
+- **General topics:** start with `wiki_search` and `wiki_read` for orientation, then use `web_search` with the recipe slot to find specific sources; use `mcp_searxng_*` when native search is unavailable. Search results are discovery leads, not evidence.
 
 If a tool is unavailable, say which check could not be performed and report specific candidate URLs to the owner. The Librarian may lack research tools; do not claim a search or fetch occurred.
 

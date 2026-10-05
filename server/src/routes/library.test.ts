@@ -441,3 +441,35 @@ it("serves only the stored thumbnail with private image headers", async () => {
   expect(new Uint8Array(await response.arrayBuffer())).toEqual(new Uint8Array([255, 216, 255]));
   expect((await app.request("/api/library/lib-missing/thumb")).status).toBe(404);
 });
+
+it("refreshes one source or a selected set and coalesces repeated requests", async () => {
+  jobs.register("refresh-source", async () => {
+    await new Promise((r) => setTimeout(r, 30));
+    return { refreshes: [] };
+  });
+  const { id } = await writeSource(root, makeExtracted());
+  const first = await app.request(`/api/library/${id}/refresh`, { method: "POST" });
+  const duplicate = await app.request(`/api/library/${id}/refresh`, { method: "POST" });
+  expect(first.status).toBe(202);
+  expect(await duplicate.json()).toEqual(await first.json());
+  expect((await app.request("/api/library/missing/refresh", { method: "POST" })).status).toBe(404);
+  expect(
+    (
+      await app.request("/api/library/refresh", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}",
+      })
+    ).status,
+  ).toBe(400);
+  await fs.mkdir(path.join(root, "lesson"));
+  await fs.writeFile(path.join(root, "lesson/PLAN.md"), `---\ntitle: Lesson\nsources: [${id}]\n---\n`);
+  const set = await app.request("/api/library/refresh", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ set: "lesson" }),
+  });
+  expect(set.status).toBe(202);
+  expect(await set.json()).toMatchObject({ count: 1, jobId: expect.any(String) });
+  await new Promise((r) => setTimeout(r, 70));
+});

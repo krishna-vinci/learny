@@ -85,3 +85,23 @@ it("refreshes set source queries after PLAN changes, commits and completed inges
   }
   cleanup();
 });
+
+it("invalidates source details and parsed previews when refresh completes", () => {
+  const client = new QueryClient();
+  const source = queryKeys.librarySource("lib-one"),
+    parsed = queryKeys.libraryParsedFile("lib-one", "parsed.md");
+  client.setQueryData(source, {});
+  client.setQueryData(parsed, {});
+  renderHook(() => useLiveStudiumUpdates(), {
+    wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>,
+  });
+  act(() =>
+    stream.handler?.({
+      type: "job",
+      job: { ...job("done", "Refreshed"), kind: "refresh-source", result: { sourceId: "lib-one" } },
+    }),
+  );
+  expect(client.getQueryState(source)?.isInvalidated).toBe(true);
+  expect(client.getQueryState(parsed)?.isInvalidated).toBe(true);
+  cleanup();
+});

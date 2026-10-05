@@ -333,7 +333,13 @@ function draftTask(
   ].join("\n");
 }
 
-function checkerTask(notePath: string, reportPath: string, sources: string[], recheck: boolean): string {
+function checkerTask(
+  notePath: string,
+  reportPath: string,
+  sources: string[],
+  recheck: boolean,
+  subject: string,
+): string {
   return [
     "Load the fact-check skill and verify the target note against its cited parsed library sources.",
     `Target note: ${notePath}`,
@@ -343,6 +349,11 @@ function checkerTask(notePath: string, reportPath: string, sources: string[], re
       ? "Replace resolved findings in the existing report and list every remaining issue."
       : "Create the report using the skill's severity-ranked format.",
     "Check teaching quality as well as facts. All remaining teaching-lint hits are blockers. For rewrites, verify no facts, citations or figures were lost.",
+    ...(["philosophy", "politics", "law", "economics"].includes(subject)
+      ? [
+          "Contested-topic blockers: missing major relevant viewpoints or their strongest arguments; interpretations without attribution; undated time-sensitive claims; political/moral judgments presented as facts. Separate facts from interpretations, date claims and specify jurisdiction. Never use one partisan outlet as sole political evidence. Law is educational, not legal advice.",
+        ]
+      : []),
     "If and only if no blocker remains, call set_note_status for the target note with status checked.",
   ].join("\n");
 }
@@ -612,7 +623,13 @@ function createChapterJob(deps: DraftJobDeps, rewriting: boolean): JobHandler {
           root: deps.root,
           set: input.set,
           task: [
-            checkerTask(notePath, reportPath, noteSources(currentNote), recheck),
+            checkerTask(
+              notePath,
+              reportPath,
+              noteSources(currentNote),
+              recheck,
+              String(parseFrontmatter(plan).frontmatter.subject ?? "general"),
+            ),
             "Use this cited evidence pack first; study_read can expand any source. Unresolved/unanchored citations require source inspection, never assume the pack is complete.",
             `Unresolved: ${evidence.missing.join(", ") || "none"}`,
             depthHint,

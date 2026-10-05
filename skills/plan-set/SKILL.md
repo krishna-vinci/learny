@@ -15,9 +15,9 @@ description: Propose a study plan and prerequisite-ordered curriculum for learne
    candidate URLs unverified.
 3. Propose 6–14 chapters, ordered so prerequisites precede dependent chapters.
    Each chapter should cover one manageable learning unit at the requested level.
-   Choose `subject:` from math, science, technology, history, finance, language,
-   practical, general and include it in the proposed PLAN.md frontmatter. History
-   includes humanities/social sciences; use general when no closer subject fits.
+   Choose `subject:` from math, science, technology, history, philosophy, politics,
+   law, economics, finance, language, practical, general and include it in the proposed PLAN.md frontmatter. History
+   covers historical inquiry; use general when no closer subject fits.
    Scopes describe content for the learner, never instructions to an AI/operator.
    State its one-line scope and prerequisites: `none`, or a comma-separated list
    of distinct existing two-digit chapter numbers strictly lower than the current

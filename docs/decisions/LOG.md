@@ -430,3 +430,44 @@ catalog costs are estimates. Prompt audits live in `.cache/prompt-audit.jsonl`.
   bounded Retry-After, remember blocked hosts per job/chat, and suggest accessible
   alternatives for paywalls. Images belong to save_asset. Job-history failures
   retain a short secret-redacted reason. SSRF/evidence trust boundaries unchanged.
+
+## D35 — Search backends, subjects and refresh · locked · 2026-10-05
+
+Extends D7/D15/D17/D30/D34. Search uses one normalized interface for Exa
+(EXA_API_KEY, fetch to its HTTPS API) and the existing SearXNG service. No Exa key
+means SearXNG only; existing MCP search remains compatible. Recipes route foundation,
+explainer, primary and expert slots to Exa first, merging canonical SearXNG leads;
+papers use verified SearXNG science engine answers plus Exa's scholarly category;
+videos use SearXNG videos, news/recent SearXNG general. Current Exa documentation
+calls neural-style natural-language search `auto` and research papers `publication`;
+legacy findSimilar remains supported. Domain filters and returned text are optional.
+Text is bounded, parse-scored untrusted discovery data, never registered evidence.
+Public-URL checks and the existing safe extraction pipeline remain mandatory.
+
+Backend starts are serialized and paced (SearXNG >=1.5 s; Exa 150 ms, below its
+10 QPS default); workspace queries cache for 15 minutes. Three consecutive backend
+failures halt that backend for the job; no automatic search retry storms. Exa
+request counts and API-reported dollar cost persist separately from model tokens
+and subscription billing. The 24-query measurement, provider usage and recipe-slot
+winners are in `docs/plans/2026-10-05-m13-search-bakeoff.md` (103 usable Exa
+leads vs 19 SearXNG, 22 Exa wins and two ties, using identical natural-language
+queries). This supports retaining Exa-first routing; keyword-optimized SearXNG
+performance was not measured. Experimental accessibility
+and parse health never certify truth. Papers/video/recent routes are policy defaults,
+not measured winners in this foundation-focused beginner experiment.
+
+PlanSubject adds philosophy, politics, law and economics; unknown remains general.
+Chapters present major relevant viewpoints fairly with attribution and strongest
+arguments, separate facts from interpretations, date volatile claims and never
+state political/moral judgments as facts. Law specifies jurisdiction/date and is
+educational, not legal advice. Economics uses dated official data and distinguishes
+contested schools. The independent checker treats violations as blockers for these
+four subjects; it always runs and never delegates its verdict to a classifier.
+
+Refresh-source re-extracts existing library entries on explicit learner action,
+individually or for a selected set, preserving source identity, metadata and matching
+section locators. Missing locators are reported without rewriting existing citations.
+Uploaded originals must still be present; blocked/unreadable/lower-quality imports
+retain the old parse. Writes are confined, locked, atomic per file and committed
+as librarian, with rollback on mutation failure. Quality before/after is shown,
+without claiming improved factual authority. Refresh extraction calls no model.

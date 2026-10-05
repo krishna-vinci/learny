@@ -19,6 +19,7 @@ import { loadJobHistory } from "../jobs/log.js";
 import { createPlanJob } from "../jobs/plan-job.js";
 import { createPracticeJob } from "../jobs/practice-job.js";
 import { ProposalStore } from "../jobs/proposals.js";
+import { createRefreshSourceJob } from "../jobs/refresh-source-job.js";
 import { JobRunner } from "../jobs/runner.js";
 import { McpManager } from "../mcp/bridge.js";
 import { loadMcpConfig } from "../mcp/config.js";
@@ -201,6 +202,17 @@ export class WorkspaceManager {
         runtime: this.#runtime,
         hub,
         ...(this.#youtube === undefined ? {} : { youtube: this.#youtube }),
+      }),
+    );
+    jobs.register(
+      "refresh-source",
+      createRefreshSourceJob({
+        root,
+        locks,
+        ...(this.#youtube === undefined ? {} : { youtube: this.#youtube }),
+        firecrawlUrl: process.env.FIRECRAWL_API_URL,
+        firecrawlKey: process.env.FIRECRAWL_API_KEY,
+        mineruUrl: process.env.MINERU_URL,
       }),
     );
     jobs.register("compile-book", createBookJob({ root, locks }));

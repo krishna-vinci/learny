@@ -9,8 +9,10 @@ import { isImageSourceUrl } from "../../ingest/image-url.js";
 import { MIN_PARSE_QUALITY, scoreParseQuality } from "../../ingest/quality.js";
 import { assertPublicUrl } from "../../ingest/safe-fetch.js";
 import { extract } from "../../ingest/types.js";
+import type { SearchService } from "../../search/backends.js";
 import type { Classifier } from "../classifier.js";
 import { selectedPassage } from "../passage.js";
+import { searchParameters } from "./web-search.js";
 
 export interface ScoutCandidate {
   url: string;
@@ -26,6 +28,7 @@ export interface ScoutedSource extends ScoutCandidate {
 export function scoutSourcesTool(opts: {
   root: string;
   classifier?: Classifier;
+  search?: SearchService;
   onSelected?: (sources: ScoutedSource[]) => void;
 }): ToolDefinition {
   return defineTool({
@@ -34,6 +37,7 @@ export function scoutSourcesTool(opts: {
     description:
       "Rank 10–20 search candidates per recipe slot, canonicalize, fetch top candidates and keep healthy parses. Search broadly first; scores/reasons are your LLM judgment when classifier is off or shadow. Does not register sources.",
     parameters: Type.Object({
+      search: Type.Optional(Type.Object(searchParameters)),
       brief: Type.String(),
       level: Type.Integer({ minimum: 1, maximum: 5 }),
       researchNeeded: Type.Boolean(),
@@ -52,10 +56,26 @@ export function scoutSourcesTool(opts: {
             Type.Literal("video"),
           ]),
         }),
-        { minItems: 1, maxItems: 100 },
+        { minItems: 0, maxItems: 100 },
       ),
     }),
     async execute(_id, params, signal) {
+      if (params.search) {
+        if (!opts.search) throw new Error("Search is unavailable");
+        const leads = await opts.search.search(params.search, signal);
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: selectedPassage(
+                JSON.stringify(leads),
+                "source scouting search leads; rank these with reasoned scores and call scout_sources again",
+              ),
+            },
+          ],
+          details: { isError: !leads.results.length, summary: `${leads.results.length} leads to rank` },
+        };
+      }
       const seen = new Set<string>();
       const candidates: ScoutCandidate[] = [];
       const dropped: { url: string; reason: string }[] = [];

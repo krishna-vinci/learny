@@ -12,7 +12,7 @@ import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { friendlyMessage } from "@/lib/friendly-errors";
-import { formatDuration } from "@/lib/job-format";
+import { formatDuration, formatTokenUsage } from "@/lib/job-format";
 import { isActiveJob, isRecentlyFinishedJob } from "@/lib/job-transitions";
 import { toast } from "@/lib/notify";
 import { cn } from "@/lib/utils";
@@ -29,6 +29,7 @@ const STATUS_VARIANTS: Record<JobStatus, BadgeVariant> = {
 
 const KIND_ICONS: Record<JobKind, typeof LinkIcon> = {
   ingest: LinkIcon,
+  "refresh-source": LinkIcon,
   "draft-chapter": NotebookTextIcon,
   "rewrite-chapter": NotebookTextIcon,
   "make-cards": LayersIcon,
@@ -92,6 +93,17 @@ function JobRow({
             <span aria-hidden="true">·</span>
             <span className="tabular-nums">{formatDuration(job.startedAt, job.finishedAt)}</span>
           </p>
+          {job.usage.exaRequests ? (
+            <p className="mt-0.5 break-words text-xs text-muted-foreground [overflow-wrap:anywhere]">
+              {formatTokenUsage(job.usage)}
+            </p>
+          ) : null}
+          {job.result?.refreshes?.map((r) => (
+            <p key={r.sourceId} className="mt-0.5 break-words text-xs text-muted-foreground [overflow-wrap:anywhere]">
+              {r.sourceId}: {r.before} → {r.after}/100{r.reason ? ` · ${r.reason}` : ""}
+              {r.disappearedAnchors.length ? ` · ${r.disappearedAnchors.length} sections no longer found` : ""}
+            </p>
+          ))}
           <p className="mt-0.5 truncate text-sm text-muted-foreground">
             {job.progress || (job.kind === "rewrite-chapter" ? "Rewriting chapter" : active ? "Working…" : "")}
           </p>

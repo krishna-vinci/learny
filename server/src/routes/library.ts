@@ -12,6 +12,7 @@ import {
   findDuplicate,
   type IngestJobInput,
   isSourcePending,
+  listSetSources,
   listSources,
   readParsedFile,
   readSource,
@@ -64,6 +65,8 @@ async function resolveSet(root: string, value: unknown): Promise<string | null |
   }
 }
 
+const refreshJobs = new WeakMap<JobRunner, Map<string, string>>();
+
 export function libraryRoutes(input: LibraryRoutesDeps): Hono {
   const deps = {
     ...input,
@@ -103,6 +106,31 @@ export function libraryRoutes(input: LibraryRoutesDeps): Hono {
     if (markdown === null) return c.json({ error: "not found" }, 404);
     const view: ParsedFileView = { file, markdown };
     return c.json(view);
+  });
+
+  const enqueueRefresh = (key: string, payload: { sourceId?: string; set?: string }, title: string) => {
+    const pending = refreshJobs.get(deps.jobs) ?? new Map<string, string>();
+    refreshJobs.set(deps.jobs, pending);
+    const previous = pending.get(key);
+    const job = previous ? deps.jobs.get(previous) : undefined;
+    if (job && (job.status === "queued" || job.status === "running")) return job.id;
+    const created = deps.jobs.enqueue("refresh-source", payload, { set: payload.set ?? null, title });
+    pending.set(key, created.id);
+    return created.id;
+  };
+  app.post("/refresh", async (c) => {
+    const body = await readJson(c);
+    const set = await resolveSet(root, body?.set);
+    if (!set) return c.json({ error: "Choose a study set to refresh." }, 400);
+    const sources = await listSetSources(root, set);
+    return c.json({ jobId: enqueueRefresh(`set:${set}`, { set }, "Refresh all sources"), count: sources.length }, 202);
+  });
+  app.post("/:id/refresh", async (c) => {
+    const id = c.req.param("id");
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) return c.json({ error: "not found" }, 404);
+    const view = await readSource(root, id);
+    if (!view) return c.json({ error: "not found" }, 404);
+    return c.json({ jobId: enqueueRefresh(`source:${id}`, { sourceId: id }, `Refresh ${view.source.title}`) }, 202);
   });
 
   // Retry transcript (owner's beginner bar): reuse the ingest job, keep the id.

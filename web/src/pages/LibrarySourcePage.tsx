@@ -8,7 +8,13 @@ import { youtubeVideoId } from "@studium/shared/media";
 import { ArrowLeftIcon, ChevronLeftIcon, FileTextIcon, RotateCcwIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { useCurrentUser, useLibraryParsedFile, useLibrarySource, useRetryTranscript } from "@/api/queries";
+import {
+  useCurrentUser,
+  useLibraryParsedFile,
+  useLibrarySource,
+  useRefreshSources,
+  useRetryTranscript,
+} from "@/api/queries";
 import { PageSkeleton, RowsSkeleton } from "@/components/ListSkeleton";
 import { MarkdownView } from "@/components/Reader";
 import { YouTubeEmbed } from "@/components/Reader/YouTubeEmbed";
@@ -73,6 +79,7 @@ export default function LibrarySourcePage() {
   const { data, isLoading, isError } = useLibrarySource(id);
   const { user } = useCurrentUser();
   const retry = useRetryTranscript();
+  const refresh = useRefreshSources();
   const [openFile, setOpenFile] = useState<string | null>(null);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
@@ -122,6 +129,42 @@ export default function LibrarySourcePage() {
             </>
           )}
         </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            className="h-11 md:h-9"
+            disabled={refresh.isPending}
+            onClick={() => id && refresh.mutate({ id })}
+          >
+            <RotateCcwIcon aria-hidden="true" /> {refresh.isPending ? "Starting…" : "Refresh"}
+          </Button>
+          {refresh.isSuccess && (
+            <span className="text-xs text-muted-foreground" role="status">
+              Refreshing in the background…
+            </span>
+          )}
+          {refresh.isError && (
+            <span className="text-xs text-destructive" role="alert">
+              Couldn't start the refresh. Try again.
+            </span>
+          )}
+          {source.quality !== undefined && (
+            <span className="text-xs text-muted-foreground">Extraction quality: {source.quality}/100</span>
+          )}
+        </div>
+        {source.lastRefresh && (
+          <div className="text-xs text-muted-foreground">
+            <p>
+              Last refresh: {source.lastRefresh.before} → {source.lastRefresh.after}/100
+            </p>
+            {source.lastRefresh.disappearedAnchors?.length > 0 && (
+              <p>
+                Sections no longer found: {source.lastRefresh.disappearedAnchors.join(", ")}. Existing citations are
+                kept.
+              </p>
+            )}
+          </div>
+        )}
         {source.sets.length > 0 && <p className="text-xs text-muted-foreground">In sets: {source.sets.join(", ")}</p>}
         {warning && (
           <div className="flex flex-wrap items-center gap-2">

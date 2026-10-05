@@ -52,3 +52,9 @@ it("accepts optional classifier config, null off, and validates modes/thresholds
     }),
   ).toThrow();
 });
+
+it("parses the four contested subjects while retaining unknown fallback", () => {
+  for (const subject of ["philosophy", "politics", "law", "economics"])
+    expect(PlanFrontmatter.parse({ subject }).subject).toBe(subject);
+  expect(PlanFrontmatter.parse({ subject: "unknown-discipline" }).subject).toBe("general");
+});

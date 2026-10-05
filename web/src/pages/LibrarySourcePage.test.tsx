@@ -18,6 +18,7 @@ const state = vi.hoisted(() => ({
     warning: "stored warning",
     transcriptStatus: "blocked" as string | null,
   },
+  refresh: { mutate: vi.fn(), isPending: false, isSuccess: false, isError: false },
   retry: {
     mutate: vi.fn(),
     isPending: false,
@@ -34,6 +35,7 @@ vi.mock("@/api/queries", () => ({
   }),
   useLibraryParsedFile: () => ({ data: null, isLoading: false, isError: false }),
   useCurrentUser: () => ({ user: state.user }),
+  useRefreshSources: () => state.refresh,
   useRetryTranscript: () => state.retry,
 }));
 vi.mock("@/components/Reader", () => ({
@@ -94,4 +96,13 @@ it("reports a failed retry", async () => {
   state.retry = { mutate: vi.fn(), isPending: false, isSuccess: false, isError: true };
   renderPage();
   expect(screen.getByText(/Couldn't start the retry/)).toBeTruthy();
+});
+
+it("refreshes the existing source id and gives immediate error feedback", () => {
+  state.refresh.isError = true;
+  renderPage();
+  fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+  expect(state.refresh.mutate).toHaveBeenCalledWith({ id: "lib-video" });
+  expect(screen.getByRole("alert").textContent).toContain("Couldn't start the refresh");
+  state.refresh.isError = false;
 });

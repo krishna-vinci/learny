@@ -14,6 +14,7 @@
     "6529f55184a18fc7f361e51dab5d6c86c4bc551485efcf830d504de07dd77b90",
     "d75fb0bc400220584d711b02a96986b9340b149c07fafe6e399ba24d4bca3a87"
   ],
+  "draft-chapter/references/subject-economics.md": ["2a883c4660ec3a9b91001292aa9e0db100267a8297287ab02bf6893d016b0a87"],
   "draft-chapter/references/subject-finance.md": [
     "9bf7176302cb4479ea4cdc06cc009fe84633391401024c1b1e9a5ff8c9fac010",
     "5bb8ae92243899b42a9640c7aff7c9edaa2b5ea7221503f23dea7ef681cf01b7"
@@ -24,11 +25,16 @@
     "8441fe557ba927223fa58608abfdfacc4f291ec18f275cf9301651c438207842"
   ],
   "draft-chapter/references/subject-language.md": ["9f08c53d9e9972234ec4c4461c09e1d37ab4800db736044518d374ee0718e3e6"],
+  "draft-chapter/references/subject-law.md": ["750c11767bb03f7af5dc3c11133d37ebb1933e4d60c2b1ce0f1745b015b6c169"],
   "draft-chapter/references/subject-math.md": [
     "db22d0378b01dbdca3c1730b03b230e546fc76d327dbf872c92641ececdd6008",
     "6ff784d551e624363ad93ee9d0675c432879cd5526b733afbf1c776bcf5d05a1",
     "67b0544628ccdb64522a32c41f5deb7b877320a06690b9119bb89e8b089540ff"
   ],
+  "draft-chapter/references/subject-philosophy.md": [
+    "ac742c96697c0999c0640b5d55892e3049e62efb89e8f2a90c8e7f127915c66d"
+  ],
+  "draft-chapter/references/subject-politics.md": ["8b6c1c4c11401d38590f6732e5b287c7a77d22cc5a2c4c21c40e044a5758d2fc"],
   "draft-chapter/references/subject-practical.md": ["554aba76b883b24511ae7ec83a80740f9e2ab9f4ec98b4785a9c41b0e8eaeca8"],
   "draft-chapter/references/subject-science.md": [
     "75ee82add2e2752c2f4c3c66d86ade501c07b62975980bea066b604426cb2657",
@@ -56,14 +62,19 @@
     "82a5037bf50a2ba5591b7e5ac9cf03db64b767c3c08ae2ea53c9364d8d90cd16",
     "4963041abde872f94fc52ff30b6207c49a6bc5432142657bd749c44a6bf94bf7",
     "9f06b181bd845cb87cdabdea3a4a1527c42820100bccbd92a39586ab3831783d",
-    "188ece6edc26ee34c9018411fbba11861ec12c099f732c5cb6ad094475ecf2df"
+    "188ece6edc26ee34c9018411fbba11861ec12c099f732c5cb6ad094475ecf2df",
+    "92eef4910832ee1db921c0f7186d6cb82e97b7115cfcd76ecb4e358550b4b0f0"
   ],
   "find-sources/SKILL.md": [
     "a923c7d84ca4839d0057c00fd7cb5b99405748bca5d8ea7626108edd1bd90e82",
     "80c08cb153b84651170aabeed77fc010ca4afd1dac33120d858ce4002207b8be",
-    "3195c21452c41321c42d088c90cfee62ef79d2f03051e663307a6f8ca3b4bbfa"
+    "3195c21452c41321c42d088c90cfee62ef79d2f03051e663307a6f8ca3b4bbfa",
+    "7fe2d8e79e0c95a5df8aaca854b836079dd35a2a0239721f7870f5eb8d75ab9c"
   ],
-  "find-sources/references/recipes.md": ["6672406c0e3cf756d2a87209f5bd0d21d30e365de02957931a285770cfca7d7a"],
+  "find-sources/references/recipes.md": [
+    "6672406c0e3cf756d2a87209f5bd0d21d30e365de02957931a285770cfca7d7a",
+    "d4dac3f20f1d90d124c558047b6462a917535c07d2d3f3960caa9ff8027f22af"
+  ],
   "grade-answer/SKILL.md": ["5395938677a5061ea9a5e630aa29f9809fd5984118582dcc874e8161ab2ce04d"],
   "make-deck/SKILL.md": [
     "fb24217dd48180685cb902582887613869e7b52713a176b3a08ab198b56ed7ba",
@@ -171,12 +182,17 @@
     "5fa0e85023934a4ae1e1d79615f2b601b7d7dff371d70cea3cded2e783eb2252",
     "cc1365d628a0e4931434fb3e3d8978014a435e053e302bab0d0f26bb74b380c6"
   ],
-  "note-authoring/references/teaching.md": ["0d3b6c9096e0dff6c1ca75924ff3994ab75ccf04e561048386036c930c5ed4a1"],
+  "note-authoring/references/teaching.md": [
+    "0d3b6c9096e0dff6c1ca75924ff3994ab75ccf04e561048386036c930c5ed4a1",
+    "54d6067c298c4a313fe1022f02e7dd5543f5e7b27ba2da8c95f4fab96f96aae5"
+  ],
   "plan-set/SKILL.md": [
     "f9035723c57c915062eebe5881087659f14239863ea48768935c2a66838cd304",
     "4d555e0809ce616afa7cb94ccc04e354df9b0e1b749633bd8fdb013ae48e8604",
     "723c845261513925dc20cd36748379d13f3478347f24da4531abc705d4c2ecee",
-    "718a6765bac671dc6bd1c4d34b0d2d80ef1453f40f0d093a03c1efbfe0ac1c3e"
+    "718a6765bac671dc6bd1c4d34b0d2d80ef1453f40f0d093a03c1efbfe0ac1c3e",
+    "92c0d548f1805835a2c90f85c399be26fc3305c7551348f2f8d9357ec78fab1b",
+    "0e48ff2dccc94f86b4d5ada43e8eef1eedae7ec928872bf6cb29cde6cda105b8"
   ],
   "quiz-me/SKILL.md": [
     "75fcc33d3149570a91d3216fa42f8ad7ba9d035624ebc1208e588f1d176bf6ef",

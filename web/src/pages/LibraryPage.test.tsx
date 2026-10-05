@@ -3,7 +3,9 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, expect, it, vi } from "vitest";
 import LibraryPage from "./LibraryPage";
 
+const refresh = vi.hoisted(() => ({ mutate: vi.fn(), isPending: false, isSuccess: false, isError: false }));
 vi.mock("@/api/queries", () => ({
+  useRefreshSources: () => refresh,
   useSets: () => ({
     data: [
       { slug: "history", title: "History" },
@@ -52,4 +54,17 @@ it("defaults to all sources and combines the set filter with search", () => {
   expect(screen.getByText(/No sources match this filter/)).toBeTruthy();
   fireEvent.change(screen.getByRole("combobox", { name: "Study set" }), { target: { value: "" } });
   expect(screen.getByText("Algebra material")).toBeTruthy();
+});
+
+it("refreshes only the selected set, independent of the title search", () => {
+  render(
+    <MemoryRouter>
+      <LibraryPage />
+    </MemoryRouter>,
+  );
+  expect(screen.queryByRole("button", { name: "Refresh all sources" })).toBeNull();
+  fireEvent.change(screen.getByRole("combobox", { name: "Study set" }), { target: { value: "history" } });
+  fireEvent.change(screen.getByRole("textbox"), { target: { value: "Algebra" } });
+  fireEvent.click(screen.getByRole("button", { name: "Refresh all sources" }));
+  expect(refresh.mutate).toHaveBeenCalledWith({ set: "history" });
 });

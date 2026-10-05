@@ -10,12 +10,13 @@ import {
   NewspaperIcon,
   NotebookTextIcon,
   PlusIcon,
+  RotateCcwIcon,
   SearchIcon,
   VideoIcon,
 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useLibrary, useSets } from "@/api/queries";
+import { useLibrary, useRefreshSources, useSets } from "@/api/queries";
 import { AddSourceSheet } from "@/components/Library/AddSourceSheet";
 import { RowsSkeleton } from "@/components/ListSkeleton";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +42,7 @@ export default function LibraryPage() {
   const [filterSet, setFilterSet] = useState("");
   const [query, setQuery] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
+  const refresh = useRefreshSources();
   const defaultSet = useLastVisitedSet();
   const filtered = filterSources(sources, query).filter((source) => !filterSet || source.sets.includes(filterSet));
 
@@ -82,6 +84,29 @@ export default function LibraryPage() {
               ))}
             </select>
           </label>
+        )}
+
+        {filterSet && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              className="h-11 md:h-9"
+              disabled={refresh.isPending}
+              onClick={() => refresh.mutate({ set: filterSet })}
+            >
+              <RotateCcwIcon aria-hidden="true" /> {refresh.isPending ? "Starting…" : "Refresh all sources"}
+            </Button>
+            {refresh.isSuccess && (
+              <span className="text-xs text-muted-foreground" role="status">
+                Refreshing in the background…
+              </span>
+            )}
+            {refresh.isError && (
+              <span className="text-xs text-destructive" role="alert">
+                Couldn't start the refresh. Try again.
+              </span>
+            )}
+          </div>
         )}
 
         {isLoading && <RowsSkeleton rows={4} />}

@@ -637,6 +637,12 @@ export const api = {
   },
 
   library: {
+    refresh(id: string): Promise<{ jobId: string }> {
+      return request(`/api/library/${encodeURIComponent(id)}/refresh`, { method: "POST" });
+    },
+    refreshSet(set: string): Promise<{ jobId: string; count: number }> {
+      return request("/api/library/refresh", { method: "POST", body: JSON.stringify({ set }) });
+    },
     list(): Promise<SourceSummary[]> {
       return request("/api/library");
     },

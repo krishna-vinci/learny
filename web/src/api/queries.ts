@@ -364,6 +364,17 @@ export function useRemoveYoutubeCookies() {
 }
 
 /** Retry the transcript ladder for one blocked source; invalidates its detail + Activity. */
+export function useRefreshSources() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (target: { id: string } | { set: string }) =>
+      "id" in target ? api.library.refresh(target.id) : api.library.refreshSet(target.set),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+    },
+  });
+}
+
 export function useRetryTranscript() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -674,7 +685,7 @@ export function useLiveStudiumUpdates() {
       }
       // Ingest jobs write new library entries (or update the pending one); refresh the
       // list and, once we know the source id, its detail page too.
-      if (job.kind === "ingest" && finished) {
+      if ((job.kind === "ingest" || job.kind === "refresh-source") && finished) {
         queryClient.invalidateQueries({ queryKey: queryKeys.library });
         // A stale-cookie outcome flips Settings → Integrations while it is open.
         if (job.result?.transcriptStatus !== undefined) {

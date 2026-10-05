@@ -110,6 +110,18 @@ function completionToastFor(job: JobView, navigate: (to: string) => void): Compl
       action: { label: "Download", onClick: () => window.location.assign(bookUrl(set)) },
     };
   }
+  if (job.kind === "refresh-source") {
+    const results = job.result?.refreshes ?? [];
+    const refreshed = results.filter((r) => r.status === "refreshed").length;
+    const skipped = results.filter((r) => r.status === "skipped").length;
+    const lost = results.reduce((n, r) => n + r.disappearedAnchors.length, 0);
+    const detail = results.length === 1 ? ` (${results[0]?.before} → ${results[0]?.after}/100)` : "";
+    return {
+      kind: "success",
+      message: `${refreshed} refreshed${detail}; ${skipped} skipped; ${results.length - refreshed - skipped} unchanged${lost ? `; ${lost} sections no longer found` : ""}`,
+      action: { label: "Details", onClick: () => openActivityPanel(job.id) },
+    };
+  }
   if (job.kind === "ingest" && sourceId) {
     return {
       kind: "success",
@@ -123,6 +135,8 @@ function completionToastFor(job: JobView, navigate: (to: string) => void): Compl
 function showCompletionToast(toastSpec: CompletionToast): void {
   const options = toastSpec.action ? { action: toastSpec.action } : undefined;
   const id = (toastSpec.kind === "success" ? toast.success : toast.error)(toastSpec.message, options);
+  const previous = completionToastIds.indexOf(id);
+  if (previous !== -1) completionToastIds.splice(previous, 1);
   completionToastIds.push(id);
   while (completionToastIds.length > MAX_COMPLETION_TOASTS) {
     const oldest = completionToastIds.shift();

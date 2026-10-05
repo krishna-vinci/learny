@@ -24,9 +24,20 @@ hook → why it matters → concept sections with examples → subject-specific 
 opening it. “Key takeaways” has 3–6 short bullets, not a second chapter.
 
 Choose the plan's subject guide in `skills/draft-chapter/references/subject-*.md`:
-math, science, technology, history (including humanities/social sciences), finance,
-language, practical, or general. Missing or unknown subjects use general.
+math, science, technology, history, philosophy, politics, law, economics, finance, language, practical, or general. Missing or unknown subjects use general.
 A theorem and a calculation are useful in mathematics; they are not required in history.
+
+## Contested topics
+
+Present major viewpoints fairly, with attribution and their strongest arguments.
+Separate established facts from interpretations and normative judgments. Date
+time-sensitive claims and specify jurisdiction for law and policy. Never present
+a political or moral judgment as fact. Fair treatment does not imply equal
+evidential support: explain differences in evidence and scholarly consensus.
+For politics, philosophy, law and economics, the independent checker treats
+missing major relevant viewpoints, unattributed interpretations, undated volatile
+claims and political/moral judgments stated as facts as blockers. Law chapters
+are educational, not legal advice.
 
 ## Citations a person can use
 

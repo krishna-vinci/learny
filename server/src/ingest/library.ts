@@ -366,12 +366,45 @@ async function setsBySourceId(root: string): Promise<Map<string, string[]>> {
   return map;
 }
 
+function refreshMetadata(value: unknown, id: string): import("@studium/shared").SourceRefreshResult | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const r = value as Record<string, unknown>;
+  if (
+    r.sourceId !== id ||
+    !["refreshed", "unchanged", "skipped"].includes(String(r.status)) ||
+    typeof r.before !== "number" ||
+    !Number.isFinite(r.before) ||
+    r.before < 0 ||
+    r.before > 100 ||
+    typeof r.after !== "number" ||
+    !Number.isFinite(r.after) ||
+    r.after < 0 ||
+    r.after > 100 ||
+    !Array.isArray(r.disappearedAnchors) ||
+    !r.disappearedAnchors.every((a) => typeof a === "string")
+  )
+    return undefined;
+  return {
+    sourceId: id,
+    before: r.before,
+    after: r.after,
+    status: r.status as import("@studium/shared").SourceRefreshResult["status"],
+    disappearedAnchors: r.disappearedAnchors,
+    ...(typeof r.reason === "string" ? { reason: r.reason } : {}),
+  };
+}
+
 function summaryFrom(id: string, frontmatter: Record<string, unknown>, sets: string[]): SourceSummary {
   const parsed = SourceFrontmatter.safeParse(frontmatter);
   const data = parsed.success ? parsed.data : null;
   const warning = frontmatter.parse_warning;
   const transcriptStatus = frontmatter.transcript_status;
   return {
+    ...(data?.quality ? { quality: data.quality.score } : {}),
+    ...(typeof frontmatter.refreshed_at === "string" ? { refreshedAt: frontmatter.refreshed_at } : {}),
+    ...(refreshMetadata(frontmatter.last_refresh, id)
+      ? { lastRefresh: refreshMetadata(frontmatter.last_refresh, id) }
+      : {}),
     id,
     title: data?.title ?? id,
     authors: data?.authors ?? [],

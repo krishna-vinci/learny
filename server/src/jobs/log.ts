@@ -36,6 +36,7 @@ export function formatJobLogLine(job: JobView): string {
     `${formatTokens(job.usage.input)} in / ${formatTokens(job.usage.output)} out`,
     `$${job.usage.costUsd.toFixed(2)}`,
   ];
+  if (job.usage.exaRequests) parts.push(`Exa ${job.usage.exaRequests} / $${(job.usage.exaCostUsd ?? 0).toFixed(6)}`);
   if (job.result?.commitSha !== undefined) {
     parts.push(`commit ${job.result.commitSha.slice(0, 7)}`);
   }
@@ -59,7 +60,7 @@ export async function appendJobLog(root: string, job: JobView): Promise<string> 
 export type ParsedJobLogLine = Omit<JobView, "id">;
 
 const JOB_LINE =
-  /^- (\S+) · (ingest|draft-chapter|rewrite-chapter|make-cards|compile-book|plan-set|make-quiz|make-problems|grade-answer) · "(.*)" · (done|failed|cancelled) · ([0-9]+(?:\.[0-9]+)?k?) in \/ ([0-9]+(?:\.[0-9]+)?k?) out · \$([0-9]+(?:\.[0-9]+)?)(?: · commit ([0-9a-f]+))?(?: · reason: (.*))?$/;
+  /^- (\S+) · (ingest|refresh-source|draft-chapter|rewrite-chapter|make-cards|compile-book|plan-set|make-quiz|make-problems|grade-answer) · "(.*)" · (done|failed|cancelled) · ([0-9]+(?:\.[0-9]+)?k?) in \/ ([0-9]+(?:\.[0-9]+)?k?) out · \$([0-9]+(?:\.[0-9]+)?)(?: · Exa ([0-9]+) \/ \$([0-9]+(?:\.[0-9]+)?))?(?: · commit ([0-9a-f]+))?(?: · reason: (.*))?$/;
 
 function parseTokens(raw: string): number {
   return Math.round(Number.parseFloat(raw) * (raw.endsWith("k") ? 1000 : 1));
@@ -68,7 +69,7 @@ function parseTokens(raw: string): number {
 export function parseJobLogLine(line: string, set: string | null): ParsedJobLogLine | null {
   const match = JOB_LINE.exec(line.trim());
   if (match === null) return null;
-  const [, timestamp, kind, title, status, input, output, cost, commitSha, reason] = match;
+  const [, timestamp, kind, title, status, input, output, cost, exaRequests, exaCost, commitSha, reason] = match;
   if (
     timestamp === undefined ||
     kind === undefined ||
@@ -91,6 +92,7 @@ export function parseJobLogLine(line: string, set: string | null): ParsedJobLogL
     startedAt: null,
     finishedAt: timestamp,
     usage: {
+      ...(exaRequests ? { exaRequests: Number(exaRequests), exaCostUsd: Number(exaCost) } : {}),
       input: parseTokens(input),
       output: parseTokens(output),
       cacheRead: 0,

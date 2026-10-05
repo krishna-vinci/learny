@@ -141,3 +141,19 @@ describe("persisted job history", () => {
     expect(history.map((job) => job.set)).toEqual([null, "alpha"]);
   });
 });
+
+it("round-trips Exa usage separately from model billing", () => {
+  const job = {
+    id: "exa",
+    kind: "plan-set" as const,
+    set: null,
+    title: "Sources",
+    status: "done" as const,
+    progress: "",
+    startedAt: null,
+    finishedAt: "2026-10-05T10:00:00Z",
+    billing: "subscription" as const,
+    usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, costUsd: 0, exaRequests: 3, exaCostUsd: 0.021 },
+  };
+  expect(parseJobLogLine(formatJobLogLine(job), null)?.usage).toMatchObject({ exaRequests: 3, exaCostUsd: 0.021 });
+});

@@ -45,3 +45,70 @@ it("offers Add a source on a failed draft and opens the Library", () => {
   act(() => options?.action?.onClick());
   expect(screen.getByText("Library")).toBeTruthy();
 });
+
+it("summarizes refresh quality, skipped sources and vanished sections once", () => {
+  let listener: ((event: StudiumEvent) => void) | undefined;
+  vi.mocked(useStudiumEvents).mockImplementation((callback) => {
+    listener = callback;
+  });
+  const success = vi.spyOn(toast, "success").mockReturnValue("refresh-result");
+  render(
+    <MemoryRouter>
+      <JobToasts />
+    </MemoryRouter>,
+  );
+  const event: StudiumEvent = {
+    type: "job",
+    job: {
+      id: "refresh",
+      kind: "refresh-source",
+      status: "done",
+      result: {
+        refreshes: [
+          { sourceId: "lib-a", before: 65, after: 100, status: "refreshed", disappearedAnchors: ["old"] },
+          { sourceId: "lib-b", before: 95, after: 95, status: "skipped", disappearedAnchors: [], reason: "Blocked" },
+        ],
+      },
+    } as JobView,
+  };
+  act(() => {
+    listener?.(event);
+    listener?.(event);
+  });
+  expect(success).toHaveBeenCalledTimes(1);
+  expect(success.mock.calls[0]?.[0]).toBe("1 refreshed; 1 skipped; 0 unchanged; 1 sections no longer found");
+});
+
+it("keeps the latest identical refresh summary when repeated jobs complete", () => {
+  let listener: ((event: StudiumEvent) => void) | undefined;
+  vi.mocked(useStudiumEvents).mockImplementation((callback) => {
+    listener = callback;
+  });
+  vi.spyOn(toast, "success").mockReturnValue("same-refresh-summary");
+  const dismiss = vi.spyOn(toast, "dismiss");
+  render(
+    <MemoryRouter>
+      <JobToasts />
+    </MemoryRouter>,
+  );
+  act(() => {
+    for (let n = 0; n < 4; n++)
+      listener?.({
+        type: "job",
+        job: {
+          id: `repeat-${n}`,
+          kind: "refresh-source",
+          title: "Refresh",
+          set: null,
+          progress: "",
+          startedAt: null,
+          finishedAt: null,
+          usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, costUsd: 0 },
+          billing: "metered",
+          status: "done",
+          result: { refreshes: [] },
+        },
+      });
+  });
+  expect(dismiss.mock.calls.some(([id]) => id === "same-refresh-summary")).toBe(false);
+});

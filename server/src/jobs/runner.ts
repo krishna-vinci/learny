@@ -19,7 +19,7 @@ export interface JobContext {
 
 export type JobHandler = (input: unknown, ctx: JobContext) => Promise<JobResult | undefined>;
 
-export const NON_AI_JOB_KINDS: readonly JobKind[] = ["compile-book"];
+export const NON_AI_JOB_KINDS: readonly JobKind[] = ["compile-book", "refresh-source"];
 
 export class AiDisabledError extends Error {
   constructor() {
@@ -89,6 +89,8 @@ function emptyUsage(): JobUsage {
 }
 
 function addUsage(target: JobUsage, patch: Partial<JobUsage>): void {
+  if (patch.exaRequests !== undefined) target.exaRequests = (target.exaRequests ?? 0) + finite(patch.exaRequests);
+  if (patch.exaCostUsd !== undefined) target.exaCostUsd = (target.exaCostUsd ?? 0) + finite(patch.exaCostUsd);
   target.input += finite(patch.input);
   target.output += finite(patch.output);
   target.cacheRead += finite(patch.cacheRead);

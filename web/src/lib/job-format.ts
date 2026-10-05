@@ -11,8 +11,13 @@ export function formatTokenCount(count: number): string {
 }
 
 /** `{ input: 12345, output: 2100, ... }` -> `"12.3k in · 2.1k out"`. */
-export function formatTokenUsage(usage: { input: number; output: number }): string {
-  return `${formatTokenCount(usage.input)} in · ${formatTokenCount(usage.output)} out`;
+export function formatTokenUsage(usage: {
+  input: number;
+  output: number;
+  exaRequests?: number;
+  exaCostUsd?: number;
+}): string {
+  return `${formatTokenCount(usage.input)} in · ${formatTokenCount(usage.output)} out${usage.exaRequests ? ` · Exa ${usage.exaRequests} requests / $${(usage.exaCostUsd ?? 0).toFixed(3)}` : ""}`;
 }
 
 /**

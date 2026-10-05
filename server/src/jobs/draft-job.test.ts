@@ -880,3 +880,45 @@ it.each([true, false])(
       );
   },
 );
+
+it("passes contested-topic blockers to the independent checker for politics", async () => {
+  const planFile = path.join(root, "linear-algebra/PLAN.md");
+  const plan = await fs.readFile(planFile, "utf8");
+  await fs.writeFile(planFile, plan.replace("---\n", "---\nsubject: politics\n"));
+  const rel = "linear-algebra/notes/03-svd.md";
+  const note =
+    "---\ntitle: Institutions\norder: 3\nstatus: accepted\nsources: [lib-strang-la]\n---\nA dated institutional example supported by evidence.[^src:lib-strang-la#p1]\n";
+  await fs.writeFile(path.join(root, rel), note);
+  const runRole = vi.spyOn(roleRunner, "runRole").mockImplementation(async (role, opts) => {
+    if (role === "drafter") {
+      await fs.writeFile(
+        path.join(root, rel),
+        note
+          .replace("status: accepted", "status: draft")
+          .replace(
+            "A dated institutional example supported by evidence.",
+            "We compare the strongest attributed arguments, with dates and a clear distinction between facts and interpretations.",
+          ),
+      );
+      return { text: "Rewritten", written: [rel], messages: [] };
+    }
+    expect(role).toBe("checker");
+    expect(opts.task).toContain("Contested-topic blockers");
+    expect(opts.task).toContain("Never use one partisan outlet as sole political evidence");
+    const report = "linear-algebra/log/checks/03-svd.md";
+    await fs.mkdir(path.dirname(path.join(root, report)), { recursive: true });
+    await fs.writeFile(path.join(root, report), "## No issues found\n");
+    return { text: "Checked", written: [report], messages: [] };
+  });
+  await createRewriteJob({
+    root,
+    locks: new FileLocks(),
+    mcp: new McpManager([]),
+    runtime: await createModelRuntime(),
+    hub: new EventHub(),
+  })(
+    { set: "linear-algebra", path: "notes/03-svd.md" },
+    { signal: new AbortController().signal, progress: vi.fn(), addUsage: vi.fn() },
+  );
+  expect(runRole.mock.calls.map(([role]) => role)).toEqual(["drafter", "checker"]);
+});

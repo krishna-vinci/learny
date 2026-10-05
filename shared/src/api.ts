@@ -102,6 +102,9 @@ export interface SourceSummary {
    * video sources. Null for every other source. Drives Retry eligibility.
    */
   transcriptStatus?: YoutubeTranscriptStatus | null;
+  quality?: number;
+  refreshedAt?: string;
+  lastRefresh?: SourceRefreshResult;
 }
 
 /** Why the YouTube transcript ladder could not read a video (frontmatter value). */
@@ -181,6 +184,7 @@ export interface SiteImportResponse {
 
 export type JobKind =
   | "ingest"
+  | "refresh-source"
   | "draft-chapter"
   | "rewrite-chapter"
   | "make-cards"
@@ -217,6 +221,8 @@ export type JobStatus = "queued" | "running" | "done" | "failed" | "cancelled";
 export type JobBilling = "subscription" | "metered" | "mixed";
 
 export interface JobUsage {
+  exaRequests?: number;
+  exaCostUsd?: number;
   input: number;
   output: number;
   cacheRead: number;
@@ -224,7 +230,17 @@ export interface JobUsage {
   costUsd: number;
 }
 
+export interface SourceRefreshResult {
+  sourceId: string;
+  before: number;
+  after: number;
+  status: "refreshed" | "unchanged" | "skipped";
+  disappearedAnchors: string[];
+  reason?: string;
+}
+
 export interface JobResult {
+  refreshes?: SourceRefreshResult[];
   quizId?: string;
   problemFile?: string;
   practiceResult?: PracticeAttemptResult;

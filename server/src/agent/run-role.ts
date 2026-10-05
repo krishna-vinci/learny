@@ -15,6 +15,7 @@ import { parse as parseYaml } from "yaml";
 import type { EventHub } from "../events.js";
 import type { JobContext } from "../jobs/runner.js";
 import type { McpManager } from "../mcp/bridge.js";
+import { configuredSearch, type SearchService } from "../search/backends.js";
 import { readText } from "../tree/edit.js";
 import type { FileLocks } from "../tree/lock.js";
 import { addCardTool, recordQuizResultTool, reviewCardTool } from "./builtins/cards.js";
@@ -22,12 +23,15 @@ import { saveAssetTool } from "./builtins/save-asset.js";
 import { scoutSourcesTool } from "./builtins/scout-sources.js";
 import { listSkills, skillTools } from "./builtins/skills.js";
 import { webFetchTool } from "./builtins/web-fetch.js";
+import { webSearchTool } from "./builtins/web-search.js";
 import { wikiTools } from "./builtins/wiki.js";
 import type { Classifier } from "./classifier.js";
 import { workspaceClassifier } from "./classifier-workspace.js";
 import { installPromptAudit } from "./prompt-audit.js";
 import { ROLES, type RoleName } from "./roles.js";
 import { studyTools } from "./tools.js";
+
+const jobSearch = new WeakMap<JobContext, SearchService>();
 
 const jobBlockedHosts = new WeakMap<JobContext, Map<string, string>>();
 
@@ -93,6 +97,7 @@ export interface RoleToolsetOptions {
   quizResults?: boolean;
   classifier?: Classifier;
   blockedHosts?: Map<string, string>;
+  search?: SearchService;
   cards?: {
     rootPath: string;
     maxAdds?: number;
@@ -105,6 +110,7 @@ export interface RoleToolsetOptions {
 export function roleToolset(role: RoleName, opts: RoleToolsetOptions): { tools: ToolDefinition[]; names: string[] } {
   const spec = ROLES[role];
   const holder = opts.holder;
+  const search = opts.search ?? configuredSearch(opts.root);
   const builtins: ToolDefinition[] = [
     ...studyTools({
       root: opts.root,
@@ -127,7 +133,12 @@ export function roleToolset(role: RoleName, opts: RoleToolsetOptions): { tools: 
           }),
         ]),
     ...wikiTools(),
-    scoutSourcesTool({ root: opts.root, classifier: opts.classifier }),
+    webSearchTool(search),
+    scoutSourcesTool({
+      root: opts.root,
+      classifier: opts.classifier,
+      search,
+    }),
     webFetchTool({
       blockedHosts: opts.blockedHosts,
       ...(process.env.FIRECRAWL_API_URL === undefined ? {} : { firecrawlUrl: process.env.FIRECRAWL_API_URL }),
@@ -298,7 +309,15 @@ async function runSession(
     blockedHosts = jobBlockedHosts.get(opts.jobContext) ?? new Map();
     jobBlockedHosts.set(opts.jobContext, blockedHosts);
   }
+  const search = opts.jobContext
+    ? (jobSearch.get(opts.jobContext) ??
+      configuredSearch(opts.root, (requests, costUsd) =>
+        opts.jobContext?.addUsage({ exaRequests: requests, exaCostUsd: costUsd }),
+      ))
+    : configuredSearch(opts.root);
+  if (opts.jobContext) jobSearch.set(opts.jobContext, search);
   const toolset = roleToolset(role, {
+    search,
     classifier,
     blockedHosts,
     root: opts.root,
