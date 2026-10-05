@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createUser, type User, updateUser } from "../accounts/users.js";
 import { migrate, openDb } from "../db/db.js";
 import type { Notifier } from "../notify/notifier.js";
+import { ExaBudget } from "../search/budget.js";
 import { ensureRepo } from "../tree/git.js";
 import { initStudyTree } from "../tree/init.js";
 import { WorkspaceManager } from "./manager.js";
@@ -161,4 +162,29 @@ it("reads AI authorization from the DB at enqueue time for an existing workspace
   updateUser(db, user.id, { aiEnabled: true });
   const job = workspace.jobs.enqueue("draft-chapter", {}, { set: null, title: "allowed" });
   await vi.waitFor(() => expect(workspace.jobs.get(job.id)?.status).toBe("done"));
+});
+
+it("delivers one Exa stop notification only to the workspace owner across service restarts", async () => {
+  const notifyUser = vi.fn(async () => undefined);
+  manager = new WorkspaceManager({
+    dataDir: tempDir,
+    db,
+    runtime,
+    subscriptionProvidersFor: async () => [],
+    notifier: { notifyUser } as unknown as Notifier,
+  });
+  const owner = await createUser(db, { username: "owner", role: "USER" });
+  const other = await createUser(db, { username: "other", role: "USER" });
+  const workspace = await manager.for(owner);
+  await manager.for(other);
+  await fs.writeFile(path.join(workspace.root, "_global/config.yaml"), "search:\n  exa:\n    stopUsd: 0.005\n");
+  await new ExaBudget(workspace.root).run(async () => ({ costUsd: 0.007 }));
+  await manager.stop(owner.username);
+  await manager.for(owner);
+  await expect(new ExaBudget(workspace.root).run(async () => ({ costUsd: 0.007 }))).rejects.toThrow();
+  expect(notifyUser).toHaveBeenCalledTimes(1);
+  expect(notifyUser).toHaveBeenCalledWith(
+    owner.id,
+    expect.objectContaining({ title: "Exa monthly limit reached", url: "/settings" }),
+  );
 });

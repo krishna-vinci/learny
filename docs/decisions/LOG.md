@@ -434,27 +434,66 @@ catalog costs are estimates. Prompt audits live in `.cache/prompt-audit.jsonl`.
 ## D35 — Search backends, subjects and refresh · locked · 2026-10-05
 
 Extends D7/D15/D17/D30/D34. Search uses one normalized interface for Exa
-(EXA_API_KEY, fetch to its HTTPS API) and the existing SearXNG service. No Exa key
-means SearXNG only; existing MCP search remains compatible. Recipes route foundation,
-explainer, primary and expert slots to Exa first, merging canonical SearXNG leads;
-papers use verified SearXNG science engine answers plus Exa's scholarly category;
-videos use SearXNG videos, news/recent SearXNG general. Current Exa documentation
-calls neural-style natural-language search `auto` and research papers `publication`;
-legacy findSimilar remains supported. Domain filters and returned text are optional.
-Text is bounded, parse-scored untrusted discovery data, never registered evidence.
-Public-URL checks and the existing safe extraction pipeline remain mandatory.
+(EXA_API_KEY, HTTPS API), SearXNG and the existing role-approved papers MCP bridge.
+Paper slots call papers MCP first (aggregate arXiv/PubMed/Semantic Scholar/Crossref/
+OpenAlex search, preserving DOI and open-access metadata); unavailable/error/thin
+MCP falls back to Exa `publication`. Papers never use SearXNG. Existing DOI and
+open-access lookup tools remain available under the role's MCP allowlist.
+Every other slot uses Exa first (`auto` scouting). Video requests constrain Exa to
+`youtube.com`; both providers reject anything except youtube.com/www.youtube.com
+`/watch?v=<11-character id>` with non-empty title before ranking. Drop shorts,
+music hosts, channels and playlists; SearXNG's youtube engine is the video fallback.
+SearXNG otherwise runs on missing Exa configuration, errors, budget stop or fewer
+than three unique usable discovery leads (configurable, capped by requested count).
+Scout rank/fetch rejection below that threshold requests the slot's next backend.
+Merge and canonical deduplication remain; discovery/ranking never replaces
+registered evidence or the independent checker. With no Exa, papers remain MCP-only,
+while other slots use SearXNG when available.
 
-Backend starts are serialized and paced (SearXNG >=1.5 s; Exa 150 ms, below its
-10 QPS default); workspace queries cache for 15 minutes. Three consecutive backend
-failures halt that backend for the job; no automatic search retry storms. Exa
-request counts and API-reported dollar cost persist separately from model tokens
-and subscription billing. The 24-query measurement, provider usage and recipe-slot
-winners are in `docs/plans/2026-10-05-m13-search-bakeoff.md` (103 usable Exa
-leads vs 19 SearXNG, 22 Exa wins and two ties, using identical natural-language
-queries). This supports retaining Exa-first routing; keyword-optimized SearXNG
-performance was not measured. Experimental accessibility
-and parse health never certify truth. Papers/video/recent routes are policy defaults,
-not measured winners in this foundation-focused beginner experiment.
+One recipe option builder selects `publication` for papers (legacy `pdf` maps to
+publication), `personal site` for experts, `financial report` for finance primary
+slots, and `news` for recent or politics/economics explainers. Politics, economics,
+technology and recent slots use roughly three years of publication dates unless
+historical; company/people requests omit unsupported dates and excludeDomains.
+Plan/chapter Indian context selects IN unless disabled/overridden in config.
+Chapter brief and slot purpose supply objective; concept-directed highlights feed
+separately labeled discovery coverage. Requested text excludes navigation/footer/
+comments; extras expose figure candidates in the existing SourceImage shape and
+preflight passes them into library images.json. Foundation course/textbook requests
+follow three concept-targeted subpages. News content bypasses cache with maxAgeHours
+0; other content uses 168 hours. Moderation is always enabled. Each request uses
+exactly one extraction view: highlights normally, text only when requested; no
+Exa-side summary synthesis or redundant extracted links. Per the official Exa
+skill, related-page discovery uses `/search` with the seed topic supplied as query
+(`similarUrl` validates the public seed and chooses fast), never deprecated
+`/findSimilar`. Verification uses instant; only an explicit hard-gap retry after a short/failed
+scout can use deep-lite. No deprecated includeText/excludeText controls.
+
+Backend starts are serialized and paced (SearXNG >=1.5 s; Exa 150 ms); workspace
+queries cache for 15 minutes, except fresh news. Three consecutive backend failures
+halt that backend for the job; no automatic search retry storms. Exa request counts
+and reported dollar cost remain separate from model tokens and subscription billing.
+A per-workspace atomic `.cache/exa-budget.json` accumulates reported cost for each
+UTC calendar month, survives process restarts, and serializes the budget check plus
+request plus debit across service instances. `_global/config.yaml` search.exa
+settings tolerate missing/invalid fields: warnUsd 8, stopUsd 9.5,
+fallbackMinResults 3, detectIndia true, userLocation null. Warning is clamped to the
+stop limit. Settings → Integrations shows spend and state without paid probes.
+One persisted stop notification is attempted per workspace/month through configured
+notification channels. Missing costs, an interrupted in-flight request, or unsafe/
+damaged/unwritable persistence stops further Exa calls rather than asserting zero
+spend. The limit is soft: a final request can cross it; reported costs are estimates,
+not a provider invoice. Deleting the disposable cache resets the local budget;
+multiple workspaces/external key usage are not an account-wide billing cap.
+
+The original 24-query measurement and M13b keyword-fair re-bake-off remain in
+`docs/plans/2026-10-05-m13-search-bakeoff.md`. The original found 103 usable Exa
+leads vs 19 SearXNG using identical natural-language queries. M13b compares
+slot-derived SearXNG keywords with Exa's recipe options under the same rank/fetch
+rubric; see its appended measured table and threshold analysis. A separate four-query
+papers MCP vs Exa publication and three-query Exa vs SearXNG youtube discovery
+comparison preserves full-text/transcript uncertainty; recent remains outside
+the live comparison. The original fetched-text table is unchanged.
 
 PlanSubject adds philosophy, politics, law and economics; unknown remains general.
 Chapters present major relevant viewpoints fairly with attribution and strongest

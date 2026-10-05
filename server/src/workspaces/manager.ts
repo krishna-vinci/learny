@@ -24,6 +24,7 @@ import { JobRunner } from "../jobs/runner.js";
 import { McpManager } from "../mcp/bridge.js";
 import { loadMcpConfig } from "../mcp/config.js";
 import type { Notifier } from "../notify/notifier.js";
+import { subscribeExaStop } from "../search/budget.js";
 import { openSearchIndex, type SearchIndex } from "../search/index.js";
 import { commitAll, ensureRepo } from "../tree/git.js";
 import { initStudyTree } from "../tree/init.js";
@@ -168,6 +169,13 @@ export class WorkspaceManager {
 
     const hub = new EventHub();
     const stopNotifications = this.#subscribeJobNotifications(hub, user);
+    const stopExaNotifications = subscribeExaStop(root, (status) =>
+      this.#notifier?.notifyUser(user.id, {
+        title: "Exa monthly limit reached",
+        body: `Exa spend is $${status.spendUsd.toFixed(2)} for ${status.month}. Papers use papers MCP; other source searches use SearXNG until next month.`,
+        url: "/settings",
+      }),
+    );
     const locks = new FileLocks();
     const mcpConfig = loadMcpConfig(root, process.env);
     const mcp = new McpManager(mcpConfig.servers);
@@ -274,6 +282,7 @@ export class WorkspaceManager {
         if (stopped) return;
         stopped = true;
         stopNotifications();
+        stopExaNotifications();
         stopSearchUpdates();
         siteQueue.dispose();
         planKickoffs.dispose();

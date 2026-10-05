@@ -13,6 +13,7 @@ import { cleanMarkdown } from "../ingest/clean.js";
 import { detectInput } from "../ingest/detect.js";
 import { recordDomainOutcome } from "../ingest/domain-outcomes.js";
 import { type DedupeKey, dedupeKeyFromUrl, sha256Hex } from "../ingest/ids.js";
+import { collectImages, type SourceImage } from "../ingest/images.js";
 import {
   dedupeLockKeys,
   findDuplicate,
@@ -40,6 +41,8 @@ import type { JobContext, JobHandler } from "./runner.js";
 import { usageFromPiMessages } from "./runner.js";
 
 export interface IngestJobDeps {
+  /** Scout-discovered figure URLs; downloads still go through save_asset. */
+  candidateImages?: ReadonlyMap<string, SourceImage[]>;
   root: string;
   locks: FileLocks;
   mcp: McpManager;
@@ -620,6 +623,20 @@ export function createIngestJob(deps: IngestJobDeps): JobHandler {
 
         ctx.progress("Extracting source");
         const extraction = await extractInput(deps, input, kind, ctx.signal);
+        const candidates = input.url ? deps.candidateImages?.get(input.url) : undefined;
+        if (candidates?.length) {
+          const extracted = extraction.extracted;
+          const safeCandidates = collectImages(
+            candidates.map((image) => `![](${image.url})`).join("\n"),
+            input.url ?? "",
+          );
+          extracted.images = [
+            ...(extracted.images ?? collectImages(extracted.markdown, extracted.url ?? input.url ?? "")),
+            ...safeCandidates,
+          ]
+            .filter((image, i, all) => all.findIndex((other) => other.url === image.url) === i)
+            .slice(0, 50);
+        }
         ctx.signal.throwIfAborted();
         if (extraction.extracted.title !== null) ctx.setTitle?.(extraction.extracted.title);
         ctx.progress("Cleaning extracted text");

@@ -71,7 +71,30 @@ export const ClassifierDecisionSchema = z.object({
   threshold: z.number().finite().min(0).max(1).optional(),
 });
 
+export const SearchConfig = z
+  .looseObject({
+    exa: z
+      .looseObject({
+        warnUsd: z.number().finite().nonnegative().catch(8).default(8),
+        stopUsd: z.number().finite().nonnegative().catch(9.5).default(9.5),
+        fallbackMinResults: z.number().int().min(1).max(20).catch(3).default(3),
+        detectIndia: z.boolean().catch(true).default(true),
+        userLocation: z
+          .string()
+          .regex(/^[A-Z]{2}$/)
+          .nullable()
+          .catch(null)
+          .default(null),
+      })
+      .catch({ warnUsd: 8, stopUsd: 9.5, fallbackMinResults: 3, detectIndia: true, userLocation: null })
+      .default({ warnUsd: 8, stopUsd: 9.5, fallbackMinResults: 3, detectIndia: true, userLocation: null }),
+  })
+  .catch({ exa: { warnUsd: 8, stopUsd: 9.5, fallbackMinResults: 3, detectIndia: true, userLocation: null } })
+  .default({ exa: { warnUsd: 8, stopUsd: 9.5, fallbackMinResults: 3, detectIndia: true, userLocation: null } });
+export type SearchConfig = z.infer<typeof SearchConfig>;
+
 export const ConfigYaml = z.looseObject({
+  search: SearchConfig,
   visuals: z.object({ router: z.literal("off").default("off") }).default({ router: "off" }),
   models: z.looseObject({
     default: z.string(),

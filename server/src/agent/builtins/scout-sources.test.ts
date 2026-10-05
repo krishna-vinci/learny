@@ -60,3 +60,74 @@ it("learns bounded domain outcomes without following cache symlinks", async () =
   expect((await domainPreferences(root)).get("blocked.example")).toBe(-0.3);
   expect(await fs.readFile(path.join(root, ".cache/source-domains.jsonl"), "utf8")).not.toContain("secret");
 });
+
+it("feeds concept highlights into discovery coverage and carries web-search figures into selected candidates", async () => {
+  const { SearchService } = await import("../../search/backends.js");
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "studium-scout-highlights-"));
+  roots.push(root);
+  const url = "https://93.184.216.34/lesson";
+  const search = new SearchService(root, [
+    {
+      name: "exa",
+      search: vi.fn(async () => ({
+        results: [
+          {
+            url,
+            title: "Chains",
+            snippet: "Polymer chains connect",
+            highlights: ["Polymer chains connect"],
+            publishedDate: null,
+            backend: "exa" as const,
+            engines: [],
+            images: [{ url: "https://example.org/chains.png", alt: "", nearHeading: "" }],
+          },
+        ],
+        warnings: [],
+        costUsd: 0.007,
+      })),
+    },
+  ]);
+  // Figures discovered via web_search use the same service as scout_sources.
+  await search.search({ query: "polymer chains", count: 1 });
+  const selected = vi.fn();
+  const tool = scoutSourcesTool({ root, search, onSelected: selected });
+  const leads = await tool.execute(
+    "search",
+    {
+      search: { query: "polymer chains", concept: "Polymer chains", count: 1 },
+      brief: "Polymer chains",
+      level: 2,
+      researchNeeded: false,
+      candidates: [],
+    },
+    undefined,
+    undefined,
+    undefined as never,
+  );
+  expect(leads.content[0]).toMatchObject({ text: expect.stringContaining("&quot;discoveryCoverage&quot;") });
+  expect(leads.content[0]).toMatchObject({ text: expect.stringContaining("&quot;covered&quot;:1") });
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(
+      async () =>
+        new Response(
+          `<html><body><article><h1>Chains</h1><p>${"Polymer chains connect with useful worked examples. ".repeat(40)}</p></article></body></html>`,
+        ),
+    ),
+  );
+  await tool.execute(
+    "rank",
+    {
+      brief: "Polymer chains",
+      level: 2,
+      researchNeeded: false,
+      candidates: [{ url, title: "Chains", reason: "Structured expert lesson", score: 4, type: "explainer" }],
+    },
+    undefined,
+    undefined,
+    undefined as never,
+  );
+  expect(selected).toHaveBeenCalledWith([
+    expect.objectContaining({ images: [{ url: "https://example.org/chains.png", alt: "", nearHeading: "" }] }),
+  ]);
+});

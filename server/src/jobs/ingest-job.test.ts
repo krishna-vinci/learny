@@ -4,9 +4,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { TranscriptContext } from "@earendil-works/pi-ai";
 import { fauxAssistantMessage, fauxProvider, fauxText, fauxToolCall } from "@earendil-works/pi-ai/providers/faux";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createModelRuntime } from "../agent/models.js";
 import { EventHub } from "../events.js";
+import * as inputExtraction from "../ingest/types.js";
 import { McpManager } from "../mcp/bridge.js";
 import { ensureRepo, log } from "../tree/git.js";
 import { FileLocks } from "../tree/lock.js";
@@ -30,6 +31,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   if (previousAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
   else process.env.PI_CODING_AGENT_DIR = previousAgentDir;
   await Promise.all([fs.rm(root, { recursive: true, force: true }), fs.rm(agentDir, { recursive: true, force: true })]);
@@ -576,4 +578,45 @@ describe("ingest job", () => {
     await expect(fs.access(path.join(root, "library/_inbox/vectors.md"))).rejects.toThrow();
     await expect(fs.access(path.join(root, "library/_inbox/failed/vectors.md"))).rejects.toThrow();
   });
+});
+
+it("persists scout figure candidates in images.json, deduped with extracted images", async () => {
+  const { runtime, faux } = await fauxRuntime();
+  await writeModels("faux/echo", { librarian: "faux/echo" });
+  faux.setResponses([fauxAssistantMessage(fauxText("Ready"))]);
+  const url = "https://93.184.216.34/figure-course";
+  vi.spyOn(inputExtraction, "extract").mockResolvedValue({
+    title: "Figure course",
+    pages: null,
+    authors: [],
+    url,
+    originalExt: null,
+    parseTier: "basic",
+    warning: null,
+    markdown: `# Figure course\n\n${"A structured lesson explains eigenvectors with examples. ".repeat(35)}`,
+    images: [{ url: "https://example.org/extracted.png", alt: "Diagram", nearHeading: "Eigenvectors" }],
+  });
+  const handler = createIngestJob({
+    root,
+    locks: new FileLocks(),
+    mcp: new McpManager([]),
+    runtime,
+    hub: new EventHub(),
+    candidateImages: new Map([
+      [
+        url,
+        [
+          { url: "https://example.org/extracted.png", alt: "", nearHeading: "" },
+          { url: "https://example.org/scouted.png", alt: "", nearHeading: "" },
+          { url: "https://example.org/unsafe.svg", alt: "", nearHeading: "" },
+        ],
+      ],
+    ]),
+  });
+  const result = await handler({ url, set: null }, context().ctx);
+  const images = JSON.parse(await fs.readFile(path.join(root, `library/${result?.sourceId}/images.json`), "utf8"));
+  expect(images).toEqual([
+    { url: "https://example.org/extracted.png", alt: "Diagram", nearHeading: "Eigenvectors" },
+    { url: "https://example.org/scouted.png", alt: "", nearHeading: "" },
+  ]);
 });

@@ -47,18 +47,36 @@ through the existing ladder. No transcript means watching only, never claim evid
 Prefer `web_search` (or scout_sources with `search` plus an empty candidates array)
 for each slot. Submit natural-language descriptions of the wanted teaching source,
 then rank returned leads with reasons and call scout_sources with the candidates.
-Foundation/textbook, explainer, primary and expert slots use Exa first and merge
-SearXNG; papers use verified SearXNG science engines plus Exa's scholarly category.
-Videos use SearXNG videos; news/recent uses SearXNG general. Without Exa configured,
-use SearXNG alone. If native search is unavailable, use existing MCP search.
+Paper slots use the existing papers MCP first (arXiv, PubMed, Semantic Scholar,
+Crossref and OpenAlex), preserving DOIs and open-access links. Exa publication
+fills unavailable/error/thin MCP searches; never use SearXNG for papers. Existing
+MCP DOI/open-access lookup tools remain available, with Sci-Hub disabled.
+Every other slot uses Exa first; SearXNG fills gaps after errors, budget stop or
+fewer than three usable leads. Videos constrain Exa to youtube.com and accept only
+real /watch?v=<11-character ID> URLs with non-empty titles, never shorts, music
+hosts, channels or playlists. Rank named educators/institutions; SearXNG youtube
+is fallback. Without Exa, papers remain MCP-only and other slots use SearXNG.
 
 Domain filters are optional, never evidence of authority: philosophy may include
 plato.stanford.edu, iep.utm.edu, philpapers.org, wikisource.org, gutenberg.org;
 politics sansad.in, legislative.gov.in, mospi.gov.in; Indian law indiacode.nic.in,
 sci.gov.in (choose the learner's jurisdiction); economics imf.org, worldbank.org,
 rbi.org.in and the relevant statistics office. Exclude known SEO/content farms
-when observed. `similarUrl` finds related sources from one verified good source.
-`category` can request research paper or pdf. Returned Exa text can inform scouting
+when observed. For related sources, supply the verified seed as `similarUrl` and its title/topic
+as `query`; the harness uses `/search`, never deprecated `/findSimilar`.
+`category` uses publication (papers), news, personal site (experts), financial
+report, company or people; never pdf. Supply `concept`, `brief` and `subject` to
+focus highlights, objective, dates and country context. The harness reads PLAN
+context too. Mark genuinely historical chapters with `historical: true`.
+`purpose: verify` uses quick instant search; `similarUrl` uses fast. Only after a
+failed scout and an explicit hard gap may you request `purpose: hard-gap` for a
+deep-lite retry. Rank/fetch failures can return `fallbackLeads`; rank those and
+call scout_sources again before reporting residual gaps. Returned images are
+figure candidates, not downloaded/verified figures. Discovery coverage from
+highlights is not registered evidence coverage. Returned Exa text can inform scouting
 when `text: true`, but is still untrusted and parse-scored; fetch before citing.
+Exa requests use one extraction view (highlights or text), without per-result
+summary synthesis. Domain allow/block lists require explicit learner approval;
+example sites above are query preferences, not automatic filters.
 Do not repeat failed searches: backend guards stop consecutive failures, cache
 repeated queries, and pace requests. Report gaps instead of claiming coverage.

@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { classifierStatus } from "../agent/classifier.js";
 import { ROLES } from "../agent/roles.js";
+import { ExaBudget } from "../search/budget.js";
 import { readText } from "../tree/edit.js";
 import { commitPaths } from "../tree/git.js";
 import type { FileLocks } from "../tree/lock.js";
@@ -197,6 +198,7 @@ export function settingsRoutes(deps: SettingsDeps): Hono {
   async function view(): Promise<SettingsView> {
     const [config, available, services] = await Promise.all([readConfig(root), availableModels(runtime), httpChecks()]);
     return {
+      exa: await new ExaBudget(root, () => new Date(now())).status(Boolean(env.EXA_API_KEY)),
       models: { default: config.models.default, roles: { ...config.models.roles } },
       classifier: classifierStatus(runtime, root, config, deps.env ?? process.env),
       available,

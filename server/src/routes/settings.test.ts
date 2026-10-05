@@ -4,6 +4,7 @@ import path from "node:path";
 import type { ServiceHealth, SettingsView } from "@studium/shared";
 import { Hono } from "hono";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ExaBudget } from "../search/budget.js";
 import { ensureRepo, log } from "../tree/git.js";
 import { FileLocks } from "../tree/lock.js";
 import { type McpHealth, type ModelLister, settingsRoutes } from "./settings.js";
@@ -178,4 +179,19 @@ it("shows classifier status without network calls and preserves classifier confi
   const missingKey = makeApp({ runtime, env: {} });
   const offView = (await (await missingKey.request("/api/settings")).json()) as SettingsView;
   expect(offView.classifier?.status).toBe("off");
+});
+
+it("shows persisted Exa spend and budget state without a paid health probe", async () => {
+  await writeConfig(`${CONFIG}search:\n  exa:\n    warnUsd: 0.005\n    stopUsd: 0.01\n`);
+  await new ExaBudget(root).run(async () => ({ costUsd: 0.007 }));
+  const fetchImpl = vi.fn<typeof fetch>();
+  const response = await makeApp({
+    runtime: fakeRuntime(["faux/echo"]),
+    env: { EXA_API_KEY: "never-return-me" },
+    fetch: fetchImpl,
+  }).request("/api/settings");
+  const view = (await response.json()) as SettingsView;
+  expect(view.exa).toMatchObject({ spendUsd: 0.007, status: "warning", warnUsd: 0.005, stopUsd: 0.01 });
+  expect(JSON.stringify(view)).not.toContain("never-return-me");
+  expect(fetchImpl).not.toHaveBeenCalled();
 });
