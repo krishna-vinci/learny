@@ -46,6 +46,7 @@ export const queryKeys = {
   search: ["search"] as const,
   highlights: (set: string, note?: string) => ["highlights", set, ...(note ? [note] : [])] as const,
   sets: ["sets"] as const,
+  recentlyDeleted: ["recently-deleted"] as const,
   course: (set: string) => ["sets", set, "course"] as const,
   sources: (set: string) => ["sets", set, "sources"] as const,
   notes: (set: string) => ["sets", set, "notes"] as const,
@@ -648,6 +649,9 @@ export function useLiveStudiumUpdates() {
       return;
     }
     if (event.type === "commit") {
+      queryClient.invalidateQueries({ queryKey: queryKeys.recentlyDeleted });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sets });
+      queryClient.invalidateQueries({ queryKey: ["inbox"] });
       queryClient.invalidateQueries({
         predicate: (query) => query.queryKey[0] === "sets" && ["course", "sources"].includes(String(query.queryKey[2])),
       });

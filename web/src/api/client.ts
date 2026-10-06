@@ -8,6 +8,9 @@ import type {
   ChatSummary,
   CommitInfo,
   CourseView,
+  DeletedItem,
+  DeletionPreview,
+  DeletionResult,
   FileView,
   Highlight,
   HighlightColor,
@@ -553,6 +556,24 @@ export const api = {
   },
 
   sets: {
+    deletionPreview(set: string, path?: string): Promise<DeletionPreview> {
+      return request(`/api/sets/${encodeURIComponent(set)}/deletion${qs({ path })}`);
+    },
+    deleteNote(
+      set: string,
+      body: { path: string; token: string; removeFromPlan?: boolean; linkedDataConfirmed?: boolean },
+    ): Promise<DeletionResult> {
+      return request(`/api/sets/${encodeURIComponent(set)}/notes`, { method: "DELETE", body: JSON.stringify(body) });
+    },
+    deleteSet(set: string, body: { token: string; confirmation: string }): Promise<DeletionResult> {
+      return request(`/api/sets/${encodeURIComponent(set)}`, { method: "DELETE", body: JSON.stringify(body) });
+    },
+    recentlyDeleted(): Promise<DeletedItem[]> {
+      return request("/api/sets/recently-deleted");
+    },
+    restore(set: string, sha: string): Promise<{ sha: string }> {
+      return request(`/api/sets/${encodeURIComponent(set)}/restore`, { method: "POST", body: JSON.stringify({ sha }) });
+    },
     sources(set: string): Promise<SourceSummary[]> {
       return request(`/api/sets/${encodeURIComponent(set)}/sources`);
     },

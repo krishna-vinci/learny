@@ -23,7 +23,7 @@ import { type SettingsRouteDeps, settingsRoutes } from "./routes/settings.js";
 import { todayRoutes } from "./routes/today.js";
 import type { SearchIndex } from "./search/index.js";
 import { changedPaths } from "./tree/git.js";
-import type { FileLocks } from "./tree/lock.js";
+import { type FileLocks, SetMutationError } from "./tree/lock.js";
 import { canonicalRel, PathError } from "./tree/paths.js";
 
 export interface AppDeps {
@@ -48,6 +48,7 @@ export function createApp(deps: LegacyAppDeps): Hono;
 export function createApp(deps: AppDeps | LegacyAppDeps): Hono {
   const app = new Hono();
   app.onError((error, c) => {
+    if (error instanceof SetMutationError) return c.json({ error: error.message }, 409);
     if (error instanceof AiDisabledError) return c.json({ error: error.message }, 403);
     if (error instanceof HTTPException) return error.getResponse();
     console.error(error);
@@ -81,7 +82,24 @@ export function createApp(deps: AppDeps | LegacyAppDeps): Hono {
     });
   }
 
-  app.route("/api/sets", setsRoutes({ root: deps.root, hub: deps.hub, locks: deps.locks, jobs: deps.jobs }));
+  app.route(
+    "/api/sets",
+    setsRoutes({
+      root: deps.root,
+      hub: deps.hub,
+      locks: deps.locks,
+      jobs: deps.jobs,
+      assertIdle: (set) => {
+        if (deps.jobs?.hasActiveSetJobs(set) || ("chats" in deps && deps.chats.hasActiveSetChats(set)))
+          throw new SetMutationError();
+        try {
+          deps.planKickoffs?.assertAvailable(set);
+        } catch {
+          throw new SetMutationError();
+        }
+      },
+    }),
+  );
   app.route(
     "/api/sets/:set",
     inboxRoutes({

@@ -182,6 +182,7 @@ export class WorkspaceManager {
     mcp.setDisabledServers(mcpConfig.disabled);
     const jobs = new JobRunner({
       root,
+      locks,
       hub,
       maxParallel: this.#maxParallelJobs,
       aiAllowed: () => getUserById(this.#db, user.id)?.aiEnabled === true,

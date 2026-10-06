@@ -1,7 +1,10 @@
 import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
 import type { JobBilling, JobKind, JobResult, JobStatus, JobUsage, JobView } from "@studium/shared";
 import type { ActiveChapterJob } from "../course/build.js";
 import type { EventHub } from "../events.js";
+import { type FileLocks, SetMutationError } from "../tree/lock.js";
+import { resolveInRoot } from "../tree/paths.js";
 import { appendJobLog } from "./log.js";
 
 // Re-exported so job handlers can import the kind union alongside the runner.
@@ -29,6 +32,7 @@ export class AiDisabledError extends Error {
 }
 
 export interface JobRunnerDeps {
+  locks?: FileLocks;
   aiAllowed?: () => boolean;
   root: string;
   hub: EventHub;
@@ -118,6 +122,7 @@ export function usageFromPiMessages(messages: unknown[]): JobUsage {
 }
 
 export class JobRunner {
+  readonly #locks: FileLocks | undefined;
   readonly #aiAllowed: () => boolean;
   readonly #root: string;
   readonly #hub: EventHub;
@@ -129,6 +134,7 @@ export class JobRunner {
   #running = 0;
 
   constructor(deps: JobRunnerDeps) {
+    this.#locks = deps.locks;
     this.#aiAllowed = deps.aiAllowed ?? (() => true);
     this.#root = deps.root;
     this.#hub = deps.hub;
@@ -172,6 +178,12 @@ export class JobRunner {
 
   enqueue(kind: JobKind, input: unknown, meta: { set: string | null; title: string }): JobView {
     this.assertAiAllowed(kind);
+    if (
+      meta.set &&
+      this.#locks &&
+      (this.#locks.isSetBlocked(meta.set) || !existsSync(resolveInRoot(this.#root, `${meta.set}/PLAN.md`)))
+    )
+      throw new SetMutationError();
     if (kind === "compile-book") {
       const existing = [...this.#jobs.values()].find(
         (job) => job.kind === kind && job.set === meta.set && (job.status === "queued" || job.status === "running"),
@@ -199,6 +211,10 @@ export class JobRunner {
     // Defer the pump so the caller observes a `queued` snapshot and `queued` is published first.
     queueMicrotask(() => this.#pump());
     return this.#view(record);
+  }
+
+  hasActiveSetJobs(set: string): boolean {
+    return [...this.#jobs.values()].some((job) => job.set === set && !isFinished(job.status));
   }
 
   list(set?: string): JobView[] {

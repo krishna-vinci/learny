@@ -18,6 +18,7 @@ import { useBook, useJobs, useLibrary, useNoteFile, useNotes, useSets, useToday 
 import { openActivityPanel } from "@/components/Activity/activity-store";
 import { openChatDock } from "@/components/ChatDock/openChatDock";
 import { CoursePlan } from "@/components/CoursePlan";
+import { DeleteSetControl, NoteDeletionMenu } from "@/components/Deletion";
 import { AddSourceSheet } from "@/components/Library/AddSourceSheet";
 import { RowsSkeleton } from "@/components/ListSkeleton";
 import { planHref } from "@/components/Navigation/nav";
@@ -36,15 +37,16 @@ import { cn } from "@/lib/utils";
 
 function NoteRow({ set, path, title, order }: { set: string; path: string; title: string; order: number | null }) {
   return (
-    <li>
+    <li className="flex items-center gap-1 border-b border-border/70 last:border-b-0">
       <Link
         to={`/s/${set}/n/${path.replace(/^notes\//, "")}`}
-        className="flex min-h-11 items-center gap-2 border-b border-border/70 py-2.5 last:border-b-0 hover:bg-accent/40"
+        className="flex min-h-11 min-w-0 flex-1 items-center gap-2 py-2.5 hover:bg-accent/40"
       >
         <ListChecksIcon className="size-4 shrink-0 text-muted-foreground/70" aria-hidden="true" />
         {order != null && <span className="w-6 shrink-0 text-end text-sm text-muted-foreground">{order}</span>}
         <span className="min-w-0 flex-1 truncate text-foreground">{title}</span>
       </Link>
+      <NoteDeletionMenu set={set} path={path} title={title} />
     </li>
   );
 }
@@ -325,6 +327,7 @@ export default function SetHomePage() {
         />
       )}
 
+      <DeleteSetControl set={set} />
       {planOpen && (
         <PlanSetSheet
           set={set}

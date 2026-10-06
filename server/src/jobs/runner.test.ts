@@ -321,3 +321,26 @@ it("coalesces queued and running books per set, then allows a new completed buil
   expect(next.id).not.toBe(first.id);
   await vi.waitFor(() => expect(runner.get(next.id)?.status).toBe("done"));
 });
+
+it("blocks starts during set deletion and reports all active jobs beyond the display limit", async () => {
+  const { FileLocks } = await import("../tree/lock.js");
+  const locks = new FileLocks();
+  await fs.mkdir(path.join(root, "alpha"));
+  await fs.writeFile(path.join(root, "alpha/PLAN.md"), "# Alpha\n");
+  const runner = new JobRunner({ root, locks, hub: new EventHub(), maxParallel: 1 });
+  await locks.withSetLock("alpha", async () => {
+    expect(() => runner.enqueue("compile-book", {}, { set: "alpha", title: "Book" })).toThrow("being deleted");
+  });
+  runner.register("compile-book", async (_input, ctx) => {
+    await new Promise<void>((resolve) => {
+      ctx.signal.addEventListener("abort", () => resolve());
+    });
+  });
+  const active = runner.enqueue("compile-book", {}, { set: "alpha", title: "Book" });
+  await fs.mkdir(path.join(root, "other"));
+  await fs.writeFile(path.join(root, "other/PLAN.md"), "# Other\n");
+  for (let i = 0; i < 55; i++) runner.enqueue("draft-chapter", {}, { set: "other", title: `Other ${i}` });
+  expect(runner.hasActiveSetJobs("alpha")).toBe(true);
+  expect(runner.hasActiveSetJobs("absent")).toBe(false);
+  runner.cancel(active.id);
+});

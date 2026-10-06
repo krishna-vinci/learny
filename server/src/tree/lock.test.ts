@@ -73,3 +73,40 @@ describe("FileLocks", () => {
     expect(locks.holderOf("set/notes/a.md")).toBeNull();
   });
 });
+
+it("exclusive set mutations wait for existing locks, allow nested locks and block new ones", async () => {
+  const locks = new FileLocks();
+  const order: string[] = [];
+  let release!: () => void;
+  const writer = locks.withLock("alpha/notes/a.md", "drafter", async () => {
+    order.push("write");
+    await new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await locks.withLock("alpha/notes/b.md", "drafter", async () => {
+      order.push("nested write");
+    });
+  });
+  while (!release) await Promise.resolve();
+  const deletion = locks.withSetLock("alpha", async () => {
+    order.push("delete");
+    await locks.withLock("alpha/notes/a.md", "user", async () => {
+      expect(locks.holderOf("alpha/notes/a.md")).toBe("user");
+    });
+    locks.setDeleted("alpha", true);
+  });
+  const late = locks.withLock("alpha/notes/c.md", "user", async () => {
+    order.push("late");
+  });
+  const rejected = expect(late).rejects.toThrow("deleted");
+  release();
+  await Promise.all([writer, deletion, rejected]);
+  expect(order).toEqual(["write", "nested write", "delete"]);
+  await locks.withSetLock("alpha", async () => {
+    locks.setDeleted("alpha", false);
+  });
+  await locks.withLock("alpha/notes/c.md", "user", async () => {
+    order.push("restored");
+  });
+  expect(order.at(-1)).toBe("restored");
+});

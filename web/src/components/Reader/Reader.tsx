@@ -17,6 +17,7 @@ import { ApiError, api } from "@/api/client";
 import { useHighlights, useSaveFile } from "@/api/queries";
 import { showJobStartedToast } from "@/components/Activity/job-start-toast";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { useDeleteNote } from "@/components/Deletion";
 import { FirstUseHint } from "@/components/FirstUseHint";
 import { NoteHistory } from "@/components/NoteHistory";
 import { RewriteChapterDialog } from "@/components/RewriteChapterDialog";
@@ -29,6 +30,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { friendlyMessage } from "@/lib/friendly-errors";
 import { exitImmersive, isImmersive, toggleImmersive, useImmersive } from "@/lib/immersive-store";
@@ -182,6 +184,7 @@ function NoteEditor({ set, path, file, onDone }: { set: string; path: string; fi
  * (`GET /history`, `GET /diff`, `POST /revert` — see `NoteHistory`), the reading-comfort
  * settings (B1), immersive full screen (B2) and per-note scroll restore (B3). */
 export function Reader({ set, path, file, className }: ReaderProps) {
+  const deletion = useDeleteNote({ set, path, leaveReader: true });
   const [searchParams, setSearchParams] = useSearchParams();
   const visualsOpen = searchParams.get("view") === "visuals";
   const chapter = useMemo(() => chapterVisuals(file.body, `${set}/${path}`), [file.body, set, path]);
@@ -419,9 +422,10 @@ export function Reader({ set, path, file, className }: ReaderProps) {
               <DropdownMenu>
                 <DropdownMenuTrigger
                   aria-label="More note actions"
+                  disabled={deletion.pending}
                   className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-11 min-w-11 md:h-7 md:min-w-0")}
                 >
-                  <MoreHorizontalIcon />
+                  {deletion.pending ? <Spinner aria-label="Checking deletion" /> : <MoreHorizontalIcon />}
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="min-w-44">
                   <DropdownMenuGroup>
@@ -454,6 +458,7 @@ export function Reader({ set, path, file, className }: ReaderProps) {
                       {immersive ? <Minimize2Icon /> : <Maximize2Icon />}
                       {immersive ? "Exit full screen" : "Full screen"}
                     </DropdownMenuItem>
+                    {deletion.items}
                   </DropdownMenuGroup>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -503,6 +508,7 @@ export function Reader({ set, path, file, className }: ReaderProps) {
           </Tabs.Panel>
         </Tabs.Root>
       </article>
+      {deletion.dialog}
       <RewriteChapterDialog set={set} path={path} open={rewriteOpen} onOpenChange={setRewriteOpen} />
       {immersive && <ImmersiveExitButton />}
       {historyOpen && (

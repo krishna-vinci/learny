@@ -29,7 +29,7 @@ import type { McpManager } from "../mcp/bridge.js";
 import { rankedPassages, renderPassages } from "../search/passages.js";
 import { readText } from "../tree/edit.js";
 import { commitPaths } from "../tree/git.js";
-import type { FileLocks } from "../tree/lock.js";
+import { type FileLocks, SetMutationError } from "../tree/lock.js";
 import { resolveInRoot } from "../tree/paths.js";
 import { isSetSlug } from "../tree/read.js";
 import { addSourceTool } from "./builtins/add-source.js";
@@ -659,7 +659,16 @@ export class ChatService {
     return { id, messages: storedMessages(manager), running: live?.running ?? this.#starting.has(key) };
   }
 
+  hasActiveSetChats(set: string): boolean {
+    const prefix = `${set}\0`;
+    return (
+      [...this.#starting].some((key) => key.startsWith(prefix)) ||
+      [...this.#live].some(([key, chat]) => key.startsWith(prefix) && chat.running)
+    );
+  }
+
   async send(set: string, id: string, text: string, anchor?: string, quote?: string): Promise<void> {
+    if (this.#locks.isSetBlocked(set)) throw new SetMutationError();
     const key = this.#key(set, id);
     const existing = this.#live.get(key);
     if (this.#starting.has(key) || existing?.running === true) throw new BusyError();

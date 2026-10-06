@@ -13,6 +13,7 @@ import {
   PlugIcon,
   ServerIcon,
   Settings2Icon,
+  Trash2Icon,
   UserIcon,
   UsersIcon,
 } from "lucide-react";
@@ -28,6 +29,7 @@ import MembersSection from "./MembersSection";
 import ModelsSection from "./ModelsSection";
 import MyAccountSection from "./MyAccountSection";
 import NotificationsSection from "./NotificationsSection";
+import RecentlyDeletedSection from "./RecentlyDeletedSection";
 import ServicesSection from "./ServicesSection";
 import SessionsSection from "./SessionsSection";
 import SSOSection from "./SSOSection";
@@ -38,6 +40,7 @@ export type SettingSectionKey =
   | "sessions"
   | "access-tokens"
   | "notifications"
+  | "recently-deleted"
   | "data"
   | "models"
   | "services"
@@ -69,6 +72,14 @@ export interface SettingSectionDefinition {
 }
 
 export const SETTINGS_SECTIONS: SettingSectionDefinition[] = [
+  {
+    key: "recently-deleted",
+    scope: "basic",
+    group: "learning",
+    label: "Recently deleted",
+    icon: Trash2Icon,
+    component: RecentlyDeletedSection,
+  },
   {
     key: "my-account",
     scope: "basic",
