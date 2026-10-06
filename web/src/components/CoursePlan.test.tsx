@@ -41,8 +41,8 @@ const chapters: CourseChapter[] = [
   chapter(7, "planned"),
   chapter(8, "planned", "02"),
 ];
-function setup(rows = chapters) {
-  const course: CourseView = { subject: "history", chapters: rows };
+function setup(rows = chapters, otherNotes: CourseView["otherNotes"] = []) {
+  const course: CourseView = { subject: "history", chapters: rows, otherNotes };
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
   queryClient.setQueryData(queryKeys.course("history"), course);
   vi.mocked(api.sets.course).mockResolvedValue(course);
@@ -181,4 +181,21 @@ it("shows made/planned visuals and chosen video metadata or an honest absence re
   expect(screen.getByRole("link", { name: "Polymer lab" }).getAttribute("href")).toContain("youtube.com/watch");
   expect(screen.getByText(/University · 30–90s/)).toBeTruthy();
   expect(screen.getByText("No suitable video: No named historian at this level")).toBeTruthy();
+});
+
+it("keeps other notes linked separately while re-planned chapters remain draftable", () => {
+  setup(
+    [chapter(1, "planned"), chapter(2, "planned")],
+    [
+      { path: "notes/01-old-polymers.md", title: "Old polymers", order: 1, status: "accepted" },
+      { path: "notes/02-ch-2.md", title: "Test note", order: 2, status: "draft" },
+    ],
+  );
+  expect(screen.getByRole("region", { name: "Other notes in this set" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Old polymers" }).getAttribute("href")).toBe(
+    "/s/history/n/01-old-polymers.md",
+  );
+  expect(screen.getByRole("link", { name: "Test note" }).getAttribute("href")).toBe("/s/history/n/02-ch-2.md");
+  expect((screen.getByRole("button", { name: "Draft Chapter 1" }) as HTMLButtonElement).disabled).toBe(false);
+  expect((screen.getByRole("button", { name: "Draft Chapter 2" }) as HTMLButtonElement).disabled).toBe(false);
 });

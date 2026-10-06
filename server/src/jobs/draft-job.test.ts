@@ -3,14 +3,19 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { fauxAssistantMessage, fauxProvider, fauxText, fauxToolCall } from "@earendil-works/pi-ai/providers/faux";
+import { parseFrontmatter } from "@studium/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Classifier } from "../agent/classifier.js";
+import * as classifierWorkspace from "../agent/classifier-workspace.js";
 import { createModelRuntime } from "../agent/models.js";
 import * as roleRunner from "../agent/run-role.js";
+import { buildCourse } from "../course/build.js";
 import { EventHub } from "../events.js";
 import { McpManager } from "../mcp/bridge.js";
+import * as searchBackends from "../search/backends.js";
 import { diff, ensureRepo, log } from "../tree/git.js";
 import { FileLocks } from "../tree/lock.js";
+import { listNotes } from "../tree/read.js";
 import {
   createDraftJob,
   createRewriteJob,
@@ -19,6 +24,7 @@ import {
   setNoteStatusTool,
   tickCurriculum,
 } from "./draft-job.js";
+import * as preflightRunner from "./source-preflight.js";
 
 const SAMPLE_SET = fileURLToPath(new URL("../../../examples/sample-set", import.meta.url));
 
@@ -918,6 +924,10 @@ it.each([true, false])(
       { signal: new AbortController().signal, progress: vi.fn(), addUsage: vi.fn() },
     );
     expect(drafts).toBe(2);
+    expect(parseFrontmatter(await fs.readFile(path.join(root, notePath), "utf8")).frontmatter).toMatchObject({
+      chapter: "video",
+      order: 4,
+    });
     expect(await fs.readFile(path.join(root, notePath), "utf8")).toContain(
       repair ? "status: checked" : "status: draft",
     );
@@ -968,4 +978,164 @@ it("passes contested-topic blockers to the independent checker for politics", as
     { signal: new AbortController().signal, progress: vi.fn(), addUsage: vi.fn() },
   );
   expect(runRole.mock.calls.map(([role]) => role)).toEqual(["drafter", "checker"]);
+});
+
+it.each(["filename", "frontmatter title", "chapter id"])(
+  "refuses an existing chapter by %s before research or model calls",
+  async (identity) => {
+    await fs.writeFile(
+      path.join(root, "linear-algebra/curriculum.md"),
+      "- [ ] 01 — Atoms\n  Scope: Chemistry around you.\n  Visual: diagram — Molecule\n",
+    );
+    const name = identity === "filename" ? "09-atoms" : "01-renamed";
+    const metadata = identity === "frontmatter title" ? "title: Atoms" : "title: Renamed";
+    await fs.writeFile(
+      path.join(root, `linear-algebra/notes/${name}.md`),
+      `---\n${metadata}\n${identity === "chapter id" ? "chapter: atoms\n" : ""}status: accepted\n---\n`,
+    );
+    const preflight = vi.spyOn(preflightRunner, "sourcePreflight");
+    const search = vi.spyOn(searchBackends, "configuredSearch");
+    const classifier = vi.spyOn(classifierWorkspace, "workspaceClassifier");
+    const run = vi.spyOn(roleRunner, "runRole");
+    const handler = createDraftJob({
+      root,
+      locks: new FileLocks(),
+      mcp: new McpManager([]),
+      runtime: await createModelRuntime(),
+      hub: new EventHub(),
+    });
+    const ctx = { signal: new AbortController().signal, progress: vi.fn(), addUsage: vi.fn() };
+    await expect(handler({ set: "linear-algebra", title: "Atoms" }, ctx)).rejects.toThrow(
+      `Chapter 1 is already the note “${identity === "frontmatter title" ? "Atoms" : "Renamed"}”. Use Rewrite to revise it.`,
+    );
+    for (const fake of [preflight, search, classifier, run, ctx.addUsage]) expect(fake).not.toHaveBeenCalled();
+  },
+);
+
+it("reserves chapter identity before preflight, refuses concurrent drafts cheaply and releases after failure", async () => {
+  await fs.writeFile(path.join(root, "linear-algebra/curriculum.md"), "- [ ] 01 — Atoms\n");
+  // A different note owns number 01; the chapter reservation must still work.
+  let entered!: () => void, finish!: () => void;
+  const started = new Promise<void>((resolve) => {
+    entered = resolve;
+  });
+  const held = new Promise<void>((resolve) => {
+    finish = resolve;
+  });
+  const preflight = vi.spyOn(preflightRunner, "sourcePreflight").mockImplementation(async () => {
+    entered();
+    await held;
+    throw new Error("preflight interrupted");
+  });
+  const run = vi.spyOn(roleRunner, "runRole");
+  const search = vi.spyOn(searchBackends, "configuredSearch");
+  const classifier = vi.spyOn(classifierWorkspace, "workspaceClassifier");
+  const handler = createDraftJob({
+    root,
+    locks: new FileLocks(),
+    mcp: new McpManager([]),
+    runtime: await createModelRuntime(),
+    hub: new EventHub(),
+  });
+  const ctx = { signal: new AbortController().signal, progress: vi.fn(), addUsage: vi.fn() };
+  const first = expect(handler({ set: "linear-algebra", title: "Atoms" }, ctx)).rejects.toThrow(
+    "preflight interrupted",
+  );
+  await started;
+  await expect(handler({ set: "linear-algebra", title: "Atoms" }, ctx)).rejects.toThrow("already being drafted");
+  expect(preflight).toHaveBeenCalledOnce();
+  for (const fake of [search, classifier, run]) expect(fake).not.toHaveBeenCalled();
+  finish();
+  await first;
+  await expect(handler({ set: "linear-algebra", title: "Atoms" }, ctx)).rejects.toThrow("preflight interrupted");
+  expect(preflight).toHaveBeenCalledTimes(2);
+});
+
+it("drafts both polymers re-plan chapters into unique filenames with curriculum order and preserves the old notes", async () => {
+  const set = "polymers";
+  await fs.mkdir(path.join(root, `${set}/notes`), { recursive: true });
+  await fs.writeFile(path.join(root, `${set}/PLAN.md`), "---\ntitle: Polymers\nsources: [lib-strang-la]\n---\n");
+  const titles = ["Atoms, molecules and the chemistry around you", "Bonds and simple molecular drawings"];
+  await fs.writeFile(path.join(root, `${set}/curriculum.md`), `- [ ] 01 — ${titles[0]}\n- [ ] 02 — ${titles[1]}\n`);
+  const old = ["01-polymers-from-carbon-bonds-to-everyday", "02-ch-2"];
+  for (const [i, name] of old.entries())
+    await fs.writeFile(
+      path.join(root, `${set}/notes/${name}.md`),
+      `---\ntitle: ${name}\norder: ${i + 1}\nstatus: accepted\n---\nOld user content\n`,
+    );
+  const originals = await Promise.all(
+    old.map((name) => fs.readFile(path.join(root, `${set}/notes/${name}.md`), "utf8")),
+  );
+  const before = await buildCourse(root, set);
+  expect(before.chapters.map((c) => c.state)).toEqual(["planned", "planned"]);
+  expect(before.otherNotes).toHaveLength(2);
+  vi.spyOn(roleRunner, "runRole").mockImplementation(async (role, opts) => {
+    if (role === "checker") {
+      const report = /report at (log\/checks\/[^.]+\.md)/.exec(opts.task)?.[1];
+      if (!report) throw new Error("missing report target");
+      await fs.mkdir(path.dirname(path.join(root, set, report)), { recursive: true });
+      await fs.writeFile(path.join(root, set, report), "## No issues found\n");
+      return { text: "Checked", written: [`${set}/${report}`], messages: [] };
+    }
+    const notePath = /Create exactly (notes\/[^ ]+)/.exec(opts.task)?.[1];
+    if (!notePath) throw new Error("no reserved path");
+    expect(old.some((name) => notePath === `notes/${name}.md`)).toBe(false);
+    const title = /Title: ([^\n]+)/.exec(opts.task)?.[1];
+    await fs.writeFile(
+      path.join(root, `${set}/${notePath}`),
+      `---\ntitle: ${title}\nstatus: draft\nsources: [lib-strang-la]\n---\nWe can explore the chemistry around us.\n`,
+    );
+    return { text: "Drafted", written: [`${set}/${notePath}`], messages: [] };
+  });
+  const handler = createDraftJob({
+    root,
+    locks: new FileLocks(),
+    mcp: new McpManager([]),
+    runtime: await createModelRuntime(),
+    hub: new EventHub(),
+  });
+  for (const title of titles)
+    await expect(
+      handler({ set, title }, { signal: new AbortController().signal, progress: vi.fn(), addUsage: vi.fn() }),
+    ).resolves.toMatchObject({ notePath: expect.stringMatching(/^notes\/0[34]-/) });
+  const notes = await listNotes(root, set);
+  expect(notes.slice(0, 2).map((note) => [note.title, note.order])).toEqual([
+    [titles[0], 1],
+    [titles[1], 2],
+  ]);
+  expect(notes[0]?.path).toBe("notes/03-atoms-molecules-and-the-chemistry.md");
+  expect(notes[1]?.path).toBe("notes/04-bonds-and-simple-molecular-drawings.md");
+  for (const note of notes.slice(0, 2))
+    expect(parseFrontmatter(await fs.readFile(path.join(root, set, note.path), "utf8")).frontmatter).toMatchObject({
+      order: note.order,
+      chapter: note.chapter,
+    });
+  expect((await buildCourse(root, set)).chapters.map((c) => c.state)).toEqual(["checked", "checked"]);
+  expect((await buildCourse(root, set)).otherNotes).toHaveLength(2);
+  expect(await Promise.all(old.map((name) => fs.readFile(path.join(root, `${set}/notes/${name}.md`), "utf8")))).toEqual(
+    originals,
+  );
+});
+
+it("refuses an unconfined notes directory before search or model work", async () => {
+  await fs.rename(path.join(root, "linear-algebra/notes"), path.join(root, "other-notes"));
+  await fs.symlink(path.join(root, "other-notes"), path.join(root, "linear-algebra/notes"));
+  const preflight = vi.spyOn(preflightRunner, "sourcePreflight");
+  const search = vi.spyOn(searchBackends, "configuredSearch");
+  const classifier = vi.spyOn(classifierWorkspace, "workspaceClassifier");
+  const run = vi.spyOn(roleRunner, "runRole");
+  const handler = createDraftJob({
+    root,
+    locks: new FileLocks(),
+    mcp: new McpManager([]),
+    runtime: await createModelRuntime(),
+    hub: new EventHub(),
+  });
+  await expect(
+    handler(
+      { set: "linear-algebra", title: "Eigenvalues" },
+      { signal: new AbortController().signal, progress: vi.fn(), addUsage: vi.fn() },
+    ),
+  ).rejects.toThrow("symlink aliases");
+  for (const fake of [preflight, search, classifier, run]) expect(fake).not.toHaveBeenCalled();
 });

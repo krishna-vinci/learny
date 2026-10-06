@@ -90,11 +90,21 @@ plain text (rendered escaped, at most 200 characters); other attributes are igno
 ```md
 ---
 title: Singular Value Decomposition
+chapter: singular-value-decomposition  # optional curriculum identity
 order: 3
 status: accepted      # draft | checked | accepted
 sources: [lib-strang-la]
 ---
 ```
+
+New drafts store `chapter` as the curriculum title's kebab-case slug (at most 40
+characters, trimmed at a word boundary). It takes precedence over the note's title
+and filename when matching chapters. Legacy notes without it match by title or
+filename slug, never by filename number alone. Preserve this id when renaming a
+note's title. The filename number only reserves a unique path; frontmatter `order`
+follows the curriculum. Planned chapters appear first in curriculum order, then
+other notes by order and title. After a re-plan, unmatched notes remain visible and
+are listed as “Other notes in this set”; existing files are not renamed or rewritten.
 
 ## Cards: `<set>/cards/NN-slug.md`
 

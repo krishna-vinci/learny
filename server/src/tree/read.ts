@@ -3,6 +3,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { FileView, NoteSummary, SetSummary } from "@studium/shared";
 import { NoteFrontmatter, PlanFrontmatter, parseFrontmatter } from "@studium/shared";
+import { chapterExists, parseCurriculum } from "./curriculum.js";
 import { resolveInRoot } from "./paths.js";
 
 export function isSetSlug(name: string): boolean {
@@ -85,7 +86,9 @@ export async function listNotes(root: string, set: string): Promise<NoteSummary[
 
     const frontmatter = safeFrontmatter(text);
     const fields = NoteFrontmatter.shape;
+    const chapter = field(fields.chapter, frontmatter.chapter);
     notes.push({
+      ...(chapter ? { chapter } : {}),
       path: `notes/${entry.name}`,
       title: field(fields.title, frontmatter.title) ?? entry.name.replace(/\.md$/, ""),
       order: field(fields.order, frontmatter.order) ?? null,
@@ -93,11 +96,20 @@ export async function listNotes(root: string, set: string): Promise<NoteSummary[
     });
   }
 
+  const curriculum = await readSetFile(root, set, "curriculum.md");
+  const chapters = parseCurriculum(curriculum?.raw ?? null);
+  const plannedOrder = (note: NoteSummary) => {
+    const index = chapters.findIndex((chapter) => chapterExists(chapter, [note]));
+    return index < 0 ? Number.POSITIVE_INFINITY : (chapters[index]?.number ?? index + 1);
+  };
   notes.sort((a, b) => {
+    const ap = plannedOrder(a),
+      bp = plannedOrder(b);
+    if (ap !== bp) return ap - bp;
     const ao = a.order ?? Number.POSITIVE_INFINITY;
     const bo = b.order ?? Number.POSITIVE_INFINITY;
     if (ao !== bo) return ao - bo;
-    return a.path.localeCompare(b.path);
+    return a.title.localeCompare(b.title) || a.path.localeCompare(b.path);
   });
   return notes;
 }

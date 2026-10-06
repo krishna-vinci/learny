@@ -77,3 +77,23 @@ it("scouts gaps before drafting, forbids writes and stores residual coverage", a
     (await loadCoverage(root)).get(coverageKey("set", "Polymers", "Cross-linking and glass transition.")),
   ).toMatchObject({ covered: 0, total: 2 });
 });
+
+it("uses the matching title scope rather than a same-number old chapter", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "studium-preflight-"));
+  roots.push(root);
+  vi.spyOn(classifier, "workspaceClassifier").mockResolvedValue({} as never);
+  const run = vi
+    .spyOn(roleRunner, "runRole")
+    .mockResolvedValue({ text: "No suitable source found.", messages: [], written: [] });
+  const result = await sourcePreflight(
+    { root } as DraftJobDeps,
+    { set: "polymers", title: "Bonds and simple molecular drawings" },
+    "",
+    "- [ ] 01 — Old polymers\n  Scope: Old concept\n- [ ] 02 — Bonds and simple molecular drawings\n  Scope: Covalent bonds and Lewis structures.\n",
+    [],
+    { signal: new AbortController().signal, progress: vi.fn(), addUsage: vi.fn() },
+  );
+  expect(result.coverage).toMatchObject({ total: 2, weakest: ["Covalent bonds", "Lewis structures"] });
+  expect(run.mock.calls[0]?.[1].task).toContain("Covalent bonds");
+  expect(run.mock.calls[0]?.[1].task).not.toContain("Old concept");
+});

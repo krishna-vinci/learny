@@ -23,6 +23,9 @@ it("aggregates Today through the workspace app using only that workspace's sets"
   tempDirs.push(root);
   await fs.cp(SAMPLE_SET, root, { recursive: true });
   await ensureRepo(root);
+  const svdPath = path.join(root, "linear-algebra/notes/03-svd.md");
+  const svd = await fs.readFile(svdPath, "utf8");
+  await fs.writeFile(svdPath, svd.replace("---\n", "---\nchapter: the-singular-value-decomposition\n"));
   const note = "linear-algebra/notes/04-eigenvalues.md";
   await fs.writeFile(
     path.join(root, note),
@@ -197,4 +200,34 @@ it("shares cached refreshes, coalesces changes for two seconds, and ignores prog
   hub.publish({ type: "job", job: { ...job, status: "done" } });
   await app.request("/api/today");
   expect(list).toHaveBeenCalledTimes(5);
+});
+
+it("uses chapter identity through the Today and course APIs after a re-plan", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "studium-replan-api-"));
+  tempDirs.push(root);
+  await fs.mkdir(path.join(root, "polymers/notes"), { recursive: true });
+  await fs.writeFile(path.join(root, "polymers/PLAN.md"), "---\ntitle: Polymers\nstatus: active\n---\n");
+  await fs.writeFile(path.join(root, "polymers/curriculum.md"), "- [x] 01 — Atoms\n- [ ] 02 — Bonds\n");
+  await fs.writeFile(
+    path.join(root, "polymers/notes/01-old-polymers.md"),
+    "---\ntitle: Old polymers\nstatus: accepted\n---\n",
+  );
+  await fs.writeFile(path.join(root, "polymers/notes/02-ch-2.md"), "---\ntitle: Test note\nstatus: accepted\n---\n");
+  const hub = new EventHub();
+  const app = createApp({ root, hub, locks: new FileLocks() });
+  const today = await app.request("/api/today");
+  expect(today.status).toBe(200);
+  expect(((await today.json()) as TodayView).sets[0]?.nextChapter).toBe("01 — Atoms");
+  const course = await app.request("/api/sets/polymers/course");
+  expect(course.status).toBe(200);
+  expect(await course.json()).toMatchObject({
+    chapters: [{ state: "planned" }, { state: "planned" }],
+    otherNotes: [{ title: "Old polymers" }, { title: "Test note" }],
+  });
+  await fs.writeFile(
+    path.join(root, "polymers/notes/03-renamed.md"),
+    "---\ntitle: Renamed atoms\nchapter: atoms\nstatus: accepted\n---\n",
+  );
+  hub.publish({ type: "file", set: "polymers", path: "polymers/notes/03-renamed.md", change: "add" });
+  expect(((await (await app.request("/api/today")).json()) as TodayView).sets[0]?.nextChapter).toBe("02 — Bonds");
 });

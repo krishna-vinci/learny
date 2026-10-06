@@ -79,3 +79,15 @@ it("retains curriculum visual requirements when the saved brief is missing or st
   await saveMediaBrief(root, new FileLocks(), "math", chapter, { ...brief, visuals: [] });
   expect((await noteMediaBrief(root, notePath))?.visuals).toEqual(brief.visuals);
 });
+
+it("ignores old notes with reused numbers and loads media for a renamed note with a chapter id", async () => {
+  await fs.mkdir(path.join(root, "math/notes"), { recursive: true });
+  await fs.writeFile(
+    path.join(root, "math/curriculum.md"),
+    "- [ ] 01 — Vectors\n  Visual: figure — Addition\n  Video: Geometric addition\n",
+  );
+  await fs.writeFile(path.join(root, "math/notes/01-old.md"), "---\ntitle: Old lesson\n---\n");
+  await fs.writeFile(path.join(root, "math/notes/03-renamed.md"), "---\ntitle: New title\nchapter: vectors\n---\n");
+  expect(await noteMediaBrief(root, "math/notes/01-old.md")).toBeNull();
+  expect((await noteMediaBrief(root, "math/notes/03-renamed.md"))?.visuals).toEqual(brief.visuals);
+});

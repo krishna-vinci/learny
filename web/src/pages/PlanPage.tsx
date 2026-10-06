@@ -8,7 +8,7 @@ import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useCourse, useNoteFile, useSetSources, useSets } from "@/api/queries";
 import { ChapterMediaStatus } from "@/components/ChapterMediaStatus";
-import { ChapterStateBadge } from "@/components/CoursePlan";
+import { ChapterStateBadge, OtherNotes } from "@/components/CoursePlan";
 import { RowsSkeleton } from "@/components/ListSkeleton";
 import { PlanSetSheet } from "@/components/PlanSetSheet";
 import { MarkdownView } from "@/components/Reader/MarkdownView";
@@ -146,6 +146,8 @@ export default function PlanPage() {
           </section>
         </>
       )}
+
+      <OtherNotes set={set} notes={course.data?.otherNotes ?? []} />
 
       {planOpen && (
         <PlanSetSheet set={set} title={summary?.title ?? set} initialGoal="" onClose={() => setPlanOpen(false)} />

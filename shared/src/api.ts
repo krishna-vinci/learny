@@ -42,6 +42,8 @@ export interface TodayView {
 }
 
 export interface NoteSummary {
+  /** Stable curriculum title slug; absent on legacy notes. */
+  chapter?: string;
   path: string;
   title: string;
   order: number | null;
@@ -228,6 +230,7 @@ export interface CourseChapter {
 export interface CourseView {
   subject: import("./schemas.js").PlanSubject;
   chapters: CourseChapter[];
+  otherNotes?: NoteSummary[];
 }
 
 export type JobStatus = "queued" | "running" | "done" | "failed" | "cancelled";

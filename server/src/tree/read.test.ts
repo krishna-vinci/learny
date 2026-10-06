@@ -91,7 +91,7 @@ describe("listSets", () => {
 });
 
 describe("listNotes", () => {
-  it("orders by frontmatter order, nulls last, then filename", async () => {
+  it("orders by frontmatter order, nulls last, then title", async () => {
     await write("linear-algebra/notes/01-a.md", "---\ntitle: Alpha\norder: 2\nstatus: accepted\n---\n\nA\n");
     await write("linear-algebra/notes/02-b.md", "---\ntitle: Beta\norder: 1\n---\n\nB\n");
     await write("linear-algebra/notes/03-c.md", "# No frontmatter\n");
@@ -146,4 +146,18 @@ describe("isSetSlug", () => {
     expect(isSetSlug("_global")).toBe(false);
     expect(isSetSlug("-bad")).toBe(false);
   });
+});
+
+it("orders matching planned notes before other notes without changing files", async () => {
+  await write("polymers/curriculum.md", "- [ ] 02 — Bonds\n- [ ] 01 — Atoms\n");
+  await write("polymers/notes/01-old.md", "---\ntitle: Old\norder: 1\n---\n");
+  await write("polymers/notes/02-test.md", "---\ntitle: Test\norder: 2\n---\n");
+  await write("polymers/notes/03-renamed.md", "---\ntitle: New atoms name\nchapter: atoms\norder: 1\n---\n");
+  await write("polymers/notes/04-bonds.md", "---\ntitle: Bonds\norder: 2\n---\n");
+  expect((await listNotes(root, "polymers")).map((note) => note.path)).toEqual([
+    "notes/03-renamed.md",
+    "notes/04-bonds.md",
+    "notes/01-old.md",
+    "notes/02-test.md",
+  ]);
 });

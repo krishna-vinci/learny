@@ -11,6 +11,7 @@ import { readText, writeTextLocked } from "./edit.js";
 import { commitPaths } from "./git.js";
 import type { FileLocks } from "./lock.js";
 import { canonicalRel, resolveInRoot } from "./paths.js";
+import { readSetFile } from "./read.js";
 
 const Figure = z.object({
   sourceId: z.string(),
@@ -189,7 +190,16 @@ export async function noteMediaBrief(root: string, notePath: string): Promise<Me
     if (error instanceof Error && "code" in error && error.code === "not_found") return null;
     throw error;
   }
-  const chapter = parseCurriculum(curriculum).find((c) => chapterExists(c, [notePath]));
+  const note = await readSetFile(root, set, notePath.slice(set.length + 1));
+  const chapter = parseCurriculum(curriculum).find((c) =>
+    chapterExists(c, [
+      {
+        path: notePath,
+        title: typeof note?.frontmatter.title === "string" ? note.frontmatter.title : undefined,
+        chapter: typeof note?.frontmatter.chapter === "string" ? note.frontmatter.chapter : undefined,
+      },
+    ]),
+  );
   if (!chapter) return null;
   const saved = await readMediaBrief(root, set, chapter);
   if (

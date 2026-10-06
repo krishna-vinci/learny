@@ -35,6 +35,7 @@ export const PlanFrontmatter = z.looseObject({
 
 // `<set>/notes/NN-slug.md`.
 export const NoteFrontmatter = z.looseObject({
+  chapter: z.string().optional(),
   title: z.string().optional(),
   order: z.number().int().nullable().optional(),
   status: NoteStatus.nullable().optional(),

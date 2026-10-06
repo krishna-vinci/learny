@@ -98,7 +98,7 @@ export function todayRoutes(deps: TodayRoutesDeps): Hono {
         inbox,
         cardFiles,
         notesCount: notes.length,
-        notePaths: notes.map((note) => note.path),
+        notes,
         jobs,
         commits,
         chatActivity: chats,

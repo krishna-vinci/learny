@@ -57,14 +57,21 @@ export function parseCurriculum(text: string | null): CurriculumChapter[] {
   return chapters;
 }
 
-export function chapterExists(chapter: CurriculumChapter, notePaths: readonly string[]): boolean {
+export interface ChapterNote {
+  path: string;
+  title?: string;
+  chapter?: string;
+}
+
+/** Explicit identity wins; legacy notes match by title or filename slug, never number. */
+export function chapterExists(chapter: CurriculumChapter, notes: readonly (ChapterNote | string)[]): boolean {
   const titleSlug = slugify(chapter.title, 40);
-  return notePaths.some((note) => {
-    const basename = path.posix.basename(note, ".md");
-    const numbered = /^(\d+)-(.+)$/.exec(basename);
-    return (
-      (chapter.number !== null && numbered?.[1] !== undefined && Number(numbered[1]) === chapter.number) ||
-      (titleSlug !== "" && (numbered?.[2] ?? basename) === titleSlug)
-    );
+  if (!titleSlug) return false;
+  return notes.some((candidate) => {
+    const note = typeof candidate === "string" ? { path: candidate } : candidate;
+    if (note.chapter?.trim()) return note.chapter === titleSlug;
+    const basename = path.posix.basename(note.path, ".md");
+    const filenameSlug = basename.replace(/^\d+-/, "");
+    return filenameSlug === titleSlug || (note.title !== undefined && slugify(note.title, 40) === titleSlug);
   });
 }

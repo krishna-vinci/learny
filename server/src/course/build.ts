@@ -41,7 +41,7 @@ export async function buildCourse(
   const chapters = (
     await Promise.all(
       parseCurriculum(curriculum).map(async (chapter, index) => {
-        const note = notes.find((candidate) => chapterExists(chapter, [candidate.path]));
+        const note = notes.find((candidate) => chapterExists(chapter, [candidate]));
         const job = jobs.find((candidate) =>
           candidate.kind === "rewrite-chapter"
             ? candidate.path === note?.path
@@ -91,5 +91,7 @@ export async function buildCourse(
       }),
     )
   ).sort((a, b) => a.order - b.order);
-  return { subject, chapters };
+  const planned = parseCurriculum(curriculum);
+  const otherNotes = notes.filter((note) => !planned.some((chapter) => chapterExists(chapter, [note])));
+  return { subject, chapters, otherNotes };
 }

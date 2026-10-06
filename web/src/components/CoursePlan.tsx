@@ -1,4 +1,4 @@
-import type { CourseChapter, CourseView, JobView } from "@studium/shared";
+import type { CourseChapter, CourseView, JobView, NoteSummary } from "@studium/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { MoreHorizontalIcon, RefreshCwIcon } from "lucide-react";
 import { useState } from "react";
@@ -313,6 +313,7 @@ export function CoursePlan({ set, jobs, onReplan }: { set: string; jobs: readonl
           {ready.length === 0 && <p className="mt-1 text-xs text-muted-foreground">{noReadyReason}</p>}
         </>
       )}
+      <OtherNotes set={set} notes={course.data?.otherNotes ?? []} />
       <ConfirmDialog
         open={acceptAnyway !== null}
         onOpenChange={(open) => !open && setAcceptAnyway(null)}
@@ -329,6 +330,27 @@ export function CoursePlan({ set, jobs, onReplan }: { set: string; jobs: readonl
           onOpenChange={(open) => !open && setRewritePath(null)}
         />
       )}
+    </section>
+  );
+}
+
+export function OtherNotes({ set, notes }: { set: string; notes: readonly NoteSummary[] }) {
+  if (!notes.length) return null;
+  return (
+    <section className="mt-6" aria-label="Other notes in this set">
+      <h2 className="text-sm font-semibold text-foreground">Other notes in this set</h2>
+      <ul className="mt-2 rounded-md border border-border/70 px-3">
+        {notes.map((note) => (
+          <li key={note.path} className="border-b border-border/70 py-2.5 last:border-b-0">
+            <Link
+              to={`/s/${set}/n/${note.path.replace(/^notes\//, "")}`}
+              className="block min-h-11 py-1 text-sm text-foreground hover:underline"
+            >
+              {note.title}
+            </Link>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

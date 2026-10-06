@@ -3,7 +3,6 @@ import { type ScoutedSource, scoutSourcesTool } from "../agent/builtins/scout-so
 import { workspaceClassifier } from "../agent/classifier-workspace.js";
 import { selectedPassage } from "../agent/passage.js";
 import { rethrowRoleModelError, runRole } from "../agent/run-role.js";
-import { slugify } from "../ingest/ids.js";
 import { readSource } from "../ingest/library.js";
 import { configuredSearch } from "../search/backends.js";
 import { chapterConcepts, measureCoverage, saveCoverage } from "../search/coverage.js";
@@ -23,10 +22,7 @@ export async function sourcePreflight(
   initial: string[],
   ctx: JobContext,
 ) {
-  const chapter = parseCurriculum(curriculum).find(
-    (c) =>
-      slugify(c.title, 40) === slugify(input.title, 40) || chapterExists(c, [`notes/00-${slugify(input.title)}.md`]),
-  );
+  const chapter = parseCurriculum(curriculum).find((c) => chapterExists(c, [{ path: "", title: input.title }]));
   const scope = chapter?.scope || input.brief || "";
   const concepts = chapterConcepts(input.title, scope);
   let sources = [...initial];

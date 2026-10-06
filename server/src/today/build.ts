@@ -10,7 +10,7 @@ import type {
   WeakSpot,
 } from "@studium/shared";
 import { isDue, weakTopics } from "../practice/weak-spots.js";
-import { chapterExists, parseCurriculum } from "../tree/curriculum.js";
+import { type ChapterNote, chapterExists, parseCurriculum } from "../tree/curriculum.js";
 
 export interface TodaySetInput extends SetSummary {
   inbox: InboxItem[];
@@ -21,15 +21,17 @@ export interface TodaySetInput extends SetSummary {
   curriculum: string | null;
   notesCount: number;
   notePaths?: string[];
+  notes?: ChapterNote[];
   weakSpots?: WeakSpot[];
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export function parseNextChapter(curriculum: string | null, notePaths: readonly string[] = []): string | null {
-  return (
-    parseCurriculum(curriculum).find((chapter) => !chapter.checked && !chapterExists(chapter, notePaths))?.label ?? null
-  );
+export function parseNextChapter(
+  curriculum: string | null,
+  notes: readonly (ChapterNote | string)[] = [],
+): string | null {
+  return parseCurriculum(curriculum).find((chapter) => !chapterExists(chapter, notes))?.label ?? null;
 }
 
 function daysUntil(deadline: string | null, now: Date): number | null {
@@ -76,7 +78,7 @@ export function buildToday(inputs: TodaySetInput[], now: Date): TodayView {
     staleCardFiles: input.cardFiles.filter((file) => file.stale).length,
     runningJobs: input.jobs.filter((job) => job.status === "queued" || job.status === "running"),
     lastStudiedAt: lastStudied(input),
-    nextChapter: parseNextChapter(input.curriculum, input.notePaths),
+    nextChapter: parseNextChapter(input.curriculum, input.notes ?? input.notePaths),
     notesCount: input.notesCount,
     weakTopics: weakTopics(input.weakSpots ?? [], now).slice(0, 3),
     practiceDue: (input.weakSpots ?? []).filter((spot) => isDue(spot, now)).length,

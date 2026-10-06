@@ -37,7 +37,10 @@ it("derives states from notes and active jobs regardless of ticks, without mutat
     [3, "checked"],
     [4, "accepted"],
   ]) {
-    await fs.writeFile(path.join(root, `history/notes/0${n}-note.md`), `---\nstatus: ${status}\n---\n`);
+    await fs.writeFile(
+      path.join(root, `history/notes/0${n}-note.md`),
+      `---\ntitle: ${n === 2 ? "Existing draft" : n === 3 ? "Checked" : "Accepted"}\nstatus: ${status}\n---\n`,
+    );
   }
   const course = await buildCourse(root, "history", [{ id: "job", kind: "draft-chapter", title: "Working" }]);
   expect(course.subject).toBe("history");
@@ -85,4 +88,32 @@ it("reads per-chapter media intent and retains legacy chapters and fenced exampl
     video: { intent: "A historian explaining the founding", status: "planned" },
   });
   expect(course.chapters[1]?.media?.visuals).toEqual([]);
+});
+
+it("keeps polymers re-plan chapters draftable and lists both old notes as other notes", async () => {
+  await fs.writeFile(
+    path.join(root, "history/curriculum.md"),
+    "- [ ] 01 — Atoms, molecules and the chemistry around you\n- [ ] 02 — Bonds and simple molecular drawings\n",
+  );
+  for (const [name, title] of [
+    ["01-polymers-from-carbon-bonds-to-everyday", "Polymers from carbon bonds to everyday"],
+    ["02-ch-2", "Ch 2"],
+  ]) {
+    await fs.writeFile(
+      path.join(root, `history/notes/${name}.md`),
+      `---\ntitle: ${title}\nstatus: accepted\n---\nOld content\n`,
+    );
+  }
+  const course = await buildCourse(root, "history");
+  expect(course.chapters.map((chapter) => chapter.state)).toEqual(["planned", "planned"]);
+  expect(course.otherNotes?.map((note) => note.title)).toEqual(["Ch 2", "Polymers from carbon bonds to everyday"]);
+  await fs.writeFile(
+    path.join(root, "history/notes/03-renamed.md"),
+    "---\ntitle: Renamed atoms chapter\nchapter: atoms-molecules-and-the-chemistry\nstatus: checked\n---\n",
+  );
+  expect((await buildCourse(root, "history")).chapters[0]).toMatchObject({
+    state: "checked",
+    path: "notes/03-renamed.md",
+  });
+  expect((await buildCourse(root, "history")).otherNotes).toHaveLength(2);
 });

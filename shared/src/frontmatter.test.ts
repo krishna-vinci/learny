@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { FrontmatterError, parseFrontmatter } from "./frontmatter.js";
-import { ConfigYaml, PlanFrontmatter } from "./schemas.js";
+import { ConfigYaml, NoteFrontmatter, PlanFrontmatter } from "./schemas.js";
 
 describe("parseFrontmatter", () => {
   it("splits a leading frontmatter block from the body", () => {
@@ -73,4 +73,14 @@ it("keeps legacy configs and tolerates invalid search settings per field", () =>
   });
   expect(config.search.future).toBe(true);
   expect(ConfigYaml.parse({ models: { default: "faux/echo" } }).search.exa.stopUsd).toBe(9.5);
+});
+
+it("accepts chapter identity while keeping legacy note frontmatter and unknown fields", () => {
+  expect(NoteFrontmatter.parse({ title: "Legacy", order: 1 })).toEqual({ title: "Legacy", order: 1 });
+  expect(NoteFrontmatter.parse({ title: "Renamed", chapter: "atoms", order: 1, custom: true })).toEqual({
+    title: "Renamed",
+    chapter: "atoms",
+    order: 1,
+    custom: true,
+  });
 });

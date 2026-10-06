@@ -149,22 +149,26 @@ describe("buildToday", () => {
 });
 
 describe("parseNextChapter", () => {
-  it("skips existing notes by chapter number or slugified title", () => {
+  it("skips existing notes by identity, ignoring reused numbers", () => {
     const curriculum = "- [ ] 02 — Matrices\n- [ ] 03 — Linear systems\n- [ ] 04 — Eigenvalues\n";
-    expect(parseNextChapter(curriculum, ["notes/02-matrices-and-rank.md", "notes/12-linear-systems.md"])).toBe(
-      "04 — Eigenvalues",
-    );
     expect(
-      parseNextChapter(curriculum, ["notes/02-matrices.md", "notes/03-systems.md", "notes/eigenvalues.md"]),
+      parseNextChapter(curriculum, [
+        { path: "notes/02-matrices-and-rank.md", title: "Matrices" },
+        { path: "notes/12-linear-systems.md" },
+      ]),
+    ).toBe("04 — Eigenvalues");
+    expect(
+      parseNextChapter(curriculum, ["notes/02-matrices.md", "notes/03-linear-systems.md", "notes/eigenvalues.md"]),
     ).toBeNull();
     expect(
       buildToday([set("algebra", { curriculum, notePaths: ["notes/02-matrices.md"] })], NOW).sets[0]?.nextChapter,
     ).toBe("03 — Linear systems");
   });
-  it("finds the first unchecked list item, ignoring completed tasks and code fences", () => {
+  it("finds the first missing note, ignoring code fences", () => {
     expect(
       parseNextChapter(
         "# Curriculum\r\n- [x] Done\r\n* [X] Also done\r\n```md\r\n- [ ] Example\r\n```\r\n  1. [ ] Matrices\r\n- [ ] SVD\r\n",
+        ["notes/done.md", "notes/also-done.md"],
       ),
     ).toBe("Matrices");
     expect(parseNextChapter("~~~md\n- [ ] Example\n~~~\n+ [ ] Vectors")).toBe("Vectors");
@@ -172,7 +176,7 @@ describe("parseNextChapter", () => {
 
   it("returns null for a missing or finished curriculum", () => {
     expect(parseNextChapter(null)).toBeNull();
-    expect(parseNextChapter("# Curriculum\n- [x] Done\n- [ ]   \n")).toBeNull();
+    expect(parseNextChapter("# Curriculum\n- [x] Done\n- [ ]   \n", ["notes/done.md"])).toBeNull();
   });
 });
 
@@ -231,4 +235,16 @@ it("separates plan and chapter reviews and uses accurate overdue details", () =>
   );
   expect(view.doNext.some((item) => item.set === "plan-only" && item.title === "Review chapters")).toBe(false);
   expect(view.doNext.find((item) => item.kind === "overdue")?.detail).toContain("0 chapter(s) and 1 plan(s)");
+});
+
+it("Today keeps re-planned chapters missing despite old numbered notes and recognises chapter ids", () => {
+  const curriculum = "- [x] 01 — Atoms\n- [ ] 02 — Bonds\n";
+  const notes = [
+    { path: "notes/01-polymers.md", title: "Polymers" },
+    { path: "notes/02-ch-2.md", title: "Ch 2" },
+  ];
+  expect(buildToday([set("polymers", { curriculum, notes })], NOW).sets[0]?.nextChapter).toBe("01 — Atoms");
+  expect(
+    parseNextChapter(curriculum, [...notes, { path: "notes/03-renamed.md", title: "Renamed", chapter: "atoms" }]),
+  ).toBe("02 — Bonds");
 });
