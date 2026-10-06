@@ -16,6 +16,7 @@ Default to a widget for interactive chapter specs. Use a sketch/story when no wi
 | Equation or parameter changes a curve | Widget | `templates/function-plot.json` |
 | Matrix changes space; singular value decomposition | Widget | `templates/matrix-transform.json` |
 | Algorithm, grammar transformation, process or small graph | Widget | `templates/step-through.json` |
+| Molecule connectivity; compare displayed and condensed forms | Positioned widget | `templates/step-through-molecule.json` |
 | Events or eras on a dated axis | Widget | `templates/timeline.json` |
 | Compare measured categories or a fixed data series | Vega-Lite | `media-authoring` chart example |
 | Labelled structure with a parameter; no widget fits | SVG sketch | `templates/svg-labelled-diagram.html` |
@@ -36,6 +37,16 @@ Read `references/subjects.md` for concrete ideas matching the PLAN subject.
    Keep JSON valid; never paste comment markers or invent schema fields.
 4. Fill realistic values and short labels, with units. Keep the example defaults usable.
    Consult `references/widgets.md` only for additional supported fields.
+   Molecules, structures, maps and every spatial diagram require authored positions:
+   use one normalized `steps[].positions` pair per item in a graph widget, or
+   explicit SVG/viewBox geometry in a sketch and its posters. Keep corresponding
+   items in consistent places across scenes. Use automatic circle layout only
+   for cycles; it does not infer molecular bonds, geography or spatial structure.
+   Copy `templates/step-through-molecule.json` for a non-crossing ethane example.
+   Graph edges represent connectivity with single lines. For double/triple bonds,
+   skeletal drawings or other chemical geometry, use an SVG sketch with explicit
+   bond strokes and atom coordinates rather than presenting the graph as a full
+   structural formula.
 5. For sketches, copy the matching `.svg` template and change its marked title,
    labels and geometry to match the default draw. Stories have one poster per scene.
    Keep filename references in the header and chapter declaration in sync.
@@ -58,6 +69,8 @@ Preserve existing `::artifact` declarations and their files.
 - [ ] Exactly one concept; one useful interaction or narrated comparison.
 - [ ] Labels and units are readable at 360 px; labels fit their reserved space.
 - [ ] Widget numbers/ranges/scenes are valid; equations use declared parameters.
+- [ ] Spatial diagrams have explicit coordinates; atom bonds and map connections
+      meet the intended items without crossings or misleading attachments.
 - [ ] HTML has a valid `studium-visual` header and `studium.mount({draw})`.
 - [ ] Every used bundled library is declared; no unused library is declared.
 - [ ] Theme comes from the draw argument, with fallbacks; colours use `studium.palette`.

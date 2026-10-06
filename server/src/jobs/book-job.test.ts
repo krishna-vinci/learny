@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FileLocks } from "../tree/lock.js";
+import { listNotes } from "../tree/read.js";
 import { assembleBook } from "./book-assemble.js";
 import { createBookJob, redactBookError } from "./book-job.js";
 import { bookPdfPath } from "./book-paths.js";
@@ -40,7 +41,7 @@ function binariesPresent(): boolean {
 const hasBinaries = binariesPresent();
 
 describe("compile-book", () => {
-  it("assembles notes in order without frontmatter, with source footnotes and bibliography", async () => {
+  it("assembles notes in course order without frontmatter, with source footnotes and bibliography", async () => {
     const note = path.join(root, "linear-algebra/notes/01-vectors.md");
     await fs.writeFile(
       path.join(root, "linear-algebra/notes/99-first.md"),
@@ -50,6 +51,22 @@ describe("compile-book", () => {
       note,
       "\nA citation [^src:lib-strang-la#p12].\n\n```mermaid\ngraph TD; A-->B\n```\n\n```md\n# Literal heading\n[^src:lib-unused#p1]\n```\n",
     );
+    // Replanned chapter identity outranks stale filenames and frontmatter order.
+    await fs.writeFile(
+      note,
+      (await fs.readFile(note, "utf8")).replace("order: 1", "order: 90\nchapter: vectors-and-linear-combinations"),
+    );
+    await fs.rename(note, path.join(root, "linear-algebra/notes/77-renamed-introduction.md"));
+    for (const [file, chapter, order] of [
+      ["02-matrices.md", "matrices-elimination-and-rank", 2],
+      ["03-svd.md", "the-singular-value-decomposition", 3],
+    ] as const) {
+      const filePath = path.join(root, "linear-algebra/notes", file);
+      await fs.writeFile(
+        filePath,
+        (await fs.readFile(filePath, "utf8")).replace(`order: ${order}`, `order: ${4 - order}\nchapter: ${chapter}`),
+      );
+    }
     const source = path.join(root, "library/lib-strang-la/source.md");
     await fs.writeFile(
       source,
@@ -62,13 +79,17 @@ describe("compile-book", () => {
     expect(book.metadata).toMatchObject({ title: "Linear algebra for ML", date: "2026-09-30" });
     expect(book.metadata.goal).toContain("modern ML papers");
     expect(book.metadata.goal).toContain("hands-on NumPy practice.");
-    expect(book.markdown.indexOf("# First by order")).toBeLessThan(
-      book.markdown.indexOf("# Vectors and linear combinations"),
-    );
+    const course = await listNotes(root, "linear-algebra");
+    const headings = course.map((note) => book.markdown.indexOf(`# ${note.title}\n`));
+    expect(headings.every((index) => index >= 0)).toBe(true);
+    expect(headings).toEqual([...headings].sort((a, b) => a - b));
     expect(book.markdown.indexOf("# Vectors and linear combinations")).toBeLessThan(
       book.markdown.indexOf("# Matrices"),
     );
     expect(book.markdown.indexOf("# Matrices")).toBeLessThan(book.markdown.indexOf("# Singular value decomposition"));
+    expect(book.markdown.indexOf("# Singular value decomposition")).toBeLessThan(
+      book.markdown.indexOf("# First by order"),
+    );
     expect(book.markdown).not.toMatch(/^(title|status|order|sources):/m);
     expect(book.markdown).toContain("::: {.deeper}");
     expect(book.markdown).toContain("*(diagram in the app)*");
@@ -388,11 +409,11 @@ it("renders widget default and capped story scenes and sketch posters without ex
   );
   await fs.writeFile(
     path.join(folder, "first.svg"),
-    '<svg xmlns="http://www.w3.org/2000/svg"><text>First still</text></svg>',
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400"><text x="20" y="40">First still</text></svg>',
   );
   await fs.writeFile(
     path.join(folder, "last.svg"),
-    '<svg xmlns="http://www.w3.org/2000/svg"><text>Last still</text></svg>',
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400"><text x="20" y="40">Last still</text></svg>',
   );
   await fs.writeFile(
     path.join(folder, "story.html"),
@@ -418,7 +439,34 @@ it("renders widget default and capped story scenes and sketch posters without ex
   expect(text).toContain("6 more scenes in Studium");
   expect(text).toContain("Begin here.");
   expect(text).toContain("End here.");
+  expect(text).toContain("![Begin here.](media/image-4.svg)");
+  expect(text).toContain("![End here.](media/image-5.svg)");
   expect(text).not.toContain("NEVER EXECUTE");
   expect(await fs.readFile(path.join(temp, "media/widget-1.svg"), "utf8")).toContain("<svg");
   expect(await fs.readdir(path.join(temp, "media"))).toHaveLength(5);
+});
+
+it("preserves authored molecule positions in default and scene book stills", async () => {
+  const { createBookMedia } = await import("./book-media.js");
+  const { parseWidget, widgetToSvg } = await import("@studium/shared/visuals");
+  const raw = await fs.readFile(
+    new URL("../../../skills/make-visual/references/templates/step-through-molecule.json", import.meta.url),
+    "utf8",
+  );
+  const folder = path.join(root, "linear-algebra/visuals");
+  await fs.mkdir(folder, { recursive: true });
+  await fs.writeFile(path.join(folder, "molecule.json"), raw);
+  const temp = await fs.mkdtemp(path.join(root, "molecule-stills-"));
+  const text = await createBookMedia(root, temp)(
+    '::visual{src="../visuals/molecule.json" title="Ethane"}',
+    "linear-algebra/notes/x.md",
+  );
+  expect(text).not.toContain("unavailable");
+  const spec = parseWidget(raw);
+  const states: Parameters<typeof widgetToSvg>[1][] = [{}, { step: 0 }, { step: 1 }];
+  for (const [index, state] of states.entries()) {
+    const still = await fs.readFile(path.join(temp, `media/widget-${index + 1}.svg`), "utf8");
+    expect(still).toBe(widgetToSvg(spec, state));
+    expect(still).toContain('x1="224.96" y1="180" x2="415.04" y2="180"');
+  }
 });

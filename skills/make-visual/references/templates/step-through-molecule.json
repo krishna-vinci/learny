@@ -1,0 +1,21 @@
+{
+  "type": "step-through",
+  "title": "Ethane: count bonds, then condense",
+  "view": "graph",
+  "steps": [
+    {
+      "caption": "Displayed ethane: each carbon has three C–H bonds and one C–C bond. Count four bonds at each carbon before stepping.",
+      "items": ["C", "C", "H", "H", "H", "H", "H", "H"],
+      "positions": [[0.32, 0.5], [0.68, 0.5], [0.02, 0.5], [0.32, 0], [0.32, 1], [0.98, 0.5], [0.68, 0], [0.68, 1]],
+      "active": [0, 1],
+      "edges": [[0, 1], [0, 2], [0, 3], [0, 4], [1, 5], [1, 6], [1, 7]]
+    },
+    {
+      "caption": "Condensed ethane: CH₃–CH₃ contains the same six hydrogens. Compare it with the displayed structure; no atoms have been removed.",
+      "items": ["CH₃", "CH₃"],
+      "positions": [[0.32, 0.5], [0.68, 0.5]],
+      "active": [0, 1],
+      "edges": [[0, 1]]
+    }
+  ]
+}
