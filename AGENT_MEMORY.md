@@ -102,7 +102,6 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - **Done:** M0–M6. M6 (PRs #3–#9 from the Claude cloud) is merged with M5. **Open:** the M4-8 review fixes (server-only run on Sol 6.1; web parts afterwards).
 
 ## Open gaps
-- `server/src/jobs/book-job.test.ts` "renders widget default and capped story scenes and sketch posters" fails on main (expects 5 stills, gets 3) — predates M13, likely M11 widget geometry changes.
 - `server/src/server.test.ts:404` ("gates default and positive plan drafts using the real approval route") fails on main — likely the draft-sources kickoff change (approval now ingests before drafting); fix the test or the gate.
 - M7 media: old YouTube sources lack `<!-- t: -->` markers and thumbnails (no re-ingest action yet); Mermaid stays a placeholder in the book (mmdc deferred); no media in Anki cards or chat embeds.
 - **Book PDF layout:** callout boxes can split across pages, leaving an orphaned header (e.g. "Deeper" at the bottom of p5, its body on p6, and a mostly blank page). Keep a callout's header with its first lines (`block(breakable: …)` or `sticky` in `server/templates/book/book.typ` / `callouts.lua`). Mermaid appears as "(diagram in the app)".
@@ -177,3 +176,4 @@ The orchestrator keeps the rest of this file current. When something listed unde
 - 2026-10-06 · replan-fix (Sol 6.1) · re-planned polymers chapters 01/02 were blocked by old notes with the same numbers after 5½ min of research each; now identity matching, fail-fast checks, fresh filenames, Other notes list. 174 tests.
 - 2026-10-06 · M14b (Sol 6.1) · ≥1 interactive Visuals-tab visual per chapter enforced, ~5 KB briefs, OpenStax/Chemguide figure capture (Pressbooks blocked by CloudFront 403). Follow-up running: explicit node positions for step-through graphs (ethane drew as a tangle on a circle layout) + the two failing book tests.
 - 2026-10-06 · delete (Sol 6.1) · note/chapter/set deletion with Undo, typed set confirmation, Settings → Recently deleted (git revert restore), confined + symlink-safe + repo-locked; exported Anki notes untouched.
+- 2026-10-06 · M14b follow-up · step-through graphs take explicit positions (molecules/maps no longer on a circle), make-visual requires coordinates for spatial diagrams; both book-job tests fixed.
