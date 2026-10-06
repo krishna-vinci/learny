@@ -94,10 +94,14 @@
     "5447bed14b257fbd2edb92cc659cd9f82d3903074a5b5e819693cbf0a80caaa7",
     "96600a543a111466ffc3dde557c450342d9d8e43533b384c3c882c86acae04c9",
     "d428778f393d938e4fa8140d1f4b13f306a1030f055008d421ec60b6ea21b60f",
-    "91833fa44b500f0511072f6f40e1a88b65cb4054c10d543e147d40a330efdd2f"
+    "91833fa44b500f0511072f6f40e1a88b65cb4054c10d543e147d40a330efdd2f",
+    "3a061620a47a9e48f50df78c058a9204aec70e1280426eeb55759392aa0548ac"
   ],
   "make-visual/references/d3.md": ["8c61b01d3fae96a3ad9d6b470c52b22da680dc8ade3420fc6b2a4e6928b217d2"],
-  "make-visual/references/fill-slots.md": ["33118dafe6f258e9ef5ea7816e8b16cd4cf65a1285a3942cdbc9975924b7f1d3"],
+  "make-visual/references/fill-slots.md": [
+    "33118dafe6f258e9ef5ea7816e8b16cd4cf65a1285a3942cdbc9975924b7f1d3",
+    "f1ae9b80db5322269ea635556cf01e278632c4590d1bad80777575ed84409158"
+  ],
   "make-visual/references/p5.md": ["61c057d2df189b3f7a5347f4ccbab5b90e1f4bed28a86b18d619c37b77abd9f9"],
   "make-visual/references/runtime.md": [
     "b3f82cf32eef290dec66af148c6e2a94918660b79ba2240976463c7f9f224c54",
@@ -129,6 +133,9 @@
   ],
   "make-visual/references/templates/p5-animation.svg": [
     "3807317b47e46253952231c7044b998d0e3ad268dba17b888732ddd42ac8acba"
+  ],
+  "make-visual/references/templates/step-through-molecule.json": [
+    "904b2f68eb2e1c8281e2581acad966c54134421fc1dce174de922b6a421583cd"
   ],
   "make-visual/references/templates/step-through.json": [
     "5dc76605a63c74d96f0d3b576b755eececf455889193b1e787c8cda31842f660",
@@ -171,7 +178,8 @@
   "make-visual/references/widgets.md": [
     "6af6a3015ac6470ad66696444fce365a460c1af71b060c33aa114f98e13e9269",
     "1cffc957cbefe4d9cd5958ef0e55710db3223b31f04646144f2e24b9545213fd",
-    "121bc470de97d2c62d09ef37fd8c7787d0deb5034f4ec241d1f878ac2916ba77"
+    "121bc470de97d2c62d09ef37fd8c7787d0deb5034f4ec241d1f878ac2916ba77",
+    "428bff55f4428c19747a986c608442e109c750c7ded08405eb732f5dd16c5e57"
   ],
   "media-authoring/SKILL.md": [
     "f237e6ddeb546afb4db7a98fd9ffae18584492ddb2252d1793973b6589cdce10",

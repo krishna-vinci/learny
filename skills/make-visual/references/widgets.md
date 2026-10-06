@@ -37,7 +37,7 @@ narrated scenes automatically; an explicit story overrides them.
 ## step-through
 
 `view`: array (default), graph, boxes. `steps`: 1–100
-`{caption,items,active?,edges?}`. Items are strings/numbers (array ≤24, graph ≤8, boxes ≤6); active indices and edge
+`{caption,items,positions?,active?,edges?}`. Items are strings/numbers (array ≤24, graph ≤8, boxes ≤6); active indices and edge
 pairs must reference existing items. Use short labels; put the explanation in captions.
 State: `step` (zero-based). Steps automatically supply narrated scenes.
 
@@ -46,6 +46,21 @@ State: `step` (zero-based). Steps automatically supply narrated scenes.
 ```
 
 For a small graph, use `view:"graph"`, node names as items and `edges:[[0,1]]`.
+`positions` is a parallel array of normalized `[x,y]` pairs, exactly one per item;
+each coordinate is 0–1, with y increasing downward. Centers map to x=56+528x,
+y=40+280y in the 640×400 viewBox, leaving room for node boxes and the step label.
+These positions override automatic layout in the app, static SVG and book scenes.
+Omitting positions preserves older layouts. Author explicit positions for every
+molecule, structure, map or spatial diagram; automatic circle placement is only
+appropriate for a cycle. Preserve corresponding atom locations across scenes.
+Copy `templates/step-through-molecule.json` for displayed-to-condensed ethane:
+
+```json
+{"type":"step-through","title":"Count ethane bonds","view":"graph","steps":[{"caption":"Count three H at each C; each C also bonds to the other C.","items":["C","C","H","H","H","H","H","H"],"positions":[[0.32,0.5],[0.68,0.5],[0.02,0.5],[0.32,0],[0.32,1],[0.98,0.5],[0.68,0],[0.68,1]],"active":[0,1],"edges":[[0,1],[0,2],[0,3],[0,4],[1,5],[1,6],[1,7]]}]}
+```
+
+Each edge is a single stroke. Use a positioned SVG sketch for displayed ethene's
+double bond, triple bonds or skeletal structures; match its poster geometry.
 For a pipeline or polymerisation stages, use `view:"boxes"` and short process labels.
 
 ## timeline

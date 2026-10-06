@@ -6,6 +6,10 @@ const step = z
   .object({
     caption: text,
     items: z.array(item).min(1).max(24),
+    positions: z
+      .array(z.tuple([z.number().min(0).max(1), z.number().min(0).max(1)]))
+      .max(24)
+      .optional(),
     active: z.array(z.number().int().nonnegative()).max(24).default([]),
     edges: z
       .array(z.tuple([z.number().int().nonnegative(), z.number().int().nonnegative()]))
@@ -13,6 +17,10 @@ const step = z
       .default([]),
   })
   .strict()
+  .refine((s) => !s.positions || s.positions.length === s.items.length, {
+    message: "Provide one normalized [x, y] position per item",
+    path: ["positions"],
+  })
   .refine(
     (s) => s.active.every((i) => i < s.items.length) && s.edges.every((e) => e.every((i) => i < s.items.length)),
     "Trace index outside items",
@@ -38,14 +46,16 @@ export function layout(spec: StepThroughSpec, state: VisualState = {}) {
     spec.steps[Math.max(0, Math.min(spec.steps.length - 1, Math.floor(Number(state.step ?? 0))))] ?? spec.steps[0];
   if (!step) throw new Error("Trace is empty");
   const positions = step.items.map((_, i) =>
-    spec.view === "graph"
-      ? [
-          320 + 160 * Math.cos((2 * Math.PI * i) / step.items.length),
-          180 + 120 * Math.sin((2 * Math.PI * i) / step.items.length),
-        ]
-      : spec.view === "boxes"
-        ? [320, 40 + (i * 280) / step.items.length]
-        : [56 + (i % 6) * 104, 70 + Math.floor(i / 6) * 72],
+    step.positions?.[i]
+      ? [56 + 528 * step.positions[i][0], 40 + 280 * step.positions[i][1]]
+      : spec.view === "graph"
+        ? [
+            320 + 160 * Math.cos((2 * Math.PI * i) / step.items.length),
+            180 + 120 * Math.sin((2 * Math.PI * i) / step.items.length),
+          ]
+        : spec.view === "boxes"
+          ? [320, 40 + (i * 280) / step.items.length]
+          : [56 + (i % 6) * 104, 70 + Math.floor(i / 6) * 72],
   );
   const nodes = step.edges.map(([a, b]) =>
     node("line", {

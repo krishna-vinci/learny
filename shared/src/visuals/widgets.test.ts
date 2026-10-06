@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import functionTemplate from "../../../skills/make-visual/references/templates/function-plot.json";
 import matrixTemplate from "../../../skills/make-visual/references/templates/matrix-transform.json";
 import stepTemplate from "../../../skills/make-visual/references/templates/step-through.json";
+import moleculeTemplate from "../../../skills/make-visual/references/templates/step-through-molecule.json";
 import timelineTemplate from "../../../skills/make-visual/references/templates/timeline.json";
 import type { Scene } from "./common.js";
 import { compileExpression } from "./expression.js";
@@ -186,6 +187,85 @@ it("validates trace indexes and renders step captions and highlighted values", (
   expect(() =>
     parseWidget(JSON.stringify({ ...spec, steps: [{ caption: "Bad", items: [1], edges: [[0, 9]] }] })),
   ).toThrow();
+});
+it("uses explicit positions for ethane and ethene connectivity without crossing bonds in layout or SVG", () => {
+  const ethane = moleculeTemplate.steps[0];
+  if (!ethane) throw new Error("Missing ethane template");
+  const ethene = {
+    caption: "Ethene connectivity: the central connection represents a double bond, each carbon has two H.",
+    items: ["C", "C", "H", "H", "H", "H"],
+    positions: [
+      [0.32, 0.5],
+      [0.68, 0.5],
+      [0.12, 0.1],
+      [0.12, 0.9],
+      [0.88, 0.1],
+      [0.88, 0.9],
+    ],
+    edges: [
+      [0, 1],
+      [0, 2],
+      [0, 3],
+      [1, 4],
+      [1, 5],
+    ],
+  };
+  const spec = parseWidget(JSON.stringify({ ...moleculeTemplate, steps: [ethane, ethene] }));
+  const side = (a: number[], b: number[], p: number[]) =>
+    ((b[0] ?? 0) - (a[0] ?? 0)) * ((p[1] ?? 0) - (a[1] ?? 0)) -
+    ((b[1] ?? 0) - (a[1] ?? 0)) * ((p[0] ?? 0) - (a[0] ?? 0));
+  for (const [step, template] of [ethane, ethene].entries()) {
+    const geometry = layoutWidget(spec, { step });
+    expectLabelsInside(geometry);
+    const bonds = geometry.nodes.filter((n) => n.tag === "line");
+    const svg = widgetToSvg(spec, { step });
+    for (const [index, bond] of bonds.entries()) {
+      const [a = 0, b = 0] = template.edges[index] ?? [];
+      expect(bond.attrs).toMatchObject({
+        x1: 56 + 528 * (template.positions[a]?.[0] ?? 0),
+        y1: 40 + 280 * (template.positions[a]?.[1] ?? 0),
+        x2: 56 + 528 * (template.positions[b]?.[0] ?? 0),
+        y2: 40 + 280 * (template.positions[b]?.[1] ?? 0),
+      });
+      for (const key of ["x1", "y1", "x2", "y2"]) expect(svg).toContain(`${key}="${bond.attrs[key]}"`);
+      const start = [Number(bond.attrs.x1), Number(bond.attrs.y1)];
+      const end = [Number(bond.attrs.x2), Number(bond.attrs.y2)];
+      for (const other of bonds.slice(index + 1)) {
+        const from = [Number(other.attrs.x1), Number(other.attrs.y1)];
+        const to = [Number(other.attrs.x2), Number(other.attrs.y2)];
+        expect(
+          side(start, end, from) * side(start, end, to) < 0 && side(from, to, start) * side(from, to, end) < 0,
+        ).toBe(false);
+      }
+    }
+  }
+});
+it("rejects incomplete or out-of-range positions and preserves legacy circle layout", () => {
+  for (const positions of [
+    [[0.5, 0.5]],
+    [
+      [-0.1, 0.5],
+      [0.7, 0.5],
+    ],
+    [
+      [0.3, 0.5],
+      [0.7, 1.1],
+    ],
+  ])
+    expect(() =>
+      parseWidget(JSON.stringify({ ...moleculeTemplate, steps: [{ ...moleculeTemplate.steps[1], positions }] })),
+    ).toThrow();
+  const legacy = parseWidget(
+    JSON.stringify({
+      type: "step-through",
+      title: "Cycle",
+      view: "graph",
+      steps: [{ caption: "Cycle", items: ["A", "B"], edges: [[0, 1]] }],
+    }),
+  );
+  const bond = layoutWidget(legacy).nodes[0]?.attrs;
+  expect(bond).toMatchObject({ x1: 480, y1: 180, x2: 160 });
+  expect(Number(bond?.y2)).toBeCloseTo(180);
 });
 it("positions BCE and ISO events and zooms a deterministic timeline", () => {
   const spec = parseWidget(
