@@ -623,5 +623,8 @@ it("persists relevant scout figure candidates in images.json, deduped with extra
       section: "Eigenvectors",
       credit: expect.any(String),
     }),
+    // M16: an unlabeled scout candidate is still a content candidate (labels only order the queue);
+    // only the unsafe .svg candidate stays out.
+    expect.objectContaining({ url: "https://example.org/scouted.png", credit: expect.any(String) }),
   ]);
 });

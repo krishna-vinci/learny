@@ -111,6 +111,17 @@ describe("listNotes", () => {
     expect(notes).toEqual([{ path: "notes/04-bad.md", title: "04-bad", order: null, status: null }]);
   });
 
+  it("numbers planned chapters from curriculum.md, not the filename", async () => {
+    await write("linear-algebra/curriculum.md", "- [x] 01 — Vectors\n- [x] 02 — Matrices\n");
+    await write("linear-algebra/notes/04-vectors.md", "---\ntitle: Vectors\n---\n");
+    await write("linear-algebra/notes/01-extra.md", "---\ntitle: Extra\n---\n");
+    const notes = await listNotes(root, "linear-algebra");
+    expect(notes.map((note) => [note.title, note.number])).toEqual([
+      ["Vectors", 1],
+      ["Extra", undefined],
+    ]);
+  });
+
   it("keeps valid note fields when a single field is invalid", async () => {
     await write("linear-algebra/notes/01-a.md", '---\ntitle: Alpha\norder: "one"\nstatus: accepted\n---\n\nA\n');
 

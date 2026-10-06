@@ -86,7 +86,7 @@ it("shows each chapter's planned media and no-video reason on the Plan page", ()
     },
   ];
   setup();
-  expect(screen.getByText("Visuals: 0/1 made")).toBeTruthy();
+  expect(screen.getByText("Pictures in text: 0/1 made")).toBeTruthy();
   expect(screen.getByText("diagram — Addition · Planned")).toBeTruthy();
   expect(screen.getByText("No suitable video: No suitable named educator found")).toBeTruthy();
 });

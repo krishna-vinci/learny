@@ -72,7 +72,8 @@ export const MediaBriefSchema = z.object({
             thumbnail: z.string().optional(),
             title: z.string(),
             creator: z.string(),
-            license: z.string(),
+            // D38: a chosen image may have no stated licence; save_asset labels it "Licence unknown".
+            license: z.string().optional(),
             licenseUrl: z.string().optional(),
             sourcePage: z.string().optional(),
             width: z.number().optional(),
@@ -85,8 +86,10 @@ export const MediaBriefSchema = z.object({
     )
     .max(3)
     .optional(),
-  figures: z.array(Figure).max(24),
-  tables: z.array(Table).max(8),
+  // Owner decision M16: capture every useful content figure; the 5 KB prompt budget, not a
+  // fixed count, decides how many reach an agent prompt.
+  figures: z.array(Figure).max(400),
+  tables: z.array(Table).max(50),
   video: z.object({
     intent: z.string(),
     status: z.enum(["chosen", "none"]),
@@ -126,17 +129,158 @@ function renderBrief(brief: MediaBrief): string {
   return `---\n${stringify(brief, { lineWidth: 0 })}---\n\n# Chapter media\n`;
 }
 
+// Common words carry no concept signal; keeping them would rank every figure near-equal.
+const RELEVANCE_STOPWORDS = new Set([
+  "the",
+  "and",
+  "for",
+  "with",
+  "that",
+  "this",
+  "from",
+  "into",
+  "your",
+  "their",
+  "them",
+  "they",
+  "these",
+  "those",
+  "same",
+  "when",
+  "where",
+  "which",
+  "while",
+  "will",
+  "would",
+  "should",
+  "could",
+  "have",
+  "has",
+  "had",
+  "are",
+  "was",
+  "were",
+  "been",
+  "not",
+  "but",
+  "its",
+  "you",
+  "can",
+  "use",
+  "used",
+  "using",
+  "one",
+  "two",
+  "three",
+  "more",
+  "than",
+  "then",
+  "only",
+  "also",
+  "about",
+  "over",
+  "under",
+  "between",
+  "across",
+  "each",
+  "other",
+  "some",
+  "any",
+  "our",
+  "out",
+  "how",
+  "why",
+  "what",
+  "who",
+  "write",
+  "read",
+  "draw",
+  "drawing",
+  "simple",
+  "make",
+  "made",
+  "show",
+  "shows",
+  "shown",
+  "need",
+  "needs",
+  "like",
+  "such",
+  "part",
+  "parts",
+  "type",
+  "types",
+]);
+
+function relevanceTerms(text: string | undefined): string[] {
+  const words = (text ?? "").toLowerCase().match(/[\p{L}\p{N}]{4,}/gu) ?? [];
+  return [...new Set(words.filter((term) => !RELEVANCE_STOPWORDS.has(term)))];
+}
+
+interface RelevanceChapter {
+  title?: string;
+  scope?: string;
+  visuals?: readonly (string | { intent?: string })[];
+  video?: string | { intent?: string };
+}
+
+/** Term weights for a chapter: scope and visual intents outrank the title and video need. */
+export function figureRelevanceWeights(chapter: RelevanceChapter): Map<string, number> {
+  const weights = new Map<string, number>();
+  const add = (text: string | undefined, weight: number) => {
+    for (const term of relevanceTerms(text)) weights.set(term, Math.max(weights.get(term) ?? 0, weight));
+  };
+  add(chapter.title, 2);
+  add(chapter.scope, 3);
+  for (const visual of chapter.visuals ?? [])
+    add((typeof visual === "string" ? visual : visual.intent)?.replace(/^[a-z-]+\s*[—–-]\s*/i, ""), 3);
+  add(typeof chapter.video === "string" ? chapter.video : chapter.video?.intent, 1);
+  return weights;
+}
+
+export function figureRelevance(
+  figure: { caption?: string; alt?: string; section?: string },
+  weights: ReadonlyMap<string, number>,
+): number {
+  const text = `${figure.caption ?? ""} ${figure.alt ?? ""} ${figure.section ?? ""}`.toLowerCase();
+  let score = 0;
+  for (const [term, weight] of weights) if (text.includes(term)) score += weight;
+  return score;
+}
+
+/** Most relevant figures first; downloaded candidates break ties, then original order. */
+export function rankFiguresForBrief<T extends { caption: string; alt: string; section: string; path?: string }>(
+  figures: readonly T[],
+  chapter: RelevanceChapter,
+): T[] {
+  const weights = figureRelevanceWeights(chapter);
+  return figures
+    .map((figure, index) => ({ figure, index, score: figureRelevance(figure, weights) }))
+    .sort((a, b) => b.score - a.score || Number(!!b.figure.path) - Number(!!a.figure.path) || a.index - b.index)
+    .map((entry) => entry.figure);
+}
+
+export function rankTablesForBrief<T extends { text: string }>(tables: readonly T[], chapter: RelevanceChapter): T[] {
+  const weights = figureRelevanceWeights(chapter);
+  return tables
+    .map((table, index) => ({ table, index, score: figureRelevance({ caption: table.text }, weights) }))
+    .sort((a, b) => b.score - a.score || a.index - b.index)
+    .map((entry) => entry.table);
+}
+
 /** Old briefs remain readable; only the bounded selection enters agent prompts. */
 export function leanMediaBrief(brief: MediaBrief): MediaBrief {
   const lean = MediaBriefSchema.parse(brief);
-  lean.figures = lean.figures.slice(0, 6).map((f) => ({
+  // Rank by chapter scope/intents before the byte budget trims, so the most relevant figures
+  // survive the prompt compaction instead of the first N in capture order.
+  lean.figures = rankFiguresForBrief(lean.figures, lean).map((f) => ({
     ...f,
     alt: f.alt.slice(0, 160),
     caption: f.caption.slice(0, 300),
     section: f.section.slice(0, 120),
     credit: f.credit.slice(0, 300),
   }));
-  lean.tables = lean.tables.slice(0, 2).map((t) => ({ ...t, text: t.text.slice(0, 400) }));
+  lean.tables = rankTablesForBrief(lean.tables, lean).map((t) => ({ ...t, text: t.text.slice(0, 400) }));
   if (lean.video.reason) lean.video.reason = lean.video.reason.slice(0, 300);
   const fits = () =>
     Math.max(Buffer.byteLength(renderBrief(lean)), Buffer.byteLength(JSON.stringify(lean))) <= MAX_MEDIA_BRIEF_BYTES;
@@ -153,8 +297,41 @@ export function leanMediaBrief(brief: MediaBrief): MediaBrief {
         delete image.choice.path;
       }
     }
-  while (!fits() && lean.tables.length) lean.tables.pop();
-  while (!fits() && lean.figures.length) lean.figures.pop();
+  // Select evidence that adds chapter concepts before repeating concepts already represented.
+  // Figures and tables compete together, and an oversized candidate cannot crowd out a smaller one.
+  const weights = figureRelevanceWeights(lean);
+  const remaining = new Map(weights);
+  const candidates = [
+    ...lean.figures.map((item) => ({
+      kind: "figure" as const,
+      item,
+      text: `${item.caption} ${item.alt} ${item.section}`.toLowerCase(),
+      relevance: figureRelevance(item, weights),
+    })),
+    ...lean.tables.map((item) => ({
+      kind: "table" as const,
+      item,
+      text: item.text.toLowerCase(),
+      relevance: figureRelevance({ caption: item.text }, weights),
+    })),
+  ].filter((candidate) => candidate.relevance > 0);
+  lean.figures = [];
+  lean.tables = [];
+  const score = (candidate: (typeof candidates)[number]) =>
+    figureRelevance({ caption: candidate.text }, remaining) + candidate.relevance / 4;
+  while (candidates.length) {
+    candidates.sort((a, b) => score(b) - score(a));
+    const candidate = candidates.shift();
+    if (!candidate) break;
+    if (candidate.kind === "figure") lean.figures.push(candidate.item);
+    else lean.tables.push(candidate.item);
+    if (!fits()) {
+      if (candidate.kind === "figure") lean.figures.pop();
+      else lean.tables.pop();
+      continue;
+    }
+    for (const term of remaining.keys()) if (candidate.text.includes(term)) remaining.delete(term);
+  }
   if (!fits()) throw new Error("Visual specifications exceed the 5 KB media brief budget; shorten the plan intents");
   return lean;
 }

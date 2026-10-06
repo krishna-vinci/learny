@@ -15,6 +15,23 @@ import { validateAgentMedia } from "../tree/media.js";
 import { canonicalRel, resolveInRoot } from "../tree/paths.js";
 
 export function createBookMedia(root: string, temp: string) {
+  /** Escape printable credit text; the source URL is turned into a real Markdown link below. */
+  const escapeCredit = (text: string): string => text.replace(/[\\`*_[\]<>]/g, "\\$&");
+  /** A credit line whose trailing URL becomes a link so Pandoc emits a Link, not a bare Str. */
+  const creditLine = (credit: string): string => {
+    const match = /^(.*?)(https?:\/\/\S+)\s*$/.exec(credit);
+    const url = match?.[2];
+    if (!match?.[1] || !url || !/^https?:\/\/[^\s<>]+$/.test(url)) return escapeCredit(credit);
+    const target = /[()]/.test(url) ? `<${url}>` : url;
+    return `${escapeCredit(match[1])}[${escapeCredit(url)}](${target})`;
+  };
+  /** Compare credits ignoring markdown emphasis and link syntax, so a repeated line dedupes. */
+  const normalizeCredit = (text: string): string =>
+    text
+      .replace(/\[([^\]]*)\]\([^)\s]*\)/g, "$1")
+      .replace(/[*_`]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
   let count = 0;
   let charts = 0;
   const copied = new Map<string, string>();
@@ -60,7 +77,7 @@ export function createBookMedia(root: string, temp: string) {
         return null;
       if (copied.has(canonical)) return copied.get(canonical) ?? null;
       const abs = resolveInRoot(root, rel);
-      if ((await fs.stat(abs)).size > 10 * 1024 * 1024) return null;
+      if ((await fs.stat(abs)).size > 25 * 1024 * 1024) return null;
       const bytes = await fs.readFile(abs);
       if (src.toLowerCase().endsWith(".svg")) validateAgentMedia(rel, bytes.toString("utf8"));
       const target = `media/image-${++count}${path.extname(src).toLowerCase()}`;
@@ -82,7 +99,10 @@ export function createBookMedia(root: string, temp: string) {
       definitions.set(match[1]?.toLowerCase() ?? "", match[2] ?? "");
     const lines: string[] = [];
     const sourceLines = chapter.body.split("\n");
+    const dropLines = new Set<number>();
     for (let lineIndex = 0; lineIndex < sourceLines.length; lineIndex++) {
+      // A drafter line that repeated a credit is replaced by the linked credit line below.
+      if (dropLines.has(lineIndex)) continue;
       const line = sourceLines[lineIndex] ?? "";
       const marker = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
       if (fence) {
@@ -138,7 +158,16 @@ export function createBookMedia(root: string, temp: string) {
         offset = match.index + match[0].length;
       }
       lines.push(updated + line.slice(offset));
-      for (const credit of credits) lines.push("", credit.replace(/[\\`*_[\]<>]/g, "\\$&"), "");
+      for (const credit of credits) {
+        // The drafter sometimes repeats the credit as its own line; print one linked credit instead.
+        for (let next = lineIndex + 1; next < sourceLines.length; next++) {
+          const candidate = sourceLines[next] ?? "";
+          if (!candidate.trim()) continue;
+          if (normalizeCredit(candidate) === normalizeCredit(credit)) dropLines.add(next);
+          break;
+        }
+        lines.push("", creditLine(credit), "");
+      }
     }
     if (chapter.visuals.length) {
       lines.push("", "## Visuals in Studium", "");

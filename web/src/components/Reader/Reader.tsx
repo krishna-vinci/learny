@@ -14,7 +14,7 @@ import {
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
-import { useHighlights, useSaveFile } from "@/api/queries";
+import { useHighlights, useNotes, useSaveFile } from "@/api/queries";
 import { showJobStartedToast } from "@/components/Activity/job-start-toast";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useDeleteNote } from "@/components/Deletion";
@@ -187,6 +187,14 @@ export function Reader({ set, path, file, className }: ReaderProps) {
   const deletion = useDeleteNote({ set, path, leaveReader: true });
   const [searchParams, setSearchParams] = useSearchParams();
   const visualsOpen = searchParams.get("view") === "visuals";
+  // Chapter number comes from the plan (NoteSummary.number); unplanned notes show none.
+  const notes = useNotes(set).data;
+  const chapterNumber = Array.isArray(notes) ? notes.find((note) => note.path === path)?.number : undefined;
+  const numberEyebrow = chapterNumber != null && (
+    <p className="mb-1 text-sm font-medium text-muted-foreground" data-testid="chapter-number">
+      Chapter {chapterNumber}
+    </p>
+  );
   const chapter = useMemo(() => chapterVisuals(file.body, `${set}/${path}`), [file.body, set, path]);
   function changeView(view: string) {
     if (!visualsOpen) saveScrollPosition(set, path, window.scrollY);
@@ -470,6 +478,7 @@ export function Reader({ set, path, file, className }: ReaderProps) {
             className="mx-auto w-full"
             style={{ maxWidth: "calc(var(--reader-measure, 72ch) + 4rem)" }}
           >
+            {numberEyebrow}
             {!bodyHasTitle && (
               <h1 className="mb-4 text-2xl font-semibold text-foreground">{titleFromFrontmatter(file)}</h1>
             )}
@@ -497,6 +506,7 @@ export function Reader({ set, path, file, className }: ReaderProps) {
             <VisualsWhisper count={chapter.visuals.length} onOpen={() => changeView("visuals")} />
           </Tabs.Panel>
           <Tabs.Panel value="visuals" hidden={!visualsOpen}>
+            {numberEyebrow}
             <h1 className="text-2xl font-semibold text-foreground">{titleFromFrontmatter(file)}</h1>
             <Suspense fallback={<Skeleton className="h-[65svh] w-full" aria-label="Opening visuals" />}>
               <ChapterVisuals

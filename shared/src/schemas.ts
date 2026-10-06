@@ -97,9 +97,12 @@ export type SearchConfig = z.infer<typeof SearchConfig>;
 export const ConfigYaml = z.looseObject({
   search: SearchConfig,
   media: z
-    .object({ allowNonCommercial: z.boolean().catch(true).default(true) })
-    .catch({ allowNonCommercial: true })
-    .default({ allowNonCommercial: true }),
+    .object({
+      allowNonCommercial: z.boolean().catch(true).default(true),
+      allowUnknownLicense: z.boolean().catch(true).default(true),
+    })
+    .catch({ allowNonCommercial: true, allowUnknownLicense: true })
+    .default({ allowNonCommercial: true, allowUnknownLicense: true }),
   visuals: z.object({ router: z.literal("off").default("off") }).default({ router: "off" }),
   models: z.looseObject({
     default: z.string(),

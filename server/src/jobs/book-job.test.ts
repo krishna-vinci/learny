@@ -8,6 +8,7 @@ import { FileLocks } from "../tree/lock.js";
 import { listNotes } from "../tree/read.js";
 import { assembleBook } from "./book-assemble.js";
 import { createBookJob, redactBookError } from "./book-job.js";
+import { createBookMedia } from "./book-media.js";
 import { bookPdfPath } from "./book-paths.js";
 import { formatJobLogLine, parseJobLogLine } from "./log.js";
 import type { JobContext } from "./runner.js";
@@ -39,6 +40,37 @@ function binariesPresent(): boolean {
   }
 }
 const hasBinaries = binariesPresent();
+
+function pandocPresent(): boolean {
+  try {
+    execFileSync("pandoc", ["--version"], { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function pandocJson(markdown: string): { blocks?: unknown[] } {
+  return JSON.parse(
+    execFileSync("pandoc", ["-f", "markdown+tex_math_dollars+fenced_divs-raw_attribute", "-t", "json"], {
+      input: markdown,
+      encoding: "utf8",
+    }),
+  );
+}
+
+function collectLinks(value: unknown, found: { url: string }[] = []): { url: string }[] {
+  if (Array.isArray(value)) for (const item of value) collectLinks(item, found);
+  else if (value && typeof value === "object") {
+    const node = value as { t?: string; c?: unknown };
+    if (node.t === "Link" && Array.isArray(node.c)) {
+      const target = node.c[2];
+      if (Array.isArray(target) && typeof target[0] === "string") found.push({ url: target[0] });
+    }
+    for (const child of Object.values(node)) collectLinks(child, found);
+  }
+  return found;
+}
 
 describe("compile-book", () => {
   it("assembles notes in course order without frontmatter, with source footnotes and bibliography", async () => {
@@ -80,16 +112,14 @@ describe("compile-book", () => {
     expect(book.metadata.goal).toContain("modern ML papers");
     expect(book.metadata.goal).toContain("hands-on NumPy practice.");
     const course = await listNotes(root, "linear-algebra");
-    const headings = course.map((note) => book.markdown.indexOf(`# ${note.title}\n`));
+    const heading = (note: { title: string; number?: number }) =>
+      `# ${note.number != null ? `Chapter ${note.number} · ` : ""}${note.title}`;
+    const headings = course.map((note) => book.markdown.indexOf(`${heading(note)}\n`));
     expect(headings.every((index) => index >= 0)).toBe(true);
     expect(headings).toEqual([...headings].sort((a, b) => a - b));
-    expect(book.markdown.indexOf("# Vectors and linear combinations")).toBeLessThan(
-      book.markdown.indexOf("# Matrices"),
-    );
-    expect(book.markdown.indexOf("# Matrices")).toBeLessThan(book.markdown.indexOf("# Singular value decomposition"));
-    expect(book.markdown.indexOf("# Singular value decomposition")).toBeLessThan(
-      book.markdown.indexOf("# First by order"),
-    );
+    // Planned chapters are numbered from the plan; the unplanned note keeps a plain heading.
+    expect(book.markdown).toContain("# Chapter 1 · Vectors and linear combinations\n");
+    expect(book.markdown).toContain(heading({ title: "First by order" }));
     expect(book.markdown).not.toMatch(/^(title|status|order|sources):/m);
     expect(book.markdown).toContain("::: {.deeper}");
     expect(book.markdown).toContain("*(diagram in the app)*");
@@ -132,6 +162,36 @@ describe("compile-book", () => {
       usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, costUsd: 0 },
     });
     expect(parseJobLogLine(line, "linear-algebra")?.kind).toBe("compile-book");
+  });
+
+  it.skipIf(!pandocPresent())("prints an image credit source URL as a real Pandoc Link, exactly once", async () => {
+    const temp = await fs.mkdtemp(path.join(os.tmpdir(), "studium-book-credit-"));
+    try {
+      const convert = createBookMedia(root, temp);
+      const credit = "Credit: Photographer, all rights reserved, https://example.org/photo";
+      const markdown = await convert(
+        `![City](../assets/city.jpg "${credit}")\n*Notice the minarets.*\n`,
+        "linear-algebra/notes/01-vectors.md",
+      );
+      const ast = pandocJson(markdown);
+      expect(collectLinks(ast).map((link) => link.url)).toContain("https://example.org/photo");
+      expect(markdown.match(/all rights reserved/g) ?? []).toHaveLength(1);
+      // A drafter line that repeats the same credit must not print a second copy.
+      const deduped = await convert(
+        `![City](../assets/city.jpg "${credit}")\n\n*${credit}*\n`,
+        "linear-algebra/notes/01-vectors.md",
+      );
+      expect(deduped.match(/all rights reserved/g) ?? []).toHaveLength(1);
+      expect(collectLinks(pandocJson(deduped)).map((link) => link.url)).toContain("https://example.org/photo");
+      const sourcePage = "https://example.org/File:Material_(example).jpg";
+      const parenthesized = await convert(
+        `![Material](../assets/city.jpg "Credit: Photographer, all rights reserved, ${sourcePage}")`,
+        "linear-algebra/notes/01-vectors.md",
+      );
+      expect(collectLinks(pandocJson(parenthesized)).map((link) => link.url)).toContain(sourcePage);
+    } finally {
+      await fs.rm(temp, { recursive: true, force: true });
+    }
   });
 
   it.skipIf(!hasBinaries)(
@@ -483,7 +543,11 @@ it("prints a raster Markdown title credit below the copied image", async () => {
       "linear-algebra/notes/a.md",
     );
     expect(rendered).toContain("![Photo](media/image-1.png)");
-    expect(rendered).toContain(`\n\n${credit}\n`);
+    // The source URL becomes a real Markdown link so the book prints a clickable source.
+    expect(rendered).toContain(
+      "\n\nCredit: Photographer, CC BY 4.0, [https://example.org/photo](https://example.org/photo)\n",
+    );
+    expect(rendered.match(/CC BY 4\.0/g) ?? []).toHaveLength(1);
     expect(rendered).toContain("Notice the texture.");
   } finally {
     await fs.rm(temp, { recursive: true, force: true });

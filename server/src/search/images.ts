@@ -1,4 +1,10 @@
-import { figureLicense, licenseUrl, plainCredit, reusableLicense } from "../ingest/image-license.js";
+import {
+  embeddableLicense,
+  figureLicense,
+  licenseUrl,
+  type MediaLicensePolicy,
+  plainCredit,
+} from "../ingest/image-license.js";
 import { safeFetch } from "../ingest/safe-fetch.js";
 import { htmlToMarkdown } from "../ingest/web.js";
 import type { SearchResult } from "./backends.js";
@@ -159,7 +165,7 @@ export function rankImages(
   candidates: readonly ImageCandidate[],
   concept: string,
   subject: string,
-  allowNC = true,
+  policy: MediaLicensePolicy = { allowNonCommercial: true, allowUnknownLicense: false },
 ): ImageCandidate[] {
   const terms = new Set(`${concept} ${subject}`.toLowerCase().match(/[\p{L}\p{N}]{3,}/gu) ?? []);
   const seen = new Set<string>();
@@ -167,7 +173,7 @@ export function rankImages(
     .filter((c) => {
       if (
         seen.has(c.url) ||
-        !reusableLicense(c.license, allowNC) ||
+        !embeddableLicense(c.license, policy) ||
         /\b(?:logo|icon|banner|advertisement)\b/i.test(c.title)
       )
         return false;

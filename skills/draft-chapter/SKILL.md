@@ -118,14 +118,18 @@ learner-facing line explaining the absence. Silent omissions block checking.
 `library/<id>/images.json` v2 stores local `figures/` paths, original URL, alt,
 caption, section, license (when known), and credit; legacy remote-only entries
 remain readable. Inspect the local source figure before using or redrawing it.
-Embed source rasters with explicit CC BY/BY-SA, CC0 or public-domain permission.
-CC BY-NC and BY-NC-SA are allowed for personal non-commercial study when the
-instance setting `media.allowNonCommercial` is true (the default). CC BY-ND and
-BY-NC-ND require the original unmodified file: never crop, edit or re-encode it.
-Unknown/all-rights-reserved images must be linked or replaced with an original
-cited schematic, never embedded. Use `save_asset` with the chosen URL, sourceId
-when present, name and alt. Paste its exact Markdown including the `Credit:` title;
-the sidecar keeps creator, licence, licence URL, source page and the saved hash.
+Prefer the real image whenever it shows the real thing (photograph, micrograph,
+artefact, organism, instrument or source diagram); redraw as SVG only for schematic
+teaching diagrams or when the image is poor. When the instance setting
+`media.allowUnknownLicense` is true (the default, D38), embed any raster unmodified
+with a full credit: creator if known, the licence as stated or "Licence unknown",
+and the source page link. `media.allowNonCommercial` matters only when
+`allowUnknownLicense` is false: there, permissive CC BY/BY-SA/CC0/public domain are
+embedded, plus CC BY-NC when the NC setting stays true. Either way ND images keep
+their original bytes and hash: never crop, edit or re-encode. Use `save_asset` with the
+chosen URL, sourceId when present, name and alt. Paste its exact Markdown including
+the `Credit:` title; the sidecar keeps creator, licence, licence URL, source page
+and the saved hash.
 When tools are unavailable, return the complete redraw/credit or explain why a
 permitted local copy cannot be saved; never claim a missing asset exists.
 

@@ -12,6 +12,8 @@ import {
   type MediaBrief,
   mediaPlanBlockers,
   noteMediaBrief,
+  rankFiguresForBrief,
+  rankTablesForBrief,
   readMediaBrief,
   realisedVisuals,
   saveMediaBrief,
@@ -283,4 +285,69 @@ it("compacts three image choices under 5 KB while saving their complete attribut
     sourcePage: "https://example.org/material-0",
     thumbnail: "https://example.org/thumb-0.jpg",
   });
+});
+
+it("ranks chapter scope and visual intents above capture order for figures and tables", () => {
+  const chapter = {
+    title: "Carbon structures and reactive groups",
+    scope:
+      "Read displayed, condensed and simple line structures; recognize alkene, alcohol, carboxylic acid, amine, ester and amide groups.",
+    visuals: [
+      "chart — The same molecule in three drawing conventions",
+      "figure — Highlighted functional groups in polymer-related molecules",
+    ],
+  };
+  const figure = (caption: string, section: string, path?: string) => ({
+    caption,
+    alt: "",
+    section,
+    ...(path ? { path } : {}),
+  });
+  const ranked = rankFiguresForBrief(
+    [
+      figure("Thermal transitions in amorphous and semicrystalline polymers", "Thermal behaviour", "library/a/1.png"),
+      figure("DNA double helix structure", "Nucleic acids", "library/a/2.png"),
+      figure(
+        "Functional groups: alcohol, carboxylic acid, amine, ester and amide",
+        "Drawing line structures",
+        "library/a/3.png",
+      ),
+    ],
+    chapter,
+  );
+  expect(ranked[0]?.caption).toContain("Functional groups");
+  expect(ranked.at(-1)?.caption).toContain("DNA");
+  const tables = rankTablesForBrief(
+    [
+      { sourceId: "a", file: "f", anchor: "t1", text: "| Tg | melting |" },
+      { sourceId: "a", file: "f", anchor: "t2", text: "| carboxylic acid | amine | ester | amide |" },
+    ],
+    chapter,
+  );
+  expect(tables[0]?.text).toContain("carboxylic acid");
+});
+
+it("keeps distinct chapter concepts within the brief budget instead of redundant figures", () => {
+  const candidate: MediaBrief = {
+    ...brief,
+    chapter: "Carbon structures and reactive groups",
+    scope: "Condensed line structures and functional groups",
+    visuals: [
+      { id: "visual-1", intent: "chart — Condensed line structures" },
+      { id: "visual-2", intent: "figure — Functional groups" },
+    ],
+    figures: Array.from({ length: 12 }, (_, index) => ({
+      sourceId: "drawing",
+      url: `https://example.org/${index}/${"x".repeat(250)}`,
+      alt: "Condensed line structures",
+      caption: "Condensed line structures",
+      section: "Condensed line structures",
+      credit: "Author, Licence unknown, https://example.org/drawing",
+    })),
+    tables: [{ sourceId: "groups", file: "parsed.md", anchor: "groups", text: "| Functional groups |" }],
+  };
+  const lean = leanMediaBrief(candidate);
+  expect(lean.figures.length).toBeGreaterThan(0);
+  expect(lean.tables.map((table) => table.anchor)).toContain("groups");
+  expect(Buffer.byteLength(JSON.stringify(lean))).toBeLessThanOrEqual(MAX_MEDIA_BRIEF_BYTES);
 });

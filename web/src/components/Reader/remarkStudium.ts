@@ -227,3 +227,49 @@ export function remarkStudiumCitations() {
     });
   };
 }
+
+function elementText(node: MinimalNode): string {
+  if (node.type === "text") return typeof node.value === "string" ? node.value : "";
+  return (node.children ?? []).map(elementText).join("");
+}
+
+/**
+ * `NoteImage` prints an image's `Credit:` title below it, and agents sometimes also write the
+ * same credit as its own paragraph. Drop that paragraph when it just repeats the image title
+ * so the reader (and the book, which shares the convention) does not show the credit twice.
+ */
+export function rehypeDedupeCredits() {
+  return (tree: MinimalNode) => {
+    visit(tree, (node) => {
+      const children = node.children;
+      if (!children) return;
+      for (let index = 0; index < children.length; index++) {
+        const child = children[index];
+        if (child?.type !== "element") continue;
+        const image = child.tagName === "img" ? child : child.tagName === "p" ? findImage(child) : undefined;
+        const title = (image?.properties as Record<string, unknown> | undefined)?.title;
+        if (typeof title !== "string" || !/^Credit:\s*\S/.test(title)) continue;
+        // Markdown leaves whitespace text nodes between blocks; skip them.
+        let nextIndex = index + 1;
+        while (
+          nextIndex < children.length &&
+          children[nextIndex]?.type === "text" &&
+          !String(children[nextIndex]?.value ?? "").trim()
+        )
+          nextIndex++;
+        const next = children[nextIndex];
+        if (next?.type === "element" && next.tagName === "p" && elementText(next).trim() === title.trim())
+          children.splice(nextIndex, 1);
+      }
+    });
+  };
+}
+
+function findImage(node: MinimalNode): MinimalNode | undefined {
+  if (node.type === "element" && node.tagName === "img") return node;
+  for (const child of node.children ?? []) {
+    const found = findImage(child);
+    if (found) return found;
+  }
+  return undefined;
+}

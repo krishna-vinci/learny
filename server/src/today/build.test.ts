@@ -156,13 +156,13 @@ describe("parseNextChapter", () => {
         { path: "notes/02-matrices-and-rank.md", title: "Matrices" },
         { path: "notes/12-linear-systems.md" },
       ]),
-    ).toBe("04 — Eigenvalues");
+    ).toBe("4. Eigenvalues");
     expect(
       parseNextChapter(curriculum, ["notes/02-matrices.md", "notes/03-linear-systems.md", "notes/eigenvalues.md"]),
     ).toBeNull();
     expect(
       buildToday([set("algebra", { curriculum, notePaths: ["notes/02-matrices.md"] })], NOW).sets[0]?.nextChapter,
-    ).toBe("03 — Linear systems");
+    ).toBe("3. Linear systems");
   });
   it("finds the first missing note, ignoring code fences", () => {
     expect(
@@ -170,8 +170,8 @@ describe("parseNextChapter", () => {
         "# Curriculum\r\n- [x] Done\r\n* [X] Also done\r\n```md\r\n- [ ] Example\r\n```\r\n  1. [ ] Matrices\r\n- [ ] SVD\r\n",
         ["notes/done.md", "notes/also-done.md"],
       ),
-    ).toBe("Matrices");
-    expect(parseNextChapter("~~~md\n- [ ] Example\n~~~\n+ [ ] Vectors")).toBe("Vectors");
+    ).toBe("3. Matrices");
+    expect(parseNextChapter("~~~md\n- [ ] Example\n~~~\n+ [ ] Vectors")).toBe("1. Vectors");
   });
 
   it("returns null for a missing or finished curriculum", () => {
@@ -243,8 +243,8 @@ it("Today keeps re-planned chapters missing despite old numbered notes and recog
     { path: "notes/01-polymers.md", title: "Polymers" },
     { path: "notes/02-ch-2.md", title: "Ch 2" },
   ];
-  expect(buildToday([set("polymers", { curriculum, notes })], NOW).sets[0]?.nextChapter).toBe("01 — Atoms");
+  expect(buildToday([set("polymers", { curriculum, notes })], NOW).sets[0]?.nextChapter).toBe("1. Atoms");
   expect(
     parseNextChapter(curriculum, [...notes, { path: "notes/03-renamed.md", title: "Renamed", chapter: "atoms" }]),
-  ).toBe("02 — Bonds");
+  ).toBe("2. Bonds");
 });

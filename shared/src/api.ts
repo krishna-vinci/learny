@@ -47,6 +47,8 @@ export interface NoteSummary {
   path: string;
   title: string;
   order: number | null;
+  /** Chapter number from curriculum.md when this note is a planned chapter; never from the filename. */
+  number?: number;
   status: "draft" | "checked" | "accepted" | null;
 }
 export interface FileView {
@@ -203,7 +205,8 @@ export interface EvidenceCoverage {
 }
 
 export interface ChapterMedia {
-  visuals: { intent: string; made: boolean; path?: string; reason?: string }[];
+  /** `interactive`: rendered in the Visuals tab (widget, step-through, sketch, story); otherwise a picture in the text. */
+  visuals: { intent: string; made: boolean; interactive?: boolean; path?: string; reason?: string }[];
   video: {
     intent: string;
     status: "planned" | "chosen" | "none";

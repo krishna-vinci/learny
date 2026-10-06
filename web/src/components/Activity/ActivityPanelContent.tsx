@@ -3,11 +3,11 @@
 // request can be rebuilt from the job view. The indicator renders it inside either a
 // desktop popover or a phone bottom sheet.
 import type { JobKind, JobStatus, JobView } from "@studium/shared";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BookOpenIcon, LayersIcon, LinkIcon, ListTreeIcon, NotebookTextIcon, TriangleAlertIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api } from "@/api/client";
-import { useCurrentUser, useJobs, useSets } from "@/api/queries";
+import { queryKeys, useCurrentUser, useJobs, useSets } from "@/api/queries";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -70,6 +70,14 @@ function JobRow({
   const active = isActiveJob(job);
   const KindIcon = KIND_ICONS[job.kind];
   const warning = youtubeTranscriptWarning(job.result?.transcriptStatus, isAdmin, job.result?.warning);
+  // Chapter jobs carry the plan title; the number comes from the set's course, not the job text.
+  const chapterJob = job.kind === "draft-chapter" || job.kind === "rewrite-chapter";
+  const { data: course } = useQuery({
+    queryKey: queryKeys.course(job.set ?? ""),
+    queryFn: () => api.sets.course(job.set as string),
+    enabled: !!job.set && chapterJob,
+  });
+  const number = chapterJob ? course?.chapters.find((chapter) => chapter.title === job.title)?.order : undefined;
   return (
     <li
       className={cn(
@@ -85,7 +93,9 @@ function JobRow({
         )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{job.title}</span>
+            <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+              {number != null ? `${number}. ${job.title}` : job.title}
+            </span>
             <StatusChip status={job.status} />
           </div>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">

@@ -1,5 +1,10 @@
 local callouts = { definition = "Definition", theorem = "Theorem", example = "Example", deeper = "Deeper" }
 
+-- Chapter headings read "Chapter N · Title"; notes commonly repeat just the title below.
+local function title_of(header)
+  return (pandoc.utils.stringify(header.content):gsub("^Chapter %d+ · ", ""))
+end
+
 function Pandoc(doc)
   -- User-authored raw code and images never reach the compiler or trigger fetches.
   doc = doc:walk({
@@ -20,7 +25,7 @@ function Pandoc(doc)
         table.remove(div.content, 1)
         -- Notes commonly repeat their frontmatter title as the first heading.
         if div.content[1] and div.content[1].t == "Header" and
-          pandoc.utils.stringify(div.content[1].content) == pandoc.utils.stringify(chapter.content) then
+          title_of(div.content[1]) == title_of(chapter) then
           table.remove(div.content, 1)
         end
         -- The shallowest remaining heading starts directly beneath the chapter.

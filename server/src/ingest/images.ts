@@ -1,4 +1,5 @@
 import { parseHTML } from "linkedom";
+import { MIN_IMAGE_PIXELS } from "./image-bytes.js";
 
 export interface SourceImage {
   url: string;
@@ -51,7 +52,6 @@ export function collectImages(
         if (size !== undefined && size < 2048) continue;
         seen.add(url.href);
         images.push({ url: url.href, alt: match[1] ?? "", nearHeading: heading });
-        if (images.length === 50) return images;
       } catch {
         /* Malformed image URLs are ignored. */
       }
@@ -79,7 +79,15 @@ export function collectHtmlImages(html: string, pageUrl: string): SourceImage[] 
     if (node.tagName !== "IMG") continue;
     const width = Number(node.getAttribute("width")),
       height = Number(node.getAttribute("height"));
-    if ((width > 0 && width < 64) || (height > 0 && height < 64)) continue;
+    // Decorative images are small in every known dimension; a wide banner-style diagram
+    // (e.g. 166x68) is still content.
+    const small =
+      width > 0 && height > 0
+        ? width < MIN_IMAGE_PIXELS && height < MIN_IMAGE_PIXELS
+        : width > 0
+          ? width < MIN_IMAGE_PIXELS
+          : height > 0 && height < MIN_IMAGE_PIXELS;
+    if (small) continue;
     const set: string | null | undefined =
       node.getAttribute("data-srcset") ||
       node.getAttribute("srcset") ||
@@ -115,7 +123,6 @@ export function collectHtmlImages(html: string, pageUrl: string): SourceImage[] 
         nearHeading: heading,
         ...(caption || (!alt && context) ? { caption: caption || context } : {}),
       });
-      if (images.length === 50) break;
     } catch {
       /* Invalid image URLs never enter discovery. */
     }

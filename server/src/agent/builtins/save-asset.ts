@@ -4,10 +4,10 @@ import { defineTool, type ToolDefinition } from "@earendil-works/pi-coding-agent
 import { parseFrontmatter } from "@studium/shared";
 import { Type } from "typebox";
 import { commonsMetadata, readSourceFigures } from "../../ingest/figures.js";
-import { allowNonCommercial, licenseUrl, reusableLicense } from "../../ingest/image-license.js";
+import { embeddableLicense, licenseLabel, licenseUrl, mediaLicensePolicy } from "../../ingest/image-license.js";
 import { assertPublicUrl, safeFetch } from "../../ingest/safe-fetch.js";
 import type { FileLocks } from "../../tree/lock.js";
-import { assetBytes } from "../../tree/media.js";
+import { assetBytes, SET_ASSETS_QUOTA_BYTES } from "../../tree/media.js";
 import { chosenBriefImage } from "../../tree/media-brief.js";
 import { canonicalRel, resolveInRoot } from "../../tree/paths.js";
 
@@ -69,7 +69,7 @@ export function saveAssetTool(opts: {
           figure?.credit.split(", ")[0]
         )?.replace(/["\\\r\n]/g, " ");
         const sourcePage = figure?.sourcePage || chosen?.sourcePage || commons?.sourcePage || pageUrl;
-        const reuseAllowed = reusableLicense(license, await allowNonCommercial(opts.root));
+        const reuseAllowed = embeddableLicense(license, await mediaLicensePolicy(opts.root));
         signal?.throwIfAborted();
         let captured: Uint8Array | undefined;
         if (figure?.path && params.sourceId) {
@@ -94,7 +94,8 @@ export function saveAssetTool(opts: {
               ...(signal ? { signal } : {}),
             });
         if (new URL(response.url).protocol !== "https:") throw new Error("Images require HTTPS, including redirects");
-        if (response.bytes.length > MAX_IMAGE_BYTES) throw new Error("Image exceeds 5 MB");
+        if (response.bytes.length > MAX_IMAGE_BYTES)
+          throw new Error(`Image exceeds ${Math.round(MAX_IMAGE_BYTES / 1024 / 1024)} MB`);
         const image = sniffImage(response.bytes);
         if (response.contentType?.split(";")[0]?.trim().toLowerCase() !== image.mime)
           throw new Error("Image MIME type does not match its magic bytes");
@@ -102,8 +103,8 @@ export function saveAssetTool(opts: {
           throw new Error("Image dimensions must be at most 6000×6000 px");
         const base = `${opts.set}/assets`;
         return await opts.locks.withLock(base, opts.holder, async () => {
-          if ((await assetBytes(opts.root, opts.set)) + response.bytes.length > 50 * 1024 * 1024)
-            throw new Error("Set assets quota exceeds 50 MB");
+          if ((await assetBytes(opts.root, opts.set)) + response.bytes.length > SET_ASSETS_QUOTA_BYTES)
+            throw new Error("Set assets quota exceeded");
           let suffix = 1;
           let rel: string;
           let creditRel: string;
@@ -133,6 +134,13 @@ export function saveAssetTool(opts: {
             if (!exists.some(Boolean)) break;
             suffix++;
           }
+          // Unknown or unstated licences still get an honest visible label; the source link is required.
+          const visibleCredit = sourcePage
+            ? `Credit: ${[creator, licenseLabel(license), sourcePage].filter(Boolean).join(", ")}`.replace(
+                /["\\\r\n]/g,
+                " ",
+              )
+            : undefined;
           const credit = JSON.stringify(
             {
               url: params.url,
@@ -140,12 +148,13 @@ export function saveAssetTool(opts: {
               ...(params.sourceId ? { sourceId: params.sourceId } : {}),
               alt: params.alt,
               ...(license ? { license } : {}),
+              licenseLabel: licenseLabel(license),
               ...(creator ? { creator } : {}),
               ...(sourcePage ? { sourcePage } : {}),
               ...(figure?.licenseUrl || chosen?.licenseUrl || commons?.licenseUrl || licenseUrl(license)
                 ? { licenseUrl: figure?.licenseUrl || chosen?.licenseUrl || commons?.licenseUrl || licenseUrl(license) }
                 : {}),
-              ...(creator && license && sourcePage ? { credit: `Credit: ${creator}, ${license}, ${sourcePage}` } : {}),
+              ...(visibleCredit ? { credit: visibleCredit } : {}),
               sha256: createHash("sha256").update(response.bytes).digest("hex"),
               unmodified: true,
               width: image.width,
@@ -157,9 +166,9 @@ export function saveAssetTool(opts: {
           );
           if (
             (await assetBytes(opts.root, opts.set)) + response.bytes.length + Buffer.byteLength(credit) >
-            50 * 1024 * 1024
+            SET_ASSETS_QUOTA_BYTES
           )
-            throw new Error("Set assets quota exceeds 50 MB");
+            throw new Error("Set assets quota exceeded");
           await fs.mkdir(resolveInRoot(opts.root, base), { recursive: true });
           await opts.locks.withLock(rel, opts.holder, async () => {
             await fs.writeFile(resolveInRoot(opts.root, rel), response.bytes, { flag: "wx" });
@@ -174,10 +183,6 @@ export function saveAssetTool(opts: {
           opts.onWrite?.(creditRel);
           const relative = rel.slice(opts.set.length + 1);
           const alt = params.alt.replace(/[\\[\]\r\n]/g, " ");
-          const visibleCredit =
-            creator && license && sourcePage
-              ? `Credit: ${creator}, ${license}, ${sourcePage}`.replace(/["\\\r\n]/g, " ")
-              : undefined;
           const markdown = `![${alt}](../${relative}${visibleCredit ? ` "${visibleCredit}"` : ""})`;
           return {
             content: [
@@ -189,7 +194,7 @@ export function saveAssetTool(opts: {
                   ...(!reuseAllowed
                     ? {
                         warning:
-                          "Source figure has no permissive reuse license; redraw and cite it instead of embedding.",
+                          "Source figure's licence is excluded by the current media policy; redraw and cite it instead of embedding.",
                       }
                     : {}),
                   ...(visibleCredit ? { credit: visibleCredit } : {}),

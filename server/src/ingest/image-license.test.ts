@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { ConfigYaml } from "@studium/shared";
 import { expect, it } from "vitest";
-import { figureLicense, pageImageLicense, reusableLicense } from "./image-license.js";
+import { embeddableLicense, figureLicense, licenseLabel, pageImageLicense, reusableLicense } from "./image-license.js";
 
 it("reads LibreTexts tags/meta, OpenStax policy, rel license and schema.org statements", () => {
   const html = readFileSync(new URL("./fixtures/libretexts-license.html", import.meta.url), "utf8");
@@ -37,4 +37,23 @@ it("normalizes permissions conservatively and defaults the NC setting", () => {
     ConfigYaml.parse({ models: { default: "test/model" }, media: { allowNonCommercial: false } }).media
       .allowNonCommercial,
   ).toBe(false);
+  // D38: unknown/all-rights-reserved/NC/ND are embeddable by default, and can be turned off.
+  expect(ConfigYaml.parse({ models: { default: "test/model" } }).media.allowUnknownLicense).toBe(true);
+  expect(
+    ConfigYaml.parse({ models: { default: "test/model" }, media: { allowUnknownLicense: false } }).media
+      .allowUnknownLicense,
+  ).toBe(false);
+  const open = { allowNonCommercial: true, allowUnknownLicense: true };
+  const strict = { allowNonCommercial: true, allowUnknownLicense: false };
+  expect(embeddableLicense(undefined, open)).toBe(true);
+  expect(embeddableLicense("all rights reserved", open)).toBe(true);
+  expect(embeddableLicense(undefined, strict)).toBe(false);
+  expect(embeddableLicense("CC BY-NC 4.0", strict)).toBe(true);
+  expect(embeddableLicense("CC BY-NC 4.0", { allowNonCommercial: false, allowUnknownLicense: false })).toBe(false);
+  expect(licenseLabel(undefined)).toBe("Licence unknown");
+  expect(licenseLabel("")).toBe("Licence unknown");
+  expect(licenseLabel("  ")).toBe("Licence unknown");
+  // Stated licences are printed as stated; only a missing/blank one becomes "Licence unknown".
+  expect(licenseLabel("all rights reserved")).toBe("all rights reserved");
+  expect(licenseLabel("CC BY-ND 4.0")).toBe("CC BY-ND 4.0");
 });

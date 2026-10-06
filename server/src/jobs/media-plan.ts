@@ -17,78 +17,121 @@ import {
   withInteractiveFallback,
 } from "../tree/curriculum.js";
 import { readText } from "../tree/edit.js";
-import { type MediaBrief, readMediaBrief, saveMediaBrief } from "../tree/media-brief.js";
+import {
+  figureRelevance,
+  figureRelevanceWeights,
+  type MediaBrief,
+  rankFiguresForBrief,
+  readMediaBrief,
+  saveMediaBrief,
+} from "../tree/media-brief.js";
 import type { DraftJobDeps } from "./draft-job.js";
 import { refineChapterImages } from "./image-plan.js";
 import { createIngestJob } from "./ingest-job.js";
 import { type JobContext, usageFromPiMessages } from "./runner.js";
 
-/** Relevance here selects candidates; the independent checker verifies actual teaching use. */
-export async function refineMediaBrief(
-  deps: DraftJobDeps,
-  set: string,
-  chapter: CurriculumChapter,
-  sources: string[],
-  ctx: JobContext,
-): Promise<MediaBrief> {
-  const plan = await readText(deps.root, `${set}/PLAN.md`);
-  chapter = withInteractiveFallback(chapter, String(parseFrontmatter(plan).frontmatter.subject ?? "general"));
-  const issues = interactivePlanIssues(chapter.visuals);
-  if (issues.length) throw new Error(`${chapter.title}: ${issues.join("; ")}`);
-  const prior = await readMediaBrief(deps.root, set, chapter);
-  const passages = await sourcePassages(deps.root, sources);
+export interface ChapterMediaCandidates {
+  /** Chapter with the draft-time interactive fallback already applied. */
+  chapter: CurriculumChapter;
+  subject: string;
+  figures: MediaBrief["figures"];
+  tables: MediaBrief["tables"];
+  visuals: MediaBrief["visuals"];
+  images: NonNullable<MediaBrief["images"]>;
+}
+
+/**
+ * The deterministic half of media refinement: subject/interactive fallback, candidate
+ * collection, relevance ranking and per-visual evidence. Both production refinement and
+ * the M16 selection trial call this exact helper so their 5 KB briefs agree.
+ */
+export async function collectChapterMediaCandidates(
+  root: string,
+  chapterInput: CurriculumChapter,
+  sources: readonly string[],
+  subject: string,
+): Promise<ChapterMediaCandidates> {
+  const chapter = withInteractiveFallback(chapterInput, subject);
+  const passages = await sourcePassages(root, sources);
   const query = `${chapter.title} ${chapter.scope} ${chapter.visuals.join(" ")}`;
-  const terms = new Set(query.toLowerCase().match(/[\p{L}\p{N}]{4,}/gu) ?? []);
-  const figures: MediaBrief["figures"] = [];
+  const collected: MediaBrief["figures"] = [];
   for (const sourceId of sources) {
-    for (const figure of await readSourceFigures(deps.root, sourceId)) {
-      const text = `${figure.caption} ${figure.alt} ${figure.section}`.toLowerCase();
-      if ([...terms].some((term) => text.includes(term)))
-        figures.push({ ...figure, sourceId, ...(figure.path ? { path: `library/${sourceId}/${figure.path}` } : {}) });
+    for (const figure of await readSourceFigures(root, sourceId)) {
+      // Every source figure competes; relevance only orders the ranked list.
+      collected.push({ ...figure, sourceId, ...(figure.path ? { path: `library/${sourceId}/${figure.path}` } : {}) });
     }
   }
-  const figureScore = (figure: MediaBrief["figures"][number], words = terms) =>
-    [...words].filter((word) => `${figure.caption} ${figure.alt} ${figure.section}`.toLowerCase().includes(word))
-      .length;
-  // A downloaded, relevant figure is more useful than a host-blocked candidate.
-  figures.sort((a, b) => Number(!!b.path) - Number(!!a.path) || figureScore(b) - figureScore(a));
+  // Scope and visual intents outrank capture order; downloaded candidates break ties.
+  const figures = rankFiguresForBrief(collected, {
+    title: chapter.title,
+    scope: chapter.scope,
+    visuals: chapter.visuals,
+    video: chapter.video,
+  });
+  const figureScore = (figure: MediaBrief["figures"][number], intent: string) =>
+    figureRelevance(figure, figureRelevanceWeights({ title: intent }));
   const tables = rankPassages(
     passages.filter((p) => /^\s*\|.*\|\s*$/m.test(p.text)),
     query,
   )
     .filter((p) => p.score > 0)
-    .slice(0, 8)
     .map((p) => ({ sourceId: p.source, file: p.file, anchor: p.anchor, text: p.text.slice(0, 6000) }));
+  const visuals = chapter.visuals
+    .filter((v) => !/^no interactive visual:/i.test(v))
+    .slice(0, 20)
+    .map((intent, i) => ({
+      id: `visual-${i + 1}`,
+      intent,
+      ...(interactiveIntent(intent) ?? {}),
+      evidence: rankPassages(passages, `${chapter.title} ${intent}`)
+        .filter((p) => p.score > 0)
+        .slice(0, 2)
+        .map((p) => {
+          const figure = figures
+            .filter((f) => f.sourceId === p.source && f.path && figureScore(f, intent) > 0)
+            .sort((a, b) => figureScore(b, intent) - figureScore(a, intent))[0];
+          return {
+            sourceId: p.source,
+            file: p.file,
+            anchor: p.anchor,
+            ...(figure?.path ? { figure: figure.path } : {}),
+          };
+        }),
+    }));
+  return {
+    chapter,
+    subject,
+    figures,
+    tables,
+    visuals,
+    images: (chapter.images ?? []).slice(0, 3).map((intent, i) => ({ id: `image-${i + 1}`, intent })),
+  };
+}
+
+/** Relevance here selects candidates; the independent checker verifies actual teaching use. */
+export async function refineMediaBrief(
+  deps: DraftJobDeps,
+  set: string,
+  chapterInput: CurriculumChapter,
+  sources: string[],
+  ctx: JobContext,
+): Promise<MediaBrief> {
+  const plan = await readText(deps.root, `${set}/PLAN.md`);
+  const subject = String(parseFrontmatter(plan).frontmatter.subject ?? "general");
+  const candidates = await collectChapterMediaCandidates(deps.root, chapterInput, sources, subject);
+  const chapter = candidates.chapter;
+  const issues = interactivePlanIssues(chapter.visuals);
+  if (issues.length) throw new Error(`${chapter.title}: ${issues.join("; ")}`);
+  const prior = await readMediaBrief(deps.root, set, chapter);
   const brief: MediaBrief = {
     chapter: chapter.title,
     scope: chapter.scope,
     refinedAt: new Date().toISOString(),
     ...(noInteractiveReason(chapter.visuals) ? { noInteractiveReason: noInteractiveReason(chapter.visuals) } : {}),
-    visuals: chapter.visuals
-      .filter((v) => !/^no interactive visual:/i.test(v))
-      .slice(0, 20)
-      .map((intent, i) => ({
-        id: `visual-${i + 1}`,
-        intent,
-        ...(interactiveIntent(intent) ?? {}),
-        evidence: rankPassages(passages, `${chapter.title} ${intent}`)
-          .filter((p) => p.score > 0)
-          .slice(0, 2)
-          .map((p) => {
-            const visualTerms = new Set(intent.toLowerCase().match(/[\p{L}\p{N}]{4,}/gu) ?? []);
-            const figure = figures
-              .filter((f) => f.sourceId === p.source && f.path && figureScore(f, visualTerms) > 0)
-              .sort((a, b) => figureScore(b, visualTerms) - figureScore(a, visualTerms))[0];
-            return {
-              sourceId: p.source,
-              file: p.file,
-              anchor: p.anchor,
-              ...(figure?.path ? { figure: figure.path } : {}),
-            };
-          }),
-      })),
-    figures: figures.slice(0, 24),
-    tables,
+    visuals: candidates.visuals,
+    figures: candidates.figures,
+    tables: candidates.tables,
+    images: candidates.images,
     video: {
       intent: chapter.video,
       status: "none",
@@ -278,18 +321,17 @@ export async function refineMediaBrief(
       };
     }
   }
-  const selectedImages = await refineChapterImages(
-    deps,
-    set,
-    chapter,
-    figures,
-    String(parseFrontmatter(plan).frontmatter.subject ?? "general"),
-    ctx,
-  );
+  const selectedImages = await refineChapterImages(deps, set, chapter, candidates.figures, subject, ctx);
   brief.images = selectedImages.images;
+  const weights = figureRelevanceWeights({
+    title: chapter.title,
+    scope: chapter.scope,
+    visuals: chapter.visuals,
+    video: chapter.video,
+  });
   return saveMediaBrief(deps.root, deps.locks, set, chapter, brief, {
     images: selectedImages.candidates,
-    figures: figures.map((figure) => ({ ...figure, score: figureScore(figure) })),
+    figures: candidates.figures.map((figure) => ({ ...figure, score: figureRelevance(figure, weights) })),
   });
 }
 

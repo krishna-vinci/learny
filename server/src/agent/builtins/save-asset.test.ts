@@ -70,7 +70,7 @@ it("refuses SSRF, oversized, non-image and MIME mismatches, SVG and large dimens
   expect((await save({ url: "https://127.0.0.1/x" })).details).toMatchObject({ isError: true });
   expect(safeFetch).not.toHaveBeenCalled();
   expect((await save({ url: "http://example.org/x" })).details).toMatchObject({ isError: true });
-  response(new Uint8Array(5 * 1024 * 1024 + 1), "image/png");
+  response(new Uint8Array(25 * 1024 * 1024 + 1), "image/png");
   expect((await save()).details).toMatchObject({ isError: true });
   for (const mime of ["text/plain", "image/jpeg"]) {
     response(png, mime);
@@ -85,7 +85,7 @@ it("refuses SSRF, oversized, non-image and MIME mismatches, SVG and large dimens
 });
 it("enforces the set quota and canonical write scope", async () => {
   const handle = await fs.open(path.join(root, "alpha/assets/full.png"), "w");
-  await handle.truncate(50 * 1024 * 1024);
+  await handle.truncate(500 * 1024 * 1024);
   await handle.close();
   expect((await save()).details).toMatchObject({ isError: true, summary: expect.stringContaining("quota") });
   expect((await save({ set: "beta" })).details).toMatchObject({ isError: true });

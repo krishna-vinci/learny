@@ -294,19 +294,26 @@ symlinked ledger disables Exa until tracking is restored (or a clean month begin
 for a valid old ledger). Verify provider usage before manually repairing/resetting
 an uncertain ledger. No credentials or raw response bodies are stored in it.
 
-## Chapter image policy (D37)
+## Chapter image policy (D37, D38)
 
-This personal, non-commercial study app permits CC BY-NC/BY-NC-SA by default.
-Disable them in the workspace's `_global/config.yaml` before commercial use:
+This personal study app embeds the real image whenever it teaches better. Unknown
+licences, "all rights reserved", CC BY-NC/BY-NC-SA and CC BY-ND are allowed by
+default, embedded unmodified with a complete credit (creator when known, the
+licence as stated or "Licence unknown", and the source page link). Turn that off
+in the workspace's `_global/config.yaml` to restore the older permissive-only
+policy:
 
 ```yaml
 media:
-  allowNonCommercial: false # default true
+  allowUnknownLicense: true # default true; unknown/all-rights-reserved/NC/ND may be embedded unmodified with credit
+  allowNonCommercial: false # default true; only matters when allowUnknownLicense is false
 ```
 
-CC BY/BY-SA, CC0 and public domain remain allowed; ND variants require original
-unmodified bytes. Unknown/restricted images are linked or redrawn. No migration
-is required. Review rechecks the current setting, including older saved images.
+With `allowUnknownLicense: false`, only CC BY/BY-SA, CC0 and public domain are
+allowed (plus NC when `allowNonCommercial` stays true). ND variants always
+require original unmodified bytes and their saved hash, whatever the setting.
+Missing credit or a missing source link still blocks checking. No migration is
+required. Review rechecks the current setting, including older saved images.
 Image search uses public HTTPS APIs through safeFetch. Commons, The Met and NASA
 need no key; Openverse supports anonymous access or optional OPENVERSE_ACCESS_TOKEN.
 Smithsonian is enabled only with SMITHSONIAN_API_KEY from api.data.gov. Credentials

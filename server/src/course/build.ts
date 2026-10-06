@@ -2,7 +2,7 @@ import type { CourseView } from "@studium/shared";
 import { PlanFrontmatter, parseFrontmatter } from "@studium/shared";
 import { slugify } from "../ingest/ids.js";
 import { coverageKey, loadCoverage } from "../search/coverage.js";
-import { chapterExists, parseCurriculum } from "../tree/curriculum.js";
+import { chapterExists, interactiveIntent, parseCurriculum, withInteractiveFallback } from "../tree/curriculum.js";
 import { readText } from "../tree/edit.js";
 import { readMediaBrief, realisedVisuals } from "../tree/media-brief.js";
 import { resolveInRoot } from "../tree/paths.js";
@@ -47,24 +47,34 @@ export async function buildCourse(
             ? candidate.path === note?.path
             : slugify(candidate.title, 40) === slugify(chapter.title, 40),
         );
+        // Chapters planned before the interactive rule get one added at draft time; count it here too.
+        const planned = withInteractiveFallback(chapter, subject).visuals;
         const saved = await readMediaBrief(root, set, chapter);
+        const intents = JSON.stringify(saved?.visuals.map((v) => v.intent));
         const brief =
           saved &&
           saved.scope === chapter.scope &&
           saved.video.intent === chapter.video &&
-          JSON.stringify(saved.visuals.map((v) => v.intent)) === JSON.stringify(chapter.visuals)
+          (intents === JSON.stringify(chapter.visuals) || intents === JSON.stringify(planned))
             ? saved
             : null;
+        const visuals =
+          brief && note
+            ? await realisedVisuals(
+                root,
+                `${set}/${note.path}`,
+                await readText(root, `${set}/${note.path}`),
+                brief.visuals,
+              )
+            : chapter.visuals.map((intent) => ({ intent, made: false }));
+        // A brief written before the rule lacks the interactive visual: show it as still to make.
+        for (const intent of planned)
+          if (!visuals.some((visual) => visual.intent === intent)) visuals.push({ intent, made: false });
         const media = {
-          visuals:
-            brief && note
-              ? await realisedVisuals(
-                  root,
-                  `${set}/${note.path}`,
-                  await readText(root, `${set}/${note.path}`),
-                  brief.visuals,
-                )
-              : chapter.visuals.map((intent) => ({ intent, made: false })),
+          visuals: visuals.map((visual) => ({
+            ...visual,
+            interactive: interactiveIntent(visual.intent) !== null,
+          })),
           video: brief?.video ?? { intent: chapter.video, status: "planned" as const },
         };
         return {

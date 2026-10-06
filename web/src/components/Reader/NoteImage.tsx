@@ -1,5 +1,22 @@
 import { assetUrl, resolveNoteMedia } from "@studium/shared/media";
 
+const TRAILING_URL = /(https?:\/\/\S+)$/;
+
+/** A credit ends with its source URL; render that part as a real link. */
+function CreditText({ credit }: { credit: string }) {
+  const match = TRAILING_URL.exec(credit);
+  if (!match?.[1]) return <>{credit}</>;
+  const url = match[1];
+  return (
+    <>
+      {credit.slice(0, match.index)}
+      <a href={url} target="_blank" rel="noreferrer" className="underline underline-offset-2">
+        {url}
+      </a>
+    </>
+  );
+}
+
 export function NoteImage({
   src,
   alt,
@@ -26,7 +43,11 @@ export function NoteImage({
         decoding="async"
         className={`mx-auto max-w-full${media?.path.endsWith(".svg") ? " bg-white" : ""}`}
       />
-      {(title || alt) && <span className="mt-2 block text-center text-sm text-muted-foreground">{title || alt}</span>}
+      {(title || alt) && (
+        <span className="mt-2 block text-center text-sm text-muted-foreground">
+          <CreditText credit={title || alt || ""} />
+        </span>
+      )}
     </span>
   );
 }

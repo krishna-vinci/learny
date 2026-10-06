@@ -217,7 +217,7 @@ it("uses chapter identity through the Today and course APIs after a re-plan", as
   const app = createApp({ root, hub, locks: new FileLocks() });
   const today = await app.request("/api/today");
   expect(today.status).toBe(200);
-  expect(((await today.json()) as TodayView).sets[0]?.nextChapter).toBe("01 — Atoms");
+  expect(((await today.json()) as TodayView).sets[0]?.nextChapter).toBe("1. Atoms");
   const course = await app.request("/api/sets/polymers/course");
   expect(course.status).toBe(200);
   expect(await course.json()).toMatchObject({
@@ -229,5 +229,5 @@ it("uses chapter identity through the Today and course APIs after a re-plan", as
     "---\ntitle: Renamed atoms\nchapter: atoms\nstatus: accepted\n---\n",
   );
   hub.publish({ type: "file", set: "polymers", path: "polymers/notes/03-renamed.md", change: "add" });
-  expect(((await (await app.request("/api/today")).json()) as TodayView).sets[0]?.nextChapter).toBe("02 — Bonds");
+  expect(((await (await app.request("/api/today")).json()) as TodayView).sets[0]?.nextChapter).toBe("2. Bonds");
 });

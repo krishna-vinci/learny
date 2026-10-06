@@ -14,6 +14,7 @@ import { PageSkeleton } from "@/components/ListSkeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { chapterLabel } from "@/lib/chapter-label";
 import { friendlyMessage } from "@/lib/friendly-errors";
 import { toast } from "@/lib/notify";
 import { type CARD_STATUS_ORDER, statusChips } from "./cards-utils";
@@ -105,7 +106,8 @@ function CardsPage() {
 
   const titleFor = (notePath: string | null): string => {
     if (!notePath) return "Unknown chapter";
-    return notes.find((note) => note.path === notePath)?.title ?? notePath;
+    const note = notes.find((candidate) => candidate.path === notePath);
+    return note ? chapterLabel(note) : notePath;
   };
 
   if (isLoading) {

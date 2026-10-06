@@ -4,7 +4,9 @@ import { parseYoutubeVideo } from "@studium/shared/media";
 /** The same learner-facing status in Course plan and the full Plan page. */
 export function ChapterMediaStatus({ media }: { media?: ChapterMedia }) {
   if (!media || (!media.visuals.length && !media.video.intent && media.video.status === "planned")) return null;
-  const made = media.visuals.filter((v) => v.made).length;
+  const pictures = media.visuals.filter((visual) => !visual.interactive);
+  const interactive = media.visuals.filter((visual) => visual.interactive);
+  const count = (list: typeof media.visuals) => `${list.filter((visual) => visual.made).length}/${list.length} made`;
   const video = media.video;
   const watch = video.url && parseYoutubeVideo(video.url) ? video.url : null;
   return (
@@ -12,12 +14,16 @@ export function ChapterMediaStatus({ media }: { media?: ChapterMedia }) {
       {media.visuals.length > 0 && (
         <>
           <p>
-            Visuals: {made}/{media.visuals.length} made
+            {pictures.length > 0 && `Pictures in text: ${count(pictures)}`}
+            {pictures.length > 0 && interactive.length > 0 && " · "}
+            {interactive.length > 0 && `Visuals tab: ${count(interactive)}`}
           </p>
           <ul className="flex flex-col gap-0.5">
             {media.visuals.map((visual) => (
               <li key={visual.intent}>
-                {visual.intent} · {visual.made ? "Made" : visual.reason ? `Unavailable: ${visual.reason}` : "Planned"}
+                {visual.intent}
+                {visual.interactive && " (Visuals tab)"} ·{" "}
+                {visual.made ? "Made" : visual.reason ? `Unavailable: ${visual.reason}` : "Planned"}
               </li>
             ))}
           </ul>

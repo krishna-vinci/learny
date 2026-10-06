@@ -11,6 +11,25 @@ export function reusableLicense(license: string | undefined, allowNonCommercial 
     (allowNonCommercial || !normalized.includes("-NC"))
   );
 }
+
+export interface MediaLicensePolicy {
+  /** CC BY-NC/BY-NC-SA are allowed for this personal app unless disabled. */
+  allowNonCommercial: boolean;
+  /** D38 owner decision: unknown/all-rights-reserved/NC/ND may be embedded unmodified with credit. */
+  allowUnknownLicense: boolean;
+}
+
+/** True when the licence may be embedded under the workspace's current media policy. */
+export function embeddableLicense(license: string | undefined, policy: MediaLicensePolicy): boolean {
+  if (policy.allowUnknownLicense) return true;
+  return reusableLicense(license, policy.allowNonCommercial);
+}
+
+/** Learner-facing licence label: the licence as stated, or "Licence unknown" when none is given. */
+export function licenseLabel(license: string | undefined): string {
+  const value = license?.trim();
+  return value ? value : "Licence unknown";
+}
 export function figureLicense(text: string): string | undefined {
   const url =
     /https?:\/\/creativecommons\.org\/(?:licenses\/(by(?:-(?:nc|nd|sa))*)\/(\d\.\d)|publicdomain\/(zero|mark)\/1\.0)\/?/i.exec(
@@ -98,14 +117,29 @@ export function pageImageLicense(html: string, url: string): string | undefined 
   // OpenStax's book illustrations follow its CC BY 4.0 policy, unless individually marked.
   return /(?:^|\.)openstax\.org$/.test(host) ? "CC BY 4.0" : undefined;
 }
-export async function allowNonCommercial(root: string): Promise<boolean> {
+async function readMediaPolicy(root: string): Promise<MediaLicensePolicy> {
   const rel = "_global/config.yaml";
   if (canonicalRel(root, rel) !== rel) throw new Error("Media config may not be a symlink alias");
   try {
     const config = parse(await fs.readFile(resolveInRoot(root, rel), "utf8"));
-    return config?.media?.allowNonCommercial !== false;
+    return {
+      allowNonCommercial: config?.media?.allowNonCommercial !== false,
+      allowUnknownLicense: config?.media?.allowUnknownLicense !== false,
+    };
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return true;
+    if ((error as NodeJS.ErrnoException).code === "ENOENT")
+      return { allowNonCommercial: true, allowUnknownLicense: true };
     throw error;
   }
+}
+
+/** Read the workspace's media policy once (defaults: both settings true). */
+export const mediaLicensePolicy = readMediaPolicy;
+
+export async function allowNonCommercial(root: string): Promise<boolean> {
+  return (await readMediaPolicy(root)).allowNonCommercial;
+}
+
+export async function allowUnknownLicense(root: string): Promise<boolean> {
+  return (await readMediaPolicy(root)).allowUnknownLicense;
 }

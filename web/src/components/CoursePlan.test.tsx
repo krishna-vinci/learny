@@ -176,7 +176,7 @@ it("shows made/planned visuals and chosen video metadata or an honest absence re
       },
     },
   ]);
-  expect(screen.getByText("Visuals: 1/2 made")).toBeTruthy();
+  expect(screen.getByText("Pictures in text: 1/2 made")).toBeTruthy();
   expect(screen.getByText("chart — Heat response · Planned")).toBeTruthy();
   expect(screen.getByRole("link", { name: "Polymer lab" }).getAttribute("href")).toContain("youtube.com/watch");
   expect(screen.getByText(/University · 30–90s/)).toBeTruthy();

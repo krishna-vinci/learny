@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { useCardFiles, useCurrentUser, useInbox, useJobs, useNotes } from "@/api/queries";
+import { useCardFiles, useCourse, useCurrentUser, useInbox, useJobs, useNotes } from "@/api/queries";
 import { DesktopActivityIndicator, MobileActivityIndicator } from "@/components/Activity/ActivityIndicator";
 import { openActivityPanel } from "@/components/Activity/activity-store";
 import { AddSourceSheet } from "@/components/Library/AddSourceSheet";
@@ -41,6 +41,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { chapterLabel } from "@/lib/chapter-label";
 import { isActiveJob } from "@/lib/job-transitions";
 import { setReadingPrefs, type Theme, useReadingPrefs } from "@/lib/reading-prefs";
 import { cn } from "@/lib/utils";
@@ -53,7 +54,7 @@ import SidebarSection, { SIDEBAR_SECTION_STACK_CLASSES } from "./SidebarSection"
 import { SIDEBAR_LEADING_SLOT_CLASSES, SIDEBAR_RAIL_CLASSES } from "./sidebar-layout";
 
 /** A3: one greyed "Drafting…" row per queued/running draft-chapter job in this set. */
-function DraftingSidebarRow({ job }: { job: JobView }) {
+function DraftingSidebarRow({ job, number }: { job: JobView; number?: number }) {
   return (
     <button
       type="button"
@@ -64,7 +65,9 @@ function DraftingSidebarRow({ job }: { job: JobView }) {
       <span className={SIDEBAR_LEADING_SLOT_CLASSES} aria-hidden="true">
         <Spinner className="opacity-70" aria-label="Drafting" />
       </span>
-      <span className="min-w-0 flex-1 truncate text-start">{job.title}</span>
+      <span className="min-w-0 flex-1 truncate text-start">
+        {number != null ? `${number}. ${job.title}` : job.title}
+      </span>
       <span className="max-w-[9rem] shrink-0 truncate text-2xs text-muted-foreground/70">
         {job.progress || "Drafting…"}
       </span>
@@ -75,6 +78,7 @@ function DraftingSidebarRow({ job }: { job: JobView }) {
 const NotesSection = ({ set, activeNotePath }: { set: string; activeNotePath?: string }) => {
   const { data: notes = [], isLoading } = useNotes(set);
   const { data: jobs = [] } = useJobs(set);
+  const { data: course } = useCourse(set);
   const draftingJobs = jobs.filter((job) => job.kind === "draft-chapter" && job.set === set && isActiveJob(job));
   const { setMobileOpen } = useMobileSidebar();
   const navigate = useNavigate();
@@ -115,7 +119,7 @@ const NotesSection = ({ set, activeNotePath }: { set: string; activeNotePath?: s
           <SidebarRow
             key={note.path}
             icon={ListChecksIcon}
-            label={note.title}
+            label={chapterLabel(note)}
             state={note.path === activeNotePath ? "current" : "idle"}
             onClick={() => {
               navigate(`/s/${set}/n/${note.path.replace(/^notes\//, "")}`);
@@ -124,7 +128,11 @@ const NotesSection = ({ set, activeNotePath }: { set: string; activeNotePath?: s
           />
         ))}
         {draftingJobs.map((job) => (
-          <DraftingSidebarRow key={job.id} job={job} />
+          <DraftingSidebarRow
+            key={job.id}
+            job={job}
+            number={course?.chapters.find((chapter) => chapter.title === job.title)?.order}
+          />
         ))}
       </SidebarSection>
       {newChapterOpen && (

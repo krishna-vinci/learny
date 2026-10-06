@@ -5,7 +5,7 @@ import { figureLicense, licenseUrl, plainCredit } from "./image-license.js";
 export { figureLicense, reusableLicense } from "./image-license.js";
 
 import { canonicalRel, resolveInRoot } from "../tree/paths.js";
-import { MAX_IMAGE_BYTES, sniffImage } from "./image-bytes.js";
+import { MAX_IMAGE_BYTES, MIN_IMAGE_PIXELS, sniffImage } from "./image-bytes.js";
 import type { SourceImage } from "./images.js";
 import { safeFetch } from "./safe-fetch.js";
 
@@ -147,7 +147,8 @@ export async function captureFigures(input: {
       )
         return false;
       seen.add(image.url);
-      return !!(image.caption || image.alt || image.nearHeading);
+      // Every non-decorative image is a content candidate; labels/overlap only order the queue.
+      return true;
     })
     .map((image) => ({
       image,
@@ -155,9 +156,9 @@ export async function captureFigures(input: {
         `${image.caption ?? ""} ${image.alt} ${image.nearHeading}`.toLowerCase().match(/[\p{L}\p{N}]{4,}/gu) ?? []
       ).filter((word) => words.has(word)).length,
     }))
-    .filter((candidate) => candidate.score > 0)
     .sort((a, b) => b.score - a.score);
-  for (const { image } of ranked.slice(0, 12)) {
+  // Capture every content figure (best-label overlap first); decorative and tiny filters still cut the rest.
+  for (const { image } of ranked) {
     input.signal?.throwIfAborted();
     let license = /^https:\/\/(?:upload|thumb)\.wikimedia\.org\/wikipedia\/commons\//i.test(image.url)
       ? undefined
@@ -182,7 +183,7 @@ export async function captureFigures(input: {
       input.signal?.throwIfAborted();
     }
     const caption = image.caption || image.alt;
-    const credit = `${attribution}${license ? ` (${license})` : " (reuse license unknown; redraw)"}`;
+    const credit = `${attribution}${license ? ` (${license})` : " (licence unknown)"}`;
     const figure: SourceFigure = {
       url: imageUrl,
       alt: image.alt,
@@ -198,8 +199,7 @@ export async function captureFigures(input: {
       if (
         response.bytes.length > MAX_IMAGE_BYTES ||
         response.contentType?.split(";")[0]?.trim().toLowerCase() !== info.mime ||
-        info.width < 64 ||
-        info.height < 64 ||
+        Math.max(info.width, info.height) < MIN_IMAGE_PIXELS ||
         info.width > 6000 ||
         info.height > 6000
       )

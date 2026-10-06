@@ -7,6 +7,7 @@ import ActivityPanelContent from "./ActivityPanelContent";
 const state = vi.hoisted(() => ({ role: "ADMIN" }));
 
 vi.mock("@/api/queries", () => ({
+  queryKeys: { course: (set: string) => ["sets", set, "course"] },
   useJobs: () => ({
     data: [
       {

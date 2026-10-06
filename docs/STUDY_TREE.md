@@ -155,11 +155,12 @@ after each agent mutation, with the agent role and a short summary as the messag
 `<set>/assets/**` holds saved raster images, SVG figures and image-credit sidecars;
 `<set>/artifacts/**` holds self-contained HTML and static poster SVGs. Both are
 tracked in git. Credit `assets/<name>.json` stores
-`{url, pageUrl?, sourceId?, alt, license?, savedAt}`.
+`{url, pageUrl?, sourceId?, alt, license?, licenseLabel?, creator?, sourcePage?,
+licenseUrl?, credit?, sha256, unmodified, width?, height?, savedAt}`.
 Paths in notes are note-relative: `notes/03-svd.md` embeds
 `![Projection](../assets/projection.svg)`. Resolution stays within the same set.
 
-Web sources have `library/<id>/images.json` with up to 50
+Web sources have `library/<id>/images.json` with every collected content
 `{url, alt, nearHeading}` candidates collected before cleaning. YouTube sources have
 `thumb.jpg` when downloading succeeds and `<!-- t:<seconds> -->` at the start of
 transcript paragraphs. Cite moments with `[^src:<id>#t843]` alongside page citations.
@@ -221,14 +222,22 @@ Figure paths here are root-relative; `images.json` paths are source-relative.
 Tables are evidence candidates, never instructions. Video moments are observed
 `tN` anchors only; high-quality videos without transcripts remain watch-only.
 No passing candidate is recorded as `none` with the concrete reason.
+The prompt brief is compacted to the 5 KB budget after ranking figures and tables
+by weighted term overlap with the chapter title, scope and visual intents, so the
+most relevant material survives. Selection favors new chapter concepts over
+repetitive candidates; figures and tables share the same budget. The full brief and all candidates stay in the
+adjacent `.evidence.json` sidecar.
 
-`library/<id>/figures/<24-character-sha256>.<png|jpg|gif|webp>` stores at most twelve
-relevant downloaded figures per capture. `images.json` is an array of
+`library/<id>/figures/<24-character-sha256>.<png|jpg|gif|webp>` stores every
+relevant content figure downloaded per capture (logos, icons, avatars, ads,
+tracking pixels and images under 100 px are still skipped). `images.json` is an array of
 `{path?, url, alt, caption, section, license?, credit}`. `path` is absent when a
 candidate could not be downloaded. Older `{url, alt, nearHeading, caption?}` arrays
 remain readable without fabricated permission. Explicit page licenses and Commons
-per-file license metadata are retained; unknown or restrictive means redraw.
-Downloads use the existing SSRF-safe HTTPS raster limits (5 MB, 6000×6000 px).
+per-file license metadata are retained. Under D38 (`media.allowUnknownLicense`,
+default true) unknown, all-rights-reserved, NC and ND images may be embedded
+unmodified with a complete credit; when false, unknown/restrictive means redraw.
+Downloads use the existing SSRF-safe HTTPS raster limits (25 MB, 6000×6000 px).
 Refresh preserves previously captured files if a remote download fails.
 
 Notes embed permitted rasters as set-assets copies with visible source/license
@@ -245,7 +254,10 @@ Raster assets saved by `save_asset` have a same-basename `.json` sidecar:
 `url` (image), `sourcePage` (original landing page), optional legacy `pageUrl` and
 `sourceId`, `creator`, `license`, `licenseUrl`, `credit`, `alt`, `width`, `height`,
 `sha256` (saved original bytes), `unmodified: true`, and `savedAt` (ISO timestamp).
-Missing licence metadata does not grant reuse permission. Source `images.json`
+`licenseLabel` records the learner-facing form ("Licence unknown" when the licence is
+missing or says all rights reserved). Missing licence metadata grants reuse only
+while `media.allowUnknownLicense` is true (D38 default); the source page link and a
+visible credit are always required. Source `images.json`
 figures additionally carry creator/sourcePage/licenseUrl/dimensions when known;
 legacy remote-only entries remain readable.
 
@@ -261,3 +273,12 @@ credit and asset sidecar preserve the full attribution. Image omissions use
 Images embed note-relative as `![alt](../assets/name.jpg "Credit: Creator, Licence, Source")`
 near the concept, followed by a caption explaining what to notice. The credit
 prints in the reader and book. ND requires saved bytes to stay unchanged.
+
+## Chapter numbers (M16)
+
+`NoteSummary.number` is the chapter number taken from `curriculum.md` by identity
+(`chapterExists`), never from the filename or frontmatter `order`. Notes that match
+no planned chapter carry no number. The set page, sidebar, reader ("Chapter N"
+above the title in both tabs), Today, the practice picker, Cards, drafting rows and
+the book (`Chapter N · Title`) all show it; the book heading is stripped again
+before matching a repeated frontmatter title.

@@ -8,6 +8,10 @@ import { Reader } from "./Reader";
 vi.mock("@/api/queries", async (original) => ({
   ...(await original<typeof import("@/api/queries")>()),
   useHighlights: () => ({ data: { highlights: [] }, isError: false }),
+  // The reader asks for the plan-derived chapter number; keep this test's fetch stub artifact-only.
+  useNotes: () => ({
+    data: [{ path: "notes/vectors.md", title: "Vectors", order: 1, number: 1, status: null }],
+  }),
 }));
 vi.mock("@/hooks/useMediaQuery", () => ({ useMediaQuery: () => false }));
 
@@ -53,11 +57,15 @@ it("switches chapter views, preserves reading scroll and stops the sandbox on re
   mount();
   expect(screen.getByRole("tab", { name: "Reading" }).getAttribute("aria-selected")).toBe("true");
   expect(screen.getByText("Read this explanation.")).toBeTruthy();
+  // The plan-derived chapter number shows above the running tab's title.
+  expect(screen.getByTestId("chapter-number").textContent).toBe("Chapter 1");
   expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
   Object.defineProperty(window, "scrollY", { configurable: true, value: 240 });
   fireEvent.click(screen.getByRole("tab", { name: "Visuals (1)" }));
   expect(screen.getByLabelText("Location").textContent).toBe("?view=visuals");
   expect(screen.queryByText("Read this explanation.")).toBeNull();
+  const visualsPanel = document.querySelector('[role="tabpanel"]:not([hidden])');
+  expect(visualsPanel?.querySelector('[data-testid="chapter-number"]')?.textContent).toBe("Chapter 1");
   expect(fetch).not.toHaveBeenCalled();
   fireEvent.click(await screen.findByRole("button", { name: "Run" }));
   await waitFor(() => expect(document.querySelector("iframe")).not.toBeNull());

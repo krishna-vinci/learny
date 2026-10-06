@@ -119,7 +119,9 @@ export async function assembleBook(
         .replace(/^([ \t]*):::(definition|theorem|example|deeper)\s*$/, "$1::: {.$2}");
     });
     // The filter demotes parsed headings, including Setext, without touching code.
-    const chapter = `::: {.book-chapter}\n\n# ${escapeMarkdown(note.title)}\n\n${body.trim()}\n\n:::`;
+    // Numbered chapters read "Chapter N · Title"; notes outside the plan stay unnumbered.
+    const heading = note.number != null ? `Chapter ${note.number} · ${note.title}` : note.title;
+    const chapter = `::: {.book-chapter}\n\n# ${escapeMarkdown(heading)}\n\n${body.trim()}\n\n:::`;
     assembledBytes += Buffer.byteLength(chapter) + 2;
     if (assembledBytes > BOOK_MAX_MARKDOWN_BYTES)
       throw new Error("Book limit exceeded: at most 5 MB of assembled Markdown");

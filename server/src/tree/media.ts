@@ -15,6 +15,9 @@ export const MEDIA_HEADERS = {
   "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'",
 };
 
+/** Per-set media disk quota. Large enough for 25 MB figures, still a server-safety bound. */
+export const SET_ASSETS_QUOTA_BYTES = 500 * 1024 * 1024;
+
 /** Validate the complete edited document, including content outside the replacement. */
 export function validateAgentMedia(rel: string, content: string): void {
   if (!/^[^/]+\/(assets|artifacts|visuals)\//.test(rel)) return;
@@ -85,6 +88,6 @@ export async function validateMediaWrite(root: string, rel: string, content: str
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
-  if ((await assetBytes(root, set)) - previous + Buffer.byteLength(content) > 50 * 1024 * 1024)
-    throw new Error("Set assets quota exceeds 50 MB");
+  if ((await assetBytes(root, set)) - previous + Buffer.byteLength(content) > SET_ASSETS_QUOTA_BYTES)
+    throw new Error("Set assets quota exceeded");
 }

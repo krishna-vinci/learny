@@ -7,6 +7,7 @@ import { openActivityPanel } from "@/components/Activity/activity-store";
 import { showJobStartedToast } from "@/components/Activity/job-start-toast";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { chapterLabel } from "@/lib/chapter-label";
 import { ErrorNotice, Feedback, fieldClass, NotePicker, Prose, useSuggestedNote } from "./common";
 
 function ProblemCard({
@@ -223,11 +224,14 @@ export function ProblemsTab({
         Saved problem sets
         <select className={fieldClass} value={file} onChange={(event) => onSelect(event.target.value)}>
           <option value="">Choose a problem set</option>
-          {summary.problemSets.map((item) => (
-            <option key={item.file} value={item.file}>
-              {notes.find((note) => note.path === item.note)?.title ?? item.note} · {item.problemCount} problems
-            </option>
-          ))}
+          {summary.problemSets.map((item) => {
+            const note = notes.find((candidate) => candidate.path === item.note);
+            return (
+              <option key={item.file} value={item.file}>
+                {note ? chapterLabel(note) : item.note} · {item.problemCount} problems
+              </option>
+            );
+          })}
         </select>
       </label>
       {!summary.problemSets.length && (

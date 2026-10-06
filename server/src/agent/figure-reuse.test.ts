@@ -97,7 +97,10 @@ it("requires visible license and source credit for permitted figures; redrawn SV
 });
 it("fails closed for missing license metadata and does not let a sidecar disguise captured bytes", async () => {
   await metadata("CC BY-NC 4.0");
-  await fs.writeFile(path.join(root, "_global/config.yaml"), "media:\n  allowNonCommercial: false\n");
+  await fs.writeFile(
+    path.join(root, "_global/config.yaml"),
+    "media:\n  allowNonCommercial: false\n  allowUnknownLicense: false\n",
+  );
   const file = path.join(root, "library/lib-test/images.json");
   const figures = JSON.parse(await fs.readFile(file, "utf8"));
   figures.push({
@@ -134,20 +137,75 @@ it("fails closed for missing license metadata and does not let a sidecar disguis
 });
 it("permits credited NC by default, rejects it when disabled and catches altered ND bytes", async () => {
   expect(await figureReuseWarnings(root, "science/notes/a.md", text)).toEqual([]);
-  await fs.writeFile(path.join(root, "_global/config.yaml"), "media:\n  allowNonCommercial: false\n");
-  expect((await figureReuseWarnings(root, "science/notes/a.md", text)).join(" ")).toContain("unacceptable license");
-  await fs.writeFile(path.join(root, "_global/config.yaml"), "media:\n  allowNonCommercial: true\n");
-  await fs.writeFile(path.join(root, "science/assets/photo.jpg"), "edited bytes");
-  expect((await figureReuseWarnings(root, "science/notes/a.md", text)).join(" ")).toContain(
-    "ND image must remain unmodified",
+  // D38: when the unknown-licence allowance is off, the older NC setting governs again.
+  await fs.writeFile(
+    path.join(root, "_global/config.yaml"),
+    "media:\n  allowNonCommercial: false\n  allowUnknownLicense: false\n",
   );
+  expect((await figureReuseWarnings(root, "science/notes/a.md", text)).join(" ")).toContain("unacceptable license");
+  await fs.writeFile(
+    path.join(root, "_global/config.yaml"),
+    "media:\n  allowNonCommercial: true\n  allowUnknownLicense: false\n",
+  );
+  await fs.writeFile(path.join(root, "science/assets/photo.jpg"), "edited bytes");
+  expect((await figureReuseWarnings(root, "science/notes/a.md", text)).join(" ")).toContain("remain unmodified");
+});
+it("permits unknown/all-rights-reserved images with credit only as unmodified saved bytes", async () => {
+  const sha = createHash("sha256").update(bytes).digest("hex");
+  await fs.writeFile(path.join(root, "science/assets/photo.json"), '{"license":"all rights reserved"}');
+  // No source page in the sidecar or caption: the credit is incomplete.
+  expect((await figureReuseWarnings(root, "science/notes/a.md", text)).join(" ")).toContain("missing visible source");
+  const arr = (extra: Record<string, unknown> = {}) =>
+    JSON.stringify({
+      license: "all rights reserved",
+      creator: "Photographer",
+      sourcePage: "https://example.org/photo",
+      unmodified: true,
+      sha256: sha,
+      ...extra,
+    });
+  const note = `![A material](../assets/photo.jpg "Credit: Photographer, all rights reserved, https://example.org/photo")`;
+  await fs.writeFile(path.join(root, "science/assets/photo.json"), arr());
+  expect(await figureReuseWarnings(root, "science/notes/a.md", note)).toEqual([]);
+  // Edited bytes no longer match the saved hash.
+  await fs.writeFile(path.join(root, "science/assets/photo.jpg"), "edited bytes");
+  expect((await figureReuseWarnings(root, "science/notes/a.md", note)).join(" ")).toContain("remain unmodified");
+  await fs.writeFile(path.join(root, "science/assets/photo.jpg"), bytes);
+  // An absent hash/unmodified flag also blocks, for all-rights-reserved and for NC.
+  await fs.writeFile(
+    path.join(root, "science/assets/photo.json"),
+    JSON.stringify({
+      license: "all rights reserved",
+      creator: "Photographer",
+      sourcePage: "https://example.org/photo",
+    }),
+  );
+  expect((await figureReuseWarnings(root, "science/notes/a.md", note)).join(" ")).toContain("remain unmodified");
+  await fs.writeFile(
+    path.join(root, "science/assets/photo.json"),
+    JSON.stringify({
+      license: "CC BY-NC 4.0",
+      creator: "Photographer",
+      sourcePage: "https://example.org/photo",
+    }),
+  );
+  const nc = '![A material](../assets/photo.jpg "Credit: Photographer, CC BY-NC 4.0, https://example.org/photo")';
+  expect((await figureReuseWarnings(root, "science/notes/a.md", nc)).join(" ")).toContain("remain unmodified");
+  // ND always needs original bytes/hash, even with the allowance off.
+  await fs.writeFile(
+    path.join(root, "science/assets/photo.json"),
+    JSON.stringify({ license: "CC BY-ND 4.0", creator: "Photographer", sourcePage: "https://example.org/photo" }),
+  );
+  const nd = '![A material](../assets/photo.jpg "Credit: Photographer, CC BY-ND 4.0, https://example.org/photo")';
+  expect((await figureReuseWarnings(root, "science/notes/a.md", nd)).join(" ")).toContain("remain unmodified");
 });
 it("blocks missing/unknown sidecars and invisible credit while keeping SVG schematics intact", async () => {
   expect(
     (await figureReuseWarnings(root, "science/notes/a.md", "![Material](../assets/photo.jpg)")).join(" "),
   ).toContain("missing visible");
   await fs.writeFile(path.join(root, "science/assets/photo.json"), '{"license":"all rights reserved"}');
-  expect((await figureReuseWarnings(root, "science/notes/a.md", text)).join(" ")).toContain("unacceptable license");
+  // The sidecar carries no source page, so even a licence label cannot complete the credit.
+  expect((await figureReuseWarnings(root, "science/notes/a.md", text)).join(" ")).toContain("missing visible source");
   await fs.unlink(path.join(root, "science/assets/photo.json"));
   expect(await figureReuseWarnings(root, "science/notes/a.md", text)).toHaveLength(1);
   expect(await figureReuseWarnings(root, "science/notes/a.md", "![Schematic](../assets/a.svg)")).toEqual([]);
