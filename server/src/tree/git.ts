@@ -103,7 +103,7 @@ const repoLocks = new Map<string, Promise<void>>();
  * Waiters chain onto the tail of the lock map in call order (FIFO). Read-only
  * operations run without the lock.
  */
-function withRepoLock<T>(root: string, operation: () => Promise<T>): Promise<T> {
+export function withRepoLock<T>(root: string, operation: () => Promise<T>): Promise<T> {
   const key = path.resolve(root);
   const previous = repoLocks.get(key) ?? Promise.resolve();
   const result = previous.then(operation);
@@ -118,7 +118,7 @@ function withRepoLock<T>(root: string, operation: () => Promise<T>): Promise<T> 
   return result;
 }
 
-async function git(root: string, args: string[], env: Record<string, string> = {}): Promise<string> {
+export async function git(root: string, args: string[], env: Record<string, string> = {}): Promise<string> {
   // Never let the caller's environment redirect git to another repo or run the user's global hooks.
   const { GIT_DIR: _dir, GIT_WORK_TREE: _tree, GIT_INDEX_FILE: _index, ...baseEnv } = process.env;
   const { stdout } = await limitGit(() =>
@@ -229,7 +229,7 @@ export async function commitPaths(
   return withRepoLock(root, () => commitPathsUnlocked(root, paths, message, author));
 }
 
-async function commitPathsUnlocked(
+export async function commitPathsUnlocked(
   root: string,
   paths: string[],
   message: string,
@@ -237,14 +237,14 @@ async function commitPathsUnlocked(
   alreadyStaged = false,
 ): Promise<string | null> {
   // A path staged as deleted no longer exists on disk, so `git add` would reject its pathspec.
-  if (!alreadyStaged) await git(root, ["add", "-A", "--", ...paths]);
-  const staged = await git(root, ["diff", "--cached", "--name-only", "--", ...paths]);
+  if (!alreadyStaged) await git(root, ["--literal-pathspecs", "add", "-A", "--", ...paths]);
+  const staged = await git(root, ["--literal-pathspecs", "diff", "--cached", "--name-only", "--", ...paths]);
   if (staged.trim() === "") {
     return null;
   }
   // A pathspec makes git commit only those paths, leaving unrelated staged
   // or unstaged changes out of the commit.
-  await git(root, ["commit", "-m", message, "--", ...paths], AUTHOR_ENV[author]);
+  await git(root, ["--literal-pathspecs", "commit", "-m", message, "--", ...paths], AUTHOR_ENV[author]);
   const sha = await git(root, ["rev-parse", "HEAD"]);
   return sha.trim();
 }
@@ -304,16 +304,19 @@ export async function revert(root: string, sha: string, author: Author): Promise
   if (!SHA_PATTERN.test(sha)) {
     throw new Error(`Invalid commit sha: ${sha}`);
   }
-  return withRepoLock(root, async () => {
-    try {
-      await git(root, ["revert", "--no-edit", sha], AUTHOR_ENV[author]);
-    } catch (cause) {
-      await git(root, ["revert", "--abort"]).catch(() => undefined);
-      throw new RevertConflictError(`Revert of ${sha} failed`, { cause });
-    }
-    const newSha = await git(root, ["rev-parse", "HEAD"]);
-    return newSha.trim();
-  });
+  return withRepoLock(root, () => revertUnlocked(root, sha, author));
+}
+
+/** Caller must hold the repository lock for the entire validation/revert transaction. */
+export async function revertUnlocked(root: string, sha: string, author: Author): Promise<string> {
+  try {
+    await git(root, ["revert", "--no-edit", sha], AUTHOR_ENV[author]);
+  } catch (cause) {
+    await git(root, ["revert", "--abort"]).catch(() => undefined);
+    throw new RevertConflictError(`Revert of ${sha} failed`, { cause });
+  }
+  const newSha = await git(root, ["rev-parse", "HEAD"]);
+  return newSha.trim();
 }
 
 /**

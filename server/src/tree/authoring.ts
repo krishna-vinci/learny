@@ -95,6 +95,8 @@ export async function createNote(
   const notesRel = `${set}/notes`;
   return locks.withLock(notesRel, "user", async () => {
     const notesDir = resolveInRoot(root, notesRel);
+    // Git does not preserve empty directories, including after restoring an empty set.
+    await fs.mkdir(notesDir, { recursive: true });
     const entries = await fs.readdir(notesDir, { withFileTypes: true });
     let maxOrder = 0;
     for (const entry of entries) {

@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, expect, it, vi } from "vitest";
@@ -32,11 +33,13 @@ afterEach(() => {
 });
 function setup() {
   render(
-    <MemoryRouter initialEntries={["/s/history"]}>
-      <Routes>
-        <Route path="/s/:set" element={<SetHomePage />} />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter initialEntries={["/s/history"]}>
+        <Routes>
+          <Route path="/s/:set" element={<SetHomePage />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 it("orders toolbar, notes, book, course plan and next step with promoted actions and visible download", () => {

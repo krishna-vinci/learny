@@ -27,7 +27,7 @@ export interface ConfirmDialogProps {
   confirmVariant?: ButtonVariant;
   /** When set, the confirm button stays disabled until the admin types this value back. */
   typedConfirmValue?: string;
-  onConfirm: () => void | Promise<void>;
+  onConfirm: () => void | boolean | Promise<void> | Promise<boolean>;
 }
 
 function ConfirmDialog({
@@ -52,8 +52,8 @@ function ConfirmDialog({
   async function handleConfirm() {
     setPending(true);
     try {
-      await onConfirm();
-      onOpenChange(false);
+      const confirmed = await onConfirm();
+      if (confirmed !== false) onOpenChange(false);
     } finally {
       setPending(false);
     }

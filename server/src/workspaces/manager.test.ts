@@ -5,6 +5,7 @@ import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import { promisify } from "node:util";
 import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
+import type { DeletionPreview, DeletionResult } from "@studium/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createUser, type User, updateUser } from "../accounts/users.js";
 import { migrate, openDb } from "../db/db.js";
@@ -94,6 +95,47 @@ describe("WorkspaceManager", () => {
     await expect((await secondWorkspace.app.request("/api/sets")).json()).resolves.toEqual([]);
   });
 
+  it("confines deletion history and restore to the authenticated learner's workspace", async () => {
+    const alice = await createNormalUser({ username: "alice", role: "USER" });
+    const bob = await createNormalUser({ username: "bob", role: "USER" });
+    const first = await manager.for(alice);
+    const second = await manager.for(bob);
+    const rel = "private-set/notes/01-private.md";
+    await fs.writeFile(path.join(first.root, rel), "ALICE\n");
+    await fs.writeFile(path.join(second.root, rel), "BOB\n");
+    const preview = (await (
+      await first.app.request("/api/sets/private-set/deletion?path=notes/01-private.md")
+    ).json()) as DeletionPreview;
+    const deleted = await first.app.request("/api/sets/private-set/notes", {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ path: "notes/01-private.md", token: preview.token }),
+    });
+    expect(deleted.status).toBe(200);
+    const result = (await deleted.json()) as DeletionResult;
+    expect(await fs.readFile(path.join(second.root, rel), "utf8")).toBe("BOB\n");
+    expect(await (await second.app.request("/api/sets/recently-deleted")).json()).toEqual([]);
+    expect(
+      (
+        await second.app.request("/api/sets/private-set/restore", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ sha: result.sha }),
+        })
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await first.app.request("/api/sets/private-set/restore", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ sha: result.sha }),
+        })
+      ).status,
+    ).toBe(200);
+    expect(await fs.readFile(path.join(first.root, rel), "utf8")).toBe("ALICE\n");
+  });
+
   it("provisions a tree with the first admin's global configuration", async () => {
     await createUser(db, { username: "admin", role: "ADMIN" });
     const template = path.join(tempDir, "template");
@@ -138,6 +180,8 @@ describe("WorkspaceManager", () => {
 
     const user = await createUser(db, { username: "learner", role: "USER" });
     const workspace = await manager.for(user);
+    await fs.mkdir(path.join(workspace.root, "linear-algebra"));
+    await fs.writeFile(path.join(workspace.root, "linear-algebra/PLAN.md"), "---\ntitle: Linear algebra\n---\n");
     workspace.jobs.register("draft-chapter", async () => undefined);
     workspace.jobs.enqueue("draft-chapter", {}, { set: "linear-algebra", title: "Chapter one" });
 

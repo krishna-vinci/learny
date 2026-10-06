@@ -6,9 +6,10 @@ import type { EventHub } from "../events.js";
 import { listSetSources } from "../ingest/library.js";
 import type { JobRunner } from "../jobs/runner.js";
 import { createNote, createSet, writeNoteAsUser } from "../tree/authoring.js";
+import { DeletionError, deleteFromTree, previewDeletion, recentlyDeleted, restoreDeletion } from "../tree/deletion.js";
 import { EditError } from "../tree/edit.js";
 import { changedPaths, diff, log, RevertConflictError, revert, revertPaths } from "../tree/git.js";
-import type { FileLocks } from "../tree/lock.js";
+import { type FileLocks, SetMutationError } from "../tree/lock.js";
 import { IMAGE_MIME, MEDIA_HEADERS } from "../tree/media.js";
 import { canonicalRel, PathError, resolveInRoot } from "../tree/paths.js";
 import { isSetSlug, listNotes, listSets, readSetFile } from "../tree/read.js";
@@ -18,6 +19,7 @@ export interface SetsDeps {
   hub: EventHub;
   locks: FileLocks;
   jobs?: Pick<JobRunner, "chapterJobs">;
+  assertIdle?: (set: string) => void;
 }
 
 const DEFAULT_HISTORY_LIMIT = 50;
@@ -37,6 +39,7 @@ async function setExists(root: string, set: string): Promise<boolean> {
   if (!isSetSlug(set)) return false;
   try {
     const stats = await fs.stat(resolveInRoot(root, set));
+    await fs.access(`${resolveInRoot(root, set)}/PLAN.md`);
     return stats.isDirectory();
   } catch {
     return false;
@@ -79,6 +82,102 @@ export function setsRoutes(deps: SetsDeps): Hono {
 
   app.get("/", async (c) => c.json(await listSets(root)));
 
+  function deletionFailure(c: Context, error: unknown): Response {
+    if (error instanceof PathError) return invalidPath(c);
+    if (error instanceof DeletionError) return c.json({ error: error.message }, error.status);
+    if (error instanceof SetMutationError)
+      return c.json(
+        { error: "Finish or cancel this set's active tasks and tutor replies before deleting or restoring." },
+        409,
+      );
+    if (error instanceof RevertConflictError)
+      return c.json(
+        {
+          error:
+            "Later edits conflict with this restore. Keep your new work and resolve the conflict before restoring.",
+        },
+        409,
+      );
+    throw error;
+  }
+
+  app.get("/recently-deleted", async (c) => c.json(await recentlyDeleted(root)));
+
+  app.get("/:set/deletion", async (c) => {
+    try {
+      const path = c.req.query("path");
+      return c.json(
+        await previewDeletion(root, locks, { set: c.req.param("set"), ...(path === undefined ? {} : { path }) }),
+      );
+    } catch (error) {
+      return deletionFailure(c, error);
+    }
+  });
+
+  app.delete("/:set/notes", async (c) => {
+    const body = await readJsonBody(c);
+    if (
+      typeof body.path !== "string" ||
+      typeof body.token !== "string" ||
+      (body.removeFromPlan !== undefined && typeof body.removeFromPlan !== "boolean") ||
+      (body.linkedDataConfirmed !== undefined && typeof body.linkedDataConfirmed !== "boolean")
+    )
+      return invalidPath(c);
+    const set = c.req.param("set");
+    try {
+      const result = await deleteFromTree(
+        root,
+        locks,
+        { set, path: body.path },
+        {
+          token: body.token,
+          removeFromPlan: body.removeFromPlan === true,
+          linkedDataConfirmed: body.linkedDataConfirmed === true,
+          assertIdle: () => deps.assertIdle?.(set),
+        },
+      );
+      hub.publish({ type: "commit", sha: result.sha, subject: result.subject, author: "user" });
+      return c.json(result);
+    } catch (error) {
+      return deletionFailure(c, error);
+    }
+  });
+
+  app.delete("/:set", async (c) => {
+    const body = await readJsonBody(c);
+    if (typeof body.token !== "string" || typeof body.confirmation !== "string") return invalidPath(c);
+    const set = c.req.param("set");
+    try {
+      const result = await deleteFromTree(
+        root,
+        locks,
+        { set },
+        {
+          token: body.token,
+          confirmation: body.confirmation,
+          assertIdle: () => deps.assertIdle?.(set),
+        },
+      );
+      hub.publish({ type: "commit", sha: result.sha, subject: result.subject, author: "user" });
+      return c.json(result);
+    } catch (error) {
+      return deletionFailure(c, error);
+    }
+  });
+
+  app.post("/:set/restore", async (c) => {
+    const body = await readJsonBody(c);
+    if (typeof body.sha !== "string" || !/^[a-f0-9]{40}$/.test(body.sha)) return invalidPath(c);
+    const set = c.req.param("set");
+    try {
+      const result = await restoreDeletion(root, locks, set, body.sha, () => deps.assertIdle?.(set));
+      hub.publish({ type: "commit", sha: result.sha, subject: result.subject, author: "user" });
+      return c.json(result);
+    } catch (error) {
+      return deletionFailure(c, error);
+    }
+  });
+
   app.post("/", async (c) => {
     const body = await readJsonBody(c);
     const title = typeof body.title === "string" ? body.title.trim() : "";
@@ -94,6 +193,7 @@ export function setsRoutes(deps: SetsDeps): Hono {
     }
 
     const result = await createSet(root, goal === undefined ? { title } : { title, goal });
+    locks.setDeleted(result.slug, false);
     if (result.sha !== null) {
       hub.publish({ type: "commit", sha: result.sha, subject: result.subject, author: "user" });
     }

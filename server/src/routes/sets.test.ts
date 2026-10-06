@@ -1,12 +1,12 @@
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { StudiumEvent } from "@studium/shared";
+import type { DeletionPreview, DeletionResult, StudiumEvent } from "@studium/shared";
 import { Hono } from "hono";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { EventHub } from "../events.js";
 import { commitAll, ensureRepo, log } from "../tree/git.js";
-import { FileLocks } from "../tree/lock.js";
+import { FileLocks, SetMutationError } from "../tree/lock.js";
 import { setsRoutes } from "./sets.js";
 
 describe("sets authoring routes", () => {
@@ -338,5 +338,90 @@ describe("sets authoring routes", () => {
       expect(head).toMatchObject({ author: "user", subject: `user: revert ${sha?.slice(0, 7)} (set alpha only)` });
       expect(commitEvents().at(-1)).toMatchObject({ sha: head?.sha });
     });
+  });
+  it("previews and deletes a note, publishes user commits, lists history and restores after deletion", async () => {
+    const original = await fs.readFile(path.join(root, "alpha/notes/03-vectors.md"));
+    const preview = (await (
+      await app.request("/api/sets/alpha/deletion?path=notes/03-vectors.md")
+    ).json()) as DeletionPreview;
+    const deleted = await app.request("/api/sets/alpha/notes", {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ path: "notes/03-vectors.md", token: preview.token }),
+    });
+    expect(deleted.status).toBe(200);
+    const result = (await deleted.json()) as DeletionResult;
+    expect(commitEvents()).toMatchObject([{ type: "commit", sha: result.sha, author: "user" }]);
+    expect(await (await app.request("/api/sets/recently-deleted")).json()).toMatchObject([
+      { sha: result.sha, kind: "note" },
+    ]);
+    const restored = await json("/api/sets/alpha/restore", "POST", { sha: result.sha });
+    expect(restored.status).toBe(200);
+    expect(await fs.readFile(path.join(root, "alpha/notes/03-vectors.md"))).toEqual(original);
+    expect(await (await app.request("/api/sets/recently-deleted")).json()).toEqual([]);
+  });
+
+  it("requires exact typed confirmation for set deletion and restores even when the directory is gone", async () => {
+    const preview = (await (await app.request("/api/sets/alpha/deletion")).json()) as DeletionPreview;
+    async function del(confirmation: string) {
+      return app.request("/api/sets/alpha", {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ token: preview.token, confirmation }),
+      });
+    }
+    expect((await del("alpha")).status).toBe(400);
+    const response = await del("Alpha");
+    expect(response.status).toBe(200);
+    expect(await (await app.request("/api/sets")).json()).toEqual([]);
+    const result = (await response.json()) as DeletionResult;
+    expect((await json("/api/sets/alpha/restore", "POST", { sha: result.sha })).status).toBe(200);
+    expect(await (await app.request("/api/sets")).json()).toMatchObject([{ slug: "alpha" }]);
+  });
+
+  it("rejects reserved roots, another set, stale previews, invalid history and symlink escapes", async () => {
+    for (const set of ["library", "_global"]) expect((await app.request(`/api/sets/${set}/deletion`)).status).toBe(400);
+    expect((await app.request("/api/sets/alpha/deletion?path=../beta/PLAN.md")).status).toBe(400);
+    const preview = (await (
+      await app.request("/api/sets/alpha/deletion?path=notes/03-vectors.md")
+    ).json()) as DeletionPreview;
+    await fs.writeFile(path.join(root, "alpha/notes/03-vectors.md"), "changed");
+    const stale = await app.request("/api/sets/alpha/notes", {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ path: "notes/03-vectors.md", token: preview.token }),
+    });
+    expect(stale.status).toBe(409);
+    expect((await json("/api/sets/alpha/restore", "POST", { sha: "a".repeat(40) })).status).toBe(400);
+    await fs.writeFile(path.join(outside, "note.md"), "outside");
+    await fs.symlink(path.join(outside, "note.md"), path.join(root, "alpha/notes/link.md"));
+    expect((await app.request("/api/sets/alpha/deletion?path=notes/link.md")).status).toBe(400);
+    expect((await app.request("/api/sets/alpha/deletion")).status).toBe(400);
+  });
+  it("refuses deletion while a set has an active task without mutating files", async () => {
+    const busyApp = new Hono();
+    busyApp.route(
+      "/api/sets",
+      setsRoutes({
+        root,
+        hub,
+        locks: new FileLocks(),
+        assertIdle: () => {
+          throw new SetMutationError();
+        },
+      }),
+    );
+    const preview = (await (
+      await busyApp.request("/api/sets/alpha/deletion?path=notes/03-vectors.md")
+    ).json()) as DeletionPreview;
+    const response = await busyApp.request("/api/sets/alpha/notes", {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ path: "notes/03-vectors.md", token: preview.token }),
+    });
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ error: expect.stringContaining("active tasks") });
+    expect(await fs.readFile(path.join(root, "alpha/notes/03-vectors.md"), "utf8")).toContain("# Vectors");
+    expect(commitEvents()).toEqual([]);
   });
 });
