@@ -7,6 +7,9 @@ export interface SourceImage {
   caption?: string;
   license?: string;
   credit?: string;
+  creator?: string;
+  sourcePage?: string;
+  licenseUrl?: string;
 }
 
 /** Collect before cleaning; discovery never downloads an image. */

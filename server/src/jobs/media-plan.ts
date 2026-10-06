@@ -18,6 +18,7 @@ import {
 import { readText } from "../tree/edit.js";
 import { type MediaBrief, readMediaBrief, saveMediaBrief } from "../tree/media-brief.js";
 import type { DraftJobDeps } from "./draft-job.js";
+import { refineChapterImages } from "./image-plan.js";
 import { createIngestJob } from "./ingest-job.js";
 import { type JobContext, usageFromPiMessages } from "./runner.js";
 
@@ -275,7 +276,17 @@ export async function refineMediaBrief(
       };
     }
   }
+  const selectedImages = await refineChapterImages(
+    deps,
+    set,
+    chapter,
+    figures,
+    String(parseFrontmatter(plan).frontmatter.subject ?? "general"),
+    ctx,
+  );
+  brief.images = selectedImages.images;
   return saveMediaBrief(deps.root, deps.locks, set, chapter, brief, {
+    images: selectedImages.candidates,
     figures: figures.map((figure) => ({ ...figure, score: figureScore(figure) })),
   });
 }

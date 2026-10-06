@@ -1,0 +1,17 @@
+{
+  "calls": 152,
+  "usage": {
+    "openai-codex": {
+      "fresh": 794686,
+      "output": 38248,
+      "cacheRead": 3285376,
+      "cacheWrite": 0
+    },
+    "github-copilot": {
+      "fresh": 126,
+      "output": 28734,
+      "cacheRead": 3957573,
+      "cacheWrite": 643627
+    }
+  }
+}

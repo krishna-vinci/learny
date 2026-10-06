@@ -1,0 +1,134 @@
+{
+  "result_count": 240,
+  "page_count": 120,
+  "page_size": 2,
+  "page": 1,
+  "results": [
+    {
+      "id": "a563d91d-1fa2-4781-b42c-206fb4239e20",
+      "title": "Charminar, Hyderabad (Redux) - IMG 0216 pan ep",
+      "indexed_on": "2019-01-14T15:22:25.657323Z",
+      "foreign_landing_url": "https://www.flickr.com/photos/13484951@N00/1942437676",
+      "url": "https://live.staticflickr.com/2266/1942437676_fd5bee0e1c_b.jpg",
+      "creator": "Eric.Parker",
+      "creator_url": "https://www.flickr.com/photos/13484951@N00",
+      "license": "by-nc",
+      "license_version": "2.0",
+      "license_url": "https://creativecommons.org/licenses/by-nc/2.0/",
+      "provider": "flickr",
+      "source": "flickr",
+      "category": null,
+      "filesize": null,
+      "filetype": null,
+      "tags": [
+        {
+          "name": "2006",
+          "accuracy": null,
+          "unstable__provider": "flickr"
+        },
+        {
+          "name": "africanamerican",
+          "accuracy": null,
+          "unstable__provider": "flickr"
+        },
+        {
+          "name": "charminar",
+          "accuracy": null,
+          "unstable__provider": "flickr"
+        },
+        {
+          "name": "haqim",
+          "accuracy": null,
+          "unstable__provider": "flickr"
+        },
+        {
+          "name": "hospital",
+          "accuracy": null,
+          "unstable__provider": "flickr"
+        },
+        {
+          "name": "hyderabad",
+          "accuracy": null,
+          "unstable__provider": "flickr"
+        },
+        {
+          "name": "india",
+          "accuracy": null,
+          "unstable__provider": "flickr"
+        },
+        {
+          "name": "panorama",
+          "accuracy": null,
+          "unstable__provider": "flickr"
+        },
+        {
+          "name": "platinumphoto",
+          "accuracy": null,
+          "unstable__provider": "flickr"
+        }
+      ],
+      "attribution": "\"Charminar, Hyderabad (Redux) - IMG 0216 pan ep\" by Eric.Parker is licensed under CC BY-NC 2.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-nc/2.0/.",
+      "fields_matched": ["description", "title", "tags.name"],
+      "mature": false,
+      "height": 497,
+      "width": 1024,
+      "thumbnail": "https://api.openverse.org/v1/images/a563d91d-1fa2-4781-b42c-206fb4239e20/thumb/",
+      "detail_url": "https://api.openverse.org/v1/images/a563d91d-1fa2-4781-b42c-206fb4239e20/",
+      "related_url": "https://api.openverse.org/v1/images/a563d91d-1fa2-4781-b42c-206fb4239e20/related/",
+      "unstable__sensitivity": []
+    },
+    {
+      "id": "70cbc4f0-3566-4cca-a372-2eb48a8fe6eb",
+      "title": "HPC Charminar Group Photo",
+      "indexed_on": "2020-04-21T01:05:28.005303Z",
+      "foreign_landing_url": "https://www.flickr.com/photos/51035633309@N01/4361572807",
+      "url": "https://live.staticflickr.com/4035/4361572807_42205c645b_b.jpg",
+      "creator": "pangalactic gargleblaster and the heart of gold",
+      "creator_url": "https://www.flickr.com/photos/51035633309@N01",
+      "license": "by-nc-nd",
+      "license_version": "2.0",
+      "license_url": "https://creativecommons.org/licenses/by-nc-nd/2.0/",
+      "provider": "flickr",
+      "source": "flickr",
+      "category": null,
+      "filesize": null,
+      "filetype": null,
+      "tags": [
+        {
+          "name": "charminar",
+          "accuracy": null,
+          "unstable__provider": "flickr"
+        },
+        {
+          "name": "groupphoto",
+          "accuracy": null,
+          "unstable__provider": "flickr"
+        },
+        {
+          "name": "hpc",
+          "accuracy": null,
+          "unstable__provider": "flickr"
+        },
+        {
+          "name": "hpcphotowalkhyderabad",
+          "accuracy": null,
+          "unstable__provider": "flickr"
+        },
+        {
+          "name": "photowalk",
+          "accuracy": null,
+          "unstable__provider": "flickr"
+        }
+      ],
+      "attribution": "\"HPC Charminar Group Photo\" by pangalactic gargleblaster and the heart of gold is licensed under CC BY-NC-ND 2.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-nc-nd/2.0/.",
+      "fields_matched": ["title", "tags.name"],
+      "mature": false,
+      "height": 681,
+      "width": 1024,
+      "thumbnail": "https://api.openverse.org/v1/images/70cbc4f0-3566-4cca-a372-2eb48a8fe6eb/thumb/",
+      "detail_url": "https://api.openverse.org/v1/images/70cbc4f0-3566-4cca-a372-2eb48a8fe6eb/",
+      "related_url": "https://api.openverse.org/v1/images/70cbc4f0-3566-4cca-a372-2eb48a8fe6eb/related/",
+      "unstable__sensitivity": []
+    }
+  ]
+}

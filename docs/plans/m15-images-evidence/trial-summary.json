@@ -1,0 +1,152 @@
+{
+  "jobs": [
+    {
+      "id": "ef59258d-eb75-4ed9-8346-979ac4e62ede",
+      "kind": "draft-chapter",
+      "set": "polymers",
+      "title": "M15 real image chapter trial",
+      "status": "failed",
+      "progress": "Choosing image 3 for Familiar objects, atoms and polymer chains",
+      "startedAt": "2026-10-06T07:34:15.582Z",
+      "finishedAt": "2026-10-06T07:35:54.892Z",
+      "usage": {
+        "input": 114579,
+        "output": 1392,
+        "cacheRead": 124800,
+        "cacheWrite": 0,
+        "costUsd": 0.25555799999999995,
+        "exaRequests": 1,
+        "exaCostUsd": 0.007
+      },
+      "billing": "subscription",
+      "error": "Visual specifications exceed the 5 KB media brief budget; shorten the plan intents"
+    },
+    {
+      "id": "32a102bc-5203-4a0c-8b94-fb5f3e2129ff",
+      "kind": "plan-set",
+      "set": "polymers",
+      "title": "M15 image planning trial",
+      "status": "done",
+      "progress": "Plan awaiting approval",
+      "startedAt": "2026-10-06T07:29:44.283Z",
+      "finishedAt": "2026-10-06T07:34:15.411Z",
+      "usage": {
+        "input": 93121,
+        "output": 6670,
+        "cacheRead": 358272,
+        "cacheWrite": 0,
+        "costUsd": 0.2887692,
+        "exaRequests": 3,
+        "exaCostUsd": 0.021
+      },
+      "billing": "subscription",
+      "result": {
+        "proposalPath": "plan-proposals/2026-10-06T07-29-44-300Z-0cff181f-95e0-451e-ba46-c4bac7fdba3c.md",
+        "commitSha": "bf7a4256dc4d61a7589e312f712e5575d2699861"
+      }
+    },
+    {
+      "id": "3dbc4553-2636-4fe4-8b8c-fd0dce5b69e8",
+      "kind": "draft-chapter",
+      "set": "hyderabad-history",
+      "title": "M15 real image chapter trial",
+      "status": "done",
+      "progress": "Chapter checked",
+      "startedAt": "2026-10-06T07:20:08.737Z",
+      "finishedAt": "2026-10-06T07:29:43.933Z",
+      "usage": {
+        "input": 129763,
+        "output": 15980,
+        "cacheRead": 2889033,
+        "cacheWrite": 163872,
+        "costUsd": 0.47942469000000004,
+        "exaRequests": 4,
+        "exaCostUsd": 0.021
+      },
+      "billing": "subscription",
+      "result": {
+        "notePath": "notes/01-meet-hyderabad-through-charminar.md",
+        "commitSha": "6e68ece197c732ebf4830909a0eb0df7d715c24b"
+      }
+    },
+    {
+      "id": "1299659f-f951-4ddf-90d8-f5195aa02072",
+      "kind": "plan-set",
+      "set": "hyderabad-history",
+      "title": "M15 image planning trial",
+      "status": "done",
+      "progress": "Plan awaiting approval",
+      "startedAt": "2026-10-06T07:17:30.641Z",
+      "finishedAt": "2026-10-06T07:20:07.804Z",
+      "usage": {
+        "input": 53819,
+        "output": 4388,
+        "cacheRead": 199936,
+        "cacheWrite": 0,
+        "costUsd": 0.17151160000000001,
+        "exaRequests": 1,
+        "exaCostUsd": 0.017
+      },
+      "billing": "subscription",
+      "result": {
+        "proposalPath": "plan-proposals/2026-10-06T07-17-30-648Z-7d458c13-d7dd-4fbd-bce5-6cf27dace5fd.md",
+        "commitSha": "2c2f4d736d31a228bba5efcd69607b704a3c1d8c"
+      }
+    },
+    {
+      "id": "03a4af09-6526-4432-bd17-a115da7f7312",
+      "kind": "draft-chapter",
+      "set": "polymers",
+      "title": "M15 real image chapter trial",
+      "status": "done",
+      "progress": "Finished with open blocker issues",
+      "startedAt": "2026-10-06T07:46:17.226Z",
+      "finishedAt": "2026-10-06T07:55:55.402Z",
+      "usage": {
+        "input": 268962,
+        "output": 23345,
+        "cacheRead": 1784540,
+        "cacheWrite": 354150,
+        "costUsd": 0.79620397,
+        "exaRequests": 1,
+        "exaCostUsd": 0.007
+      },
+      "billing": "subscription",
+      "result": {
+        "notePath": "notes/01-familiar-objects-atoms-and-polymer.md",
+        "commitSha": "bd6f5d1e19bc77eff92d767234cb13b58f82ed2c"
+      }
+    },
+    {
+      "id": "d9a6a83e-1311-4966-bc4d-74a24b2fef01",
+      "kind": "draft-chapter",
+      "set": "hyderabad-history",
+      "title": "M15 real image chapter trial",
+      "status": "done",
+      "progress": "Chapter checked",
+      "startedAt": "2026-10-06T07:39:49.148Z",
+      "finishedAt": "2026-10-06T07:46:16.532Z",
+      "usage": {
+        "input": 134568,
+        "output": 15207,
+        "cacheRead": 1886368,
+        "cacheWrite": 125605,
+        "costUsd": 0.4433308449999999,
+        "exaRequests": 1,
+        "exaCostUsd": 0.007
+      },
+      "billing": "subscription",
+      "result": {
+        "notePath": "notes/01-meet-hyderabad-through-charminar.md",
+        "commitSha": "9dec7976ae154a2051a4e47dd9627d6343d2e7ed"
+      }
+    }
+  ],
+  "modelCalls": {
+    "openai-codex/gpt-6.1-sol": 110,
+    "github-copilot/gpt-6-luna": 42
+  },
+  "exaRequests": 11,
+  "exaCostUsd": 0.08,
+  "note": "Temporary study-tree app jobs created their normal local history; no worktree commit or push was performed. Subscription costUsd estimates in jobs are not incremental cash charges."
+}

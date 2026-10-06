@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { readSourceFigures, reusableLicense } from "../ingest/figures.js";
+import { allowNonCommercial } from "../ingest/image-license.js";
+
 import { listSources } from "../ingest/library.js";
 import { canonicalRel, resolveInRoot } from "../tree/paths.js";
 
@@ -25,70 +27,63 @@ export async function figureReuseWarnings(root: string, notePath: string, text: 
       fence = marker[1];
       continue;
     }
-    for (const match of line.matchAll(/!\[([^\]]*)\](?:\(<?([^\s)>]+)>?(?:\s+["'][^"']*["'])?\)|\[([^\]]*)\])?/g)) {
+    for (const match of line.matchAll(
+      /!\[([^\]]*)\](?:\(<?([^\s)>]+)>?(?:\s+(?:"[^"]*"|'[^']*'))?\)|\[([^\]]*)\])?/g,
+    )) {
       const src = match[2] ?? definitions.get((match[3] || match[1] || "").toLowerCase());
       if (src) images.push({ src, caption: lines.slice(i, i + 5).join("\n") });
     }
   }
   if (!images.length) return [];
+  const allowNC = await allowNonCommercial(root);
   const figures = (
-    await Promise.all(
-      (
-        await listSources(root)
-      ).map(async (source) =>
-        (await readSourceFigures(root, source.id)).map((figure) => ({ ...figure, sourceId: source.id })),
-      ),
-    )
+    await Promise.all((await listSources(root)).map((source) => readSourceFigures(root, source.id)))
   ).flat();
   const warnings: string[] = [];
   for (const image of images) {
-    let figure = figures.find((f) => f.url === image.src);
-    if (!figure && !/^https?:/.test(image.src)) {
-      const rel = path.posix.normalize(path.posix.join(path.posix.dirname(notePath), image.src));
-      if (rel.startsWith("../")) continue;
-      const direct = figures.find((f) => f.path && `library/${f.sourceId}/${f.path}` === rel);
-      if (direct) figure = direct;
-      else if (/^library\/lib-[a-z0-9-]+\/figures\//.test(rel)) {
-        warnings.push(
-          `Source figure reuse: ${image.src} has no verified license metadata; redraw and cite its source.`,
-        );
+    if (!/\.svg(?:[?#]|$)/i.test(image.src)) {
+      if (/^https?:/i.test(image.src)) {
+        warnings.push(`Source figure reuse: ${image.src} must be saved locally with a licensed credit sidecar.`);
         continue;
-      } else if (rel.startsWith(`${notePath.split("/")[0]}/assets/`)) {
-        if (canonicalRel(root, rel) !== rel) {
-          warnings.push(`Source figure reuse: aliased image ${image.src} is not permitted.`);
-          continue;
+      }
+      const rel = path.posix.normalize(path.posix.join(path.posix.dirname(notePath), image.src));
+      const base = `${notePath.split("/")[0]}/assets/`;
+      if (!rel.startsWith(base) || !/\.(?:png|jpe?g|gif|webp)$/i.test(rel) || canonicalRel(root, rel) !== rel) {
+        warnings.push(`Source figure reuse: ${image.src} requires a confined local raster asset.`);
+        continue;
+      }
+      const sidecar = rel.replace(/\.[^.]+$/, ".json");
+      try {
+        if (canonicalRel(root, sidecar) !== sidecar) throw new Error("aliased sidecar");
+        const bytes = await fs.readFile(resolveInRoot(root, rel));
+        const hash = createHash("sha256").update(bytes).digest("hex");
+        const captured = figures.find((f) => f.path?.includes(hash.slice(0, 24)));
+        if (captured && !reusableLicense(captured.license, allowNC))
+          throw new Error(`unacceptable captured license (${captured.license ?? "unknown"})`);
+        const meta = JSON.parse(await fs.readFile(resolveInRoot(root, sidecar), "utf8"));
+        if (!reusableLicense(typeof meta.license === "string" ? meta.license : undefined, allowNC))
+          throw new Error(`unacceptable license (${meta.license ?? "unknown"})`);
+        const creator = typeof meta.creator === "string" ? meta.creator.trim() : "";
+        const source = typeof meta.sourcePage === "string" ? meta.sourcePage : meta.pageUrl;
+        if (
+          !creator ||
+          !source ||
+          !image.caption.includes(creator) ||
+          !image.caption.includes(meta.license) ||
+          !image.caption.includes(source)
+        )
+          throw new Error("missing visible creator, license or source credit");
+        if (/-ND/i.test(meta.license)) {
+          const bytes = await fs.readFile(resolveInRoot(root, rel));
+          if (meta.unmodified !== true || meta.sha256 !== createHash("sha256").update(bytes).digest("hex"))
+            throw new Error("ND image must remain unmodified with its original saved hash");
         }
-        let credit: { url?: string; sourceId?: string } | null = null;
-        try {
-          credit = JSON.parse(await fs.readFile(resolveInRoot(root, rel.replace(/\.[^.]+$/, ".json")), "utf8"));
-        } catch {
-          /* A broken sidecar never grants permission; compare captured bytes below. */
-        }
-        const bytes = await fs.readFile(resolveInRoot(root, rel)).catch(() => null);
-        if (bytes) {
-          const hash = createHash("sha256").update(bytes).digest("hex").slice(0, 24);
-          figure = figures.find((f) => f.path?.includes(hash));
-        }
-        figure ??= figures.find((f) => f.url === credit?.url);
-        if (!figure && credit?.sourceId) {
-          warnings.push(
-            `Source figure reuse: ${image.src} has no verified license metadata; redraw and cite ${credit.sourceId}.`,
-          );
-          continue;
-        }
+      } catch (error) {
+        warnings.push(
+          `Source figure reuse: ${image.src}: ${error instanceof Error ? error.message : "invalid credit sidecar"}; link or redraw instead.`,
+        );
       }
     }
-    if (!figure) continue;
-    if (!reusableLicense(figure.license))
-      warnings.push(
-        `Source figure reuse: ${image.src} has no permissive license (${figure.license ?? "unknown"}); redraw and cite ${figure.sourceId}.`,
-      );
-    else if (
-      !image.caption.includes(figure.license ?? "") ||
-      !image.caption.includes(`[^src:${figure.sourceId}`) ||
-      !image.caption.includes(figure.credit.split(", ")[0] ?? figure.credit)
-    )
-      warnings.push(`Source figure reuse: ${image.src} needs ${figure.credit} and a source citation in its caption.`);
   }
   return [...new Set(warnings)];
 }

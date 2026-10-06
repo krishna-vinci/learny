@@ -1,0 +1,34 @@
+{
+  "creditCleanup": {
+    "old": "Unknown authorUnknown author or not provided U.S. National Archives and Records Administration",
+    "clean": "Unknown author or not provided U.S. National Archives and Records Administration",
+    "pixelsChanged": false,
+    "chapterStatusChanged": false
+  },
+  "checks": [
+    {
+      "set": "hyderabad-history",
+      "note": "hyderabad-history/notes/01-meet-hyderabad-through-charminar.md",
+      "reuseWarnings": [],
+      "plannedImageBlockers": []
+    },
+    {
+      "set": "polymers",
+      "note": "polymers/notes/01-familiar-objects-atoms-and-polymer.md",
+      "reuseWarnings": [],
+      "plannedImageBlockers": []
+    }
+  ],
+  "bookCredits": [
+    {
+      "set": "hyderabad-history",
+      "images": 1,
+      "printedCredits": 1
+    },
+    {
+      "set": "polymers",
+      "images": 2,
+      "printedCredits": 2
+    }
+  ]
+}

@@ -8,6 +8,8 @@ import { mediaWarnings } from "./media-warnings.js";
 
 let root: string;
 const bytes = Buffer.from("captured figure bytes");
+const credit = "Credit: Photographer, CC BY-NC-ND 4.0, https://example.org/photo";
+const text = `![A material](../assets/photo.jpg "${credit}")`;
 const hash = createHash("sha256").update(bytes).digest("hex").slice(0, 24);
 beforeEach(async () => {
   root = await fs.mkdtemp(path.join(os.tmpdir(), "studium-figure-reuse-"));
@@ -19,6 +21,20 @@ beforeEach(async () => {
   );
   await fs.writeFile(path.join(root, `library/lib-test/figures/${hash}.png`), bytes);
   await fs.writeFile(path.join(root, "math/assets/copy.png"), bytes);
+  await fs.mkdir(path.join(root, "science/assets"), { recursive: true });
+  await fs.mkdir(path.join(root, "_global"));
+  await fs.writeFile(path.join(root, "science/assets/photo.jpg"), bytes);
+  await fs.writeFile(
+    path.join(root, "science/assets/photo.json"),
+    JSON.stringify({
+      url: "https://example.org/photo.jpg",
+      sourcePage: "https://example.org/photo",
+      creator: "Photographer",
+      license: "CC BY-NC-ND 4.0",
+      unmodified: true,
+      sha256: createHash("sha256").update(bytes).digest("hex"),
+    }),
+  );
 });
 afterEach(async () => fs.rm(root, { recursive: true, force: true }));
 async function metadata(license?: string) {
@@ -53,6 +69,15 @@ it("warns at write time for restrictive direct, remote and copied source figures
 });
 it("requires visible license and source credit for permitted figures; redrawn SVGs stay allowed", async () => {
   await metadata("CC BY 4.0");
+  await fs.writeFile(
+    path.join(root, "math/assets/copy.json"),
+    JSON.stringify({
+      url: "https://example.org/figure.png",
+      creator: "Teacher",
+      sourcePage: "https://example.org/lesson",
+      license: "CC BY 4.0",
+    }),
+  );
   expect(await figureReuseWarnings(root, "math/notes/01-vectors.md", "![Vectors](../assets/copy.png)")).toHaveLength(1);
   expect(
     await figureReuseWarnings(
@@ -65,13 +90,14 @@ it("requires visible license and source credit for permitted figures; redrawn SV
     await figureReuseWarnings(
       root,
       "math/notes/01-vectors.md",
-      "![Vectors](../assets/copy.png)\n\n*Teacher, Geometry — CC BY 4.0.*[^src:lib-test#vectors]",
+      "![Vectors](../assets/copy.png)\n\n*Teacher, Geometry — CC BY 4.0, https://example.org/lesson.*[^src:lib-test#vectors]",
     ),
   ).toEqual([]);
   expect(await figureReuseWarnings(root, "math/notes/01-vectors.md", "![Vectors](../assets/redrawn.svg)")).toEqual([]);
 });
 it("fails closed for missing license metadata and does not let a sidecar disguise captured bytes", async () => {
   await metadata("CC BY-NC 4.0");
+  await fs.writeFile(path.join(root, "_global/config.yaml"), "media:\n  allowNonCommercial: false\n");
   const file = path.join(root, "library/lib-test/images.json");
   const figures = JSON.parse(await fs.readFile(file, "utf8"));
   figures.push({
@@ -86,6 +112,9 @@ it("fails closed for missing license metadata and does not let a sidecar disguis
     JSON.stringify({
       sourceId: "lib-test",
       url: "https://example.org/permitted.png",
+      creator: "Other author",
+      license: "CC BY 4.0",
+      sourcePage: "https://example.org/lesson",
     }),
   );
   expect(
@@ -93,13 +122,34 @@ it("fails closed for missing license metadata and does not let a sidecar disguis
       await figureReuseWarnings(
         root,
         "math/notes/01-vectors.md",
-        "![Vectors](../assets/copy.png)\nOther author, CC BY 4.0[^src:lib-test#vectors]",
+        "![Vectors](../assets/copy.png)\nOther author, CC BY 4.0, https://example.org/lesson[^src:lib-test#vectors]",
       )
     )[0],
-  ).toContain("no permissive license");
+  ).toContain("unacceptable captured license");
   await fs.writeFile(file, "malformed metadata");
   for (const src of [`../../library/lib-test/figures/${hash}.png`, "../assets/copy.png"])
     expect((await figureReuseWarnings(root, "math/notes/01-vectors.md", `![Vectors](${src})`))[0]).toContain(
-      "no verified license metadata",
+      "Source figure reuse:",
     );
+});
+it("permits credited NC by default, rejects it when disabled and catches altered ND bytes", async () => {
+  expect(await figureReuseWarnings(root, "science/notes/a.md", text)).toEqual([]);
+  await fs.writeFile(path.join(root, "_global/config.yaml"), "media:\n  allowNonCommercial: false\n");
+  expect((await figureReuseWarnings(root, "science/notes/a.md", text)).join(" ")).toContain("unacceptable license");
+  await fs.writeFile(path.join(root, "_global/config.yaml"), "media:\n  allowNonCommercial: true\n");
+  await fs.writeFile(path.join(root, "science/assets/photo.jpg"), "edited bytes");
+  expect((await figureReuseWarnings(root, "science/notes/a.md", text)).join(" ")).toContain(
+    "ND image must remain unmodified",
+  );
+});
+it("blocks missing/unknown sidecars and invisible credit while keeping SVG schematics intact", async () => {
+  expect(
+    (await figureReuseWarnings(root, "science/notes/a.md", "![Material](../assets/photo.jpg)")).join(" "),
+  ).toContain("missing visible");
+  await fs.writeFile(path.join(root, "science/assets/photo.json"), '{"license":"all rights reserved"}');
+  expect((await figureReuseWarnings(root, "science/notes/a.md", text)).join(" ")).toContain("unacceptable license");
+  await fs.unlink(path.join(root, "science/assets/photo.json"));
+  expect(await figureReuseWarnings(root, "science/notes/a.md", text)).toHaveLength(1);
+  expect(await figureReuseWarnings(root, "science/notes/a.md", "![Schematic](../assets/a.svg)")).toEqual([]);
+  expect(await figureReuseWarnings(root, "science/notes/a.md", `\`\`\`md\n${text}\n\`\`\``)).toEqual([]);
 });

@@ -1,0 +1,31 @@
+{
+  "results": [
+    {
+      "set": "hyderabad-history",
+      "note": "notes/01-meet-hyderabad-through-charminar.md",
+      "image": {
+        "y": 179.578125,
+        "height": 268.5,
+        "width": 358,
+        "src": "/api/sets/hyderabad-history/asset?path=assets%2Fcharminar-street.jpg",
+        "alt": "Street-level view of Charminar showing its minarets, large arches and surrounding street activity.",
+        "credit": "Credit: Rashid Jorvee Own work, CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:Charminar-Hyderabad-Monument.jpg\nNotice the contrast between the monument's tall forms and the street at its feet. Credit: Rashid Jorvee, own work, CC BY-SA 4.0, Wikimedia Commons. Photograph date is not established in the supplied metadata.\nEXAMPLE\n\nObservation → question → verification\n\nObservation: point to one arch and describe its shape without giving it a date.\nQuestion: was the building intended to organise the city around it?\nVerification: India's UNESCO submission describes Charminar at the crossing of two arterial axes, with four gateways oriented towards the cardinal directions, and as a reference point for the city's planning grid.2\n\nNow try a second observation about street activity. What additional evidence would you need before claiming that the same activity occurred here in 1591?"
+      },
+      "screenshot": "390-hyderabad-history-image.png"
+    },
+    {
+      "set": "polymers",
+      "note": "notes/01-familiar-objects-atoms-and-polymer.md",
+      "image": {
+        "y": 179.859375,
+        "height": 477.421875,
+        "width": 357.984375,
+        "src": "/api/sets/polymers/asset?path=assets%2Frubber-tapping-2.jpg",
+        "alt": "Latex collected during rubber tapping",
+        "credit": "Credit: Manukrishnan80 Own work, CC BY-SA 4.0, https://commons.wikimedia.org/wiki/File:Rubber_tapping_(48058).jpg\nCotton fibers grow around seeds in bolls and are almost pure cellulose, with small amounts of other constituents. The fibers can be spun into yarn and made into cloth.3\nCredit: Unknown author or not provided U.S. National Archives and Records Administration, public domain, https://commons.wikimedia.org/wiki/File:Industries_of_War_-_Cloth_-_Cotton_Pickers_-_MANUFACTURING_COTTON_CLOTH_AT_AMOSKEAG_Manufacturing_CO._PLANT,_MANCHESTER,_New_Hampshire._Cotton_bolls_in_various_stages_of_growth_-_NARA_-_31486788.jpg\nNotice the transition from closed bolls to exposed fibers. The photograph shows the plant material before spinning and weaving."
+      },
+      "screenshot": "390-polymers-image.png"
+    }
+  ],
+  "errors": []
+}

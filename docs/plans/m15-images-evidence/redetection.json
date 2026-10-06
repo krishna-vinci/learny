@@ -1,0 +1,211 @@
+[
+  {
+    "id": "lib-britannica-cotton-description-fiber-history",
+    "beforeUnknown": 4,
+    "afterUnknown": 4,
+    "unknownToKnown": 0,
+    "total": 4
+  },
+  {
+    "id": "lib-libretexts-1-2-structures-of-organic",
+    "beforeUnknown": 1,
+    "afterUnknown": 0,
+    "unknownToKnown": 1,
+    "total": 2
+  },
+  {
+    "id": "lib-libretexts-1-5-development-of-chemical",
+    "beforeUnknown": 12,
+    "afterUnknown": 0,
+    "unknownToKnown": 12,
+    "total": 12
+  },
+  {
+    "id": "lib-libretexts-1-8-structural-formulas-lewis",
+    "beforeUnknown": 12,
+    "afterUnknown": 0,
+    "unknownToKnown": 12,
+    "total": 12
+  },
+  {
+    "id": "lib-libretexts-10-5-organic-structural",
+    "beforeUnknown": 7,
+    "afterUnknown": 0,
+    "unknownToKnown": 7,
+    "total": 7
+  },
+  {
+    "id": "lib-libretexts-12-4-drawing-organic-structures",
+    "beforeUnknown": 1,
+    "afterUnknown": 0,
+    "unknownToKnown": 1,
+    "total": 1
+  },
+  {
+    "id": "lib-libretexts-3-5-carbohydrates-biology",
+    "beforeUnknown": 0,
+    "afterUnknown": 0,
+    "unknownToKnown": 0,
+    "total": 8
+  },
+  {
+    "id": "lib-libretexts-5-1-starch-and-cellulose",
+    "beforeUnknown": 4,
+    "afterUnknown": 0,
+    "unknownToKnown": 4,
+    "total": 4
+  },
+  {
+    "id": "lib-libretexts-5-8-polyatomic-molecules-water",
+    "beforeUnknown": 7,
+    "afterUnknown": 7,
+    "unknownToKnown": 0,
+    "total": 7
+  },
+  {
+    "id": "lib-masterorganicchemistry-condensed-formulas",
+    "beforeUnknown": 1,
+    "afterUnknown": 1,
+    "unknownToKnown": 0,
+    "total": 1
+  },
+  {
+    "id": "lib-pressbooks-2-1-drawing-and-interpreting",
+    "error": "SafeFetchError"
+  },
+  {
+    "id": "lib-pressbooks-20-1-hydrocarbons-general",
+    "error": "SafeFetchError"
+  },
+  {
+    "id": "lib-pressbooks-8-2-drawing-and-interpreting",
+    "error": "SafeFetchError"
+  },
+  {
+    "id": "lib-rsc-making-nylon-the-nylon-rope-trick-class",
+    "beforeUnknown": 2,
+    "afterUnknown": 2,
+    "unknownToKnown": 0,
+    "total": 2
+  },
+  {
+    "id": "lib-rsc-recycling-plastics-evaluation-14-16",
+    "beforeUnknown": 1,
+    "afterUnknown": 1,
+    "unknownToKnown": 0,
+    "total": 1
+  },
+  {
+    "id": "lib-wikipedia-cotton",
+    "beforeUnknown": 3,
+    "afterUnknown": 2,
+    "unknownToKnown": 1,
+    "total": 12
+  },
+  {
+    "id": "lib-wou-ch105-chapter-5-introduction-to-organic",
+    "beforeUnknown": 12,
+    "afterUnknown": 12,
+    "unknownToKnown": 0,
+    "total": 12
+  },
+  {
+    "id": "lib-asml-how-microchips-are-made-asml",
+    "beforeUnknown": 20,
+    "afterUnknown": 20,
+    "unknownToKnown": 0,
+    "total": 20
+  },
+  {
+    "id": "lib-asml-lithography-principles-technology-asml",
+    "beforeUnknown": 9,
+    "afterUnknown": 9,
+    "unknownToKnown": 0,
+    "total": 9
+  },
+  {
+    "id": "lib-colorado",
+    "beforeUnknown": 4,
+    "afterUnknown": 4,
+    "unknownToKnown": 0,
+    "total": 4
+  },
+  {
+    "id": "lib-computerhistory-welcome-the-silicon-engine",
+    "beforeUnknown": 2,
+    "afterUnknown": 2,
+    "unknownToKnown": 0,
+    "total": 2
+  },
+  {
+    "id": "lib-libretexts-polymer-chemistry-schaller",
+    "beforeUnknown": 6,
+    "afterUnknown": 0,
+    "unknownToKnown": 6,
+    "total": 6
+  },
+  {
+    "id": "lib-wikipedia-polymer",
+    "beforeUnknown": 3,
+    "afterUnknown": 3,
+    "unknownToKnown": 0,
+    "total": 12
+  },
+  {
+    "id": "lib-akdn-india-restoration-in-hyderabad-akdn",
+    "beforeUnknown": 6,
+    "afterUnknown": 6,
+    "unknownToKnown": 0,
+    "total": 6
+  },
+  {
+    "id": "lib-cambridge-beyond-colonial-urbanism-state",
+    "beforeUnknown": 3,
+    "afterUnknown": 3,
+    "unknownToKnown": 0,
+    "total": 3
+  },
+  {
+    "id": "lib-cambridge-princely-cities-in-south-asia-c",
+    "beforeUnknown": 2,
+    "afterUnknown": 2,
+    "unknownToKnown": 0,
+    "total": 2
+  },
+  {
+    "id": "lib-incredibleindia-famous-places-to-explore-in",
+    "beforeUnknown": 50,
+    "afterUnknown": 50,
+    "unknownToKnown": 0,
+    "total": 50
+  },
+  {
+    "id": "lib-lse-the-integration-of-the-princely-state",
+    "beforeUnknown": 3,
+    "afterUnknown": 3,
+    "unknownToKnown": 0,
+    "total": 3
+  },
+  {
+    "id": "lib-unesco-monuments-and-forts-of-the-deccan",
+    "error": "SafeFetchError"
+  },
+  {
+    "id": "lib-unesco-the-qutb-shahi-monuments-of-hyderabad",
+    "error": "SafeFetchError"
+  },
+  {
+    "id": "lib-wikipedia-history-of-hyderabad",
+    "beforeUnknown": 19,
+    "afterUnknown": 15,
+    "unknownToKnown": 4,
+    "total": 19
+  },
+  {
+    "id": "lib-wikipedia-hyderabad-state",
+    "beforeUnknown": 25,
+    "afterUnknown": 20,
+    "unknownToKnown": 5,
+    "total": 25
+  }
+]

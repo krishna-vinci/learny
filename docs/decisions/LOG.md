@@ -540,3 +540,31 @@ without claiming improved factual authority. Refresh extraction calls no model.
 - Drafter and rewrite receive the brief. Course plan and Plan rows show actual
   made/planned visuals and chosen/no-suitable-video status. Files remain the record;
   evidence is untrusted data and the independent checker always runs.
+
+## D37 — Licensed real images in chapters · locked · 2026-10-06
+
+Extends D29/D36. Real photographs/artefacts/materials/organisms/instruments and
+source diagrams belong inline when seeing the actual thing teaches. SVG schematic
+authoring remains unchanged. Plans add 1–3 Image intent slots where useful; after
+sources settle the lean media brief records the best licensed captured/search
+candidate, credit and pedagogical reason. Commons, Openverse, The Met, NASA and
+key-gated Smithsonian normalize to one interface; Exa imageLinks remain discovery
+and need explicit page permission. Ranking combines concept relevance, subject
+fit, acceptable licence and preferred >=800 px width; the Outliner judges fit.
+
+CC BY/BY-SA, CC0 and public domain are allowed. CC BY-NC/BY-NC-SA are allowed for
+this personal non-commercial app under media.allowNonCommercial (default true).
+ND variants may be embedded only unmodified, with a saved byte hash checked on
+review; no crops, edits or re-encoding. Unknown/all-rights-reserved images are
+linked or replaced with an original cited schematic, never embedded. Individual
+figure exceptions override page licences; Wikipedia prose never licenses files.
+NASA third-party credits never inherit NASA permission.
+
+save_asset retains size/MIME/SSRF/quota/path/lock limits and stores creator,
+licence/URL, source page, dimensions, unmodified flag and SHA-256 in the adjacent
+asset JSON. It returns an exact Markdown image with a visible Credit title. The
+reader prints that title and the book prints it below the image. Each planned
+image uses a hidden image-N marker at its teaching paragraph plus a learner-facing
+caption. Missing rasters without an explicit omission reason and muted explanation,
+missing/unknown/restricted sidecars, invisible credits and changed ND bytes block
+the mandatory independent checker. Files remain the record; no new dependencies.

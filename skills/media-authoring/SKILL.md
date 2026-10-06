@@ -130,15 +130,37 @@ learner-facing line explaining the absence. Silent omissions block checking.
 `library/<id>/images.json` v2 stores local `figures/` paths, original URL, alt,
 caption, section, license (when known), and credit; legacy remote-only entries
 remain readable. Inspect the local source figure before using or redrawing it.
-Embed a source raster only when explicitly CC BY, CC BY-SA, CC0 or public domain;
-use `save_asset` with its URL and sourceId to make a set-assets copy for the reader
-and book, retain its credit sidecar, and show author/title + license + source
-citation in the caption. Unknown, NC, ND or other restrictive licenses require an
-original SVG/widget redraw citing the source. A redraw explains the evidence;
-never trace/copy a protected photograph or illustration and call it original.
+Embed source rasters with explicit CC BY/BY-SA, CC0 or public-domain permission.
+CC BY-NC and BY-NC-SA are allowed for personal non-commercial study when the
+instance setting `media.allowNonCommercial` is true (the default). CC BY-ND and
+BY-NC-ND require the original unmodified file: never crop, edit or re-encode it.
+Unknown/all-rights-reserved images must be linked or replaced with an original
+cited schematic, never embedded. Use `save_asset` with the chosen URL, sourceId
+when present, name and alt. Paste its exact Markdown including the `Credit:` title;
+the sidecar keeps creator, licence, licence URL, source page and the saved hash.
 When tools are unavailable, return the complete redraw/credit or explain why a
 permitted local copy cannot be saved; never claim a missing asset exists.
 
 Use the brief's chosen video near its supporting concept, with its observed
 transcript moment. Watch-only videos count as a quality video but get only a Watch
 link and an honest no-transcript line, never claim evidence or invented times.
+
+## Real images that teach (D37)
+
+Prefer an actual photograph for monuments, artefacts, materials, organisms,
+instruments, historical scenes, and the real appearance of an object. A photo
+lets the learner recognise the real thing; an SVG explains its structure or
+mechanism. Keep SVG construction unchanged for schematics. Never redraw a photo
+when the brief has selected a suitable licensed real image.
+
+Read the brief's `images` slots. For each chosen raster, call save_asset and put
+`<!-- media:image-N -->` immediately before the returned Markdown at the paragraph
+where that concept is taught, not in a gallery or at the top as decoration. Add a
+short caption telling the learner what to notice. Preserve the returned Credit
+title so the reader and book print creator, licence and source. Do not treat an
+image licence as evidence for historical/scientific claims: those still need
+registered-source citations. If no candidate fits or downloading fails, add
+`<!-- media:image-N unavailable: concrete reason -->` and a muted learner-facing
+explanation. Silent omissions, missing sidecars/credits, restrictive licence
+reuse or modified ND images block checking. With tools unavailable, return exact
+credit/placement instructions and explain that the local asset cannot be saved.

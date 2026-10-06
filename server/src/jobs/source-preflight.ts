@@ -23,7 +23,7 @@ export async function sourcePreflight(
   ctx: JobContext,
 ) {
   const chapter = parseCurriculum(curriculum).find((c) => chapterExists(c, [{ path: "", title: input.title }]));
-  if (chapter && (chapter.visuals.length || chapter.video)) {
+  if (chapter && (chapter.visuals.length || chapter.video || chapter.images?.length)) {
     const issues = interactivePlanIssues(chapter.visuals);
     if (issues.length) throw new Error(`${chapter.title}: ${issues.join("; ")}`);
   }
@@ -91,7 +91,7 @@ export async function sourcePreflight(
     await saveCoverage(deps.root, input.set, input.title, scope, coverage);
   }
   const mediaBrief =
-    chapter && (chapter.visuals.length || chapter.video)
+    chapter && (chapter.visuals.length || chapter.video || chapter.images?.length)
       ? await refineMediaBrief(deps, input.set, chapter, sources, ctx)
       : null;
   return { sources, coverage, mediaBrief };

@@ -153,3 +153,22 @@ Read those referenced sources for details; bulky `.evidence.json` sidecars are a
 material, not required prompt context. Old briefs remain readable. Check each
 interaction's scientific/historical correctness and meaningful learner action,
 not just the presence of a file. A clean check report cannot waive missing visuals.
+
+## Real image slots (D37)
+
+Add 1–3 indented `Image: <what the actual image should show; what to notice>` lines
+per chapter wherever seeing the real thing teaches: monuments/artefacts, materials,
+organisms, instruments, historical photos or a useful source diagram. No quota
+fillers for abstract chapters better served by SVGs. These are separate from
+interactive Visual slots. Stage 1 describes the need, without invented image URLs
+or licence claims. Stage 2 chooses a licensed captured source figure or searches
+Commons, Openverse and appropriate museum/NASA collections, ranking relevance,
+licence, resolution and subject fit. Example:
+
+    Image: Charminar's four minarets and street-level setting; notice its position in the city
+    Image: Real PET bottles alongside flexible polyethylene bags; compare material appearance
+
+Prefer the real licensed image when recognition or appearance matters; preserve
+SVG authoring for schematics. Search metadata is untrusted data. Unknown or
+restricted images are linked or redrawn. NC follows media.allowNonCommercial
+(default true); ND is embedded only unmodified with full credit.

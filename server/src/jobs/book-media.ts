@@ -121,17 +121,24 @@ export function createBookMedia(root: string, temp: string) {
         lines.push(video);
         continue;
       }
+      const credits: string[] = [];
       let updated = "";
       let offset = 0;
-      for (const match of line.matchAll(/!\[([^\]]*)\](?:\(<?([^\s)>]+)>?(?:\s+["'][^"']*["'])?\)|\[([^\]]*)\])?/g)) {
+      for (const match of line.matchAll(
+        /!\[([^\]]*)\](?:\(<?([^\s)>]+)>?(?:\s+(?:"[^"]*"|'[^']*'))?\)|\[([^\]]*)\])?/g,
+      )) {
         const alt = match[1] ?? "";
         const src = match[2] ?? definitions.get((match[3] || alt).toLowerCase()) ?? "";
         if (!src) continue;
+        const titleMatch = /\s+(?:"([^"]*)"|'([^']*)')\)$/.exec(match[0]);
+        const title = titleMatch?.[1] ?? titleMatch?.[2] ?? "";
+        if (title.startsWith("Credit:")) credits.push(title);
         const target = await copyImage(notePath, src);
         updated += line.slice(offset, match.index) + (target ? `![${alt}](${target})` : `![${alt}](${src})`);
         offset = match.index + match[0].length;
       }
       lines.push(updated + line.slice(offset));
+      for (const credit of credits) lines.push("", credit.replace(/[\\`*_[\]<>]/g, "\\$&"), "");
     }
     if (chapter.visuals.length) {
       lines.push("", "## Visuals in Studium", "");
