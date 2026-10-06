@@ -31,7 +31,11 @@ export function parseNextChapter(
   curriculum: string | null,
   notes: readonly (ChapterNote | string)[] = [],
 ): string | null {
-  return parseCurriculum(curriculum).find((chapter) => !chapterExists(chapter, notes))?.label ?? null;
+  const chapters = parseCurriculum(curriculum);
+  const index = chapters.findIndex((chapter) => !chapterExists(chapter, notes));
+  const chapter = chapters[index];
+  // Display the plan's own number (course order otherwise) instead of the raw "- [ ] NN —" label.
+  return chapter ? `${chapter.number ?? index + 1}. ${chapter.title}` : null;
 }
 
 function daysUntil(deadline: string | null, now: Date): number | null {

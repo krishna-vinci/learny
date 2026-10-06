@@ -77,7 +77,11 @@ it("selects a captured real image with verified credit and refuses fabricated UR
   });
   expect(run.mock.calls[0]?.[1].canWrite?.("history/notes/a.md")).toBe(false);
   await fs.mkdir(path.join(root, "_global"));
-  await fs.writeFile(path.join(root, "_global/config.yaml"), "media:\n  allowNonCommercial: false\n");
+  // D38 default allows NC; the older NC exclusion applies only with the unknown-licence allowance off.
+  await fs.writeFile(
+    path.join(root, "_global/config.yaml"),
+    "media:\n  allowNonCommercial: false\n  allowUnknownLicense: false\n",
+  );
   run.mockClear();
   const disabled = await refineChapterImages(
     { root } as DraftJobDeps,
@@ -98,7 +102,7 @@ it("selects a captured real image with verified credit and refuses fabricated UR
     { signal: new AbortController().signal, progress: vi.fn(), addUsage: vi.fn() },
   );
   expect(disabled.images[0]?.choice).toBeUndefined();
-  expect(disabled.images[0]?.reason).toContain("No sufficiently relevant licensed image");
+  expect(disabled.images[0]?.reason).toContain("No sufficiently relevant image");
   expect(run).toHaveBeenCalledTimes(1);
   expect(images.searchImages).toHaveBeenLastCalledWith(
     "Charminar Hyderabad",

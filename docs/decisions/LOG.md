@@ -568,3 +568,24 @@ image uses a hidden image-N marker at its teaching paragraph plus a learner-faci
 caption. Missing rasters without an explicit omission reason and muted explanation,
 missing/unknown/restricted sidecars, invisible credits and changed ND bytes block
 the mandatory independent checker. Files remain the record; no new dependencies.
+
+## D38 — Unknown licences allowed, credited and linked · locked · 2026-10-06
+
+Supersedes D37's unknown/all-rights-reserved rule. This is a personal, self-hosted
+study instance, and the owner prefers the real image whenever it teaches better.
+`_global/config.yaml` gains `media.allowUnknownLicense`, default **true**. When
+true, figures and images with unknown licences, "all rights reserved", CC BY-NC
+or CC BY-ND (and NC/ND combinations) may be embedded **unmodified** with a
+complete credit: the creator when the metadata actually names one, the licence as
+stated or the label "Licence unknown", and a link to the source page. When false,
+the older rules apply unchanged: only CC BY/BY-SA/CC0/public domain, with NC
+gated by `media.allowNonCommercial` (default true).
+
+Missing credit or missing source link still blocks the checker, and ND bytes keep
+their saved hash and `unmodified: true`; the setting never bypasses the hash
+check, path confinement, MIME allow-list, SSRF guard, size caps, locks or sandbox.
+Prefer the real image for photographs, micrographs, artefacts, organisms,
+instruments and source diagrams; redraw as SVG only for schematic teaching
+diagrams or when the image is poor. The reader and book print the credit and
+source link under the image exactly once. Files remain the record; no new
+dependencies.

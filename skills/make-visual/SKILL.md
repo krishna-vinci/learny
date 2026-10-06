@@ -118,12 +118,17 @@ learner-facing line explaining the absence. Silent omissions block checking.
 `library/<id>/images.json` v2 stores local `figures/` paths, original URL, alt,
 caption, section, license (when known), and credit; legacy remote-only entries
 remain readable. Inspect the local source figure before using or redrawing it.
-Embed a source raster only when explicitly CC BY, CC BY-SA, CC0 or public domain;
-use `save_asset` with its URL and sourceId to make a set-assets copy for the reader
-and book, retain its credit sidecar, and show author/title + license + source
-citation in the caption. Unknown, NC, ND or other restrictive licenses require an
-original SVG/widget redraw citing the source. A redraw explains the evidence;
-never trace/copy a protected photograph or illustration and call it original.
+Prefer the real image whenever it shows the real thing (photograph, micrograph,
+artefact, organism, instrument or source diagram); redraw as SVG/widget only for
+schematic teaching diagrams or when the image is poor. When `media.allowUnknownLicense`
+is true (the default, D38), embed any raster unmodified with a full credit (creator
+if known, the licence as stated or "Licence unknown", and the source page link) via
+`save_asset`, which makes a set-assets copy for the reader and book and keeps the
+credit sidecar. `media.allowNonCommercial` matters only when `allowUnknownLicense`
+is false: there, embed permissive CC BY/BY-SA/CC0/public domain, plus CC BY-NC when
+the NC setting stays true; otherwise write an original SVG/widget citing the source.
+Either way ND images keep their original bytes and hash. A redraw explains the evidence; never trace/copy a
+protected photograph or illustration and call it original.
 When tools are unavailable, return the complete redraw/credit or explain why a
 permitted local copy cannot be saved; never claim a missing asset exists.
 

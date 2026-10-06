@@ -1,0 +1,298 @@
+{
+  "set": "polymers",
+  "chapter": "Carbon structures and reactive groups",
+  "subject": "science",
+  "fallbackVisuals": [
+    "chart — The same molecule in three drawing conventions",
+    "figure — Highlighted functional groups in polymer-related molecules",
+    "step-through — Carbon structures and reactive groups"
+  ],
+  "sources": [
+    "lib-openstax-ch-20-introduction-chemistry-2e",
+    "lib-wikipedia-polymer",
+    "lib-libretexts-polymer-chemistry-schaller",
+    "lib-libretexts-2-3-step-growth-and-chain-growth",
+    "lib-openstax-4-4-lewis-symbols-and-structures",
+    "lib-openstax-3-1-functional-groups-organic",
+    "lib-rsc-recycling-plastics-evaluation-14-16",
+    "lib-rsc-making-nylon-the-nylon-rope-trick-class",
+    "lib-academy-elements-and-atoms-atoms-compounds",
+    "lib-chemistry-dot-structures-i-single-bonds",
+    "lib-crashcourse-polymers-crash-course-chemistry",
+    "lib-crashcourse-the-polymer-explosion-crash",
+    "lib-ted-ed-confused-about-recycling-it-s-not",
+    "lib-education-the-functional-group-concept",
+    "lib-dewitt-converting-between-grams-and-moles",
+    "lib-institution-chemical-curiosities-surprising",
+    "lib-channel-at-t-archives-the-physical",
+    "lib-libretexts-5-8-polyatomic-molecules-water",
+    "lib-openstax-25-9-polysaccharides-and-their",
+    "lib-umd-lewis-structure-for-ch4-methane",
+    "lib-libretexts-3-5-carbohydrates-biology",
+    "lib-wou-ch105-chapter-5-introduction-to-organic",
+    "lib-libretexts-1-5-development-of-chemical",
+    "lib-libretexts-5-1-starch-and-cellulose",
+    "lib-pressbooks-2-1-drawing-and-interpreting",
+    "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+    "lib-wikipedia-cotton",
+    "lib-pressbooks-8-2-drawing-and-interpreting",
+    "lib-libretexts-12-4-drawing-organic-structures",
+    "lib-pressbooks-20-1-hydrocarbons-general",
+    "lib-britannica-cotton-description-fiber-history",
+    "lib-libretexts-10-5-organic-structural",
+    "lib-chemguide-how-to-draw-organic-molecules",
+    "lib-masterorganicchemistry-condensed-formulas",
+    "lib-libretexts-1-8-structural-formulas-lewis",
+    "lib-libretexts-1-2-structures-of-organic",
+    "lib-chemistry-identifying-functional-groups"
+  ],
+  "collectedCount": 139,
+  "oldFirstSixFigures": [
+    {
+      "sourceId": "lib-wikipedia-polymer",
+      "caption": "Thermal transitions in (A) amorphous and (B) semicrystalline polymers, represented as traces from differential scanning ",
+      "section": "Crystallization and melting",
+      "score": 6,
+      "path": "library/lib-wikipedia-polymer/figures/73efea82bcf1268ab7288937.png"
+    },
+    {
+      "sourceId": "lib-wikipedia-polymer",
+      "caption": "Appearance of real linear polymer chains as recorded using an atomic force microscope on a surface, under liquid medium.",
+      "section": "Polymer",
+      "score": 6,
+      "path": "library/lib-wikipedia-polymer/figures/233342d7636139aa0f99cfbb.jpg"
+    },
+    {
+      "sourceId": "lib-wikipedia-polymer",
+      "caption": "Example of chain polymerization: Radical polymerization of styrene, R. is initiating radical, P. is another polymer chai",
+      "section": "Synthesis",
+      "score": 3,
+      "path": "library/lib-wikipedia-polymer/figures/280437f357ab5c6b5b46c903.jpg"
+    },
+    {
+      "sourceId": "lib-wikipedia-polymer",
+      "caption": "Phase diagram of the typical mixing behavior of weakly interacting polymer solutions, showing spinodal curves and binoda",
+      "section": "Mixing behavior",
+      "score": 3,
+      "path": "library/lib-wikipedia-polymer/figures/67e99744afd1e61e87c23b75.png"
+    },
+    {
+      "sourceId": "lib-wikipedia-polymer",
+      "caption": "Polymers are chain or filament formed through covalent or non-covalent bonding of identical or similar units (monomers).",
+      "section": "Polymer",
+      "score": 3,
+      "path": "library/lib-wikipedia-polymer/figures/c5f1646803e71ac4bb5f0fa4.png"
+    },
+    {
+      "sourceId": "lib-wikipedia-polymer",
+      "caption": "Microstructure of part of a DNA double helix biopolymer",
+      "section": "Biological synthesis",
+      "score": 3,
+      "path": "library/lib-wikipedia-polymer/figures/e79472c1ee117f113284af4d.gif"
+    }
+  ],
+  "oldFirstTwoTables": [
+    "| **DRAWING ORGANIC MOLECULES**<br><br>This page explains the various ways that organic molecules can be represented on paper or on screen - including molecular",
+    "### Functional Groups with Carbon–Carbon Multiple Bonds\n\nAlkenes, alkynes, and arenes (aromatic compounds) all contain carbon–carbon multiple bonds. *Alkenes* h"
+  ],
+  "rankedTopFigures": [
+    {
+      "sourceId": "lib-pressbooks-8-2-drawing-and-interpreting",
+      "caption": "Figure 8.2.14 Examples of molecules drawn using line-bond structures.",
+      "section": "Using the 'Line Bond Structure' Convention",
+      "score": 19
+    },
+    {
+      "sourceId": "lib-pressbooks-2-1-drawing-and-interpreting",
+      "caption": "Two examples showing how structural formulas can be condensed are given. The first is a 3-carbon alcohol, formula C3H8O.",
+      "section": "Using the ‘line bond structure’ convention",
+      "score": 18
+    },
+    {
+      "sourceId": "lib-pressbooks-8-2-drawing-and-interpreting",
+      "caption": "Figure 8.2.13 Lewis structures and condensed structures in organic chemistry.",
+      "section": "Using the 'Line Bond Structure' Convention",
+      "score": 18
+    },
+    {
+      "sourceId": "lib-pressbooks-2-1-drawing-and-interpreting",
+      "caption": "Structural formulas are converted to line-bond structures for 2 examples. The first is a 6 carbon cyclic structure with ",
+      "section": "Using the ‘line bond structure’ convention",
+      "score": 13
+    },
+    {
+      "sourceId": "lib-libretexts-1-5-development-of-chemical",
+      "caption": "Sodium has one valence electron while chlorine has seven valence electrons. They react to from sodium chloride. Magnesiu",
+      "section": "Lewis Structures of Ionic Compounds",
+      "score": 9,
+      "path": "library/lib-libretexts-1-5-development-of-chemical/figures/c0a68b8aade5aa17cf6f4ad6.png"
+    },
+    {
+      "sourceId": "lib-pressbooks-2-1-drawing-and-interpreting",
+      "caption": "A set of letters connected by lines, representing a molecule composed of five carbon atoms and twelve hydrogen atoms. On",
+      "section": "",
+      "score": 9
+    },
+    {
+      "sourceId": "lib-pressbooks-8-2-drawing-and-interpreting",
+      "caption": "Figure 8.2.6 Common bonding patterns of carbon.",
+      "section": "Common bonding patterns in organic structures",
+      "score": 9
+    },
+    {
+      "sourceId": "lib-pressbooks-8-2-drawing-and-interpreting",
+      "caption": "Figure 8.2.1 An example of a molecule drawn using the structural formula.",
+      "section": "Drawing Conventions",
+      "score": 9
+    },
+    {
+      "sourceId": "lib-pressbooks-20-1-hydrocarbons-general",
+      "caption": "Figure 20.2. Pictured are the Lewis structures, ball-and-stick models, and space-filling models for molecules of methane",
+      "section": "Alkanes",
+      "score": 9
+    },
+    {
+      "sourceId": "lib-wou-ch105-chapter-5-introduction-to-organic",
+      "caption": "",
+      "section": "**Table 5.2 Common Organic Functional Groups**",
+      "score": 7,
+      "path": "library/lib-wou-ch105-chapter-5-introduction-to-organic/figures/01bb4947df630ae2e2e86f71.png"
+    },
+    {
+      "sourceId": "lib-wou-ch105-chapter-5-introduction-to-organic",
+      "caption": "",
+      "section": "**Table 5.2 Common Organic Functional Groups**",
+      "score": 7,
+      "path": "library/lib-wou-ch105-chapter-5-introduction-to-organic/figures/b367b2b1180e914da4034491.png"
+    },
+    {
+      "sourceId": "lib-wikipedia-polymer",
+      "caption": "Thermal transitions in (A) amorphous and (B) semicrystalline polymers, represented as traces from differential scanning ",
+      "section": "Crystallization and melting",
+      "score": 6,
+      "path": "library/lib-wikipedia-polymer/figures/73efea82bcf1268ab7288937.png"
+    }
+  ],
+  "candidateTableCount": 15,
+  "candidateTables": [
+    {
+      "sourceId": "lib-openstax-3-1-functional-groups-organic",
+      "anchor": "functional-groups-with-carbon-carbon-multiple-bonds",
+      "text": "### Functional Groups with Carbon–Carbon Multiple Bonds\n\nAlkenes, alkynes, and arenes (aromatic compounds) all contain carbon–carbon multiple bonds. *Alkenes* h"
+    },
+    {
+      "sourceId": "lib-chemguide-how-to-draw-organic-molecules",
+      "anchor": "start",
+      "text": "| **DRAWING ORGANIC MOLECULES**<br><br>This page explains the various ways that organic molecules can be represented on paper or on screen - including molecular"
+    },
+    {
+      "sourceId": "lib-pressbooks-20-1-hydrocarbons-general",
+      "anchor": "alkanes",
+      "text": "### Alkanes\n\n[Alkanes](https://lmu.pressbooks.pub/generalchemistry3e/chapter/20_key_terms/#KT20.4), or [saturated hydrocarbons](https://lmu.pressbooks.pub/gener"
+    },
+    {
+      "sourceId": "lib-wikipedia-polymer",
+      "anchor": "standardized-nomenclature",
+      "text": "## Standardized nomenclature\n<!-- anchor: standardized-nomenclature -->\n\nThere are multiple conventions for naming polymer substances. Many commonly used polyme"
+    },
+    {
+      "sourceId": "lib-wikipedia-polymer",
+      "anchor": "monomers-and-repeat-units",
+      "text": "### Monomers and repeat units\n<!-- anchor: monomers-and-repeat-units -->\n\nThe identity of the repeat units (monomer residues, also known as \"mers\") comprising a"
+    },
+    {
+      "sourceId": "lib-libretexts-1-5-development-of-chemical",
+      "anchor": "molecular-shape",
+      "text": "## Molecular Shape\n\nA stick and wedge drawing of methane shows the tetrahedral angles...(The wedge is coming out of the paper and the dashed line is going behin"
+    },
+    {
+      "sourceId": "lib-wikipedia-polymer",
+      "anchor": "morphology",
+      "text": "### Morphology\n<!-- anchor: morphology -->\n\nPolymer morphology generally describes the arrangement and microscale ordering of polymer chains in space. The macro"
+    },
+    {
+      "sourceId": "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+      "anchor": "check-your-learning-1",
+      "text": "#### Check Your Learning\n\nIdentify the chemical formula of the molecule represented here:\n\nC9H20\n\nAll alkanes are composed of carbon and hydrogen atoms, and hav"
+    },
+    {
+      "sourceId": "lib-wikipedia-cotton",
+      "anchor": "genome",
+      "text": "## Genome\n\n| ![](//thumb.wikimedia.org/wikipedia/commons/thumb/b/bd/Ambox_current_red_Asia_Australia.svg/60px-Ambox_current_red_Asia_Australia.svg.png?utm_sourc"
+    },
+    {
+      "sourceId": "lib-libretexts-3-5-carbohydrates-biology",
+      "anchor": "feature-my-human-biology",
+      "text": "##### Feature: My Human Biology\n\n![Chili Sin Carne](https://bio.libretexts.org/@api/deki/files/17431/Screen_Shot_2019-04-27_at_11.24.10_PM.png?revision=1&size=b"
+    },
+    {
+      "sourceId": "lib-wikipedia-cotton",
+      "anchor": "trading",
+      "text": "### Trading\n\n[![](//thumb.wikimedia.org/wikipedia/commons/thumb/e/e1/Cotton_prices.webp/500px-Cotton_prices.webp?utm_source=en.wikipedia.org&utm_campaign=parser"
+    },
+    {
+      "sourceId": "lib-libretexts-5-8-polyatomic-molecules-water",
+      "anchor": "learning-objectives",
+      "text": "##### Learning Objectives\n\n-   Determine the number of bonds formed by common nonmetal elements.\n-   Illustrate covalent bond formation with Lewis electron dot "
+    },
+    {
+      "sourceId": "lib-wikipedia-cotton",
+      "anchor": "fiber-properties",
+      "text": "## Fiber properties\n\n| Property | Evaluation |  |  |\n| --- | --- | --- | --- |\n| Property name | Category |  |  |\n| Shape | Width | Fairly uniform, 12–20 microm"
+    },
+    {
+      "sourceId": "lib-wikipedia-cotton",
+      "anchor": "start",
+      "text": "| Country | Production  <br>([tonnes](./Tonne \"Tonne\")) |\n| --- | --- |\n| ![](//thumb.wikimedia.org/wikipedia/commons/thumb/f/fa/Flag_of_the_People%27s_Republic"
+    },
+    {
+      "sourceId": "lib-umd-lewis-structure-for-ch4-methane",
+      "anchor": "list-of-lewis-structures",
+      "text": "### List of Lewis Structures\n\n| [Acetone](https://terpconnect.umd.edu/~wbreslyn/chemistry/Lewis-Structures/lewis-structure-for-acetone.html) | [BF3](https://ter"
+    }
+  ],
+  "briefFigureCount": 2,
+  "briefFigures": [
+    {
+      "sourceId": "lib-pressbooks-2-1-drawing-and-interpreting",
+      "caption": "Two examples showing how structural formulas can be condensed are given. The first is a 3-carbon alcohol, formula C3H8O.",
+      "section": "Using the ‘line bond structure’ convention",
+      "score": 18
+    },
+    {
+      "sourceId": "lib-pressbooks-8-2-drawing-and-interpreting",
+      "caption": "Figure 8.2.14 Examples of molecules drawn using line-bond structures.",
+      "section": "Using the 'Line Bond Structure' Convention",
+      "score": 15
+    }
+  ],
+  "briefTableCount": 2,
+  "briefTables": [
+    {
+      "sourceId": "lib-openstax-3-1-functional-groups-organic",
+      "anchor": "functional-groups-with-carbon-carbon-multiple-bonds",
+      "text": "### Functional Groups with Carbon–Carbon Multiple Bonds\n\nAlkenes, alkynes, and arenes (aromatic compounds) all contain carbon–carbon multiple bonds. *Alkenes* h"
+    },
+    {
+      "sourceId": "lib-wikipedia-polymer",
+      "anchor": "morphology",
+      "text": "### Morphology\n<!-- anchor: morphology -->\n\nPolymer morphology generally describes the arrangement and microscale ordering of polymer chains in space. The macro"
+    }
+  ],
+  "briefVisuals": [
+    {
+      "intent": "chart — The same molecule in three drawing conventions",
+      "evidence": 2
+    },
+    {
+      "intent": "figure — Highlighted functional groups in polymer-related molecules",
+      "evidence": 2
+    },
+    {
+      "intent": "step-through — Carbon structures and reactive groups",
+      "evidence": 2
+    }
+  ],
+  "briefImageSlots": [],
+  "briefBytes": 4962
+}

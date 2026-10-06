@@ -1,0 +1,132 @@
+{
+  "task": "M16 chapters/media correction bundle",
+  "workspace": "/home/krishna/learny/.worktrees/m16-chapters-media",
+  "baseline": "f7363752678ce1fc9c8136ef50758ce1802f3389",
+  "commands": [
+    {
+      "command": "pnpm install --frozen-lockfile --prefer-offline",
+      "status": "passed",
+      "note": "lockfile unchanged"
+    },
+    {
+      "command": "pnpm --filter @studium/server exec vitest run src/ingest src/tree src/jobs src/course src/agent/builtins/save-asset.test.ts src/agent/figure-reuse.test.ts src/agent/tools.test.ts src/routes/today.test.ts src/today",
+      "status": "56 files, 486 passed, 0 failed",
+      "note": "final run after the correction edits"
+    },
+    {
+      "command": "pnpm --filter @studium/shared exec vitest run src/frontmatter.test.ts src/media.test.ts",
+      "status": "2 files, 56 passed, 0 failed"
+    },
+    {
+      "command": "pnpm --filter @studium/web exec vitest run src/components/ChapterMediaStatus.test.tsx src/components/CoursePlan.test.tsx src/components/Activity/ActivityPanelContent.test.tsx src/components/Practice/QuizRunner.test.tsx src/components/Practice/TeachBackTab.test.tsx src/components/Reader/ChapterVisuals.test.tsx src/components/Reader/NoteImage.test.tsx src/pages/PlanPage.test.tsx src/pages/SetHomePage.test.tsx src/pages/TodayPage.test.tsx",
+      "status": "10 files, 38 passed, 0 failed (14 consecutive passes; 2 intermittent failures observed earlier in the cycle, see preExisting)"
+    },
+    {
+      "command": "pnpm --filter @studium/server exec tsc --noEmit",
+      "status": "passed"
+    },
+    {
+      "command": "pnpm --filter @studium/web exec tsc --noEmit",
+      "status": "passed"
+    },
+    {
+      "command": "pnpm --filter @studium/shared exec tsc --noEmit",
+      "status": "passed"
+    },
+    {
+      "command": "pnpm --filter @studium/web build",
+      "status": "passed",
+      "note": "existing large-chunk warning only"
+    },
+    {
+      "command": "rtk proxy pnpm exec biome check docs/plans/m16-evidence/browser-results.json docs/plans/m16-evidence/carbon-structures-selection.json server/scripts/m15-images-trial.ts server/scripts/m16-browser-api.ts server/scripts/m16-chapters-media-browser.mjs server/scripts/m16-figure-selection.ts server/src/agent/builtins/save-asset.test.ts server/src/agent/builtins/save-asset.ts server/src/agent/figure-reuse.test.ts server/src/agent/figure-reuse.ts server/src/agent/tools.test.ts server/src/course/build.test.ts server/src/course/build.ts server/src/ingest/figures.test.ts server/src/ingest/figures.ts server/src/ingest/image-bytes.ts server/src/ingest/image-license.test.ts server/src/ingest/image-license.ts server/src/ingest/images.ts server/src/ingest/library.test.ts server/src/ingest/web.ts server/src/jobs/book-assemble.ts server/src/jobs/book-job.test.ts server/src/jobs/book-media.ts server/src/jobs/image-plan.test.ts server/src/jobs/image-plan.ts server/src/jobs/ingest-job.test.ts server/src/jobs/media-plan.ts server/src/routes/today.test.ts server/src/search/images.test.ts server/src/search/images.ts server/src/today/build.test.ts server/src/today/build.ts server/src/tree/media-brief.test.ts server/src/tree/media-brief.ts server/src/tree/media.ts server/src/tree/read.test.ts server/src/tree/read.ts shared/src/api.ts shared/src/schemas.ts web/src/components/Activity/ActivityPanelContent.test.tsx web/src/components/Activity/ActivityPanelContent.tsx web/src/components/AppSidebar/AppSidebar.tsx web/src/components/ChapterMediaStatus.test.tsx web/src/components/ChapterMediaStatus.tsx web/src/components/CoursePlan.test.tsx web/src/components/Practice/ProblemsTab.tsx web/src/components/Practice/QuizTab.tsx web/src/components/Practice/common.tsx web/src/components/Reader/ChapterVisuals.test.tsx web/src/components/Reader/MarkdownView.tsx web/src/components/Reader/NoteImage.test.tsx web/src/components/Reader/NoteImage.tsx web/src/components/Reader/Reader.tsx web/src/components/Reader/remarkStudium.ts web/src/lib/chapter-label.ts web/src/pages/CardsPage.tsx web/src/pages/PlanPage.test.tsx web/src/pages/SetHomePage.test.tsx web/src/pages/SetHomePage.tsx",
+      "status": "60 files checked, no fixes applied",
+      "note": "exact expanded filenames; skills/.defaults-history.json excluded as a generated hash file"
+    }
+  ],
+  "preExistingFailures": [
+    {
+      "id": "server/src/agent/roles.test.ts > gives the tutor a bounded course summary and chapter/rewrite proposal instructions",
+      "error": "server/src/agent/roles.test.ts:348 AssertionError: expected '01 \u2014 Topic 1: planned\u2026' to contain '01 \u2014 Topic 1: accepted'",
+      "baseline": "also fails at baseline f736375 (observed in this cycle via git stash, a process violation recorded below)"
+    },
+    {
+      "id": "web/src/components/Activity/ActivityIndicator.test.tsx > portals outside the rail, clamps/flips the desktop panel and closes with Escape; expands full failed text, preserves the footer, closes on outside click and navigation; keeps the mobile sheet portalled and closable",
+      "error": "agent/ActivityIndicator tests fail at baseline in the full-suite run",
+      "baseline": "3 failures observed at baseline; not touched by M16"
+    },
+    {
+      "id": "web/src/components/Reader/ChapterVisuals.test.tsx > switches chapter views, preserves reading scroll and stops the sandbox on return or browser back",
+      "error": "intermittent in multi-file runs; earlier failure mode 'Unable to find role=\"button\" and name \"Run\"'",
+      "baseline": "also failed at baseline in the full-suite run; 14 consecutive passes after the final edits"
+    }
+  ],
+  "deviations": [
+    "Previous cycle ran the full web and shared suites and a git stash baseline check; the correction cycle ran only the scoped paths above and did not repeat either. Both are process deviations from the scoped-test policy and the preserve-work rule.",
+    "The interrupted run ended with a Command Code provider HTTP 400 invalid_request_error; work resumed from the existing files on the same pinned route. Runtime provider routing remains upstream-unverified from inside the worker.",
+    "Pre-existing server/web failures above were left unfixed.",
+    "Browser trial used a read-only localhost API over a temp copy (GET only) instead of a full logged-in server; nothing in the copy could be written."
+  ],
+  "trial": {
+    "tree": "/tmp/studium-m16-TEzRaa/tree (copy of data/users/krishna, read-only source)",
+    "screenshots": [
+      "docs/plans/m16-evidence/390-polymers-set-numbered-rows.png",
+      "docs/plans/m16-evidence/390-polymers-chapter-1-reading.png",
+      "docs/plans/m16-evidence/390-polymers-chapter-1-visuals.png",
+      "docs/plans/m16-evidence/390-polymers-chapter-2-visuals.png",
+      "docs/plans/m16-evidence/390-polymers-plan-chapter-02.png",
+      "docs/plans/m16-evidence/390-polymers-plan-chapter-03.png"
+    ],
+    "browser": "docs/plans/m16-evidence/browser-results.json",
+    "selection": "docs/plans/m16-evidence/carbon-structures-selection.json"
+  },
+  "rootIntegration": [
+    {
+      "command": "pnpm --filter @studium/server exec vitest run src/tree/media-brief.test.ts -t 'keeps distinct chapter concepts'",
+      "status": "reproduced 1 failing test before fix; 1 passed, 10 skipped after fix"
+    },
+    {
+      "command": "pnpm --filter @studium/server exec vitest run src/tree src/jobs src/course",
+      "status": "29 files, 287 passed, 0 failed"
+    },
+    {
+      "command": "pnpm --filter @studium/server exec vitest run src/jobs/book-job.test.ts -t 'prints an image credit source URL'",
+      "status": "parenthesized-URL assertion reproduced failure before fix; 1 passed, 20 skipped after fix"
+    },
+    {
+      "command": "pnpm --filter @studium/server exec tsc --noEmit",
+      "status": "passed"
+    },
+    {
+      "command": "pnpm --filter @studium/server exec tsx scripts/m16-figure-selection.ts /tmp/studium-m16-TEzRaa/tree",
+      "status": "production deterministic selection passed: 2 figures, 2 tables, 4962 JSON bytes; no LLM/network"
+    },
+    {
+      "command": "rtk proxy pnpm exec biome check server/src/tree/media-brief.ts server/src/tree/media-brief.test.ts docs/plans/m16-evidence/carbon-structures-selection.json",
+      "status": "3 files checked, no fixes"
+    },
+    {
+      "command": "rtk proxy pnpm exec biome check server/src/jobs/book-media.ts server/src/jobs/book-job.test.ts",
+      "status": "2 files checked, no fixes"
+    },
+    {
+      "command": "rtk proxy pnpm exec biome check docs/plans/m16-evidence/browser-results.json docs/plans/m16-evidence/carbon-structures-selection.json docs/plans/m16-evidence/validation.json server/scripts/m15-images-trial.ts server/scripts/m16-browser-api.ts server/scripts/m16-chapters-media-browser.mjs server/scripts/m16-figure-selection.ts server/src/agent/builtins/save-asset.test.ts server/src/agent/builtins/save-asset.ts server/src/agent/figure-reuse.test.ts server/src/agent/figure-reuse.ts server/src/agent/tools.test.ts server/src/course/build.test.ts server/src/course/build.ts server/src/ingest/figures.test.ts server/src/ingest/figures.ts server/src/ingest/image-bytes.ts server/src/ingest/image-license.test.ts server/src/ingest/image-license.ts server/src/ingest/images.ts server/src/ingest/library.test.ts server/src/ingest/web.ts server/src/jobs/book-assemble.ts server/src/jobs/book-job.test.ts server/src/jobs/book-media.ts server/src/jobs/image-plan.test.ts server/src/jobs/image-plan.ts server/src/jobs/ingest-job.test.ts server/src/jobs/media-plan.ts server/src/routes/today.test.ts server/src/search/images.test.ts server/src/search/images.ts server/src/today/build.test.ts server/src/today/build.ts server/src/tree/media-brief.test.ts server/src/tree/media-brief.ts server/src/tree/media.ts server/src/tree/read.test.ts server/src/tree/read.ts shared/src/api.ts shared/src/schemas.ts skills/.defaults-history.json web/src/components/Activity/ActivityPanelContent.test.tsx web/src/components/Activity/ActivityPanelContent.tsx web/src/components/AppSidebar/AppSidebar.tsx web/src/components/ChapterMediaStatus.test.tsx web/src/components/ChapterMediaStatus.tsx web/src/components/CoursePlan.test.tsx web/src/components/Practice/ProblemsTab.tsx web/src/components/Practice/QuizTab.tsx web/src/components/Practice/common.tsx web/src/components/Reader/ChapterVisuals.test.tsx web/src/components/Reader/MarkdownView.tsx web/src/components/Reader/NoteImage.test.tsx web/src/components/Reader/NoteImage.tsx web/src/components/Reader/Reader.tsx web/src/components/Reader/remarkStudium.ts web/src/lib/chapter-label.ts web/src/pages/CardsPage.tsx web/src/pages/PlanPage.test.tsx web/src/pages/SetHomePage.test.tsx web/src/pages/SetHomePage.tsx",
+      "status": "failed",
+      "output": "Checked 62 files in 127ms. No fixes applied.\nFound 1 error."
+    },
+    {
+      "command": "pnpm --filter @studium/server exec vitest run src/search/images.test.ts",
+      "status": "1 file, 6 passed, 0 failed"
+    },
+    {
+      "command": "rtk proxy pnpm exec biome check --write skills/.defaults-history.json",
+      "status": "1 file formatted; registered hashes unchanged"
+    },
+    {
+      "command": "rtk proxy pnpm exec biome check docs/plans/m16-evidence/browser-results.json docs/plans/m16-evidence/carbon-structures-selection.json docs/plans/m16-evidence/validation.json server/scripts/m15-images-trial.ts server/scripts/m16-browser-api.ts server/scripts/m16-chapters-media-browser.mjs server/scripts/m16-figure-selection.ts server/src/agent/builtins/save-asset.test.ts server/src/agent/builtins/save-asset.ts server/src/agent/figure-reuse.test.ts server/src/agent/figure-reuse.ts server/src/agent/tools.test.ts server/src/course/build.test.ts server/src/course/build.ts server/src/ingest/figures.test.ts server/src/ingest/figures.ts server/src/ingest/image-bytes.ts server/src/ingest/image-license.test.ts server/src/ingest/image-license.ts server/src/ingest/images.ts server/src/ingest/library.test.ts server/src/ingest/web.ts server/src/jobs/book-assemble.ts server/src/jobs/book-job.test.ts server/src/jobs/book-media.ts server/src/jobs/image-plan.test.ts server/src/jobs/image-plan.ts server/src/jobs/ingest-job.test.ts server/src/jobs/media-plan.ts server/src/routes/today.test.ts server/src/search/images.test.ts server/src/search/images.ts server/src/today/build.test.ts server/src/today/build.ts server/src/tree/media-brief.test.ts server/src/tree/media-brief.ts server/src/tree/media.ts server/src/tree/read.test.ts server/src/tree/read.ts shared/src/api.ts shared/src/schemas.ts skills/.defaults-history.json web/src/components/Activity/ActivityPanelContent.test.tsx web/src/components/Activity/ActivityPanelContent.tsx web/src/components/AppSidebar/AppSidebar.tsx web/src/components/ChapterMediaStatus.test.tsx web/src/components/ChapterMediaStatus.tsx web/src/components/CoursePlan.test.tsx web/src/components/Practice/ProblemsTab.tsx web/src/components/Practice/QuizTab.tsx web/src/components/Practice/common.tsx web/src/components/Reader/ChapterVisuals.test.tsx web/src/components/Reader/MarkdownView.tsx web/src/components/Reader/NoteImage.test.tsx web/src/components/Reader/NoteImage.tsx web/src/components/Reader/Reader.tsx web/src/components/Reader/remarkStudium.ts web/src/lib/chapter-label.ts web/src/pages/CardsPage.tsx web/src/pages/PlanPage.test.tsx web/src/pages/SetHomePage.test.tsx web/src/pages/SetHomePage.tsx",
+      "status": "passed",
+      "output": "Checked 62 files in 92ms. No fixes applied."
+    }
+  ],
+  "finalDistinctServerTests": 493
+}

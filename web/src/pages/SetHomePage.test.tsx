@@ -13,6 +13,7 @@ vi.mock("@/api/queries", () => ({
   useJobs: () => ({
     data: planning ? [{ id: "plan", kind: "plan-set", set: "history", status: "running", title: "Plan" }] : [],
   }),
+  useCourse: () => ({ data: { chapters: [{ title: "A city", order: 1 }] } }),
   useNoteFile: () => ({ data: { body: "## Goal\nKnow the past", frontmatter: {} } }),
   useBook: () => ({ data: { lastModified: null }, isLoading: false }),
 }));

@@ -2,12 +2,12 @@ import { createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { readSourceFigures, reusableLicense } from "../ingest/figures.js";
-import { allowNonCommercial } from "../ingest/image-license.js";
+import { embeddableLicense, licenseLabel, mediaLicensePolicy } from "../ingest/image-license.js";
 
 import { listSources } from "../ingest/library.js";
 import { canonicalRel, resolveInRoot } from "../tree/paths.js";
 
-/** Advisory at write time, mandatory at checking: unknown/restrictive figures must be redrawn. */
+/** Advisory at write time, mandatory at checking: embedded rasters need usable permissions and credit. */
 export async function figureReuseWarnings(root: string, notePath: string, text: string): Promise<string[]> {
   if (!/^[^/]+\/notes\/.+\.md$/.test(notePath)) return [];
   const images: { src: string; caption: string }[] = [];
@@ -35,7 +35,7 @@ export async function figureReuseWarnings(root: string, notePath: string, text: 
     }
   }
   if (!images.length) return [];
-  const allowNC = await allowNonCommercial(root);
+  const policy = await mediaLicensePolicy(root);
   const figures = (
     await Promise.all((await listSources(root)).map((source) => readSourceFigures(root, source.id)))
   ).flat();
@@ -58,29 +58,32 @@ export async function figureReuseWarnings(root: string, notePath: string, text: 
         const bytes = await fs.readFile(resolveInRoot(root, rel));
         const hash = createHash("sha256").update(bytes).digest("hex");
         const captured = figures.find((f) => f.path?.includes(hash.slice(0, 24)));
-        if (captured && !reusableLicense(captured.license, allowNC))
+        if (captured && !embeddableLicense(captured.license, policy))
           throw new Error(`unacceptable captured license (${captured.license ?? "unknown"})`);
         const meta = JSON.parse(await fs.readFile(resolveInRoot(root, sidecar), "utf8"));
-        if (!reusableLicense(typeof meta.license === "string" ? meta.license : undefined, allowNC))
-          throw new Error(`unacceptable license (${meta.license ?? "unknown"})`);
+        const license = typeof meta.license === "string" ? meta.license : undefined;
+        if (!embeddableLicense(license, policy)) throw new Error(`unacceptable license (${license ?? "unknown"})`);
         const creator = typeof meta.creator === "string" ? meta.creator.trim() : "";
         const source = typeof meta.sourcePage === "string" ? meta.sourcePage : meta.pageUrl;
-        if (
-          !creator ||
-          !source ||
-          !image.caption.includes(creator) ||
-          !image.caption.includes(meta.license) ||
-          !image.caption.includes(source)
-        )
-          throw new Error("missing visible creator, license or source credit");
-        if (/-ND/i.test(meta.license)) {
+        // A credit needs the source link and the licence as stated (or "Licence unknown"); the
+        // creator is required only when the metadata actually names one.
+        if (!source || !image.caption.includes(source)) throw new Error("missing visible source credit");
+        if (creator && !image.caption.includes(creator)) throw new Error("missing visible creator credit");
+        if (!image.caption.includes(licenseLabel(license))) throw new Error("missing visible licence credit");
+        // D38: while unknown licences are allowed, every non-permissive embed (unknown,
+        // all-rights-reserved, NC, ND) must be the unmodified saved bytes with its hash.
+        // With the allowance off the old rules apply: only ND requires the hash.
+        const permissiveWithoutRestrictions = reusableLicense(license, false);
+        const mustKeepBytes =
+          /-ND/i.test(license ?? "") || (policy.allowUnknownLicense && !permissiveWithoutRestrictions);
+        if (mustKeepBytes) {
           const bytes = await fs.readFile(resolveInRoot(root, rel));
           if (meta.unmodified !== true || meta.sha256 !== createHash("sha256").update(bytes).digest("hex"))
-            throw new Error("ND image must remain unmodified with its original saved hash");
+            throw new Error("Image must remain unmodified with its original saved hash");
         }
       } catch (error) {
         warnings.push(
-          `Source figure reuse: ${image.src}: ${error instanceof Error ? error.message : "invalid credit sidecar"}; link or redraw instead.`,
+          `Source figure reuse: ${image.src}: ${error instanceof Error ? error.message : "invalid credit sidecar"}; add the complete credit and source link, or redraw.`,
         );
       }
     }

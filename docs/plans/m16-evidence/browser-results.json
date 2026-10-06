@@ -1,0 +1,36 @@
+{
+  "results": {
+    "setRows": [
+      "1 Atoms, molecules and the chemistry around you",
+      "2 Bonds and simple molecular drawings",
+      "3 Carbon structures and reactive groups"
+    ],
+    "readerVisualsPanel": {
+      "eyebrow": "Chapter 1",
+      "visible": true,
+      "title": "Atoms, molecules and the chemistry around you",
+      "chars": 187
+    },
+    "readerReadingPanel": {
+      "eyebrow": "Chapter 1",
+      "visible": true,
+      "title": "Atoms, molecules and the chemistry around you",
+      "chars": 7064
+    },
+    "chapter2ReadingPanel": {
+      "eyebrow": "Chapter 2",
+      "visible": true,
+      "title": "Bonds and simple molecular drawings",
+      "chars": 8344
+    },
+    "chapter2VisualsPanel": {
+      "eyebrow": "Chapter 2",
+      "visible": true,
+      "title": "Bonds and simple molecular drawings",
+      "chars": 403
+    },
+    "planChapter02": "02 | Bonds and simple molecular drawings | Drafted |  | Pictures in text: 2/2 made · Visuals tab: 1/1 made |  | diagram — Shared electron pairs becoming bond lines · Made | figure — Methane and ethene with every atom and bond labeled · Made | step-through — Bonds and simple molecular drawings (Visuals tab) · Made |  | Video chosen: Dot structures I: Single bonds | Structure and bonding | Organic chemistry | Khan Academy · Khan Academy Organic Chemistry |  | Valence electrons, covalent versus ionic bonding, single and double bonds, and drawing methane, water and ethene. |  | Prerequisites: 01",
+    "planChapter03": "03 | Carbon structures and reactive groups | Accepted |  | Pictures in text: 2/2 made · Visuals tab: 0/1 made |  | chart — The same molecule in three drawing conventions · Made | figure — Highlighted functional groups in polymer-related molecules · Made | step-through — Carbon structures and reactive groups (Visuals tab) · Planned |  | Video chosen: Identifying functional groups | Organic chemistry | Khan Academy · Khan Academy Organic Chemistry · 0s |  | Read displayed, condensed and simple line structures; recognize alkene, alcohol, carboxylic acid, amine, ester and amide groups. |  | Prerequisites: 02"
+  },
+  "errors": []
+}

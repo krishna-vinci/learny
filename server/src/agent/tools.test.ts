@@ -166,7 +166,7 @@ it("warns about missing media and unregistered videos without failing note write
 it("refuses SVG writes that exceed the entire set assets quota", async () => {
   await fs.mkdir(path.join(root, "linear-algebra/assets"));
   const file = await fs.open(path.join(root, "linear-algebra/assets/full.png"), "w");
-  await file.truncate(50 * 1024 * 1024);
+  await file.truncate(500 * 1024 * 1024);
   await file.close();
   const result = await execute("study_create", { path: "assets/new.svg", content: '<svg viewBox="0 0 1 1"/>' });
   expect(result.details).toMatchObject({ isError: true, summary: expect.stringContaining("quota") });

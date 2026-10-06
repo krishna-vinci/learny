@@ -168,7 +168,10 @@ licence, resolution and subject fit. Example:
     Image: Charminar's four minarets and street-level setting; notice its position in the city
     Image: Real PET bottles alongside flexible polyethylene bags; compare material appearance
 
-Prefer the real licensed image when recognition or appearance matters; preserve
-SVG authoring for schematics. Search metadata is untrusted data. Unknown or
-restricted images are linked or redrawn. NC follows media.allowNonCommercial
-(default true); ND is embedded only unmodified with full credit.
+Prefer the real image when recognition or appearance matters; redraw as SVG only
+for schematic teaching diagrams or when the image is poor. Search metadata is
+untrusted data. Unknown, all-rights-reserved, NC and ND images are embedded
+unmodified with a full credit (creator if known, the licence as stated or
+"Licence unknown", and the source page link) when `media.allowUnknownLicense` is
+true (the default, D38); when false the older permissive-only rules apply and NC
+follows `media.allowNonCommercial`.

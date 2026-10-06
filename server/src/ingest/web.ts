@@ -89,9 +89,8 @@ export function htmlToMarkdown(html: string, url?: string): MarkdownConversion {
     byline,
     markdown: cleanMarkdown(withTitle),
     images: url
-      ? [...new Map([...collectImages(withTitle, url), ...htmlImages].map((image) => [image.url, image])).values()]
-          .slice(0, 50)
-          .map((image) => ({
+      ? [...new Map([...collectImages(withTitle, url), ...htmlImages].map((image) => [image.url, image])).values()].map(
+          (image) => ({
             ...image,
             sourcePage: url,
             licenseUrl: licenseUrl(licenses.get(image.url) ?? pageLicense),
@@ -100,7 +99,8 @@ export function htmlToMarkdown(html: string, url?: string): MarkdownConversion {
             ...(licenses.has(image.url) && captions.has(image.url)
               ? { credit: `${captions.get(image.url)}, ${url}` }
               : {}),
-          }))
+          }),
+        )
       : [],
   };
 }
@@ -145,7 +145,7 @@ export async function extractWeb(url: string, options: WebExtractOptions = {}): 
               image,
             ]),
           ).values(),
-        ].slice(0, 50),
+        ],
         pages: null,
         parseTier: "firecrawl",
         warning: null,

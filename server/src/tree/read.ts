@@ -102,6 +102,11 @@ export async function listNotes(root: string, set: string): Promise<NoteSummary[
     const index = chapters.findIndex((chapter) => chapterExists(chapter, [note]));
     return index < 0 ? Number.POSITIVE_INFINITY : (chapters[index]?.number ?? index + 1);
   };
+  // Chapter numbers come from curriculum identity, never the filename. Unmatched notes keep none.
+  for (const note of notes) {
+    const number = plannedOrder(note);
+    if (Number.isFinite(number)) note.number = number;
+  }
   notes.sort((a, b) => {
     const ap = plannedOrder(a),
       bp = plannedOrder(b);

@@ -73,7 +73,7 @@ if (!resume) {
         f.creator = commons?.creator || f.creator || source.authors.join(", ") || source.title;
         f.sourcePage = commons?.sourcePage || f.sourcePage || source.url || f.url;
         f.licenseUrl = commons?.licenseUrl || licenseUrl(license);
-        f.credit = `${f.creator}, ${f.sourcePage}${license ? ` (${license})` : " (reuse license unknown; redraw)"}`;
+        f.credit = `${f.creator}, ${f.sourcePage}${license ? ` (${license})` : " (licence unknown)"}`;
       }
       const original = await readSourceFigures(live, source.id);
       rows.push({

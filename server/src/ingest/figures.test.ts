@@ -15,7 +15,7 @@ const png = () => {
   bytes.writeUInt32BE(480, 20);
   return bytes;
 };
-it("captures relevant raster figures with credit, caps at twelve and skips decoration", async () => {
+it("captures every relevant raster figure with credit and skips decoration", async () => {
   vi.mocked(safeFetch).mockImplementation(
     async (url) => ({ url: String(url), bytes: png(), contentType: "image/png" }) as never,
   );
@@ -32,19 +32,59 @@ it("captures relevant raster figures with credit, caps at twelve and skips decor
         nearHeading: "Geometry",
         license: "CC BY 4.0",
       })),
+      // A real content diagram with labels that share no word with the page text.
+      { url: "https://example.org/unlabeled.png", alt: "", nearHeading: "" },
+      { url: "https://example.org/tracking-pixel.png", alt: "tracking pixel", nearHeading: "" },
     ],
   });
-  expect(captured.figures).toHaveLength(12);
-  expect(safeFetch).toHaveBeenCalledTimes(12);
+  expect(captured.figures).toHaveLength(16);
+  expect(safeFetch).toHaveBeenCalledTimes(16);
+  // Overlap still orders the queue: labelled matches come before the unlabeled diagram.
+  expect(captured.figures.at(-1)?.url).toBe("https://example.org/unlabeled.png");
   expect(safeFetch).toHaveBeenCalledWith(
     expect.any(String),
-    expect.objectContaining({ httpsOnly: true, maxBytes: 5 * 1024 * 1024 }),
+    expect.objectContaining({ httpsOnly: true, maxBytes: 25 * 1024 * 1024 }),
   );
   expect(captured.figures[0]).toMatchObject({
     path: expect.stringMatching(/^figures\/[a-f0-9]{24}\.png$/),
     credit: expect.stringContaining("Teacher"),
     license: "CC BY 4.0",
   });
+});
+it("captures a content image whose labels share no word with the page, and only decoration is rejected", async () => {
+  vi.mocked(safeFetch).mockImplementation(
+    async (url) => ({ url: String(url), bytes: png(), contentType: "image/png" }) as never,
+  );
+  const captured = await captureFigures({
+    title: "Enzyme kinetics",
+    authors: ["Teacher"],
+    pageUrl: "https://example.org/enzymes",
+    markdown: "Catalysis rate substrate",
+    images: [
+      { url: "https://example.org/diagram.png", alt: "Michaels-Menten curve", nearHeading: "Figure 4" },
+      { url: "https://example.org/avatar.png", alt: "author avatar", nearHeading: "" },
+      { url: "https://example.org/pixel.gif", alt: "1x1 tracking pixel", nearHeading: "" },
+    ],
+  });
+  expect(captured.figures.map((figure) => figure.url)).toEqual(["https://example.org/diagram.png"]);
+});
+it("keeps every non-decorative candidate past fifty instead of truncating the source", async () => {
+  vi.mocked(safeFetch).mockImplementation(
+    async (url) => ({ url: String(url), bytes: png(), contentType: "image/png" }) as never,
+  );
+  const captured = await captureFigures({
+    title: "Vectors",
+    authors: [],
+    pageUrl: "https://example.org/vectors",
+    markdown: "Vector addition geometry",
+    images: Array.from({ length: 55 }, (_, i) => ({
+      url: `https://example.org/figure-${i}.png`,
+      alt: "Vector addition",
+      nearHeading: "Geometry",
+    })),
+  });
+  expect(captured.figures).toHaveLength(55);
+  expect(safeFetch).toHaveBeenCalledTimes(55);
 });
 it("fails closed for wrong MIME, excessive dimensions, blocked hosts and cancellation", async () => {
   const bytes = png();

@@ -82,12 +82,13 @@ it("reads per-chapter media intent and retains legacy chapters and fenced exampl
   expect(course.chapters).toHaveLength(2);
   expect(course.chapters[0]?.media).toEqual({
     visuals: [
-      { intent: "timeline — Founding", made: false },
-      { intent: "diagram — Trade routes", made: false },
+      { intent: "timeline — Founding", made: false, interactive: true },
+      { intent: "diagram — Trade routes", made: false, interactive: false },
     ],
     video: { intent: "A historian explaining the founding", status: "planned" },
   });
-  expect(course.chapters[1]?.media?.visuals).toEqual([]);
+  // Planned before the interactive rule: the draft-time default shows as still to make.
+  expect(course.chapters[1]?.media?.visuals).toEqual([{ intent: "timeline — Legacy", made: false, interactive: true }]);
 });
 
 it("keeps polymers re-plan chapters draftable and lists both old notes as other notes", async () => {
@@ -116,4 +117,45 @@ it("keeps polymers re-plan chapters draftable and lists both old notes as other 
     path: "notes/03-renamed.md",
   });
   expect((await buildCourse(root, "history")).otherNotes).toHaveLength(2);
+});
+
+it("counts a brief that carries the draft-time interactive default as current", async () => {
+  await fs.writeFile(
+    path.join(root, "history/curriculum.md"),
+    "- [x] 01 — City\n  Scope: Founding.\n  Visual: diagram — Trade routes\n  Video: A historian\n",
+  );
+  await fs.mkdir(path.join(root, "history/media"), { recursive: true });
+  await fs.writeFile(
+    path.join(root, "history/media/01-city.md"),
+    [
+      "---",
+      "chapter: City",
+      "scope: Founding.",
+      "refinedAt: 2026-10-06T00:00:00.000Z",
+      "visuals:",
+      "  - id: visual-1",
+      "    intent: diagram — Trade routes",
+      "  - id: visual-2",
+      "    intent: timeline — City",
+      "figures: []",
+      "tables: []",
+      "video:",
+      "  intent: A historian",
+      "  status: none",
+      "  reason: No suitable video passed the checks.",
+      "---",
+      "",
+    ].join("\n"),
+  );
+  await fs.mkdir(path.join(root, "history/assets"), { recursive: true });
+  await fs.writeFile(path.join(root, "history/assets/routes.svg"), "<svg/>");
+  await fs.writeFile(
+    path.join(root, "history/notes/01-city.md"),
+    "---\ntitle: City\nstatus: draft\n---\nText\n\n<!-- media:visual-1 -->\n![Routes](../assets/routes.svg)\n",
+  );
+  const course = await buildCourse(root, "history");
+  expect(course.chapters[0]?.media?.visuals).toEqual([
+    { intent: "diagram — Trade routes", made: true, interactive: false, path: "../assets/routes.svg" },
+    { intent: "timeline — City", made: false, interactive: true },
+  ]);
 });

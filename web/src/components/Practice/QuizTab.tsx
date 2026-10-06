@@ -7,6 +7,7 @@ import { openActivityPanel } from "@/components/Activity/activity-store";
 import { showJobStartedToast } from "@/components/Activity/job-start-toast";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { chapterLabel } from "@/lib/chapter-label";
 import { ErrorNotice, fieldClass, quizScore } from "./common";
 import { QuizRunner } from "./QuizRunner";
 
@@ -99,7 +100,7 @@ function NewQuizSheet({
                   checked={selectedNotes.includes(note.path)}
                   onChange={() => setNotes(toggle(selectedNotes, note.path))}
                 />
-                {note.title}
+                {chapterLabel(note)}
               </label>
             ))}
           </fieldset>

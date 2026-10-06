@@ -1,4 +1,8 @@
-export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+/** Owner decision M16: real images may be large; 25 MB per raster, still bounded. */
+export const MAX_IMAGE_BYTES = 25 * 1024 * 1024;
+
+/** Small decorative images (spacers, icons, tracking pixels) never teach a concept. */
+export const MIN_IMAGE_PIXELS = 100;
 
 /** Only header bytes are read; malformed/truncated headers fail closed. */
 export function sniffImage(bytes: Uint8Array): { ext: string; mime: string; width: number; height: number } {

@@ -101,7 +101,20 @@ it("ranks concept fit before resolution, filters NC according to policy and dedu
     preferred,
     base,
   ]);
-  expect(rankImages([base, preferred], "Charminar", "history", false)).toEqual([preferred]);
+  expect(
+    rankImages([base, preferred], "Charminar", "history", {
+      allowNonCommercial: false,
+      allowUnknownLicense: false,
+    }),
+  ).toEqual([preferred]);
+  // Unknown/all-rights-reserved candidates are usable when the owner allows them (D38).
+  const unknown = { ...base, url: "https://example.org/unknown.jpg", license: undefined };
+  expect(
+    rankImages([unknown], "Charminar", "history", { allowNonCommercial: true, allowUnknownLicense: true }),
+  ).toHaveLength(1);
+  expect(
+    rankImages([unknown], "Charminar", "history", { allowNonCommercial: true, allowUnknownLicense: false }),
+  ).toHaveLength(0);
 });
 it("uses bounded safeFetch calls and gates Smithsonian by its environment key", async () => {
   vi.mocked(safeFetch).mockImplementation(

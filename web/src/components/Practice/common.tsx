@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { api } from "@/api/client";
 import { MarkdownView } from "@/components/Reader/MarkdownView";
+import { chapterLabel } from "@/lib/chapter-label";
 import { cn } from "@/lib/utils";
 
 export const fieldClass =
@@ -174,7 +175,7 @@ export function NotePicker({
         </option>
         {notes.map((note) => (
           <option key={note.path} value={note.path}>
-            {note.title}
+            {chapterLabel(note)}
           </option>
         ))}
       </select>
