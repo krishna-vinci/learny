@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { extractWeb, htmlToMarkdown } from "./web.js";
 
@@ -113,4 +114,40 @@ it("keeps individual figure licenses separate and preserves restrictive caption 
   expect(images.find((i) => i.url.endsWith("/chains.png"))?.credit).toContain("Named author");
   expect(images.find((i) => i.url.endsWith("/other.png"))?.license).toBeUndefined();
   expect(images.find((i) => i.url.endsWith("/reserved.png"))?.license).toBe("all rights reserved");
+});
+
+it("discovers real OpenStax, Pressbooks and unlabeled Chemguide HTML figures before text conversion", () => {
+  const fixture = (name: string) => readFileSync(new URL(`./fixtures/${name}.html`, import.meta.url), "utf8");
+  const os = htmlToMarkdown(
+    fixture("openstax-figures"),
+    "https://openstax.org/books/chemistry-atoms-first/pages/21-1-hydrocarbons",
+  );
+  expect(os.images[0]).toMatchObject({
+    url: expect.stringContaining("/apps/image-cdn/"),
+    license: "CC BY 4.0",
+    caption: expect.stringContaining("Figure"),
+  });
+  const pb = htmlToMarkdown(
+    fixture("pressbooks-figures"),
+    "https://lmu.pressbooks.pub/generalchemistry3e/chapter/20-1_hydrocarbons",
+  );
+  expect(pb.images[0]).toMatchObject({ url: expect.stringContaining("/app/uploads/"), caption: expect.any(String) });
+  const cg = htmlToMarkdown(fixture("chemguide-figures"), "https://chemguide.co.uk/basicorg/conventions/draw.html");
+  expect(cg.images[0]).toMatchObject({
+    url: "https://chemguide.co.uk/basicorg/conventions/methane.GIF",
+    caption: expect.stringContaining("methane"),
+  });
+  expect(cg.images[0]?.license).toBeUndefined();
+});
+it("resolves lazy data-src and srcset images and preserves captions without accepting unsafe schemes", () => {
+  const converted = htmlToMarkdown(
+    '<html><body><article><h2>Bond structures</h2><figure><img src="data:image/gif;base64,x" data-src="/bonds.png"><figcaption>Shared electrons; CC BY-NC 4.0</figcaption></figure><figure><img srcset="/small.png 200w, /large.png 800w"><figcaption>Molecular drawings</figcaption></figure><img data-src="javascript:alert(1)"></article></body></html>',
+    "https://example.org/chemistry/page",
+  );
+  expect(converted.images.map((i) => i.url)).toEqual([
+    "https://example.org/bonds.png",
+    "https://example.org/large.png",
+  ]);
+  expect(converted.images[0]?.caption).toBe("Shared electrons; CC BY-NC 4.0");
+  expect(converted.images[0]?.license).toBe("CC BY-NC 4.0");
 });

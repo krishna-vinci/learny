@@ -3,7 +3,7 @@ import { promises as fs } from "node:fs";
 import { PlanFrontmatter, parseFrontmatter } from "@studium/shared";
 import { rethrowRoleModelError, runRole } from "../agent/run-role.js";
 import { parsePlanProposal, SOURCE_ID, validDeadline } from "../inbox/plans.js";
-import { parseCurriculum } from "../tree/curriculum.js";
+import { interactivePlanIssues, parseCurriculum } from "../tree/curriculum.js";
 import { readText } from "../tree/edit.js";
 import { commitPaths } from "../tree/git.js";
 import { resolveInRoot } from "../tree/paths.js";
@@ -49,9 +49,9 @@ export function parsePlanSetInput(value: unknown): PlanSetInput {
 
 export function validateMediaIntent(curriculum: string): void {
   for (const chapter of parseCurriculum(curriculum)) {
-    if (chapter.visuals.length < 1 || chapter.visuals.length > 2 || !chapter.video)
+    if (chapter.visuals.length > 20 || !chapter.video || interactivePlanIssues(chapter.visuals).length)
       throw new Error(
-        `Chapter ${chapter.title} needs 1–2 Visual intent lines and a Video need or no-suitable-video reason`,
+        `Chapter ${chapter.title} needs at least one interactive Visual intent with form and concept (two for two useful central concepts), or no interactive visual: <concrete reason>, and a Video need or no-suitable-video reason`,
       );
   }
 }
@@ -96,7 +96,7 @@ export function createPlanJob(deps: DraftJobDeps): JobHandler {
             `Deadline: ${input.deadline ?? currentPlan.deadline ?? "none"}`,
             `Chosen library source ids: ${sources.join(", ") || "(none)"}`,
             `Create exactly ${proposalPath}, with the skill's two labeled fences and Sources to add list.`,
-            "Every chapter needs 1–2 indented Visual: <form> — <concept> lines and a Video: <need or no-suitable-video reason> line. Refine these after source ingestion; do not silently omit media intent.",
+            "Every chapter needs at least one interactive Visual: <form> — <concept; learner action> line, two when two central concepts benefit from manipulation/stepping, in addition to static figures/charts. Use function-plot, matrix-transform, step-through or timeline widget, sketch or story from make-visual. A rare exception must say Visual: no interactive visual: <concrete pedagogical reason>. Include a Video: <need or no-suitable-video reason> line. Refine these after source ingestion; do not silently omit media intent.",
             "Use only the chosen registered ids in PLAN.md sources. Propose other sources as URLs; never register them.",
             "Do not edit the current plan, curriculum, notes, or any other file.",
           ].join("\n"),

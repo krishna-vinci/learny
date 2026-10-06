@@ -16,7 +16,7 @@ import { refineMediaBrief } from "./media-plan.js";
 let root: string;
 const url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
 const chapter = parseCurriculum(
-  "- [ ] 01 — Polymers\n  Scope: Chain structure\n  Visual: figure — Polymer chains\n  Video: Chain motion\n",
+  "- [ ] 01 — Polymers\n  Scope: Chain structure\n  Visual: step-through widget — Polymer chains; step through growth\n  Video: Chain motion\n",
 )[0];
 if (!chapter) throw new Error("Missing chapter fixture");
 const ctx = () => ({ signal: new AbortController().signal, progress: vi.fn(), addUsage: vi.fn() });
@@ -151,4 +151,18 @@ it("allows quality watch-only videos with no fabricated moment and records a fai
   expect(
     (await refineMediaBrief({ root, locks: new FileLocks() } as DraftJobDeps, "science", changed, [], ctx())).video,
   ).toMatchObject({ status: "none", reason: "No named educator at the requested level" });
+});
+
+it("rejects refinement without an interactive plan or explicit pedagogical exception before model work", async () => {
+  const run = vi.spyOn(roles, "runRole");
+  await expect(
+    refineMediaBrief(
+      { root, locks: new FileLocks() } as DraftJobDeps,
+      "science",
+      { ...chapter, visuals: ["figure — Polymer chains"] },
+      [],
+      ctx(),
+    ),
+  ).rejects.toThrow("at least one interactive");
+  expect(run).not.toHaveBeenCalled();
 });

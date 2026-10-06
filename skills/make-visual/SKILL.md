@@ -6,7 +6,7 @@ description: Add a readable teaching visual by filling a validated widget or bun
 # Make one teaching visual
 
 Choose one concept. The prose must still make sense without the visual.
-Default to a widget or Vega-Lite chart. Use a sketch only when no widget fits.
+Default to a widget for interactive chapter specs. Use a sketch/story when no widget fits. Vega-Lite is an additional inline static chart and does not satisfy the interactive requirement.
 
 ## Decision table — use the first matching row
 
@@ -117,3 +117,31 @@ permitted local copy cannot be saved; never claim a missing asset exists.
 Use the brief's chosen video near its supporting concept, with its observed
 transcript moment. Watch-only videos count as a quality video but get only a Watch
 link and an honest no-transcript line, never claim evidence or invented times.
+
+## Interactive chapter requirement (M14b / D32, D36)
+
+Every chapter plans and creates at least one interactive Visuals-tab attachment,
+in addition to inline static figures/charts. Use two when two central concepts
+benefit from manipulation or stepping. Plan `Visual: <form> — <concept; learner action>`.
+Supported forms: function-plot widget, matrix-transform widget, step-through widget,
+timeline widget, sketch or story. Name what the learner slides, steps, compares or
+predicts; never add decoration to fill a quota. Chemistry: step a mechanism or build
+and compare molecules; history: timeline widget or map story; math: function-plot or
+matrix-transform; economics/finance: slider sketch; language: step-through dialogue;
+technology: step-through algorithm. Copy complete make-visual templates.
+
+A rare pedagogical exception is `Visual: no interactive visual: <concrete reason>`.
+The reason must explain why this subject gains nothing from interaction. Missing
+data alone is not such an exception: a source-grounded conceptual story may fit.
+The checker assesses that reason and blocks weak excuses. Each planned interactive
+spec requires its own hidden media marker immediately before a standalone `::visual`
+at the note end, with an existing widget JSON or sketch/story HTML in `visuals/`.
+Static images, Mermaid/Vega fences and legacy artifacts cannot satisfy that spec.
+A genuinely unavailable planned visual needs both a concrete hidden omission reason
+and a muted learner-facing explanation; the checker verifies both reasons.
+
+The compact media brief includes form/concept and source passage/figure references.
+Read those referenced sources for details; bulky `.evidence.json` sidecars are audit
+material, not required prompt context. Old briefs remain readable. Check each
+interaction's scientific/historical correctness and meaningful learner action,
+not just the presence of a file. A clean check report cannot waive missing visuals.

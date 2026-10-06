@@ -81,7 +81,7 @@ describe("plan-set job", () => {
     runtime.registerNativeProvider(faux.provider);
     const planned = proposalText().replace(
       /( {2}Prerequisites:[^\n]*)/g,
-      "$1\n  Visual: diagram — Geometric intuition\n  Video: A named educator demonstrates the concept",
+      "$1\n  Visual: matrix-transform widget — Geometric intuition; adjust shear\n  Video: A named educator demonstrates the concept",
     );
     const original = await fs.readFile(path.join(root, "linear-algebra/PLAN.md"), "utf8");
     let proposalPath = "";
@@ -134,7 +134,27 @@ it("requires 1–2 visual intents and a video need for newly generated plans whi
   expect(() => validateMediaIntent("- [ ] 01 — Legacy\n")).toThrow("Visual intent");
   expect(() =>
     validateMediaIntent(
-      "- [ ] 01 — Lesson\n  Visual: figure — Concept\n  Video: no suitable video: No named educator found\n",
+      "- [ ] 01 — Lesson\n  Visual: step-through widget — Concept; step through the example\n  Video: no suitable video: No named educator found\n",
     ),
   ).not.toThrow();
+});
+
+it("requires interaction form/concept and allows two interactives plus static figures or a rare explicit exception", () => {
+  const curriculum = (visual: string) =>
+    `- [ ] 01 — Lesson\n  ${visual}\n  Video: no suitable video: no verified educator\n`;
+  expect(() => validateMediaIntent(curriculum("Visual: figure — Static concept"))).toThrow("interactive");
+  expect(() => validateMediaIntent(curriculum("Visual: step-through widget — "))).toThrow("interactive");
+  expect(() =>
+    validateMediaIntent(
+      curriculum(
+        "Visual: timeline widget — Events; compare dates\n  Visual: story — Map; step through borders\n  Visual: figure — Primary document",
+      ),
+    ),
+  ).not.toThrow();
+  expect(() =>
+    validateMediaIntent(
+      curriculum("Visual: no interactive visual: This source inventory only lists publication metadata."),
+    ),
+  ).not.toThrow();
+  expect(() => validateMediaIntent(curriculum("Visual: no interactive visual: none"))).toThrow("interactive");
 });

@@ -1,0 +1,1498 @@
+{
+  "chapter": "Carbon structures and reactive groups",
+  "scope": "Read displayed, condensed and simple line structures; recognize alkene, alcohol, carboxylic acid, amine, ester and amide groups.",
+  "refinedAt": "2026-10-06T06:33:24.660Z",
+  "visuals": [
+    {
+      "id": "visual-1",
+      "intent": "chart — The same molecule in three drawing conventions",
+      "evidence": [
+        {
+          "sourceId": "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+          "file": "parsed.md",
+          "anchor": "isomers-of-alkenes",
+          "figure": "library/lib-openstax-21-1-hydrocarbons-chemistry-atoms/figures/c11b01e86aacf45f0e73916d.webp"
+        },
+        {
+          "sourceId": "lib-chemguide-how-to-draw-organic-molecules",
+          "file": "parsed.md",
+          "anchor": "start",
+          "figure": "library/lib-chemguide-how-to-draw-organic-molecules/figures/922547938694116e6f41bacb.gif"
+        }
+      ]
+    },
+    {
+      "id": "visual-2",
+      "intent": "figure — Highlighted functional groups in polymer-related molecules",
+      "evidence": [
+        {
+          "sourceId": "lib-wikipedia-polymer",
+          "file": "parsed/05-structure.md",
+          "anchor": "microstructure",
+          "figure": "library/lib-wikipedia-polymer/figures/73efea82bcf1268ab7288937.png"
+        },
+        {
+          "sourceId": "lib-wou-ch105-chapter-5-introduction-to-organic",
+          "file": "parsed/02-part.md",
+          "anchor": "carboxylic-acids-and-their-derivatives",
+          "figure": "library/lib-wou-ch105-chapter-5-introduction-to-organic/figures/01bb4947df630ae2e2e86f71.png"
+        }
+      ]
+    },
+    {
+      "id": "visual-3",
+      "intent": "step-through widget — The same carbon chain in displayed, condensed and skeletal conventions; step and predict implicit hydrogens",
+      "form": "step-through widget",
+      "concept": "The same carbon chain in displayed, condensed and skeletal conventions; step and predict implicit hydrogens",
+      "evidence": [
+        {
+          "sourceId": "lib-wou-ch105-chapter-5-introduction-to-organic",
+          "file": "parsed/01-part.md",
+          "anchor": "line-or-skeletal-formulae"
+        },
+        {
+          "sourceId": "lib-libretexts-2-3-step-growth-and-chain-growth",
+          "file": "parsed.md",
+          "anchor": "start"
+        }
+      ]
+    },
+    {
+      "id": "visual-4",
+      "intent": "sketch — Recognize alkene, alcohol, carboxylic acid, amine, ester and amide groups; select and compare highlighted atoms",
+      "form": "sketch",
+      "concept": "Recognize alkene, alcohol, carboxylic acid, amine, ester and amide groups; select and compare highlighted atoms",
+      "evidence": [
+        {
+          "sourceId": "lib-openstax-3-1-functional-groups-organic",
+          "file": "parsed.md",
+          "anchor": "functional-groups-with-carbon-carbon-multiple-bonds"
+        },
+        {
+          "sourceId": "lib-wou-ch105-chapter-5-introduction-to-organic",
+          "file": "parsed/02-part.md",
+          "anchor": "carboxylic-acids-and-their-derivatives",
+          "figure": "library/lib-wou-ch105-chapter-5-introduction-to-organic/figures/01bb4947df630ae2e2e86f71.png"
+        }
+      ]
+    }
+  ],
+  "figures": [
+    {
+      "sourceId": "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+      "path": "library/lib-openstax-21-1-hydrocarbons-chemistry-atoms/figures/c11b01e86aacf45f0e73916d.webp",
+      "url": "https://openstax.org/apps/image-cdn/v1/f=webp/apps/archive/20260604.144757/resources/f9d310a73fdcdef30851de14b05a4d2d799bb961",
+      "alt": "In this figure, a hydrocarbon molecule is shown in three ways. First, an expanded formula shows all individual carbon atoms, hydrogen atoms, and bonds in a branched hydrocarbon molecule. An initial C atom is bonded to three H atoms. The C atom is bonded to another C atom in the chain. This second C atom is bonded to one H atom and another C atom above the chain. The C atom bonded above the second C atom in the chain is bonded to three H atoms. The second C atom in the chain is bonded to a third C atom in the chain. This third C atom is bonded to on H atom and another C atom below the chain. This C atom is bonded to two H atoms and another C atom below the chain. This second C atom below the chain is bonded to three H atoms. The third C atom in the chain is bonded to a fourth C atom in the chain. The fourth C atom is bonded to two H atoms and a fifth C atom. The fifth C atom is bonded to two H atoms and a sixth C atom. The sixth C atom is bonded to three H atoms. Second, a condensed formula shows each carbon atom of the molecule in clusters with the hydrogen atoms bonded to it, leaving C H, C H subscript 2, and C H subscript 3 groups with bonds between them. The structure shows a C H subscript 3 group bonded to a C H group. The C H group is bonded above to a C H subscript 3 group. The C H group is also bonded to another C H group. This C H group is bonded to a C H subscript 2 group below and a C H subscript 3 group below that. This C H group is also bonded to a C H subscript 2 group which is bonded to another C H subscript 2 group. This C H subscript 2 group is bonded to a final C H subscript 2 group. The final structure in the figure is a skeletal structure which includes only line segments arranged to indicate the structure of the molecule.",
+      "caption": "Figure \n21.3\n\n\n\n   \n  The same structure can be represented three different ways: an expanded formula, a condensed formula, and a skeletal structure.",
+      "section": "Alkanes",
+      "license": "CC BY 4.0",
+      "credit": "21.1 Hydrocarbons - Chemistry: Atoms First | OpenStax, https://openstax.org/books/chemistry-atoms-first/pages/21-1-hydrocarbons (CC BY 4.0)"
+    },
+    {
+      "sourceId": "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+      "path": "library/lib-openstax-21-1-hydrocarbons-chemistry-atoms/figures/fe0ab2c3288166b69938b652.webp",
+      "url": "https://openstax.org/apps/image-cdn/v1/f=webp/apps/archive/20260604.144757/resources/48b4022f814e6cfe55b49fb2a32e14e77c095a88",
+      "alt": "The figure illustrates three ways to represent isomers of butene. In the first row of the figure, Lewis structural formulas show carbon and hydrogen element symbols and bonds between the atoms. The first structure in this row shows a C atom with a double bond to another C atom which is bonded down and to the right to C H subscript 2 which, in turn, is bonded to C H subscript 3. The first C atom, moving from left to right, has two H atoms bonded to it and the second C atom has one H atom bonded to it. The second structure in the row shows a C atom with a double bond to another C atom. The first C atom is bonded to an H atom up and to the left and C H subscript 3 down and to the left. The second C atom is bonded to an H atom up and to the right and C H subscript 3 down and to the right. Both C H subscript 3 structures appear in red. The third structure shows a C atom with a double bond to another C atom. The first C atom from the left is bonded up to a the left to C H subscript 3 which appears and red. It is also bonded down and to the left to an H atom. The second C atom is bonded up and to the right to an H atom and down and to the left to C H subscript 3 which appears in red. In the second row, ball-and-stick models for the structures are shown. In these representations, single bonds are represented with sticks, double bonds are represented with two parallel sticks, and elements are represented with balls. C atoms are black and H atoms are white in this image. In the third row, space-filling models are shown. In these models, atoms are enlarged and pushed together, without sticks to represent bonds. In the final row, names are provided. The molecule with the double bond between the first and second carbons is named 1 dash butene. The two molecules with the double bond between the second and third carbon atoms is called 2 dash butene. The first model, which has both C H subscript 3 groups beneath the double bond is called the cis isomer. The second which has the C H subscript 3 groups on opposite sides of the double bond is named the trans isomer.",
+      "caption": "Figure \n21.10\n\n\n\n   \n  These molecular models show the structural and geometric isomers of butene.",
+      "section": "Isomers of Alkenes",
+      "license": "CC BY 4.0",
+      "credit": "21.1 Hydrocarbons - Chemistry: Atoms First | OpenStax, https://openstax.org/books/chemistry-atoms-first/pages/21-1-hydrocarbons (CC BY 4.0)"
+    },
+    {
+      "sourceId": "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+      "path": "library/lib-openstax-21-1-hydrocarbons-chemistry-atoms/figures/1f92aea3c043a9fac515d1d0.webp",
+      "url": "https://openstax.org/apps/image-cdn/v1/f=webp/apps/archive/20260604.144757/resources/9e9ef1f610956d75a7f63b96d960dacbad072032",
+      "alt": "This diagram has three rows, showing ethylene reacting to form polyethylene. In the first row, Lewis structural formulas show three molecules of ethylene being added together, which are each composed of two doubly bonded C atoms, each with two bonded H atoms. Ellipses, or three dots, are present before and after the molecule structures, which in turn are followed by an arrow pointing right. On the right side of the arrow, the ellipses or dots again appear to the left of a dash that connects to a chain of 7 C atoms, each with H atoms connected above and below. A dash appears at the end of the chain, which in turn is followed by ellipses or dots. The reaction diagram is repeated in the second row using ball-and-stick models for the structures. In these representations, single bonds are represented with sticks, double bonds are represented with two parallel sticks, and elements are represented with balls. Carbon atoms are black and hydrogen atoms are white in this image. In the third row, space-filling models are shown. In these models, atoms are enlarged spheres which are pushed together, without sticks to represent bonds.",
+      "caption": "Figure \n21.8\n\n\n\n   \n  The reaction for the polymerization of ethylene to polyethylene is shown.",
+      "section": "Recycling Plastics",
+      "license": "CC BY 4.0",
+      "credit": "21.1 Hydrocarbons - Chemistry: Atoms First | OpenStax, https://openstax.org/books/chemistry-atoms-first/pages/21-1-hydrocarbons (CC BY 4.0)"
+    },
+    {
+      "sourceId": "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+      "path": "library/lib-openstax-21-1-hydrocarbons-chemistry-atoms/figures/c0871d9888b4ac13474e99cc.webp",
+      "url": "https://openstax.org/apps/image-cdn/v1/f=webp/apps/archive/20260604.144757/resources/1ea01ba5dce1f40a84f16b08ff94cf1fd543b538",
+      "alt": "The figure illustrates three ways to represent molecules of n dash butane. In the first row of the figure, Lewis structural formulas show carbon and hydrogen element symbols and bonds between the atoms. The first structure in this row shows three of the linked C atoms in a horizontal row with a single C atom bonded above the left-most carbon. The left-most C atom has two H atoms bonded to it. The C atom bonded above the left-most C atom has three H atoms bonded to it. The C atom bonded to the right of the left-most C atom has two H atoms bonded to it. The right-most C atom has three H atoms bonded to it. The C atoms and the bonds connecting all the C atoms are red. The second structure in the row similarly shows the row of three linked C atoms with a single C atom bonded below the C atom to the left. The left-most C atom has two H atoms bonded to it. The C atom bonded below the left-most C atom has three H atoms bonded to it. The C atom bonded to the right of the left-most C atom has two H atoms bonded to it. The right-most atom has three H atoms bonded to it. All the C atoms and the bonds between them are red. The third structure has two C atoms bonded in a row with a third C atom bonded above the left C atom and the fourth C atom bonded below the right C atom. The C atom bonded above the left C atom has three H atoms bonded to it. The left C atom has two H atoms bonded to it. The right C atom has two H atoms bonded to it. The C atom bonded below the right C atom has three H atoms bonded to it. All the C atoms and the bonds between them are red. In the second row, ball-and-stick models for the structures are shown. In these representations, bonds are represented with sticks, and elements are represented with balls. Carbon atoms are black and hydrogen atoms are white in this image. In the third row, space-filling models are shown. In these models, atoms are enlarged and pushed together, without sticks to represent bonds.",
+      "caption": "Figure \n21.4\n\n\n\n   \n  These three representations of the structure of n-butane are not isomers because they all contain the same arrangement of atoms and bonds.",
+      "section": "Check Your Learning",
+      "license": "CC BY 4.0",
+      "credit": "21.1 Hydrocarbons - Chemistry: Atoms First | OpenStax, https://openstax.org/books/chemistry-atoms-first/pages/21-1-hydrocarbons (CC BY 4.0)"
+    },
+    {
+      "sourceId": "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+      "path": "library/lib-openstax-21-1-hydrocarbons-chemistry-atoms/figures/4c9b7dd9f2e3680103a77d98.webp",
+      "url": "https://openstax.org/apps/image-cdn/v1/f=webp/apps/archive/20260604.144757/resources/146c3719dc4d813c27347762563e591bbe56db5b",
+      "alt": "Lewis structural formulas show carbon and hydrogen element symbols and bonds between the atoms. The first structure in this row shows two bonded C atoms with a double bond between them. Each C atom has two H atoms bonded to it as well. The second structure in the row shows three bonded C atoms with a double bond up and to the right between the first and second C atoms moving left to right across the chain, and a single bond down and to the right between the second and third C atom. The first C atom has two H atoms bonded to it, the second C atom has one H atom bonded to it, and the third C atom has three H atoms bonded to it. The third structure shows four bonded C atoms with one bonded up and to the right to a C atom, down and to the right to a C atom, and double bonded up and to the right to a C atom. The first C atom, moving from left to right, has three H atoms bonded to it. The second C atom has two H atoms bonded to it. The third C atom has one H atom bonded to it, and the fourth C atom has two H atoms bonded to it. In the second row, ball-and-stick models for the structures are shown. In these representations, single bonds are represented with sticks, double bonds are represented with two parallel sticks, and elements are represented with balls. Carbon atoms are black and hydrogen atoms are white in this image. In the third row, space-filling models are shown. In these models, atoms are enlarged and pushed together, without sticks to represent bonds. In the final row, names are provided. The molecule with the double bond between two C atoms is named ethene. The molecule with the double bond between the first and second C atoms in the chain of three is named propene. The molecule with the double bond between the carbon atoms in the chain of four is named 1 dash butene.",
+      "caption": "Figure \n21.7\n\n\n\n   \n  Expanded structures, ball-and-stick structures, and space-filling models for the alkenes ethene, propene, and 1-butene are shown.",
+      "section": "Alkenes",
+      "license": "CC BY 4.0",
+      "credit": "21.1 Hydrocarbons - Chemistry: Atoms First | OpenStax, https://openstax.org/books/chemistry-atoms-first/pages/21-1-hydrocarbons (CC BY 4.0)"
+    },
+    {
+      "sourceId": "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+      "path": "library/lib-openstax-21-1-hydrocarbons-chemistry-atoms/figures/495db39f6a15daccf69d5fdd.webp",
+      "url": "https://openstax.org/apps/image-cdn/v1/f=webp/apps/archive/20260604.144757/resources/a75f99f6a3472d708a31e32853ca94689a36fd38",
+      "alt": "The figure illustrates four ways to represent molecules for molecules of methane, ethane, and pentane. In the first row of the figure, Lewis structural formulas show element symbols and bonds between atoms. Methane has a central C atom with four H atoms bonded to it. Ethane has a C atom with three H atoms bonded to it. The C atom is also bonded to another C atom with three H atoms bonded to it. Pentane has a C atom with three H atoms bonded to it. The C atom is bonded to another C atom with two H atoms bonded to it. The C atom is bonded to another C atom with two H atoms bonded to it. The C atom is bonded to another C atom with two H atoms bonded to it. The C atom is bonded to another C atom with three H atoms bonded to it. In the second row, ball-and-stick models are shown. In these representations, bonds are represented with sticks, and elements are represented with balls. Carbon atoms are black and hydrogen atoms are white in this image. In the third row, space-filling models are shown. In these models, atoms are enlarged and pushed together, without sticks to represent bonds. The molecule names and structural formulas are provided in the fourth row. Methane is named and represented with a condensed structural formula as C H subscript 4. Ethane is named and represented with two structural formulas C H subscript 3 C H subscript 3 and C subscript 2 H subscript 6. Pentane is named and represented as both C H subscript 3 C H subscript 2 C H subscript 2 C H subscript 2 C H subscript 3 and C subscript 5 H subscript 12.",
+      "caption": "Figure \n21.2\n\n\n\n   \n  Pictured are the Lewis structures, ball-and-stick models, and space-filling models for molecules of methane, ethane, and pentane.",
+      "section": "Alkanes",
+      "license": "CC BY 4.0",
+      "credit": "21.1 Hydrocarbons - Chemistry: Atoms First | OpenStax, https://openstax.org/books/chemistry-atoms-first/pages/21-1-hydrocarbons (CC BY 4.0)"
+    },
+    {
+      "sourceId": "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+      "path": "library/lib-openstax-21-1-hydrocarbons-chemistry-atoms/figures/ad2cd59140a9f7001e539ce9.webp",
+      "url": "https://openstax.org/apps/image-cdn/v1/f=webp/apps/archive/20260604.144757/resources/8af994ff3cf451b55c049363a8b610b48cf15c69",
+      "alt": "Four structural formulas and names are shown. The first shows two red C atoms connected by a red double bond illustrated with two parallel line segments. H atoms are bonded above and below to the left of the left-most C atom. Two more H atoms are similarly bonded to the right of the C atom on the right. Beneath this structure the name ethene and alternate name ethylene are shown. The second shows three C atoms bonded together with a red double bond between the red first and second C atoms moving left to right across the three-carbon chain. H atoms are bonded above and below to the left of the C atom to the left. A single H is bonded above the middle C atom. Three more H atoms are bonded above, below, and to the right of the third C atom. Beneath this structure the name propene and alternate name propylene is shown. The third shows four C atoms bonded together, numbered one through four moving left to right with a red double bond between the red first and second carbon in the chain. H atoms are bonded above and below to the left of the C atom to the left. A single H is bonded above the second C atom. H atoms are bonded above and below the third C atom. Three more H atoms are bonded above, below, and to the right of the fourth C atom. Beneath this structure the name 1 dash butene is shown. The fourth shows four C atoms bonded together, numbered one through four moving left to right with a red double bond between the red second and third C atoms in the chain. H atoms are bonded above, below, and to the left of the left-most C atom. A single H atom is bonded above the second C atom. A single H atom is bonded above the third C atom. Three more H atoms are bonded above, below, and to the right of the fourth C atom. Beneath this structure the name 2 dash butene is shown.",
+      "caption": "Four structural formulas and names are shown. The first shows two red C atoms connected by a red double bond illustrated with two parallel line segments. H atoms are bonded above and below to the left of the left-most C atom. Two more H atoms are similarly bonded to the right of the C atom on the right. Beneath this structure the name ethene and alternate name ethylene are shown. The second shows three C atoms bonded together with a red double bond between the red first and second C atoms moving left to right across the three-carbon chain. H atoms are bonded above and below to the left of the C atom to the left. A single H is bonded above the middle C atom. Three more H atoms are bonded above, below, and to the right of the third C atom. Beneath this structure the name propene and alternate name propylene is shown. The third shows four C atoms bonded together, numbered one through four moving left to right with a red double bond between the red first and second carbon in the chain. H atoms are bonded above and below to the left of the C atom to the left. A single H is bonded above the second C atom. H atoms are bonded above and below the third C atom. Three more H atoms are bonded above, below, and to the right of the fourth C atom. Beneath this structure the name 1 dash butene is shown. The fourth shows four C atoms bonded together, numbered one through four moving left to right with a red double bond between the red second and third C atoms in the chain. H atoms are bonded above, below, and to the left of the left-most C atom. A single H atom is bonded above the second C atom. A single H atom is bonded above the third C atom. Three more H atoms are bonded above, below, and to the right of the fourth C atom. Beneath this structure the name 2 dash butene is shown.",
+      "section": "Recycling Plastics",
+      "license": "CC BY 4.0",
+      "credit": "21.1 Hydrocarbons - Chemistry: Atoms First | OpenStax, https://openstax.org/books/chemistry-atoms-first/pages/21-1-hydrocarbons (CC BY 4.0)"
+    },
+    {
+      "sourceId": "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+      "path": "library/lib-openstax-21-1-hydrocarbons-chemistry-atoms/figures/42dbffe817c12035264c00a4.webp",
+      "url": "https://openstax.org/apps/image-cdn/v1/f=webp/apps/archive/20260604.144757/resources/db7df42dae7c4e22a2f61b2c8df57e468434268a",
+      "alt": "This figure contains a photo of a refinery, showing large columnar structures. A diagram of a fractional distillation column is also shown. Near the bottom of the column, an arrow pointing into the column from the left shows a point of entry for heated crude oil. The column contains several layers at which different components are removed. At the very bottom, residue materials are removed through a pipe as indicated by an arrow out of the column. At each successive level, different materials are removed through pipes proceeding from the bottom to the top of the column. In order from bottom to top, these materials are fuel oil, followed by diesel oil, kerosene, naptha, gasoline, and refinery gas at the very top. To the right of the column diagram, a double sided arrow is shown that is blue at the top and gradually changes color to red moving downward. The blue top of the arrow is labeled, “Small molecules: low boiling point, very volatile, flows easily, ignites easily.” The red bottom of the arrow is labeled, “Large molecules: high boiling point, not very volatile, does not flow easily, does not ignite easily.”",
+      "caption": "Figure \n21.6\n\n\n\n   \n  In a column for the fractional distillation of crude oil, oil heated to about 425 °C in the furnace vaporizes when it enters the base of the tower. The vapors rise through bubble caps in a series of trays in the tower. As the vapors gradually cool, fractions of higher, then of lower, boiling points condense to liquids and are drawn off. (credit left: modification of work by Luigi Chiesa)",
+      "section": "Check Your Learning",
+      "license": "CC BY 4.0",
+      "credit": "21.1 Hydrocarbons - Chemistry: Atoms First | OpenStax, https://openstax.org/books/chemistry-atoms-first/pages/21-1-hydrocarbons (CC BY 4.0)"
+    },
+    {
+      "sourceId": "lib-chemguide-how-to-draw-organic-molecules",
+      "path": "library/lib-chemguide-how-to-draw-organic-molecules/figures/922547938694116e6f41bacb.gif",
+      "url": "https://chemguide.co.uk/basicorg/conventions/methylbutane.GIF",
+      "alt": "",
+      "caption": "This is even more important when you start to have branched chains of carbon atoms. The following structures again all represent the same molecule - 2-methylbutane.",
+      "section": "The commonest way to draw structural formulae",
+      "credit": "How to draw organic molecules, https://chemguide.co.uk/basicorg/conventions/draw.html (reuse license unknown; redraw)"
+    },
+    {
+      "sourceId": "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+      "path": "library/lib-openstax-21-1-hydrocarbons-chemistry-atoms/figures/62dcb8d661f2bc2fb576f1b4.webp",
+      "url": "https://openstax.org/apps/image-cdn/v1/f=webp/apps/archive/20260604.144757/resources/7cacda1417f21da64927bc22862ca385f9d6b349",
+      "alt": "This table shows recycling symbols, names, and uses of various types of plastics. Symbols are shown with three arrows in a triangular shape surrounding a number. Number 1 is labeled P E T E. The related plastic, polyethylene terephthalate (P E T E), is used in soda bottles and oven-ready food trays. Number 2 is labeled H D P E. The related plastic is high-density polyethylene (H D P E), which is used in bottles for milk and dishwashing liquids. Number 3 is labeled V. The related plastic is polyvinyl chloride or (P V C). This plastic is used in food trays, plastic wrap, and bottles for mineral water and shampoo. Number 4 is labeled L D P E. This plastic is low density polyethylene (L D P E). It is used in shopping bags and garbage bags. Number 5 is labeled P P. The related plastic is polypropylene (P P). It is used in margarine tubs and microwaveable food trays. Number 6 is labeled P S. The related plastic is polystyrene (P S). It is used in yogurt tubs, foam meat trays, egg cartons, vending cups, plastic cutlery, and packaging for electronics and toys. Number 7 is labeled other for any other plastics. Items in this category include those plastic materials that do not fit any other category. Melamine used in plastic plates and cups is an example.",
+      "caption": "Figure \n21.9\n\n\n\n   \n  Each type of recyclable plastic is imprinted with a code for easy identification.",
+      "section": "Recycling Plastics",
+      "license": "CC BY 4.0",
+      "credit": "21.1 Hydrocarbons - Chemistry: Atoms First | OpenStax, https://openstax.org/books/chemistry-atoms-first/pages/21-1-hydrocarbons (CC BY 4.0)"
+    },
+    {
+      "sourceId": "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+      "path": "library/lib-openstax-21-1-hydrocarbons-chemistry-atoms/figures/9d0cba0181c288c6bf8d13e5.webp",
+      "url": "https://openstax.org/apps/image-cdn/v1/f=webp/apps/archive/20260604.144757/resources/7c970176223da70b99898ac2d7d762e7645b1581",
+      "alt": "Three structural formulas are shown. The first is labeled toluene. This molecule has a six carbon hydrocarbon ring in which five of the C atoms are each bonded to only one H atom. At the upper right of the ring, the C atom that does not have a bonded H atom has a red C H subscript 3 group attached. A circle is at the center of the ring. The second is labeled xylene. This molecule has a six carbon hydrocarbon ring in which four of the C atoms are each bonded to only one H atom. At the upper right and right of the ring, the two C atoms that do not have bonded H atoms have C H subscript 3 groups attached. These C H subscript 3 groups appear in red. A circle is at the center of the ring. The third is labeled styrene. This molecule has a six carbon hydrocarbon ring in which five of the carbon atoms are each bonded to only one H atom. At the upper right of the ring, the carbon that does not have a bonded H atom has a red C H double bond C H subscript 2 group attached. A circle is at the center of the ring.",
+      "caption": "Three structural formulas are shown. The first is labeled toluene. This molecule has a six carbon hydrocarbon ring in which five of the C atoms are each bonded to only one H atom. At the upper right of the ring, the C atom that does not have a bonded H atom has a red C H subscript 3 group attached. A circle is at the center of the ring. The second is labeled xylene. This molecule has a six carbon hydrocarbon ring in which four of the C atoms are each bonded to only one H atom. At the upper right and right of the ring, the two C atoms that do not have bonded H atoms have C H subscript 3 groups attached. These C H subscript 3 groups appear in red. A circle is at the center of the ring. The third is labeled styrene. This molecule has a six carbon hydrocarbon ring in which five of the carbon atoms are each bonded to only one H atom. At the upper right of the ring, the carbon that does not have a bonded H atom has a red C H double bond C H subscript 2 group attached. A circle is at the center of the ring.",
+      "section": "Aromatic Hydrocarbons",
+      "license": "CC BY 4.0",
+      "credit": "21.1 Hydrocarbons - Chemistry: Atoms First | OpenStax, https://openstax.org/books/chemistry-atoms-first/pages/21-1-hydrocarbons (CC BY 4.0)"
+    },
+    {
+      "sourceId": "lib-libretexts-3-5-carbohydrates-biology",
+      "path": "library/lib-libretexts-3-5-carbohydrates-biology/figures/9c8e882962ca43613eae81cc.png",
+      "url": "https://bio.libretexts.org/@api/deki/files/17426/Screen_Shot_2019-04-27_at_11.11.44_PM.png?revision=1&size=bestfit&width=367&height=360",
+      "alt": "Monosaccharides forming disaccharides with dehydration reaction",
+      "caption": "Figure 3.5.3: Glucose and fructose combine to produce the disaccharide sucrose in a condensation reaction. The diagram shows how water is produced when the reaction occurs. This is because the oxygen in glucose binds to the carbon in fructose. That removes an oxygen and two hydrogens from the new molecule.",
+      "section": "Complex Carbohydrates",
+      "license": "CC BY 2.0",
+      "credit": "3.5: Carbohydrates - Biology LibreTexts, https://bio.libretexts.org/Bookshelves/Human_Biology/Human_Biology_(Wakim_and_Grewal)/03%3A_Chemistry_of_Life/3.05%3A_Carbohydrates (CC BY 2.0)"
+    },
+    {
+      "sourceId": "lib-libretexts-3-5-carbohydrates-biology",
+      "path": "library/lib-libretexts-3-5-carbohydrates-biology/figures/5347a00ff9972ee0535810f0.png",
+      "url": "https://bio.libretexts.org/@api/deki/files/17425/Screen_Shot_2019-04-27_at_11.10.29_PM.png?revision=1&size=bestfit&width=396&height=219",
+      "alt": "D glucose chain 3D balls",
+      "caption": "Figure 3.5.2: The six black balls in this model of the monosaccharide glucose represent carbon atoms. These six carbons make up the backbone in the center of glucose. The red balls are oxygen, and the white ones are hydrogen.",
+      "section": "What Are Carbohydrates?",
+      "license": "CC BY 2.0",
+      "credit": "3.5: Carbohydrates - Biology LibreTexts, https://bio.libretexts.org/Bookshelves/Human_Biology/Human_Biology_(Wakim_and_Grewal)/03%3A_Chemistry_of_Life/3.05%3A_Carbohydrates (CC BY 2.0)"
+    },
+    {
+      "sourceId": "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+      "path": "library/lib-openstax-21-1-hydrocarbons-chemistry-atoms/figures/7809019d4d1665d369770c53.webp",
+      "url": "https://openstax.org/apps/image-cdn/v1/f=webp/apps/archive/20260604.144757/resources/26475325b97d6572f2a1758d87ac0826ae3c2f5b",
+      "alt": "This figure shows structural formulas for propane, 2 dash chloropropane, 2 dash methylpropane, 2 comma 4 dash difluorohexane, and 1 dash bromo dash 3 dash chlorohexane. In each of the structures, the carbon atoms are in a row with bonded halogen atoms and a methyl group bonded below the figures. Propane is listed as simply C H subscript 3 C H subscript 2 C H subscript 3, with the numbers 1, 2, and 3 appearing above the carbon atoms from left to right. 2 dash chloropropane similarly shows C H subscript 3 C H C H subscript 3, with the numbers 1, 2, and 3 appearing above the carbon atoms from left to right. A C l atom is bonded below carbon 2. The C l atom is red. 2 dash methylpropane similarly shows C H subscript 3 C H C H subscript 3, with the numbers 3, 2, and 1 appearing above the carbon atoms from left to right. A C H subscript 3 group is bonded beneath carbon 2 and is red. 2 comma 4 dash difluorohexane similarly shows C H subscript 3 C H subscript 2 C H C H subscript 2 C H C H subscript 3, with the numbers 6, 5, 4, 3, 2, and 1 appearing above the carbon atoms from left to right. F atoms are bonded to carbons 4 and 2 at the bottom of the structure and are red. 1 dash bromo dash 3 dash chlorohexane similarly shows C H subscript 2 C H subscript 2 C H C H subscript 2 C H subscript 2 C H subscript 3, with numbers 1, 2, 3, 4, 5, and 6 appearing above the carbon atoms from left to right. B r is bonded below carbon 1 and C l is bonded below carbon 3. Both B r and C l are red.",
+      "caption": "This figure shows structural formulas for propane, 2 dash chloropropane, 2 dash methylpropane, 2 comma 4 dash difluorohexane, and 1 dash bromo dash 3 dash chlorohexane. In each of the structures, the carbon atoms are in a row with bonded halogen atoms and a methyl group bonded below the figures. Propane is listed as simply C H subscript 3 C H subscript 2 C H subscript 3, with the numbers 1, 2, and 3 appearing above the carbon atoms from left to right. 2 dash chloropropane similarly shows C H subscript 3 C H C H subscript 3, with the numbers 1, 2, and 3 appearing above the carbon atoms from left to right. A C l atom is bonded below carbon 2. The C l atom is red. 2 dash methylpropane similarly shows C H subscript 3 C H C H subscript 3, with the numbers 3, 2, and 1 appearing above the carbon atoms from left to right. A C H subscript 3 group is bonded beneath carbon 2 and is red. 2 comma 4 dash difluorohexane similarly shows C H subscript 3 C H subscript 2 C H C H subscript 2 C H C H subscript 3, with the numbers 6, 5, 4, 3, 2, and 1 appearing above the carbon atoms from left to right. F atoms are bonded to carbons 4 and 2 at the bottom of the structure and are red. 1 dash bromo dash 3 dash chlorohexane similarly shows C H subscript 2 C H subscript 2 C H C H subscript 2 C H subscript 2 C H subscript 3, with numbers 1, 2, 3, 4, 5, and 6 appearing above the carbon atoms from left to right. B r is bonded below carbon 1 and C l is bonded below carbon 3. Both B r and C l are red.",
+      "section": "The Basics of Organic Nomenclature: Naming Alkanes",
+      "license": "CC BY 4.0",
+      "credit": "21.1 Hydrocarbons - Chemistry: Atoms First | OpenStax, https://openstax.org/books/chemistry-atoms-first/pages/21-1-hydrocarbons (CC BY 4.0)"
+    },
+    {
+      "sourceId": "lib-chemguide-how-to-draw-organic-molecules",
+      "path": "library/lib-chemguide-how-to-draw-organic-molecules/figures/5766f406b7d9ead872f7dcb8.gif",
+      "url": "https://chemguide.co.uk/basicorg/conventions/ch2cl2displ.GIF",
+      "alt": "",
+      "caption": "For example, consider the simple molecule with the molecular formula CH2Cl2. You might think that there were two different ways of arranging these atoms if you drew a displayed formula.",
+      "section": "Displayed formulae",
+      "credit": "How to draw organic molecules, https://chemguide.co.uk/basicorg/conventions/draw.html (reuse license unknown; redraw)"
+    },
+    {
+      "sourceId": "lib-chemguide-how-to-draw-organic-molecules",
+      "path": "library/lib-chemguide-how-to-draw-organic-molecules/figures/d86468fbeb48261063a3a7bb.gif",
+      "url": "https://chemguide.co.uk/basicorg/conventions/cyclohexane.GIF",
+      "alt": "",
+      "caption": "Cyclohexane, C6H12, is a ring of carbon atoms each with two hydrogens attached. This is what it looks like in both a structural formula and a skeletal formula.",
+      "section": "Skeletal formulae",
+      "credit": "How to draw organic molecules, https://chemguide.co.uk/basicorg/conventions/draw.html (reuse license unknown; redraw)"
+    },
+    {
+      "sourceId": "lib-wikipedia-polymer",
+      "path": "library/lib-wikipedia-polymer/figures/73efea82bcf1268ab7288937.png",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/17/Thermal_transitions_in_amorphous_and_semicrystalline_polymers.tif/lossless-page1-330px-Thermal_transitions_in_amorphous_and_semicrystalline_polymers.tif.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "",
+      "caption": "Thermal transitions in (A) amorphous and (B) semicrystalline polymers, represented as traces from differential scanning calorimetry. As the temperature increases, both amorphous and semicrystalline polymers go through the glass transition (Tg). Amorphous polymers (A) do not exhibit other phase transitions, though semicrystalline polymers (B) undergo crystallization and melting (at temperatures Tc and Tm, respectively).",
+      "section": "Crystallization and melting",
+      "license": "CC BY-SA 4.0",
+      "credit": "AliceChem, https://commons.wikimedia.org/wiki/File:Thermal_transitions_in_amorphous_and_semicrystalline_polymers.tif (CC BY-SA 4.0)"
+    },
+    {
+      "sourceId": "lib-wikipedia-polymer",
+      "path": "library/lib-wikipedia-polymer/figures/233342d7636139aa0f99cfbb.jpg",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Single_Polymer_Chains_AFM.jpg/250px-Single_Polymer_Chains_AFM.jpg?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "",
+      "caption": "Appearance of real linear polymer chains as recorded using an atomic force microscope on a surface, under liquid medium. Chain contour length for this polymer is ~204 nm; thickness is ~0.4 nm.[1]",
+      "section": "Polymer",
+      "license": "CC BY-SA 3.0",
+      "credit": "Yurko, https://commons.wikimedia.org/wiki/File:Single_Polymer_Chains_AFM.jpg (CC BY-SA 3.0)"
+    },
+    {
+      "sourceId": "lib-wikipedia-polymer",
+      "path": "library/lib-wikipedia-polymer/figures/c5f1646803e71ac4bb5f0fa4.png",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4f/XBio_illustration_%E2%80%93_Polymer.png/250px-XBio_illustration_%E2%80%93_Polymer.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "",
+      "caption": "Polymers are chain or filament formed through covalent or non-covalent bonding of identical or similar units (monomers).",
+      "section": "Polymer",
+      "license": "CC BY 4.0",
+      "credit": "explorebiology, https://commons.wikimedia.org/wiki/File:XBio_illustration_%E2%80%93_Polymer.png (CC BY 4.0)"
+    },
+    {
+      "sourceId": "lib-libretexts-1-5-development-of-chemical",
+      "path": "library/lib-libretexts-1-5-development-of-chemical/figures/c0a68b8aade5aa17cf6f4ad6.png",
+      "url": "https://chem.libretexts.org/@api/deki/files/421857/download23.png?revision=1&size=bestfit&width=764&height=395",
+      "alt": "Sodium has one valence electron while chlorine has seven valence electrons. They react to from sodium chloride. Magnesium has two valence electrons and oxygen has six valence electrons. Together they form magnesium oxide. Calcium has two valnece electrons and fluroine has seven valence electrons. Calcium reacts with two molecules of fluorine to produce calcium fluoride. ",
+      "caption": "Sodium has one valence electron while chlorine has seven valence electrons. They react to from sodium chloride. Magnesium has two valence electrons and oxygen has six valence electrons. Together they form magnesium oxide. Calcium has two valnece electrons and fluroine has seven valence electrons. Calcium reacts with two molecules of fluorine to produce calcium fluoride. ",
+      "section": "Lewis Structures of Ionic Compounds",
+      "credit": "1.5: Development of Chemical Bonding Theory - Chemistry LibreTexts, https://chem.libretexts.org/Courses/Smith_College/CHM_222_Chemistry_II%3A_Organic_Chemistry_(2026)/01%3A_Structure_and_Bonding/1.05%3A_Development_of_Chemical_Bonding_Theory (reuse license unknown; redraw)"
+    },
+    {
+      "sourceId": "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+      "path": "library/lib-openstax-21-1-hydrocarbons-chemistry-atoms/figures/3c1865347935bd3c505c4d78.webp",
+      "url": "https://openstax.org/apps/image-cdn/v1/f=webp/apps/archive/20260604.144757/resources/6cd3a5aac25570497083c8d854e4abd35f09dce9",
+      "alt": "Three pairs of structural formulas are shown. The first has a six carbon hydrocarbon ring in which four of the C atoms are each bonded to only one H atom. At the upper right and right of the ring, the two C atoms that do not have bonded H atoms have one B r atom bonded each. A circle is at the center of the ring. Beneath this structure, a similar structure is shown which has a hexagon with a circle inside. From vertices of the hexagon at the upper right and right single B r atoms are attached. The second has a six carbon hydrocarbon ring in which four of the C atoms are each bonded to only one H atom. At the upper right and lower right of the ring, the two C atoms that do not have bonded H atoms have a single B r atom bonded each. A circle is at the center of the ring. Beneath this structure, a similar structure is shown which has a hexagon with a circle inside. From vertices of the hexagon at the upper right and lower right single B r atoms are attached. The third has a six carbon hydrocarbon ring in which four of the C atoms are each bonded to only one H atom. At the upper right and lower left of the ring, the two C atoms that do not have bonded H atoms have B r atoms bonded. A circle is at the center of the ring. Beneath this structure, a similar structure is shown which has a hexagon with a circle inside. From vertices of the hexagon at the upper right and lower left, single B r atoms are attached.",
+      "caption": "Three pairs of structural formulas are shown. The first has a six carbon hydrocarbon ring in which four of the C atoms are each bonded to only one H atom. At the upper right and right of the ring, the two C atoms that do not have bonded H atoms have one B r atom bonded each. A circle is at the center of the ring. Beneath this structure, a similar structure is shown which has a hexagon with a circle inside. From vertices of the hexagon at the upper right and right single B r atoms are attached. The second has a six carbon hydrocarbon ring in which four of the C atoms are each bonded to only one H atom. At the upper right and lower right of the ring, the two C atoms that do not have bonded H atoms have a single B r atom bonded each. A circle is at the center of the ring. Beneath this structure, a similar structure is shown which has a hexagon with a circle inside. From vertices of the hexagon at the upper right and lower right single B r atoms are attached. The third has a six carbon hydrocarbon ring in which four of the C atoms are each bonded to only one H atom. At the upper right and lower left of the ring, the two C atoms that do not have bonded H atoms have B r atoms bonded. A circle is at the center of the ring. Beneath this structure, a similar structure is shown which has a hexagon with a circle inside. From vertices of the hexagon at the upper right and lower left, single B r atoms are attached.",
+      "section": "Check Your Learning",
+      "license": "CC BY 4.0",
+      "credit": "21.1 Hydrocarbons - Chemistry: Atoms First | OpenStax, https://openstax.org/books/chemistry-atoms-first/pages/21-1-hydrocarbons (CC BY 4.0)"
+    },
+    {
+      "sourceId": "lib-libretexts-12-4-drawing-organic-structures",
+      "path": "library/lib-libretexts-12-4-drawing-organic-structures/figures/0567976e6e67d8d6140e3428.png",
+      "url": "https://chem.libretexts.org/@api/deki/files/409885/clipboard_e66d9b882bf015b3998056b89f87c9066.png?revision=1&size=bestfit&width=1071&height=462",
+      "alt": "Diagrams illustrating different molecular structures and bond types, represented in color-coded formats.",
+      "caption": "Figure 12.4.1: Structural representations for butane and its isomer, 2-methylpropane. (The colors are used to help identify carbons and do not represent any special properties.)",
+      "section": "Learning Objectives",
+      "credit": "12.4: Drawing Organic Structures - Chemistry LibreTexts, https://chem.libretexts.org/Courses/Saint_Francis_University/CHEM_113%3A_Human_Chemistry_I_%28Muino%29/12%3A_Introduction_to_Organic_Chemistry_-_Alkanes/12.04%3A_Drawing_Organic_Structures (reuse license unknown; redraw)"
+    },
+    {
+      "sourceId": "lib-chemguide-how-to-draw-organic-molecules",
+      "path": "library/lib-chemguide-how-to-draw-organic-molecules/figures/007c58796a17e670f3c72df2.gif",
+      "url": "https://chemguide.co.uk/basicorg/conventions/butan2olmod.GIF",
+      "alt": "",
+      "caption": "The only difference between these is a slight rotation of the bond between the centre two carbon atoms. This is shown in the two models below. Look carefully at them - particularly at what has happened to the lone hydrogen atom. In the left-hand model, it is tucked behind the carbon atom. In the right-hand model, it is in the same plane. The change is very slight.",
+      "section": "How to draw structural formulae in 3-dimensions",
+      "credit": "How to draw organic molecules, https://chemguide.co.uk/basicorg/conventions/draw.html (reuse license unknown; redraw)"
+    },
+    {
+      "sourceId": "lib-chemguide-how-to-draw-organic-molecules",
+      "path": "library/lib-chemguide-how-to-draw-organic-molecules/figures/8c49560318ed3d7bc4c23ea1.gif",
+      "url": "https://chemguide.co.uk/basicorg/conventions/butanemodel.GIF",
+      "alt": "",
+      "caption": "All of these are just versions of four carbon atoms joined up in a line. The only difference is that there has been some rotation about some of the carbon-carbon bonds. You can see this in a couple of models.",
+      "section": "The commonest way to draw structural formulae",
+      "credit": "How to draw organic molecules, https://chemguide.co.uk/basicorg/conventions/draw.html (reuse license unknown; redraw)"
+    }
+  ],
+  "tables": [
+    {
+      "sourceId": "lib-openstax-3-1-functional-groups-organic",
+      "file": "parsed.md",
+      "anchor": "functional-groups-with-carbon-carbon-multiple-bonds",
+      "text": "### Functional Groups with Carbon–Carbon Multiple Bonds\n\nAlkenes, alkynes, and arenes (aromatic compounds) all contain carbon–carbon multiple bonds. *Alkenes* have a double bond, *alkynes* have a triple bond, and *arenes* have alternating double and single bonds in a six-membered ring of carbon atoms. They look different, but because of their structural similarities, they also have chemical similarities.\n\nTable 3.1 Structures of Some Common Functional Groups\n\n| Name | Structure\\* | Name ending | Example |\n| --- | --- | --- | --- |\n| Alkene (double bond) |  | \\-*ene* | H2⁢C═⁢CH2H2C═CH2  <br>Ethene |\n| Alkyne (triple bond) | –C≡C––C≡C– | \\-*yne* | HC≡CHHC≡CH  <br>Ethyne |\n| Arene (aromatic ring) |  | None |  |\n| Halide | (X\\=F, Cl, Br, I) | None | CH3Cl  <br>Chloromethane |\n| Alcohol |  | \\-*ol* | CH3OH  <br>Methanol |\n| Ether |  | *ether* | CH3OCH3  <br>Dimethyl ether |\n| Monophosphate |  | *phosphate* | CH3OPO32−  <br>Methyl phosphate |\n| Diphosphate |  | *diphosphate* | CH3OP2O63−  <br>Methyl diphosphate |\n| Amine |  | \\-*amine* | CH3NH2  <br>Methylamine |\n| Imine (Schiff base) |  | None |  |\n| Nitrile | –C≡N–C≡N | \\-*nitrile* | CH3⁢C≡NCH3C≡N  <br>Ethanenitrile |\n| Thiol |  | \\-*thiol* | CH3SH  <br>Methanethiol |\n| Sulfide |  | *sulfide* | CH3SCH3  <br>Dimethyl sulfide |\n| Disulfide |  | *disulfide* | CH3SSCH3  <br>Dimethyl disulfide |\n| Sulfoxide |  | *sulfoxide* |  |\n| Aldehyde |  | \\-*al* |  |\n| Ketone |  | \\-*one* |  |\n| Carboxylic acid |  | \\-*oic acid* |  |\n| Ester |  | \\-*oate* |  |\n| Thioester |  | \\-*thioate* |  |\n| Amide |  | *\\-amide* |  |\n| Acid chloride |  | *\\-oyl chloride* |  |\n| Carboxylic acid anhydride |  | \\-*oic anhydride* |  |\n\n\\*The bonds whose connections aren’t specified are assumed to be attached to carbon or hydrogen atoms in the rest of the molecule."
+    },
+    {
+      "sourceId": "lib-chemguide-how-to-draw-organic-molecules",
+      "file": "parsed.md",
+      "anchor": "start",
+      "text": "<!-- anchor: start -->\n| **DRAWING ORGANIC MOLECULES**<br><br>This page explains the various ways that organic molecules can be represented on paper or on screen - including molecular formulae, and various forms of structural formulae.<br><br>**Molecular formulae**<br>A molecular formula simply counts the numbers of each sort of atom present in the molecule, but tells you nothing about the way they are joined together.<br>For example, the molecular formula of butane is C4H10, and the molecular formula of ethanol is C2H6O.<br>Molecular formulae are very rarely used in organic chemistry, because they don't give any useful information about the bonding in the molecule. About the only place where you might come across them is in equations for the combustion of simple hydrocarbons, for example:<br>![](https://chemguide.co.uk/basicorg/conventions/padding.GIF)![](https://chemguide.co.uk/basicorg/conventions/burn.GIF)<br>In cases like this, the bonding in the organic molecule isn't important.<br><br>**Structural formulae**<br>A structural formula shows how the various atoms are bonded. There are various ways of drawing this and you will need to be familiar with all of them.<br>***Displayed formulae***<br>A displayed formula shows all the bonds in the molecule as individual lines. You need to remember that each line represents a pair of shared electrons.<br>For example, this is a model of methane together with its displayed formula:<br>![](https://chemguide.co.uk/basicorg/conventions/methane.GIF)<br>Notice that the way the methane is drawn bears no resemblance to the actual shape of the molecule. Methane isn't flat with 90° bond angles. This mismatch between what you draw and what the molecule actually looks like can lead to problems if you aren't careful.<br>For example, consider the simple molecule with the molecular formula CH2Cl2. You might think that there were two different ways of arranging these atoms if you drew a displayed formula.<br>![](https://chemguide.co.uk/basicorg/conventions/ch2cl2displ.GIF)<br>The chlorines could be opposite each other or at right angles to each other. But these two structures are actually *exactly the same*. Look at how they appear as models.<br>![](https://chemguide.co.uk/basicorg/conventions/ch2cl2model.GIF)<br>One structure is in reality a simple rotation of the other one. |  |\n| --- | --- |\n|  | * * *<br>**Note:**  This is all much easier to understand if you have actually got some models to play with. If your school or college hasn't given you the opportunity to play around with molecular models in the early stages of your organic chemistry course, you might consider getting hold of a cheap set. The models made by ***Molymod*** are both cheap and easy to use. An introductory organic set is more than adequate. Google ***molymod*** to find a supplier and more about them, or search for ***molymod*** on Amazon.<br>Share the cost with some friends, keep it in good condition and don't lose any bits, and resell it via eBay or Amazon at the end of your course.<br>Alternatively, get hold of some coloured Plasticene (or other children's modelling clay) and some used matches and make your own. It's cheaper, but more difficult to get the bond angles right.  <br>* * * |\n| Consider a slightly more complicated molecule, C2H5Cl. The displayed formula could be written as either of these:<br>![](https://chemguide.co.uk/basicorg/conventions/c2h5cldispl.GIF)<br>But, again these are *exactly the same*. Look at the models.<br>![](https://chemguide.co.uk/basicorg/conventions/c2h5clmodel.GIF)<br>***The commonest way to draw structural formulae***<br>For anything other than the most simple molecules, drawing a fully displayed formula is a bit of a bother - especially all the carbon-hydrogen bonds. You can simplify the formula by writing, for example, CH3 or CH2 instead of showing all these bonds.<br>So for example, ethanoic acid would be shown in a fully displayed form and a simplified form as:<br>![](https://chemguide.co.uk/basicorg/conventions/ethanoicacid.GIF)<br>You could even condense it further to CH3COOH, and would probably do this if you had to write a simple chemical equation involving ethanoic acid. You do, however, lose something by condensing the acid group in this way, because you can't immediately see how the bonding works.<br>You still have to be careful in drawing structures in this way. Remember from above that these two structures both represent the same molecule:<br>![](https://chemguide.co.uk/basicorg/conventions/c2h5cldispl.GIF)<br>The next three structures all represent butane.<br>![](https://chemguide.co.uk/basicorg/conventions/butanedispl.GIF)<br>All of these are just versions of four carbon atoms joined up in a line. The only difference is that there has been some rotation about some of the carbon-carbon bonds. You can see this in a couple of models.<br>![](https://chemguide.co.uk/basicorg/conventions/butanemodel.GIF)<br>Not one of the structural formulae accurately represents the shape of butane. The convention is that we draw it with all the carbon atoms in a straight line - as in the first of the structures above.<br>This is even more important when you start to have branched chains of carbon atoms. The following structures again all represent the same molecule - 2-methylbutane.<br>![](https://chemguide.co.uk/basicorg/conventions/methylbutane.GIF)<br>The two structures on the left are fairly obviously the same - all we've done is flip the molecule over. The other one isn't so obvious until you look at the structure in detail. There are four carbons joined up in a row, with a CH3 group attached to the next-to-end one. That's exactly the same as the other two structures. If you had a model, the only difference between these three diagrams is that you have rotated some of the bonds and turned the model around a bit.<br>To overcome this possible confusion, the convention is that you always look for the longest possible chain of carbon atoms, and then draw "
+    },
+    {
+      "sourceId": "lib-pressbooks-20-1-hydrocarbons-general",
+      "file": "parsed.md",
+      "anchor": "alkanes",
+      "text": "### Alkanes\n<!-- anchor: alkanes -->\n\n[Alkanes](https://lmu.pressbooks.pub/generalchemistry3e/chapter/20_key_terms/#KT20.4), or [saturated hydrocarbons](https://lmu.pressbooks.pub/generalchemistry3e/chapter/20_key_terms/#KT20.18), contain only single covalent bonds between carbon atoms. Each of the carbon atoms in an alkane has *sp*3 hybrid orbitals and is bonded to four other atoms, each of which is either carbon or hydrogen. The Lewis structures and models of methane, ethane, and pentane are illustrated in [Figure 20.2](https://lmu.pressbooks.pub/generalchemistry3e/chapter/20-1_hydrocarbons#F20.2). Carbon chains are usually drawn as straight lines in Lewis structures, but one has to remember that Lewis structures are not intended to indicate the geometry of molecules. Notice that the carbon atoms in the structural models (the ball-and-stick and space-filling models) of the pentane molecule do not lie in a straight line. Because of the *sp*3 hybridization, the bond angles in carbon chains are close to 109.5°, giving such chains in an alkane a zigzag shape.\n\nThe structures of alkanes and other organic molecules may also be represented in a less detailed manner by condensed structural formulas (or simply, *condensed formulas*). Instead of the usual format for chemical formulas in which each element symbol appears just once, a condensed formula is written to suggest the bonding in the molecule. These formulas have the appearance of a Lewis structure from which most or all of the bond symbols have been removed. Condensed structural formulas for ethane and pentane are shown at the bottom of [Figure 20.2](https://lmu.pressbooks.pub/generalchemistry3e/chapter/20-1_hydrocarbons#F20.2), and several additional examples are provided in the exercises at the end of this chapter.\n\n.\n\n![Chemical structures and models of methane, ethane, and pentane.](https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId25-17.jpeg)\n\n**Figure 20.2.** Pictured are the Lewis structures, ball-and-stick models, and space-filling models for molecules of methane, ethane, and pentane.\n\nFigure 20.2. Pictured are the Lewis structures, ball-and-stick models, and space-filling models for molecules of methane, ethane, and pentane.\n\nA common method used by organic chemists to simplify the drawings of larger molecules is to use a [skeletal structure](https://lmu.pressbooks.pub/generalchemistry3e/chapter/20_key_terms/#KT20.19) (also called a line-angle structure). In this type of structure, carbon atoms are not symbolized with a C, but represented by each end of a line or bend in a line. Hydrogen atoms are not drawn if they are attached to a carbon. Other atoms besides carbon and hydrogen are represented by their elemental symbols. [Figure 20.3](https://lmu.pressbooks.pub/generalchemistry3e/chapter/20-1_hydrocarbons#F20.3) shows three different ways to draw the same structure.\n\n.\n\n![Three chemical representations: expanded formula, condensed formula, and skeletal structure.](https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId28-13.jpeg)\n\n**Figure 20.3.** The same structure can be represented three different ways: an expanded formula, a condensed formula, and a skeletal structure.\n\nFigure 20.3. The same structure can be represented three different ways: an expanded formula, a condensed formula, and a skeletal structure.\n\nDraw the skeletal structures for these two molecules: ![image](https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId30-9.jpeg)\n\n**Solution**\n\nEach carbon atom is converted into the end of a line or the place where lines intersect. All hydrogen atoms attached to the carbon atoms are left out of the structure (although we still need to recognize they are there):\n\n![image](https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId33-12.jpeg)\n\n**Check Your Learning**\n\nDraw the skeletal structures for these two molecules: ![image](https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId36-12.jpeg)\n\n**Solution**\n\n![image](https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId40-10.jpeg)\n\nIdentify the chemical formula of the molecule represented here:\n\n![image](https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId45-7.jpeg)\n\n**Solution**\n\nThere are eight places where lines intersect or end, meaning that there are eight carbon atoms in the molecule. Since we know that carbon atoms tend to make four bonds, each carbon atom will have the number of hydrogen atoms that are required for four bonds. This compound contains 16 hydrogen atoms for a molecular formula of C8H16.\n\nLocation of the hydrogen atoms:\n\n![image](https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId48-7.jpeg)\n\n**Check Your Learning**\n\nIdentify the chemical formula of the molecule represented here:\n\n![image](https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId51-10.jpeg)\n\n**Solution**\n\nC9H20\n\nAll alkanes are composed of carbon and hydrogen atoms, and have similar bonds, structures, and formulas; noncyclic alkanes all have a formula of CnH2n+2. The number of carbon atoms present in an alkane has no limit. Greater numbers of atoms in the molecules will lead to stronger intermolecular attractions (dispersion forces) and correspondingly different physical properties of the molecules. Properties such as melting point and boiling point ([Table 20.1](https://lmu.pressbooks.pub/generalchemistry3e/chapter/20-1_hydrocarbons#T20.1)) usually change smoothly and predictably as the number of carbon and hydrogen atoms in the molecules change.\n\nTable 20.1. Properties of Some Alkanes3\n\n| **Alkane** | **Molecular Formula** | **Melting Point (°C)** | **Boiling Point (°C)** | **Phase at STP[4](https://lmu.pressbooks.pub/generalchemistry3e/chapter/20-1_hydrocarbons#FN20.4)** | **Number of Structural Isomers** |\n| --- | --- | --- | --- | --- | --- |\n| methane | CH4 | –182.5 | –161.5 | gas | 1 |\n| ethane | C2H6 | –183.3 | –88.6 | gas | 1 |\n| propane | C3H8 | –187.7 | –42.1 | gas | 1 |\n| butane | C4H10 | –138.3 | –0.5 | gas | 2 |\n| pentane |"
+    },
+    {
+      "sourceId": "lib-wikipedia-polymer",
+      "file": "parsed/05-structure.md",
+      "anchor": "monomers-and-repeat-units",
+      "text": "### Monomers and repeat units\n<!-- anchor: monomers-and-repeat-units -->\n\nThe identity of the repeat units (monomer residues, also known as \"mers\") comprising a polymer is its first and most important attribute. Polymer nomenclature is generally based upon the type of monomer residues comprising the polymer. A polymer which contains only a single type of [repeat unit](./Repeat_unit \"Repeat unit\") is known as a **homopolymer**, while a polymer containing two or more types of repeat units is known as a **[copolymer](./Copolymer \"Copolymer\")**.[\\[22\\]](./Polymer#cite_note-22) A **terpolymer** is a copolymer which contains three types of repeat units.[\\[23\\]](./Polymer#cite_note-23)\n\n[Polystyrene](./Polystyrene \"Polystyrene\") is composed only of [styrene](./Styrene \"Styrene\")\\-based repeat units, and is classified as a homopolymer. [Polyethylene terephthalate](./Polyethylene_terephthalate \"Polyethylene terephthalate\"), even though produced from two different [monomers](./Monomer \"Monomer\") ([ethylene glycol](./Ethylene_glycol \"Ethylene glycol\") and [terephthalic acid](./Terephthalic_acid \"Terephthalic acid\")), is usually regarded as a homopolymer because only one type of repeat unit is formed. [Ethylene-vinyl acetate](./Ethylene-vinyl_acetate \"Ethylene-vinyl acetate\") contains more than one variety of repeat unit and is a copolymer. Some biological polymers are composed of a variety of different but structurally related monomer residues; for example, [polynucleotides](./Polynucleotide \"Polynucleotide\") such as DNA are composed of four types of [nucleotide](./Nucleotide \"Nucleotide\") subunits.\n\n| **Homopolymers and copolymers (examples)** |  |  |  |\n| --- | --- | --- | --- |\n| [![](//thumb.wikimedia.org/wikipedia/commons/thumb/a/a0/Polystyrene_skeletal.svg/120px-Polystyrene_skeletal.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail)](./File:Polystyrene_skeletal.svg) | [![](//thumb.wikimedia.org/wikipedia/commons/thumb/e/e1/Poly%28dimethylsiloxan%29.svg/120px-Poly%28dimethylsiloxan%29.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail)](./File:Poly\\(dimethylsiloxan\\).svg) | [![](//thumb.wikimedia.org/wikipedia/commons/thumb/c/cf/PET.svg/250px-PET.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail)](./File:PET.svg) | [![](//thumb.wikimedia.org/wikipedia/commons/thumb/f/f8/Styrol-Butadien-Kautschuk.svg/250px-Styrol-Butadien-Kautschuk.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail)](./File:Styrol-Butadien-Kautschuk.svg) |\n| Homopolymer [polystyrene](./Polystyrene \"Polystyrene\") | Homopolymer [polydimethylsiloxane](./Polydimethylsiloxane \"Polydimethylsiloxane\"), a [silicone](./Silicone \"Silicone\"). The main chain is formed of silicon and oxygen atoms. | The homopolymer [polyethylene terephthalate](./Polyethylene_terephthalate \"Polyethylene terephthalate\") has only one [repeat unit](./Repeat_unit \"Repeat unit\"). | Copolymer [styrene-butadiene rubber](./Styrene-butadiene_rubber \"Styrene-butadiene rubber\"): The repeat units based on [styrene](./Styrene \"Styrene\") and [1,3-butadiene](./1,3-Butadiene \"1,3-Butadiene\") form two repeating units, which can alternate in any order in the macromolecule, making the polymer thus a random copolymer. |\n\nA polymer containing ionizable subunits (e.g., pendant [carboxylic groups](./Carboxylic_acid \"Carboxylic acid\")) is known as a [polyelectrolyte](./Polyelectrolyte \"Polyelectrolyte\") or [ionomer](./Ionomer \"Ionomer\"), when the fraction of ionizable units is large or small respectively."
+    },
+    {
+      "sourceId": "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+      "file": "parsed.md",
+      "anchor": "check-your-learning-1",
+      "text": "#### Check Your Learning\n<!-- anchor: check-your-learning-1 -->\n\nIdentify the chemical formula of the molecule represented here:\n\nC9H20\n\nAll alkanes are composed of carbon and hydrogen atoms, and have similar bonds, structures, and formulas; noncyclic alkanes all have a formula of CnH2n+2. The number of carbon atoms present in an alkane has no limit. Greater numbers of atoms in the molecules will lead to stronger intermolecular attractions (dispersion forces) and correspondingly different physical properties of the molecules. Properties such as melting point and boiling point ([Table 21.1](https://openstax.org/books/chemistry-atoms-first/pages/21-1-hydrocarbons#fs-idp53743808)) usually change smoothly and predictably as the number of carbon and hydrogen atoms in the molecules change.\n\n| Properties of Some Alkanes[3](https://openstax.org/books/chemistry-atoms-first/pages/21-1-hydrocarbons#fs-idp41358128) |  |  |  |  |  |\n| --- | --- | --- | --- | --- | --- |\n| Alkane | Molecular Formula | Melting Point (°C) | Boiling Point (°C) | Phase at STP[4](https://openstax.org/books/chemistry-atoms-first/pages/21-1-hydrocarbons#fs-idp74205008) | Number of Structural Isomers |\n| methane | CH4 | –182.5 | –161.5 | gas | 1 |\n| ethane | C2H6 | –183.3 | –88.6 | gas | 1 |\n| propane | C3H8 | –187.7 | –42.1 | gas | 1 |\n| butane | C4H10 | –138.3 | –0.5 | gas | 2 |\n| pentane | C5H12 | –129.7 | 36.1 | liquid | 3 |\n| hexane | C6H14 | –95.3 | 68.7 | liquid | 5 |\n| heptane | C7H16 | –90.6 | 98.4 | liquid | 9 |\n| octane | C8H18 | –56.8 | 125.7 | liquid | 18 |\n| nonane | C9H20 | –53.6 | 150.8 | liquid | 35 |\n| decane | C10H22 | –29.7 | 174.0 | liquid | 75 |\n| tetradecane | C14H30 | 5.9 | 253.5 | solid | 1858 |\n| octadecane | C18H38 | 28.2 | 316.1 | solid | 60,523 |\n\nTable 21.1\n\nHydrocarbons with the same formula, including alkanes, can have different structures. For example, two alkanes have the formula C4H10: They are called *n*\\-butane and 2-methylpropane (or isobutane), and have the following Lewis structures:\n\nThe compounds *n*\\-butane and 2-methylpropane are structural isomers (the term constitutional isomers is also commonly used). Constitutional isomers have the same molecular formula but different spatial arrangements of the atoms in their molecules. The *n*\\-butane molecule contains an *unbranched chain*, meaning that no carbon atom is bonded to more than two other carbon atoms. We use the term *normal*, or the prefix *n*, to refer to a chain of carbon atoms without branching. The compound 2–methylpropane has a branched chain (the carbon atom in the center of the Lewis structure is bonded to three other carbon atoms)\n\nIdentifying isomers from Lewis structures is not as easy as it looks. Lewis structures that look different may actually represent the same isomers. For example, the three structures in [Figure 21.4](https://openstax.org/books/chemistry-atoms-first/pages/21-1-hydrocarbons#CNX_Chem_20_01_butane_img) all represent the same molecule, *n*\\-butane, and hence are not different isomers. They are identical because each contains an unbranched chain of four carbon atoms.\n\nFigure 21.4 These three representations of the structure of n-butane are not isomers because they all contain the same arrangement of atoms and bonds."
+    },
+    {
+      "sourceId": "lib-libretexts-1-5-development-of-chemical",
+      "file": "parsed.md",
+      "anchor": "molecular-shape",
+      "text": "## Molecular Shape\n\nA stick and wedge drawing of methane shows the tetrahedral angles...(The wedge is coming out of the paper and the dashed line is going behind the paper. The solid lines are in the plane of the paper.)\n\n![A Plane line mean the bond is in plane. There is a dashed wedge bond. There is filled in wedge bond. ](https://chem.libretexts.org/@api/deki/files/362123/molecular_shape_-_generic.svg?revision=1&size=bestfit&width=373&height=176)\n\nThe following examples make use of this notation, and also illustrate the importance of including non-bonding valence shell electron pairs when viewing such configurations.\n\nBonding configurations are readily predicted by valence-shell electron-pair repulsion theory, commonly referred to as **VSEPR** in most introductory chemistry texts. This simple model is based on the fact that electrons repel each other, and that it is reasonable to expect that the bonds and non-bonding valence electron pairs associated with a given atom will prefer to be as far apart as possible. The bonding configurations of carbon are easy to remember, since there are only three categories.\n\n| **Configuration** | **Bonding Partners** | **Bond Angles** | **Example** |\n| --- | --- | --- | --- |\n| Tetrahedral | 4 | 109.5º | ![McMurry1.4-5.png](https://chem.libretexts.org/@api/deki/files/80962/McMurry1.4-5.png?revision=1&size=bestfit&width=98&height=93) |\n| Trigonal Planar | 3 | 120º | ![McMurry1.4-6.png](https://chem.libretexts.org/@api/deki/files/80963/McMurry1.4-6.png?revision=1&size=bestfit&width=103&height=106) |\n| Linear | 2 | 180º | ![McMurry1.4-7.png](https://chem.libretexts.org/@api/deki/files/80964/McMurry1.4-7.png?revision=1&size=bestfit&width=145&height=21) |\n\n***Figure 1.4.3***\n\nIn the three examples shown above, the central atom (carbon) does not have any non-bonding valence electrons; consequently the configuration may be estimated from the number of bonding partners alone. However, for molecules of water and ammonia, the non-bonding electrons must be included in the calculation. In each case there are four regions of electron density associated with the valence shell so that a tetrahedral bond angle is expected. The measured bond angles of these compounds (H2O 104.5º & NH3 107.3º) show that they are closer to being tetrahedral than trigonal planar or linear. Of course, it is the configuration of atoms (not electrons) that defines the the shape of a molecule, and in this sense ammonia is said to be pyramidal (not tetrahedral). The compound boron trifluoride, BF3, does not have non-bonding valence electrons and the configuration of its atoms is trigonal. Nice treatments of VSEPR theory have been provided by Oxford and Purdue. The best way to study the three-dimensional shapes of molecules is by using molecular models. Many kinds of model kits are available to students and professional chemists."
+    },
+    {
+      "sourceId": "lib-wikipedia-polymer",
+      "file": "parsed/08-standardized-nomenclature.md",
+      "anchor": "standardized-nomenclature",
+      "text": "## Standardized nomenclature\n<!-- anchor: standardized-nomenclature -->\n\nThere are multiple conventions for naming polymer substances. Many commonly used polymers, such as those found in consumer products, are referred to by a common or trivial name. The trivial name is assigned based on historical precedent or popular usage rather than a standardized naming convention. Both the [American Chemical Society](./American_Chemical_Society \"American Chemical Society\") (ACS)[\\[58\\]](./Polymer#cite_note-58) and [IUPAC](./IUPAC \"IUPAC\")[\\[59\\]](./Polymer#cite_note-59) have proposed standardized naming conventions; the ACS and IUPAC conventions are similar but not identical.[\\[60\\]](./Polymer#cite_note-60) Examples of the differences between the various naming conventions are given in the table below:\n\n| Common name | ACS name | IUPAC name |\n| --- | --- | --- |\n| [Poly(ethylene oxide)](./Poly\\(ethylene_oxide\\) \"Poly(ethylene oxide)\") or PEO | Poly(oxyethylene) | Poly(oxyethylene) |\n| [Poly(ethylene terephthalate)](./Poly\\(ethylene_terephthalate\\) \"Poly(ethylene terephthalate)\") or PET | Poly(oxy-1,2-ethanediyloxycarbonyl-1,4-phenylenecarbonyl) | Poly(oxyethyleneoxyterephthaloyl) |\n| [Nylon 6](./Nylon_6 \"Nylon 6\") or Polyamide 6 | Poly\\[imino(1-oxo-1,6-hexanediyl)\\] | Poly\\[azanediyl(1-oxohexane-1,6-diyl)\\] |\n\nIn both standardized conventions, the polymers' names are intended to reflect the monomer(s) from which they are synthesized (source based nomenclature) rather than the precise nature of the repeating subunit. For example, the polymer synthesized from the simple alkene [ethene](./Ethene \"Ethene\") is called polyethene, retaining the *\\-ene* suffix even though the double bond is removed during the polymerization process:\n\n[![](//upload.wikimedia.org/wikipedia/commons/2/27/Ethene_polymerization.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail_unscaled)](./File:Ethene_polymerization.png)→[![](//thumb.wikimedia.org/wikipedia/commons/thumb/4/45/Polyethylene_repeat_unit.svg/120px-Polyethylene_repeat_unit.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail)](./File:Polyethylene_repeat_unit.svg)\n\nHowever, IUPAC structure based nomenclature is based on naming of the preferred [constitutional repeating unit](./Repeat_unit \"Repeat unit\").[\\[61\\]](./Polymer#cite_note-61)\n\nIUPAC has also issued guidelines for abbreviating new polymer names.[\\[62\\]](./Polymer#cite_note-62) 138 common polymer abbreviations are also standardized in the standard [ISO](./ISO \"ISO\") 1043–1.[\\[63\\]](./Polymer#cite_note-63)"
+    },
+    {
+      "sourceId": "lib-wikipedia-polymer",
+      "file": "parsed/05-structure.md",
+      "anchor": "morphology",
+      "text": "### Morphology\n<!-- anchor: morphology -->\n\nPolymer morphology generally describes the arrangement and microscale ordering of polymer chains in space. The macroscopic physical properties of a polymer are related to the interactions between the polymer chains.\n\n-   **Disordered polymers:** In the solid state, atactic polymers, polymers with a high degree of [branching](./Branching_\\(polymer_chemistry\\) \"Branching (polymer chemistry)\") and random copolymers form [amorphous](./Amorphous_solid \"Amorphous solid\") (i.e. glassy structures).[\\[45\\]](./Polymer#cite_note-MakroChem-45) In melt and solution, polymers tend to form a constantly changing \"statistical cluster\", see [freely-jointed-chain model](./Freely_Jointed_Chain \"Freely Jointed Chain\"). In the [solid state](./Solid \"Solid\"), the respective [conformations](./Protein_conformation \"Protein conformation\") of the molecules are frozen. Hooking and entanglement of chain molecules lead to a \"mechanical bond\" between the chains. [Intermolecular](./Intermolecular_force \"Intermolecular force\") and intramolecular attractive forces only occur at sites where molecule segments are close enough to each other. The irregular structures of the molecules prevent a narrower arrangement.\n\n-   **Linear polymers** with periodic structure, low branching and stereoregularity (e. g. not atactic) have a [semi-crystalline](./Semi-crystalline \"Semi-crystalline\") structure in the solid state.[\\[45\\]](./Polymer#cite_note-MakroChem-45) In simple polymers (such as polyethylene), the chains are present in the crystal in zigzag conformation. Several zigzag conformations form dense chain packs, called crystallites or lamellae. The lamellae are much thinner than the polymers are long (often about 10 nm).[\\[46\\]](./Polymer#cite_note-KunstChemIng-46) They are formed by more or less regular folding of one or more molecular chains. Amorphous structures exist between the lamellae. Individual molecules can lead to entanglements between the lamellae and can also be involved in the formation of two (or more) lamellae (chains than called tie molecules). Several lamellae form a superstructure, a [spherulite](./Spherulite_\\(polymer_physics\\) \"Spherulite (polymer physics)\"), often with a diameter in the range of 0.05 to 1 mm.[\\[46\\]](./Polymer#cite_note-KunstChemIng-46)\n\nThe type and arrangement of (functional) residues of the repeat units effects or determines the crystallinity and strength of the secondary valence bonds. In isotactic polypropylene, the molecules form a helix. Like the zigzag conformation, such helices allow a dense chain packing. Particularly strong intermolecular interactions occur when the residues of the repeating units allow the formation of [hydrogen bonds](./Hydrogen_bond \"Hydrogen bond\"), as in the case of [*p*\\-aramid](./Aramid \"Aramid\"). The formation of strong intramolecular associations may produce diverse folded states of single linear chains with distinct [circuit topology](./Circuit_topology \"Circuit topology\"). Crystallinity and superstructure are always dependent on the conditions of their formation, see also: [crystallization of polymers](./Crystallization_of_polymers \"Crystallization of polymers\"). Compared to amorphous structures, semi-crystalline structures lead to a higher stiffness, density, melting temperature and higher resistance of a polymer.\n\n-   **Cross-linked polymers:** Wide-meshed cross-linked polymers are [elastomers](./Elastomer \"Elastomer\") and cannot be molten (unlike [thermoplastics](./Thermoplastic \"Thermoplastic\")); heating cross-linked polymers only leads to [decomposition](./Thermal_decomposition \"Thermal decomposition\"). [Thermoplastic elastomers](./Thermoplastic_elastomer \"Thermoplastic elastomer\"), on the other hand, are reversibly \"physically crosslinked\" and can be molten. Block copolymers in which a hard segment of the polymer has a tendency to crystallize and a soft segment has an amorphous structure are one type of thermoplastic elastomers: the hard segments ensure wide-meshed, physical crosslinking.\n\n| [![](//thumb.wikimedia.org/wikipedia/commons/thumb/b/b7/Polymerstruktur-weitmaschig_vernetzt.svg/250px-Polymerstruktur-weitmaschig_vernetzt.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail)](./File:Polymerstruktur-weitmaschig_vernetzt.svg)  <br>Wide-meshed cross-linked polymer (elastomer) | [![](//thumb.wikimedia.org/wikipedia/commons/thumb/6/62/Polymerstruktur-weitmaschig_vernetzt-gestreckt.svg/330px-Polymerstruktur-weitmaschig_vernetzt-gestreckt.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail)](./File:Polymerstruktur-weitmaschig_vernetzt-gestreckt.svg)<br>Wide-meshed cross-linked polymer (elastomer) under [tensile stress](./Tensile_stress \"Tensile stress\") | [![](//thumb.wikimedia.org/wikipedia/commons/thumb/e/eb/Polymerstruktur-TPE-teilkristallin.svg/250px-Polymerstruktur-TPE-teilkristallin.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail)](./File:Polymerstruktur-TPE-teilkristallin.svg)  <br>[Crystallites](./Crystallite \"Crystallite\") as \"crosslinking sites\": one type of [thermoplastic elastomer](./Thermoplastic_elastomer \"Thermoplastic elastomer\") | [![](//thumb.wikimedia.org/wikipedia/commons/thumb/9/98/Polymerstruktur-TPE-teilkristallin_gestreckt.svg/250px-Polymerstruktur-TPE-teilkristallin_gestreckt.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail)](./File:Polymerstruktur-TPE-teilkristallin_gestreckt.svg)<br>Semi-crystalline thermoplastic elastomer under tensile stress |\n| --- | --- | --- | --- |"
+    }
+  ],
+  "video": {
+    "intent": "No suitable video verified: functional-group leads lacked confirmed educator and readable metadata; need a short recognition walkthrough",
+    "status": "chosen",
+    "reason": "Highest-ranked recognition walkthrough from an established educational institution. English discovery passages work through alkene and alcohol identification, then aspirin's carboxylic acid and ester, explicitly addressing common confusions. Fits beginner worked-example preference after molecular-dr",
+    "sourceId": "lib-chemistry-identifying-functional-groups",
+    "title": "Identifying functional groups | Organic chemistry | Khan Academy",
+    "channel": "Khan Academy Organic Chemistry",
+    "url": "https://www.youtube.com/watch?v=esJ5MbAHswc",
+    "moment": "0s",
+    "anchor": "t0",
+    "watchOnly": false
+  },
+  "candidates": {
+    "figures": [
+      {
+        "path": "library/lib-openstax-21-1-hydrocarbons-chemistry-atoms/figures/c11b01e86aacf45f0e73916d.webp",
+        "url": "https://openstax.org/apps/image-cdn/v1/f=webp/apps/archive/20260604.144757/resources/f9d310a73fdcdef30851de14b05a4d2d799bb961",
+        "alt": "In this figure, a hydrocarbon molecule is shown in three ways. First, an expanded formula shows all individual carbon atoms, hydrogen atoms, and bonds in a branched hydrocarbon molecule. An initial C atom is bonded to three H atoms. The C atom is bonded to another C atom in the chain. This second C atom is bonded to one H atom and another C atom above the chain. The C atom bonded above the second C atom in the chain is bonded to three H atoms. The second C atom in the chain is bonded to a third C atom in the chain. This third C atom is bonded to on H atom and another C atom below the chain. This C atom is bonded to two H atoms and another C atom below the chain. This second C atom below the chain is bonded to three H atoms. The third C atom in the chain is bonded to a fourth C atom in the chain. The fourth C atom is bonded to two H atoms and a fifth C atom. The fifth C atom is bonded to two H atoms and a sixth C atom. The sixth C atom is bonded to three H atoms. Second, a condensed formula shows each carbon atom of the molecule in clusters with the hydrogen atoms bonded to it, leaving C H, C H subscript 2, and C H subscript 3 groups with bonds between them. The structure shows a C H subscript 3 group bonded to a C H group. The C H group is bonded above to a C H subscript 3 group. The C H group is also bonded to another C H group. This C H group is bonded to a C H subscript 2 group below and a C H subscript 3 group below that. This C H group is also bonded to a C H subscript 2 group which is bonded to another C H subscript 2 group. This C H subscript 2 group is bonded to a final C H subscript 2 group. The final structure in the figure is a skeletal structure which includes only line segments arranged to indicate the structure of the molecule.",
+        "caption": "Figure \n21.3\n\n\n\n   \n  The same structure can be represented three different ways: an expanded formula, a condensed formula, and a skeletal structure.",
+        "section": "Alkanes",
+        "license": "CC BY 4.0",
+        "credit": "21.1 Hydrocarbons - Chemistry: Atoms First | OpenStax, https://openstax.org/books/chemistry-atoms-first/pages/21-1-hydrocarbons (CC BY 4.0)",
+        "sourceId": "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+        "score": 11
+      },
+      {
+        "path": "library/lib-openstax-21-1-hydrocarbons-chemistry-atoms/figures/fe0ab2c3288166b69938b652.webp",
+        "url": "https://openstax.org/apps/image-cdn/v1/f=webp/apps/archive/20260604.144757/resources/48b4022f814e6cfe55b49fb2a32e14e77c095a88",
+        "alt": "The figure illustrates three ways to represent isomers of butene. In the first row of the figure, Lewis structural formulas show carbon and hydrogen element symbols and bonds between the atoms. The first structure in this row shows a C atom with a double bond to another C atom which is bonded down and to the right to C H subscript 2 which, in turn, is bonded to C H subscript 3. The first C atom, moving from left to right, has two H atoms bonded to it and the second C atom has one H atom bonded to it. The second structure in the row shows a C atom with a double bond to another C atom. The first C atom is bonded to an H atom up and to the left and C H subscript 3 down and to the left. The second C atom is bonded to an H atom up and to the right and C H subscript 3 down and to the right. Both C H subscript 3 structures appear in red. The third structure shows a C atom with a double bond to another C atom. The first C atom from the left is bonded up to a the left to C H subscript 3 which appears and red. It is also bonded down and to the left to an H atom. The second C atom is bonded up and to the right to an H atom and down and to the left to C H subscript 3 which appears in red. In the second row, ball-and-stick models for the structures are shown. In these representations, single bonds are represented with sticks, double bonds are represented with two parallel sticks, and elements are represented with balls. C atoms are black and H atoms are white in this image. In the third row, space-filling models are shown. In these models, atoms are enlarged and pushed together, without sticks to represent bonds. In the final row, names are provided. The molecule with the double bond between the first and second carbons is named 1 dash butene. The two molecules with the double bond between the second and third carbon atoms is called 2 dash butene. The first model, which has both C H subscript 3 groups beneath the double bond is called the cis isomer. The second which has the C H subscript 3 groups on opposite sides of the double bond is named the trans isomer.",
+        "caption": "Figure \n21.10\n\n\n\n   \n  These molecular models show the structural and geometric isomers of butene.",
+        "section": "Isomers of Alkenes",
+        "license": "CC BY 4.0",
+        "credit": "21.1 Hydrocarbons - Chemistry: Atoms First | OpenStax, https://openstax.org/books/chemistry-atoms-first/pages/21-1-hydrocarbons (CC BY 4.0)",
+        "sourceId": "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+        "score": 9
+      },
+      {
+        "path": "library/lib-openstax-21-1-hydrocarbons-chemistry-atoms/figures/1f92aea3c043a9fac515d1d0.webp",
+        "url": "https://openstax.org/apps/image-cdn/v1/f=webp/apps/archive/20260604.144757/resources/9e9ef1f610956d75a7f63b96d960dacbad072032",
+        "alt": "This diagram has three rows, showing ethylene reacting to form polyethylene. In the first row, Lewis structural formulas show three molecules of ethylene being added together, which are each composed of two doubly bonded C atoms, each with two bonded H atoms. Ellipses, or three dots, are present before and after the molecule structures, which in turn are followed by an arrow pointing right. On the right side of the arrow, the ellipses or dots again appear to the left of a dash that connects to a chain of 7 C atoms, each with H atoms connected above and below. A dash appears at the end of the chain, which in turn is followed by ellipses or dots. The reaction diagram is repeated in the second row using ball-and-stick models for the structures. In these representations, single bonds are represented with sticks, double bonds are represented with two parallel sticks, and elements are represented with balls. Carbon atoms are black and hydrogen atoms are white in this image. In the third row, space-filling models are shown. In these models, atoms are enlarged spheres which are pushed together, without sticks to represent bonds.",
+        "caption": "Figure \n21.8\n\n\n\n   \n  The reaction for the polymerization of ethylene to polyethylene is shown.",
+        "section": "Recycling Plastics",
+        "license": "CC BY 4.0",
+        "credit": "21.1 Hydrocarbons - Chemistry: Atoms First | OpenStax, https://openstax.org/books/chemistry-atoms-first/pages/21-1-hydrocarbons (CC BY 4.0)",
+        "sourceId": "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+        "score": 9
+      },
+      {
+        "path": "library/lib-openstax-21-1-hydrocarbons-chemistry-atoms/figures/c0871d9888b4ac13474e99cc.webp",
+        "url": "https://openstax.org/apps/image-cdn/v1/f=webp/apps/archive/20260604.144757/resources/1ea01ba5dce1f40a84f16b08ff94cf1fd543b538",
+        "alt": "The figure illustrates three ways to represent molecules of n dash butane. In the first row of the figure, Lewis structural formulas show carbon and hydrogen element symbols and bonds between the atoms. The first structure in this row shows three of the linked C atoms in a horizontal row with a single C atom bonded above the left-most carbon. The left-most C atom has two H atoms bonded to it. The C atom bonded above the left-most C atom has three H atoms bonded to it. The C atom bonded to the right of the left-most C atom has two H atoms bonded to it. The right-most C atom has three H atoms bonded to it. The C atoms and the bonds connecting all the C atoms are red. The second structure in the row similarly shows the row of three linked C atoms with a single C atom bonded below the C atom to the left. The left-most C atom has two H atoms bonded to it. The C atom bonded below the left-most C atom has three H atoms bonded to it. The C atom bonded to the right of the left-most C atom has two H atoms bonded to it. The right-most atom has three H atoms bonded to it. All the C atoms and the bonds between them are red. The third structure has two C atoms bonded in a row with a third C atom bonded above the left C atom and the fourth C atom bonded below the right C atom. The C atom bonded above the left C atom has three H atoms bonded to it. The left C atom has two H atoms bonded to it. The right C atom has two H atoms bonded to it. The C atom bonded below the right C atom has three H atoms bonded to it. All the C atoms and the bonds between them are red. In the second row, ball-and-stick models for the structures are shown. In these representations, bonds are represented with sticks, and elements are represented with balls. Carbon atoms are black and hydrogen atoms are white in this image. In the third row, space-filling models are shown. In these models, atoms are enlarged and pushed together, without sticks to represent bonds.",
+        "caption": "Figure \n21.4\n\n\n\n   \n  These three representations of the structure of n-butane are not isomers because they all contain the same arrangement of atoms and bonds.",
+        "section": "Check Your Learning",
+        "license": "CC BY 4.0",
+        "credit": "21.1 Hydrocarbons - Chemistry: Atoms First | OpenStax, https://openstax.org/books/chemistry-atoms-first/pages/21-1-hydrocarbons (CC BY 4.0)",
+        "sourceId": "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+        "score": 8
+      },
+      {
+        "path": "library/lib-openstax-21-1-hydrocarbons-chemistry-atoms/figures/4c9b7dd9f2e3680103a77d98.webp",
+        "url": "https://openstax.org/apps/image-cdn/v1/f=webp/apps/archive/20260604.144757/resources/146c3719dc4d813c27347762563e591bbe56db5b",
+        "alt": "Lewis structural formulas show carbon and hydrogen element symbols and bonds between the atoms. The first structure in this row shows two bonded C atoms with a double bond between them. Each C atom has two H atoms bonded to it as well. The second structure in the row shows three bonded C atoms with a double bond up and to the right between the first and second C atoms moving left to right across the chain, and a single bond down and to the right between the second and third C atom. The first C atom has two H atoms bonded to it, the second C atom has one H atom bonded to it, and the third C atom has three H atoms bonded to it. The third structure shows four bonded C atoms with one bonded up and to the right to a C atom, down and to the right to a C atom, and double bonded up and to the right to a C atom. The first C atom, moving from left to right, has three H atoms bonded to it. The second C atom has two H atoms bonded to it. The third C atom has one H atom bonded to it, and the fourth C atom has two H atoms bonded to it. In the second row, ball-and-stick models for the structures are shown. In these representations, single bonds are represented with sticks, double bonds are represented with two parallel sticks, and elements are represented with balls. Carbon atoms are black and hydrogen atoms are white in this image. In the third row, space-filling models are shown. In these models, atoms are enlarged and pushed together, without sticks to represent bonds. In the final row, names are provided. The molecule with the double bond between two C atoms is named ethene. The molecule with the double bond between the first and second C atoms in the chain of three is named propene. The molecule with the double bond between the carbon atoms in the chain of four is named 1 dash butene.",
+        "caption": "Figure \n21.7\n\n\n\n   \n  Expanded structures, ball-and-stick structures, and space-filling models for the alkenes ethene, propene, and 1-butene are shown.",
+        "section": "Alkenes",
+        "license": "CC BY 4.0",
+        "credit": "21.1 Hydrocarbons - Chemistry: Atoms First | OpenStax, https://openstax.org/books/chemistry-atoms-first/pages/21-1-hydrocarbons (CC BY 4.0)",
+        "sourceId": "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+        "score": 8
+      },
+      {
+        "path": "library/lib-openstax-21-1-hydrocarbons-chemistry-atoms/figures/495db39f6a15daccf69d5fdd.webp",
+        "url": "https://openstax.org/apps/image-cdn/v1/f=webp/apps/archive/20260604.144757/resources/a75f99f6a3472d708a31e32853ca94689a36fd38",
+        "alt": "The figure illustrates four ways to represent molecules for molecules of methane, ethane, and pentane. In the first row of the figure, Lewis structural formulas show element symbols and bonds between atoms. Methane has a central C atom with four H atoms bonded to it. Ethane has a C atom with three H atoms bonded to it. The C atom is also bonded to another C atom with three H atoms bonded to it. Pentane has a C atom with three H atoms bonded to it. The C atom is bonded to another C atom with two H atoms bonded to it. The C atom is bonded to another C atom with two H atoms bonded to it. The C atom is bonded to another C atom with two H atoms bonded to it. The C atom is bonded to another C atom with three H atoms bonded to it. In the second row, ball-and-stick models are shown. In these representations, bonds are represented with sticks, and elements are represented with balls. Carbon atoms are black and hydrogen atoms are white in this image. In the third row, space-filling models are shown. In these models, atoms are enlarged and pushed together, without sticks to represent bonds. The molecule names and structural formulas are provided in the fourth row. Methane is named and represented with a condensed structural formula as C H subscript 4. Ethane is named and represented with two structural formulas C H subscript 3 C H subscript 3 and C subscript 2 H subscript 6. Pentane is named and represented as both C H subscript 3 C H subscript 2 C H subscript 2 C H subscript 2 C H subscript 3 and C subscript 5 H subscript 12.",
+        "caption": "Figure \n21.2\n\n\n\n   \n  Pictured are the Lewis structures, ball-and-stick models, and space-filling models for molecules of methane, ethane, and pentane.",
+        "section": "Alkanes",
+        "license": "CC BY 4.0",
+        "credit": "21.1 Hydrocarbons - Chemistry: Atoms First | OpenStax, https://openstax.org/books/chemistry-atoms-first/pages/21-1-hydrocarbons (CC BY 4.0)",
+        "sourceId": "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+        "score": 8
+      },
+      {
+        "path": "library/lib-openstax-21-1-hydrocarbons-chemistry-atoms/figures/ad2cd59140a9f7001e539ce9.webp",
+        "url": "https://openstax.org/apps/image-cdn/v1/f=webp/apps/archive/20260604.144757/resources/8af994ff3cf451b55c049363a8b610b48cf15c69",
+        "alt": "Four structural formulas and names are shown. The first shows two red C atoms connected by a red double bond illustrated with two parallel line segments. H atoms are bonded above and below to the left of the left-most C atom. Two more H atoms are similarly bonded to the right of the C atom on the right. Beneath this structure the name ethene and alternate name ethylene are shown. The second shows three C atoms bonded together with a red double bond between the red first and second C atoms moving left to right across the three-carbon chain. H atoms are bonded above and below to the left of the C atom to the left. A single H is bonded above the middle C atom. Three more H atoms are bonded above, below, and to the right of the third C atom. Beneath this structure the name propene and alternate name propylene is shown. The third shows four C atoms bonded together, numbered one through four moving left to right with a red double bond between the red first and second carbon in the chain. H atoms are bonded above and below to the left of the C atom to the left. A single H is bonded above the second C atom. H atoms are bonded above and below the third C atom. Three more H atoms are bonded above, below, and to the right of the fourth C atom. Beneath this structure the name 1 dash butene is shown. The fourth shows four C atoms bonded together, numbered one through four moving left to right with a red double bond between the red second and third C atoms in the chain. H atoms are bonded above, below, and to the left of the left-most C atom. A single H atom is bonded above the second C atom. A single H atom is bonded above the third C atom. Three more H atoms are bonded above, below, and to the right of the fourth C atom. Beneath this structure the name 2 dash butene is shown.",
+        "caption": "Four structural formulas and names are shown. The first shows two red C atoms connected by a red double bond illustrated with two parallel line segments. H atoms are bonded above and below to the left of the left-most C atom. Two more H atoms are similarly bonded to the right of the C atom on the right. Beneath this structure the name ethene and alternate name ethylene are shown. The second shows three C atoms bonded together with a red double bond between the red first and second C atoms moving left to right across the three-carbon chain. H atoms are bonded above and below to the left of the C atom to the left. A single H is bonded above the middle C atom. Three more H atoms are bonded above, below, and to the right of the third C atom. Beneath this structure the name propene and alternate name propylene is shown. The third shows four C atoms bonded together, numbered one through four moving left to right with a red double bond between the red first and second carbon in the chain. H atoms are bonded above and below to the left of the C atom to the left. A single H is bonded above the second C atom. H atoms are bonded above and below the third C atom. Three more H atoms are bonded above, below, and to the right of the fourth C atom. Beneath this structure the name 1 dash butene is shown. The fourth shows four C atoms bonded together, numbered one through four moving left to right with a red double bond between the red second and third C atoms in the chain. H atoms are bonded above, below, and to the left of the left-most C atom. A single H atom is bonded above the second C atom. A single H atom is bonded above the third C atom. Three more H atoms are bonded above, below, and to the right of the fourth C atom. Beneath this structure the name 2 dash butene is shown.",
+        "section": "Recycling Plastics",
+        "license": "CC BY 4.0",
+        "credit": "21.1 Hydrocarbons - Chemistry: Atoms First | OpenStax, https://openstax.org/books/chemistry-atoms-first/pages/21-1-hydrocarbons (CC BY 4.0)",
+        "sourceId": "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+        "score": 6
+      },
+      {
+        "path": "library/lib-openstax-21-1-hydrocarbons-chemistry-atoms/figures/42dbffe817c12035264c00a4.webp",
+        "url": "https://openstax.org/apps/image-cdn/v1/f=webp/apps/archive/20260604.144757/resources/db7df42dae7c4e22a2f61b2c8df57e468434268a",
+        "alt": "This figure contains a photo of a refinery, showing large columnar structures. A diagram of a fractional distillation column is also shown. Near the bottom of the column, an arrow pointing into the column from the left shows a point of entry for heated crude oil. The column contains several layers at which different components are removed. At the very bottom, residue materials are removed through a pipe as indicated by an arrow out of the column. At each successive level, different materials are removed through pipes proceeding from the bottom to the top of the column. In order from bottom to top, these materials are fuel oil, followed by diesel oil, kerosene, naptha, gasoline, and refinery gas at the very top. To the right of the column diagram, a double sided arrow is shown that is blue at the top and gradually changes color to red moving downward. The blue top of the arrow is labeled, “Small molecules: low boiling point, very volatile, flows easily, ignites easily.” The red bottom of the arrow is labeled, “Large molecules: high boiling point, not very volatile, does not flow easily, does not ignite easily.”",
+        "caption": "Figure \n21.6\n\n\n\n   \n  In a column for the fractional distillation of crude oil, oil heated to about 425 °C in the furnace vaporizes when it enters the base of the tower. The vapors rise through bubble caps in a series of trays in the tower. As the vapors gradually cool, fractions of higher, then of lower, boiling points condense to liquids and are drawn off. (credit left: modification of work by Luigi Chiesa)",
+        "section": "Check Your Learning",
+        "license": "CC BY 4.0",
+        "credit": "21.1 Hydrocarbons - Chemistry: Atoms First | OpenStax, https://openstax.org/books/chemistry-atoms-first/pages/21-1-hydrocarbons (CC BY 4.0)",
+        "sourceId": "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+        "score": 6
+      },
+      {
+        "path": "library/lib-chemguide-how-to-draw-organic-molecules/figures/922547938694116e6f41bacb.gif",
+        "url": "https://chemguide.co.uk/basicorg/conventions/methylbutane.GIF",
+        "alt": "",
+        "caption": "This is even more important when you start to have branched chains of carbon atoms. The following structures again all represent the same molecule - 2-methylbutane.",
+        "section": "The commonest way to draw structural formulae",
+        "credit": "How to draw organic molecules, https://chemguide.co.uk/basicorg/conventions/draw.html (reuse license unknown; redraw)",
+        "sourceId": "lib-chemguide-how-to-draw-organic-molecules",
+        "score": 6
+      },
+      {
+        "path": "library/lib-openstax-21-1-hydrocarbons-chemistry-atoms/figures/62dcb8d661f2bc2fb576f1b4.webp",
+        "url": "https://openstax.org/apps/image-cdn/v1/f=webp/apps/archive/20260604.144757/resources/7cacda1417f21da64927bc22862ca385f9d6b349",
+        "alt": "This table shows recycling symbols, names, and uses of various types of plastics. Symbols are shown with three arrows in a triangular shape surrounding a number. Number 1 is labeled P E T E. The related plastic, polyethylene terephthalate (P E T E), is used in soda bottles and oven-ready food trays. Number 2 is labeled H D P E. The related plastic is high-density polyethylene (H D P E), which is used in bottles for milk and dishwashing liquids. Number 3 is labeled V. The related plastic is polyvinyl chloride or (P V C). This plastic is used in food trays, plastic wrap, and bottles for mineral water and shampoo. Number 4 is labeled L D P E. This plastic is low density polyethylene (L D P E). It is used in shopping bags and garbage bags. Number 5 is labeled P P. The related plastic is polypropylene (P P). It is used in margarine tubs and microwaveable food trays. Number 6 is labeled P S. The related plastic is polystyrene (P S). It is used in yogurt tubs, foam meat trays, egg cartons, vending cups, plastic cutlery, and packaging for electronics and toys. Number 7 is labeled other for any other plastics. Items in this category include those plastic materials that do not fit any other category. Melamine used in plastic plates and cups is an example.",
+        "caption": "Figure \n21.9\n\n\n\n   \n  Each type of recyclable plastic is imprinted with a code for easy identification.",
+        "section": "Recycling Plastics",
+        "license": "CC BY 4.0",
+        "credit": "21.1 Hydrocarbons - Chemistry: Atoms First | OpenStax, https://openstax.org/books/chemistry-atoms-first/pages/21-1-hydrocarbons (CC BY 4.0)",
+        "sourceId": "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+        "score": 5
+      },
+      {
+        "path": "library/lib-openstax-21-1-hydrocarbons-chemistry-atoms/figures/9d0cba0181c288c6bf8d13e5.webp",
+        "url": "https://openstax.org/apps/image-cdn/v1/f=webp/apps/archive/20260604.144757/resources/7c970176223da70b99898ac2d7d762e7645b1581",
+        "alt": "Three structural formulas are shown. The first is labeled toluene. This molecule has a six carbon hydrocarbon ring in which five of the C atoms are each bonded to only one H atom. At the upper right of the ring, the C atom that does not have a bonded H atom has a red C H subscript 3 group attached. A circle is at the center of the ring. The second is labeled xylene. This molecule has a six carbon hydrocarbon ring in which four of the C atoms are each bonded to only one H atom. At the upper right and right of the ring, the two C atoms that do not have bonded H atoms have C H subscript 3 groups attached. These C H subscript 3 groups appear in red. A circle is at the center of the ring. The third is labeled styrene. This molecule has a six carbon hydrocarbon ring in which five of the carbon atoms are each bonded to only one H atom. At the upper right of the ring, the carbon that does not have a bonded H atom has a red C H double bond C H subscript 2 group attached. A circle is at the center of the ring.",
+        "caption": "Three structural formulas are shown. The first is labeled toluene. This molecule has a six carbon hydrocarbon ring in which five of the C atoms are each bonded to only one H atom. At the upper right of the ring, the C atom that does not have a bonded H atom has a red C H subscript 3 group attached. A circle is at the center of the ring. The second is labeled xylene. This molecule has a six carbon hydrocarbon ring in which four of the C atoms are each bonded to only one H atom. At the upper right and right of the ring, the two C atoms that do not have bonded H atoms have C H subscript 3 groups attached. These C H subscript 3 groups appear in red. A circle is at the center of the ring. The third is labeled styrene. This molecule has a six carbon hydrocarbon ring in which five of the carbon atoms are each bonded to only one H atom. At the upper right of the ring, the carbon that does not have a bonded H atom has a red C H double bond C H subscript 2 group attached. A circle is at the center of the ring.",
+        "section": "Aromatic Hydrocarbons",
+        "license": "CC BY 4.0",
+        "credit": "21.1 Hydrocarbons - Chemistry: Atoms First | OpenStax, https://openstax.org/books/chemistry-atoms-first/pages/21-1-hydrocarbons (CC BY 4.0)",
+        "sourceId": "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+        "score": 5
+      },
+      {
+        "path": "library/lib-libretexts-3-5-carbohydrates-biology/figures/9c8e882962ca43613eae81cc.png",
+        "url": "https://bio.libretexts.org/@api/deki/files/17426/Screen_Shot_2019-04-27_at_11.11.44_PM.png?revision=1&size=bestfit&width=367&height=360",
+        "alt": "Monosaccharides forming disaccharides with dehydration reaction",
+        "caption": "Figure 3.5.3: Glucose and fructose combine to produce the disaccharide sucrose in a condensation reaction. The diagram shows how water is produced when the reaction occurs. This is because the oxygen in glucose binds to the carbon in fructose. That removes an oxygen and two hydrogens from the new molecule.",
+        "section": "Complex Carbohydrates",
+        "license": "CC BY 2.0",
+        "credit": "3.5: Carbohydrates - Biology LibreTexts, https://bio.libretexts.org/Bookshelves/Human_Biology/Human_Biology_(Wakim_and_Grewal)/03%3A_Chemistry_of_Life/3.05%3A_Carbohydrates (CC BY 2.0)",
+        "sourceId": "lib-libretexts-3-5-carbohydrates-biology",
+        "score": 4
+      },
+      {
+        "path": "library/lib-libretexts-3-5-carbohydrates-biology/figures/5347a00ff9972ee0535810f0.png",
+        "url": "https://bio.libretexts.org/@api/deki/files/17425/Screen_Shot_2019-04-27_at_11.10.29_PM.png?revision=1&size=bestfit&width=396&height=219",
+        "alt": "D glucose chain 3D balls",
+        "caption": "Figure 3.5.2: The six black balls in this model of the monosaccharide glucose represent carbon atoms. These six carbons make up the backbone in the center of glucose. The red balls are oxygen, and the white ones are hydrogen.",
+        "section": "What Are Carbohydrates?",
+        "license": "CC BY 2.0",
+        "credit": "3.5: Carbohydrates - Biology LibreTexts, https://bio.libretexts.org/Bookshelves/Human_Biology/Human_Biology_(Wakim_and_Grewal)/03%3A_Chemistry_of_Life/3.05%3A_Carbohydrates (CC BY 2.0)",
+        "sourceId": "lib-libretexts-3-5-carbohydrates-biology",
+        "score": 4
+      },
+      {
+        "path": "library/lib-openstax-21-1-hydrocarbons-chemistry-atoms/figures/7809019d4d1665d369770c53.webp",
+        "url": "https://openstax.org/apps/image-cdn/v1/f=webp/apps/archive/20260604.144757/resources/26475325b97d6572f2a1758d87ac0826ae3c2f5b",
+        "alt": "This figure shows structural formulas for propane, 2 dash chloropropane, 2 dash methylpropane, 2 comma 4 dash difluorohexane, and 1 dash bromo dash 3 dash chlorohexane. In each of the structures, the carbon atoms are in a row with bonded halogen atoms and a methyl group bonded below the figures. Propane is listed as simply C H subscript 3 C H subscript 2 C H subscript 3, with the numbers 1, 2, and 3 appearing above the carbon atoms from left to right. 2 dash chloropropane similarly shows C H subscript 3 C H C H subscript 3, with the numbers 1, 2, and 3 appearing above the carbon atoms from left to right. A C l atom is bonded below carbon 2. The C l atom is red. 2 dash methylpropane similarly shows C H subscript 3 C H C H subscript 3, with the numbers 3, 2, and 1 appearing above the carbon atoms from left to right. A C H subscript 3 group is bonded beneath carbon 2 and is red. 2 comma 4 dash difluorohexane similarly shows C H subscript 3 C H subscript 2 C H C H subscript 2 C H C H subscript 3, with the numbers 6, 5, 4, 3, 2, and 1 appearing above the carbon atoms from left to right. F atoms are bonded to carbons 4 and 2 at the bottom of the structure and are red. 1 dash bromo dash 3 dash chlorohexane similarly shows C H subscript 2 C H subscript 2 C H C H subscript 2 C H subscript 2 C H subscript 3, with numbers 1, 2, 3, 4, 5, and 6 appearing above the carbon atoms from left to right. B r is bonded below carbon 1 and C l is bonded below carbon 3. Both B r and C l are red.",
+        "caption": "This figure shows structural formulas for propane, 2 dash chloropropane, 2 dash methylpropane, 2 comma 4 dash difluorohexane, and 1 dash bromo dash 3 dash chlorohexane. In each of the structures, the carbon atoms are in a row with bonded halogen atoms and a methyl group bonded below the figures. Propane is listed as simply C H subscript 3 C H subscript 2 C H subscript 3, with the numbers 1, 2, and 3 appearing above the carbon atoms from left to right. 2 dash chloropropane similarly shows C H subscript 3 C H C H subscript 3, with the numbers 1, 2, and 3 appearing above the carbon atoms from left to right. A C l atom is bonded below carbon 2. The C l atom is red. 2 dash methylpropane similarly shows C H subscript 3 C H C H subscript 3, with the numbers 3, 2, and 1 appearing above the carbon atoms from left to right. A C H subscript 3 group is bonded beneath carbon 2 and is red. 2 comma 4 dash difluorohexane similarly shows C H subscript 3 C H subscript 2 C H C H subscript 2 C H C H subscript 3, with the numbers 6, 5, 4, 3, 2, and 1 appearing above the carbon atoms from left to right. F atoms are bonded to carbons 4 and 2 at the bottom of the structure and are red. 1 dash bromo dash 3 dash chlorohexane similarly shows C H subscript 2 C H subscript 2 C H C H subscript 2 C H subscript 2 C H subscript 3, with numbers 1, 2, 3, 4, 5, and 6 appearing above the carbon atoms from left to right. B r is bonded below carbon 1 and C l is bonded below carbon 3. Both B r and C l are red.",
+        "section": "The Basics of Organic Nomenclature: Naming Alkanes",
+        "license": "CC BY 4.0",
+        "credit": "21.1 Hydrocarbons - Chemistry: Atoms First | OpenStax, https://openstax.org/books/chemistry-atoms-first/pages/21-1-hydrocarbons (CC BY 4.0)",
+        "sourceId": "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+        "score": 4
+      },
+      {
+        "path": "library/lib-chemguide-how-to-draw-organic-molecules/figures/5766f406b7d9ead872f7dcb8.gif",
+        "url": "https://chemguide.co.uk/basicorg/conventions/ch2cl2displ.GIF",
+        "alt": "",
+        "caption": "For example, consider the simple molecule with the molecular formula CH2Cl2. You might think that there were two different ways of arranging these atoms if you drew a displayed formula.",
+        "section": "Displayed formulae",
+        "credit": "How to draw organic molecules, https://chemguide.co.uk/basicorg/conventions/draw.html (reuse license unknown; redraw)",
+        "sourceId": "lib-chemguide-how-to-draw-organic-molecules",
+        "score": 4
+      },
+      {
+        "path": "library/lib-chemguide-how-to-draw-organic-molecules/figures/d86468fbeb48261063a3a7bb.gif",
+        "url": "https://chemguide.co.uk/basicorg/conventions/cyclohexane.GIF",
+        "alt": "",
+        "caption": "Cyclohexane, C6H12, is a ring of carbon atoms each with two hydrogens attached. This is what it looks like in both a structural formula and a skeletal formula.",
+        "section": "Skeletal formulae",
+        "credit": "How to draw organic molecules, https://chemguide.co.uk/basicorg/conventions/draw.html (reuse license unknown; redraw)",
+        "sourceId": "lib-chemguide-how-to-draw-organic-molecules",
+        "score": 4
+      },
+      {
+        "path": "library/lib-wikipedia-polymer/figures/73efea82bcf1268ab7288937.png",
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/17/Thermal_transitions_in_amorphous_and_semicrystalline_polymers.tif/lossless-page1-330px-Thermal_transitions_in_amorphous_and_semicrystalline_polymers.tif.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+        "alt": "",
+        "caption": "Thermal transitions in (A) amorphous and (B) semicrystalline polymers, represented as traces from differential scanning calorimetry. As the temperature increases, both amorphous and semicrystalline polymers go through the glass transition (Tg). Amorphous polymers (A) do not exhibit other phase transitions, though semicrystalline polymers (B) undergo crystallization and melting (at temperatures Tc and Tm, respectively).",
+        "section": "Crystallization and melting",
+        "license": "CC BY-SA 4.0",
+        "credit": "AliceChem, https://commons.wikimedia.org/wiki/File:Thermal_transitions_in_amorphous_and_semicrystalline_polymers.tif (CC BY-SA 4.0)",
+        "sourceId": "lib-wikipedia-polymer",
+        "score": 3
+      },
+      {
+        "path": "library/lib-wikipedia-polymer/figures/233342d7636139aa0f99cfbb.jpg",
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Single_Polymer_Chains_AFM.jpg/250px-Single_Polymer_Chains_AFM.jpg?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+        "alt": "",
+        "caption": "Appearance of real linear polymer chains as recorded using an atomic force microscope on a surface, under liquid medium. Chain contour length for this polymer is ~204 nm; thickness is ~0.4 nm.[1]",
+        "section": "Polymer",
+        "license": "CC BY-SA 3.0",
+        "credit": "Yurko, https://commons.wikimedia.org/wiki/File:Single_Polymer_Chains_AFM.jpg (CC BY-SA 3.0)",
+        "sourceId": "lib-wikipedia-polymer",
+        "score": 3
+      },
+      {
+        "path": "library/lib-wikipedia-polymer/figures/c5f1646803e71ac4bb5f0fa4.png",
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4f/XBio_illustration_%E2%80%93_Polymer.png/250px-XBio_illustration_%E2%80%93_Polymer.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+        "alt": "",
+        "caption": "Polymers are chain or filament formed through covalent or non-covalent bonding of identical or similar units (monomers).",
+        "section": "Polymer",
+        "license": "CC BY 4.0",
+        "credit": "explorebiology, https://commons.wikimedia.org/wiki/File:XBio_illustration_%E2%80%93_Polymer.png (CC BY 4.0)",
+        "sourceId": "lib-wikipedia-polymer",
+        "score": 3
+      },
+      {
+        "path": "library/lib-libretexts-1-5-development-of-chemical/figures/c0a68b8aade5aa17cf6f4ad6.png",
+        "url": "https://chem.libretexts.org/@api/deki/files/421857/download23.png?revision=1&size=bestfit&width=764&height=395",
+        "alt": "Sodium has one valence electron while chlorine has seven valence electrons. They react to from sodium chloride. Magnesium has two valence electrons and oxygen has six valence electrons. Together they form magnesium oxide. Calcium has two valnece electrons and fluroine has seven valence electrons. Calcium reacts with two molecules of fluorine to produce calcium fluoride. ",
+        "caption": "Sodium has one valence electron while chlorine has seven valence electrons. They react to from sodium chloride. Magnesium has two valence electrons and oxygen has six valence electrons. Together they form magnesium oxide. Calcium has two valnece electrons and fluroine has seven valence electrons. Calcium reacts with two molecules of fluorine to produce calcium fluoride. ",
+        "section": "Lewis Structures of Ionic Compounds",
+        "credit": "1.5: Development of Chemical Bonding Theory - Chemistry LibreTexts, https://chem.libretexts.org/Courses/Smith_College/CHM_222_Chemistry_II%3A_Organic_Chemistry_(2026)/01%3A_Structure_and_Bonding/1.05%3A_Development_of_Chemical_Bonding_Theory (reuse license unknown; redraw)",
+        "sourceId": "lib-libretexts-1-5-development-of-chemical",
+        "score": 3
+      },
+      {
+        "path": "library/lib-openstax-21-1-hydrocarbons-chemistry-atoms/figures/3c1865347935bd3c505c4d78.webp",
+        "url": "https://openstax.org/apps/image-cdn/v1/f=webp/apps/archive/20260604.144757/resources/6cd3a5aac25570497083c8d854e4abd35f09dce9",
+        "alt": "Three pairs of structural formulas are shown. The first has a six carbon hydrocarbon ring in which four of the C atoms are each bonded to only one H atom. At the upper right and right of the ring, the two C atoms that do not have bonded H atoms have one B r atom bonded each. A circle is at the center of the ring. Beneath this structure, a similar structure is shown which has a hexagon with a circle inside. From vertices of the hexagon at the upper right and right single B r atoms are attached. The second has a six carbon hydrocarbon ring in which four of the C atoms are each bonded to only one H atom. At the upper right and lower right of the ring, the two C atoms that do not have bonded H atoms have a single B r atom bonded each. A circle is at the center of the ring. Beneath this structure, a similar structure is shown which has a hexagon with a circle inside. From vertices of the hexagon at the upper right and lower right single B r atoms are attached. The third has a six carbon hydrocarbon ring in which four of the C atoms are each bonded to only one H atom. At the upper right and lower left of the ring, the two C atoms that do not have bonded H atoms have B r atoms bonded. A circle is at the center of the ring. Beneath this structure, a similar structure is shown which has a hexagon with a circle inside. From vertices of the hexagon at the upper right and lower left, single B r atoms are attached.",
+        "caption": "Three pairs of structural formulas are shown. The first has a six carbon hydrocarbon ring in which four of the C atoms are each bonded to only one H atom. At the upper right and right of the ring, the two C atoms that do not have bonded H atoms have one B r atom bonded each. A circle is at the center of the ring. Beneath this structure, a similar structure is shown which has a hexagon with a circle inside. From vertices of the hexagon at the upper right and right single B r atoms are attached. The second has a six carbon hydrocarbon ring in which four of the C atoms are each bonded to only one H atom. At the upper right and lower right of the ring, the two C atoms that do not have bonded H atoms have a single B r atom bonded each. A circle is at the center of the ring. Beneath this structure, a similar structure is shown which has a hexagon with a circle inside. From vertices of the hexagon at the upper right and lower right single B r atoms are attached. The third has a six carbon hydrocarbon ring in which four of the C atoms are each bonded to only one H atom. At the upper right and lower left of the ring, the two C atoms that do not have bonded H atoms have B r atoms bonded. A circle is at the center of the ring. Beneath this structure, a similar structure is shown which has a hexagon with a circle inside. From vertices of the hexagon at the upper right and lower left, single B r atoms are attached.",
+        "section": "Check Your Learning",
+        "license": "CC BY 4.0",
+        "credit": "21.1 Hydrocarbons - Chemistry: Atoms First | OpenStax, https://openstax.org/books/chemistry-atoms-first/pages/21-1-hydrocarbons (CC BY 4.0)",
+        "sourceId": "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+        "score": 3
+      },
+      {
+        "path": "library/lib-libretexts-12-4-drawing-organic-structures/figures/0567976e6e67d8d6140e3428.png",
+        "url": "https://chem.libretexts.org/@api/deki/files/409885/clipboard_e66d9b882bf015b3998056b89f87c9066.png?revision=1&size=bestfit&width=1071&height=462",
+        "alt": "Diagrams illustrating different molecular structures and bond types, represented in color-coded formats.",
+        "caption": "Figure 12.4.1: Structural representations for butane and its isomer, 2-methylpropane. (The colors are used to help identify carbons and do not represent any special properties.)",
+        "section": "Learning Objectives",
+        "credit": "12.4: Drawing Organic Structures - Chemistry LibreTexts, https://chem.libretexts.org/Courses/Saint_Francis_University/CHEM_113%3A_Human_Chemistry_I_%28Muino%29/12%3A_Introduction_to_Organic_Chemistry_-_Alkanes/12.04%3A_Drawing_Organic_Structures (reuse license unknown; redraw)",
+        "sourceId": "lib-libretexts-12-4-drawing-organic-structures",
+        "score": 3
+      },
+      {
+        "path": "library/lib-chemguide-how-to-draw-organic-molecules/figures/007c58796a17e670f3c72df2.gif",
+        "url": "https://chemguide.co.uk/basicorg/conventions/butan2olmod.GIF",
+        "alt": "",
+        "caption": "The only difference between these is a slight rotation of the bond between the centre two carbon atoms. This is shown in the two models below. Look carefully at them - particularly at what has happened to the lone hydrogen atom. In the left-hand model, it is tucked behind the carbon atom. In the right-hand model, it is in the same plane. The change is very slight.",
+        "section": "How to draw structural formulae in 3-dimensions",
+        "credit": "How to draw organic molecules, https://chemguide.co.uk/basicorg/conventions/draw.html (reuse license unknown; redraw)",
+        "sourceId": "lib-chemguide-how-to-draw-organic-molecules",
+        "score": 3
+      },
+      {
+        "path": "library/lib-chemguide-how-to-draw-organic-molecules/figures/8c49560318ed3d7bc4c23ea1.gif",
+        "url": "https://chemguide.co.uk/basicorg/conventions/butanemodel.GIF",
+        "alt": "",
+        "caption": "All of these are just versions of four carbon atoms joined up in a line. The only difference is that there has been some rotation about some of the carbon-carbon bonds. You can see this in a couple of models.",
+        "section": "The commonest way to draw structural formulae",
+        "credit": "How to draw organic molecules, https://chemguide.co.uk/basicorg/conventions/draw.html (reuse license unknown; redraw)",
+        "sourceId": "lib-chemguide-how-to-draw-organic-molecules",
+        "score": 3
+      },
+      {
+        "path": "library/lib-chemguide-how-to-draw-organic-molecules/figures/1e1ce1106925eb3231c5678e.gif",
+        "url": "https://chemguide.co.uk/basicorg/conventions/ch2cl2model.GIF",
+        "alt": "",
+        "caption": "The chlorines could be opposite each other or at right angles to each other. But these two structures are actually exactly the same. Look at how they appear as models.",
+        "section": "Displayed formulae",
+        "credit": "How to draw organic molecules, https://chemguide.co.uk/basicorg/conventions/draw.html (reuse license unknown; redraw)",
+        "sourceId": "lib-chemguide-how-to-draw-organic-molecules",
+        "score": 3
+      },
+      {
+        "path": "library/lib-chemguide-how-to-draw-organic-molecules/figures/945403228ecd09130aeaf4f9.gif",
+        "url": "https://chemguide.co.uk/basicorg/conventions/complex1.GIF",
+        "alt": "",
+        "caption": "It doesn't matter in the least whether you draw any side groups pointing up or down. All of the following represent exactly the same molecule.",
+        "section": "The commonest way to draw structural formulae",
+        "credit": "How to draw organic molecules, https://chemguide.co.uk/basicorg/conventions/draw.html (reuse license unknown; redraw)",
+        "sourceId": "lib-chemguide-how-to-draw-organic-molecules",
+        "score": 3
+      },
+      {
+        "path": "library/lib-wikipedia-polymer/figures/280437f357ab5c6b5b46c903.jpg",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/b/bf/Styrene_radical_chain_polymerization.jpg?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail_unscaled",
+        "alt": "",
+        "caption": "Example of chain polymerization: Radical polymerization of styrene, R. is initiating radical, P. is another polymer chain radical terminating the formed chain by radical recombination.",
+        "section": "Synthesis",
+        "license": "CC BY-SA 4.0",
+        "credit": "SPT JanMerna, https://commons.wikimedia.org/wiki/File:Styrene_radical_chain_polymerization.jpg (CC BY-SA 4.0)",
+        "sourceId": "lib-wikipedia-polymer",
+        "score": 2
+      },
+      {
+        "path": "library/lib-libretexts-3-5-carbohydrates-biology/figures/ff620cc0e3da0ae398f21860.jpg",
+        "url": "https://bio.libretexts.org/@api/deki/files/38437/438px-Plantacaoorganica.jpg?revision=1&size=bestfit&width=207&height=215",
+        "alt": "potatoes in the field",
+        "caption": "Figure 3.5.4: (left) Potatoes are starch-filled tubers of potato plants. They are harvested by digging them up from underground. (center) Cotton fibers represent the purest natural form of cellulose, containing more than 90 percent of this polysaccharide. (right) The tough outer skeleton (exoskeleton) of this ten-lined beetle is made partly of the complex carbohydrate chitin.",
+        "section": "Complex Carbohydrates",
+        "license": "CC BY 2.0",
+        "credit": "3.5: Carbohydrates - Biology LibreTexts, https://bio.libretexts.org/Bookshelves/Human_Biology/Human_Biology_(Wakim_and_Grewal)/03%3A_Chemistry_of_Life/3.05%3A_Carbohydrates (CC BY 2.0)",
+        "sourceId": "lib-libretexts-3-5-carbohydrates-biology",
+        "score": 2
+      },
+      {
+        "path": "library/lib-wou-ch105-chapter-5-introduction-to-organic/figures/01bb4947df630ae2e2e86f71.png",
+        "url": "https://cdn.wou.edu/chemistry/files/2017/01/functional_groups_part_1.png",
+        "alt": "",
+        "caption": "",
+        "section": "**Table 5.2 Common Organic Functional Groups**",
+        "credit": "CH105: Chapter 5 - Introduction to Organic Chemistry - Chemistry, https://wou.edu/chemistry/courses/online-chemistry-textbooks/ch105-consumer-chemistry/ch105-chapter-5-organic-chemistry (reuse license unknown; redraw)",
+        "sourceId": "lib-wou-ch105-chapter-5-introduction-to-organic",
+        "score": 2
+      },
+      {
+        "path": "library/lib-wou-ch105-chapter-5-introduction-to-organic/figures/b367b2b1180e914da4034491.png",
+        "url": "https://cdn.wou.edu/chemistry/files/2017/01/functional_groups_part_2.png",
+        "alt": "",
+        "caption": "",
+        "section": "**Table 5.2 Common Organic Functional Groups**",
+        "credit": "CH105: Chapter 5 - Introduction to Organic Chemistry - Chemistry, https://wou.edu/chemistry/courses/online-chemistry-textbooks/ch105-consumer-chemistry/ch105-chapter-5-organic-chemistry (reuse license unknown; redraw)",
+        "sourceId": "lib-wou-ch105-chapter-5-introduction-to-organic",
+        "score": 2
+      },
+      {
+        "path": "library/lib-libretexts-1-5-development-of-chemical/figures/36d3187c2b9e92f1183fc8bf.jpg",
+        "url": "https://chem.libretexts.org/@api/deki/files/32395/e45815668df1142c5935032afb9b7a3b.jpg?revision=1&size=bestfit&width=514&height=247",
+        "alt": "e45815668df1142c5935032afb9b7a3b.jpg",
+        "caption": "Figure 1.4.1: G. N. Lewis and the Octet Rule. (a) Lewis is working in the laboratory. (b) In Lewis’s original sketch for the octet rule, he initially placed the electrons at the corners of a cube rather than placing them as we do now.",
+        "section": "Bonding Overview",
+        "credit": "1.5: Development of Chemical Bonding Theory - Chemistry LibreTexts, https://chem.libretexts.org/Courses/Smith_College/CHM_222_Chemistry_II%3A_Organic_Chemistry_(2026)/01%3A_Structure_and_Bonding/1.05%3A_Development_of_Chemical_Bonding_Theory (reuse license unknown; redraw)",
+        "sourceId": "lib-libretexts-1-5-development-of-chemical",
+        "score": 2
+      },
+      {
+        "path": "library/lib-libretexts-1-5-development-of-chemical/figures/7892bee1501c1172a20e5d9d.png",
+        "url": "https://chem.libretexts.org/@api/deki/files/127847/1-5-1.png?revision=1&size=bestfit&width=71&height=107",
+        "alt": "Nitrogen is bonded to three hydrogens and has one lone pair. ",
+        "caption": "Nitrogen is bonded to three hydrogens and has one lone pair. ",
+        "section": "Exercise",
+        "credit": "1.5: Development of Chemical Bonding Theory - Chemistry LibreTexts, https://chem.libretexts.org/Courses/Smith_College/CHM_222_Chemistry_II%3A_Organic_Chemistry_(2026)/01%3A_Structure_and_Bonding/1.05%3A_Development_of_Chemical_Bonding_Theory (reuse license unknown; redraw)",
+        "sourceId": "lib-libretexts-1-5-development-of-chemical",
+        "score": 2
+      },
+      {
+        "path": "library/lib-libretexts-1-5-development-of-chemical/figures/445ffe91150adcc66a1d63a3.png",
+        "url": "https://chem.libretexts.org/@api/deki/files/314506/clipboard_e21d464c02ad8606cfe805945bf6a41bb.png?revision=1",
+        "alt": "Bond line drawing of sarcosine",
+        "caption": "Bond line drawing of sarcosine",
+        "section": "Exercise",
+        "credit": "1.5: Development of Chemical Bonding Theory - Chemistry LibreTexts, https://chem.libretexts.org/Courses/Smith_College/CHM_222_Chemistry_II%3A_Organic_Chemistry_(2026)/01%3A_Structure_and_Bonding/1.05%3A_Development_of_Chemical_Bonding_Theory (reuse license unknown; redraw)",
+        "sourceId": "lib-libretexts-1-5-development-of-chemical",
+        "score": 2
+      },
+      {
+        "path": "library/lib-chemguide-how-to-draw-organic-molecules/figures/18fbc06ddc68a024b6c9262b.gif",
+        "url": "https://chemguide.co.uk/basicorg/conventions/bondtypes.GIF",
+        "alt": "",
+        "caption": "There are occasions when it is important to be able to show the precise 3-D arrangement in parts of some molecules. To do this, the bonds are shown using conventional symbols:",
+        "section": "How to draw structural formulae in 3-dimensions",
+        "credit": "How to draw organic molecules, https://chemguide.co.uk/basicorg/conventions/draw.html (reuse license unknown; redraw)",
+        "sourceId": "lib-chemguide-how-to-draw-organic-molecules",
+        "score": 2
+      },
+      {
+        "path": "library/lib-chemguide-how-to-draw-organic-molecules/figures/69b57eb8137954193cfb6a4c.gif",
+        "url": "https://chemguide.co.uk/basicorg/conventions/c2h5cldispl.GIF",
+        "alt": "",
+        "caption": "Consider a slightly more complicated molecule, C2H5Cl. The displayed formula could be written as either of these:",
+        "section": "Displayed formulae",
+        "credit": "How to draw organic molecules, https://chemguide.co.uk/basicorg/conventions/draw.html (reuse license unknown; redraw)",
+        "sourceId": "lib-chemguide-how-to-draw-organic-molecules",
+        "score": 2
+      },
+      {
+        "path": "library/lib-libretexts-1-2-structures-of-organic/figures/90a669895d86408fa8ad8799.png",
+        "url": "https://chem.libretexts.org/@api/deki/files/484638/Structural_representations_of_propane.png?revision=1&size=bestfit&width=1026&height=226",
+        "alt": "organic structures",
+        "caption": "Figure 1.2.1: Molecular and structural representations of propane. DrTOsborne, CC BY 4.0, via Wikimedia Commons",
+        "section": "Learning Objectives",
+        "license": "CC BY 4.0",
+        "credit": "Figure 1.2.1: Molecular and structural representations of propane. DrTOsborne, CC BY 4.0, via Wikimedia Commons, https://chem.libretexts.org/Courses/Georgia_Southern_University/CHEM_1152%3A_Survey_of_Chemistry_II_(Osborne)/01%3A_CHEM_1151_Organic_Review/1.02%3A_Structures_of_Organic_Compounds (CC BY 4.0)",
+        "sourceId": "lib-libretexts-1-2-structures-of-organic",
+        "score": 2
+      },
+      {
+        "path": "library/lib-libretexts-1-2-structures-of-organic/figures/74bd544950fd2ae2380e2f94.png",
+        "url": "https://chem.libretexts.org/@api/deki/files/381236/organic_structures_of_butane_and_isobutane.png?revision=2&size=bestfit&width=854&height=284",
+        "alt": "organic structures of butane and isobutane",
+        "caption": "Figure 1.2.2: Structural representations of butane (top) and isobutane (bottom).",
+        "section": "Learning Objectives",
+        "credit": "1.2: Structures of Organic Compounds - Chemistry LibreTexts, https://chem.libretexts.org/Courses/Georgia_Southern_University/CHEM_1152%3A_Survey_of_Chemistry_II_(Osborne)/01%3A_CHEM_1151_Organic_Review/1.02%3A_Structures_of_Organic_Compounds (reuse license unknown; redraw)",
+        "sourceId": "lib-libretexts-1-2-structures-of-organic",
+        "score": 2
+      },
+      {
+        "path": "library/lib-wikipedia-polymer/figures/c84ef9c3eec29c85c747253e.jpg",
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/74/PlasticDamage.JPG/250px-PlasticDamage.JPG?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+        "alt": "",
+        "caption": "A plastic item with thirty years of exposure to heat and cold, brake fluid, and sunlight. Notice the discoloration and crazing of the material (compared with replacement item in foreground).",
+        "section": "Degradation",
+        "license": "Public domain",
+        "credit": "Wikimedia Commons, https://commons.wikimedia.org/wiki/File:PlasticDamage.JPG (Public domain)",
+        "sourceId": "lib-wikipedia-polymer",
+        "score": 1
+      },
+      {
+        "path": "library/lib-wikipedia-polymer/figures/67e99744afd1e61e87c23b75.png",
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/36/LCST-UCST_plot.svg/500px-LCST-UCST_plot.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+        "alt": "",
+        "caption": "Phase diagram of the typical mixing behavior of weakly interacting polymer solutions, showing spinodal curves and binodal coexistence curves",
+        "section": "Mixing behavior",
+        "license": "CC BY-SA 3.0",
+        "credit": "enWikipedia User:Locke9k, Martin Strand, https://commons.wikimedia.org/wiki/File:LCST-UCST_plot.svg (CC BY-SA 3.0)",
+        "sourceId": "lib-wikipedia-polymer",
+        "score": 1
+      },
+      {
+        "path": "library/lib-wikipedia-polymer/figures/7e7ed20c383e8fe7acd85aa3.png",
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cb/Styrene-butadiene_chain2.png/250px-Styrene-butadiene_chain2.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+        "alt": "",
+        "caption": "Structure of a styrene-butadiene chain, from a molecular simulation",
+        "section": "Common examples",
+        "license": "CC BY-SA 4.0",
+        "credit": "Gmrozz, https://commons.wikimedia.org/wiki/File:Styrene-butadiene_chain2.png (CC BY-SA 4.0)",
+        "sourceId": "lib-wikipedia-polymer",
+        "score": 1
+      },
+      {
+        "path": "library/lib-wikipedia-polymer/figures/e79472c1ee117f113284af4d.gif",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/0/0c/DNA_animation.gif?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail_unscaled",
+        "alt": "",
+        "caption": "Microstructure of part of a DNA double helix biopolymer",
+        "section": "Biological synthesis",
+        "credit": "Wikipedia contributors, https://en.wikipedia.org/wiki/Polymer (reuse license unknown; redraw)",
+        "sourceId": "lib-wikipedia-polymer",
+        "score": 1
+      },
+      {
+        "path": "library/lib-wikipedia-polymer/figures/2ee08b6706a364c351f32df6.png",
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ab/History_of_polymers.tif/lossless-page1-960px-History_of_polymers.tif.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+        "alt": "",
+        "caption": "Some memorable milestones in the history of polymers[70]",
+        "section": "History",
+        "credit": "Wikipedia contributors, https://en.wikipedia.org/wiki/Polymer (reuse license unknown; redraw)",
+        "sourceId": "lib-wikipedia-polymer",
+        "score": 1
+      },
+      {
+        "path": "library/lib-libretexts-5-8-polyatomic-molecules-water/figures/5c6ccea61fcc2857ee176917.png",
+        "url": "https://chem.libretexts.org/@api/deki/files/425488/Screen_Shot_2022-10-21_at_2.44.58_PM.png?revision=1&size=bestfit&width=131&height=62",
+        "alt": "Fluorine atom attached with a single bond to oxygen, oxygen has another single bond connecting to another fluorine atom",
+        "caption": "Fluorine atom attached with a single bond to oxygen, oxygen has another single bond connecting to another fluorine atom",
+        "section": "**Writing Lewis Structures with the Octet Rule**",
+        "credit": "5.8: Polyatomic Molecules- Water, Ammonia, and Methane - Chemistry LibreTexts, https://chem.libretexts.org/Courses/De_Anza_College/CHEM_10%3A_Introduction_to_Chemistry_(Parajon_Puenzo)/05%3A_Chemical_Bonds/5.08%3A_Polyatomic_Molecules-_Water_Ammonia_and_Methane (reuse license unknown; redraw)",
+        "sourceId": "lib-libretexts-5-8-polyatomic-molecules-water",
+        "score": 1
+      },
+      {
+        "path": "library/lib-libretexts-5-8-polyatomic-molecules-water/figures/93a1b495ac23a7e964fdc003.png",
+        "url": "https://chem.libretexts.org/@api/deki/files/425489/Screen_Shot_2022-10-21_at_2.45.09_PM.png?revision=1&size=bestfit&width=139&height=61",
+        "alt": "Each fluorine atom has 6 nonbonding electrons",
+        "caption": "Each fluorine atom has 6 nonbonding electrons",
+        "section": "**Writing Lewis Structures with the Octet Rule**",
+        "credit": "5.8: Polyatomic Molecules- Water, Ammonia, and Methane - Chemistry LibreTexts, https://chem.libretexts.org/Courses/De_Anza_College/CHEM_10%3A_Introduction_to_Chemistry_(Parajon_Puenzo)/05%3A_Chemical_Bonds/5.08%3A_Polyatomic_Molecules-_Water_Ammonia_and_Methane (reuse license unknown; redraw)",
+        "sourceId": "lib-libretexts-5-8-polyatomic-molecules-water",
+        "score": 1
+      },
+      {
+        "path": "library/lib-libretexts-3-5-carbohydrates-biology/figures/e92e9325c8b5b247c8501780.png",
+        "url": "https://bio.libretexts.org/@api/deki/files/17428/Screen_Shot_2019-04-27_at_11.17.45_PM.png?revision=1&size=bestfit&width=737&height=254",
+        "alt": "polysaccharides, starch, glycogen, and cellulose",
+        "caption": "Figure 3.5.5: Starch, Glycogen, and Cellulose have different arrangements of monosaccharides.",
+        "section": "Glycogen",
+        "license": "CC BY 2.0",
+        "credit": "3.5: Carbohydrates - Biology LibreTexts, https://bio.libretexts.org/Bookshelves/Human_Biology/Human_Biology_(Wakim_and_Grewal)/03%3A_Chemistry_of_Life/3.05%3A_Carbohydrates (CC BY 2.0)",
+        "sourceId": "lib-libretexts-3-5-carbohydrates-biology",
+        "score": 1
+      },
+      {
+        "path": "library/lib-libretexts-3-5-carbohydrates-biology/figures/a33675850b47a55553da1e4a.png",
+        "url": "https://bio.libretexts.org/@api/deki/files/17431/Screen_Shot_2019-04-27_at_11.24.10_PM.png?revision=1&size=bestfit&width=233&height=175",
+        "alt": "Chili Sin Carne",
+        "caption": "Figure 3.5.6: Beans are an excellent source of both soluble and insoluble fiber.",
+        "section": "Feature: My Human Biology",
+        "license": "CC BY 2.0",
+        "credit": "3.5: Carbohydrates - Biology LibreTexts, https://bio.libretexts.org/Bookshelves/Human_Biology/Human_Biology_(Wakim_and_Grewal)/03%3A_Chemistry_of_Life/3.05%3A_Carbohydrates (CC BY 2.0)",
+        "sourceId": "lib-libretexts-3-5-carbohydrates-biology",
+        "score": 1
+      },
+      {
+        "path": "library/lib-libretexts-3-5-carbohydrates-biology/figures/a31b16f44e94ec2f8a93f7c1.png",
+        "url": "https://bio.libretexts.org/@api/deki/files/17424/Screen_Shot_2019-04-27_at_11.04.49_PM.png?revision=1&size=bestfit&width=285&height=306",
+        "alt": "individual wearing Body paint and jeans",
+        "caption": "Figure 3.5.1: Body paint and jeans",
+        "section": "The Cellulose of Our Lives",
+        "license": "CC BY 2.0",
+        "credit": "3.5: Carbohydrates - Biology LibreTexts, https://bio.libretexts.org/Bookshelves/Human_Biology/Human_Biology_(Wakim_and_Grewal)/03%3A_Chemistry_of_Life/3.05%3A_Carbohydrates (CC BY 2.0)",
+        "sourceId": "lib-libretexts-3-5-carbohydrates-biology",
+        "score": 1
+      },
+      {
+        "path": "library/lib-libretexts-3-5-carbohydrates-biology/figures/7fa97279c08b64e029e6fcfa.png",
+        "url": "https://bio.libretexts.org/@api/deki/files/17430/Screen_Shot_2019-04-27_at_11.20.51_PM.png?revision=1&size=bestfit&width=313&height=208",
+        "alt": "Polyphylla decemlineata aka Ten-lined June beetle",
+        "caption": "Polyphylla decemlineata aka Ten-lined June beetle",
+        "section": "Complex Carbohydrates",
+        "license": "CC BY 2.0",
+        "credit": "3.5: Carbohydrates - Biology LibreTexts, https://bio.libretexts.org/Bookshelves/Human_Biology/Human_Biology_(Wakim_and_Grewal)/03%3A_Chemistry_of_Life/3.05%3A_Carbohydrates (CC BY 2.0)",
+        "sourceId": "lib-libretexts-3-5-carbohydrates-biology",
+        "score": 1
+      },
+      {
+        "path": "library/lib-libretexts-1-5-development-of-chemical/figures/7476d46340d551cb7e8ce8a4.jpg",
+        "url": "https://chem.libretexts.org/@api/deki/files/39061/46e1b979c7e9155cb23cd686f73db8a4.jpg?revision=1&size=bestfit&width=242&height=311",
+        "alt": "Lone pairs occupy a lot of space while bonding pairs occupy a smaller space. ",
+        "caption": "Figure 1.4.4: The Difference in the Space Occupied by a Lone Pair of Electrons and by a Bonding Pair",
+        "section": "AX3: CO32−",
+        "credit": "1.5: Development of Chemical Bonding Theory - Chemistry LibreTexts, https://chem.libretexts.org/Courses/Smith_College/CHM_222_Chemistry_II%3A_Organic_Chemistry_(2026)/01%3A_Structure_and_Bonding/1.05%3A_Development_of_Chemical_Bonding_Theory (reuse license unknown; redraw)",
+        "sourceId": "lib-libretexts-1-5-development-of-chemical",
+        "score": 1
+      },
+      {
+        "path": "library/lib-libretexts-1-5-development-of-chemical/figures/161e0edeee9e30e31f0614e5.png",
+        "url": "https://chem.libretexts.org/@api/deki/files/311859/clipboard_e641304c31adedbb481c5b2eae7c8a2c2.png?revision=1",
+        "alt": "clipboard\\_e641304c31adedbb481c5b2eae7c8a2c2.png",
+        "caption": "Figure 1.5.2: Lewis Dot Symbols for the Elements in Period 2",
+        "section": "Lewis Dot symbols:",
+        "credit": "1.5: Development of Chemical Bonding Theory - Chemistry LibreTexts, https://chem.libretexts.org/Courses/Smith_College/CHM_222_Chemistry_II%3A_Organic_Chemistry_(2026)/01%3A_Structure_and_Bonding/1.05%3A_Development_of_Chemical_Bonding_Theory (reuse license unknown; redraw)",
+        "sourceId": "lib-libretexts-1-5-development-of-chemical",
+        "score": 1
+      },
+      {
+        "path": "library/lib-wikipedia-cotton/figures/e0f9241c5dc715ce7137f55c.jpg",
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4d/CSIRO_ScienceImage_10736_Manually_decontaminating_cotton_before_processing_at_an_Indian_spinning_mill.jpg/250px-CSIRO_ScienceImage_10736_Manually_decontaminating_cotton_before_processing_at_an_Indian_spinning_mill.jpg?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+        "alt": "",
+        "caption": "Workers sort through cotton to remove contaminants. The workers wear masks to reduce the number of fibers they inhale.",
+        "section": "Uses",
+        "license": "CC BY 3.0",
+        "credit": "division, CSIRO, https://commons.wikimedia.org/wiki/File:CSIRO_ScienceImage_10736_Manually_decontaminating_cotton_before_processing_at_an_Indian_spinning_mill.jpg (CC BY 3.0)",
+        "sourceId": "lib-wikipedia-cotton",
+        "score": 1
+      },
+      {
+        "path": "library/lib-wikipedia-cotton/figures/eef29d8e4ce93aec65d4f993.jpg",
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bc/Cotton_Ready_for_Shipment%2C_Houston%2C_Texas.jpg/330px-Cotton_Ready_for_Shipment%2C_Houston%2C_Texas.jpg?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+        "alt": "Cotton ready for shipment, Houston, Texas (postcard, circa 1911)",
+        "caption": "Cotton ready for shipment, Houston, Texas (postcard, circa 1911)",
+        "section": "Cultivation",
+        "credit": "Wikipedia contributors, https://en.wikipedia.org/wiki/Cotton (reuse license unknown; redraw)",
+        "sourceId": "lib-wikipedia-cotton",
+        "score": 1
+      },
+      {
+        "path": "library/lib-libretexts-10-5-organic-structural/figures/361f33bc64508532f3524ba0.png",
+        "url": "https://chem.libretexts.org/@api/deki/files/293896/C2H4Cl2_-_Condensed_2.png?revision=1&size=bestfit&height=225",
+        "alt": "C2H4Cl2 - Condensed 2.png",
+        "caption": "C2H4Cl2 - Condensed 2.png",
+        "section": "Learning Objectives",
+        "credit": "10.5: Organic Structural Representations: Condensed Structural Notation - Chemistry LibreTexts, https://chem.libretexts.org/Courses/Heartland_Community_College/CHEM_120%3A_Fundamentals_of_Chemistry/10XX%3A_Introduction_to_Organic_Chemistry/10.05%3A_Condensed (reuse license unknown; redraw)",
+        "sourceId": "lib-libretexts-10-5-organic-structural",
+        "score": 1
+      },
+      {
+        "path": "library/lib-libretexts-10-5-organic-structural/figures/4ba2d1ebfb6087054a9cca4b.png",
+        "url": "https://chem.libretexts.org/@api/deki/files/293897/C2H4Cl2_-_Condensed_3.png?revision=2",
+        "alt": "C2H4Cl2 - Condensed 3.png",
+        "caption": "C2H4Cl2 - Condensed 3.png",
+        "section": "Learning Objectives",
+        "credit": "10.5: Organic Structural Representations: Condensed Structural Notation - Chemistry LibreTexts, https://chem.libretexts.org/Courses/Heartland_Community_College/CHEM_120%3A_Fundamentals_of_Chemistry/10XX%3A_Introduction_to_Organic_Chemistry/10.05%3A_Condensed (reuse license unknown; redraw)",
+        "sourceId": "lib-libretexts-10-5-organic-structural",
+        "score": 1
+      },
+      {
+        "path": "library/lib-libretexts-10-5-organic-structural/figures/cecf557fb609c3a065ff646c.png",
+        "url": "https://chem.libretexts.org/@api/deki/files/293898/C2H4Cl2_-_Condensed_4.png?revision=3",
+        "alt": "C2H4Cl2 - Condensed 4.png",
+        "caption": "C2H4Cl2 - Condensed 4.png",
+        "section": "Learning Objectives",
+        "credit": "10.5: Organic Structural Representations: Condensed Structural Notation - Chemistry LibreTexts, https://chem.libretexts.org/Courses/Heartland_Community_College/CHEM_120%3A_Fundamentals_of_Chemistry/10XX%3A_Introduction_to_Organic_Chemistry/10.05%3A_Condensed (reuse license unknown; redraw)",
+        "sourceId": "lib-libretexts-10-5-organic-structural",
+        "score": 1
+      },
+      {
+        "path": "library/lib-libretexts-10-5-organic-structural/figures/174b8caeabd855be12148d4a.png",
+        "url": "https://chem.libretexts.org/@api/deki/files/293899/C2H4Cl2_-_Condensed_5.png?revision=1",
+        "alt": "C2H4Cl2 - Condensed 5.png",
+        "caption": "C2H4Cl2 - Condensed 5.png",
+        "section": "Learning Objectives",
+        "credit": "10.5: Organic Structural Representations: Condensed Structural Notation - Chemistry LibreTexts, https://chem.libretexts.org/Courses/Heartland_Community_College/CHEM_120%3A_Fundamentals_of_Chemistry/10XX%3A_Introduction_to_Organic_Chemistry/10.05%3A_Condensed (reuse license unknown; redraw)",
+        "sourceId": "lib-libretexts-10-5-organic-structural",
+        "score": 1
+      },
+      {
+        "path": "library/lib-libretexts-10-5-organic-structural/figures/d1270d9ce02cd539308621f8.png",
+        "url": "https://chem.libretexts.org/@api/deki/files/293900/C2H4Cl2_-_Condensed_6.png?revision=1&size=bestfit&width=415",
+        "alt": "C2H4Cl2 - Condensed 6.png",
+        "caption": "C2H4Cl2 - Condensed 6.png",
+        "section": "Learning Objectives",
+        "credit": "10.5: Organic Structural Representations: Condensed Structural Notation - Chemistry LibreTexts, https://chem.libretexts.org/Courses/Heartland_Community_College/CHEM_120%3A_Fundamentals_of_Chemistry/10XX%3A_Introduction_to_Organic_Chemistry/10.05%3A_Condensed (reuse license unknown; redraw)",
+        "sourceId": "lib-libretexts-10-5-organic-structural",
+        "score": 1
+      },
+      {
+        "path": "library/lib-chemguide-how-to-draw-organic-molecules/figures/6f9a3809c5de9f8eacd26f33.gif",
+        "url": "https://chemguide.co.uk/basicorg/conventions/butan2olskel.GIF",
+        "alt": "",
+        "caption": "For example, we've just been talking about butan-2-ol. The normal structural formula and the skeletal formula look like this:",
+        "section": "Skeletal formulae",
+        "credit": "How to draw organic molecules, https://chemguide.co.uk/basicorg/conventions/draw.html (reuse license unknown; redraw)",
+        "sourceId": "lib-chemguide-how-to-draw-organic-molecules",
+        "score": 1
+      },
+      {
+        "path": "library/lib-masterorganicchemistry-condensed-formulas/figures/398212f11d3655cd73792f5e.gif",
+        "url": "https://cdn.masterorganicchemistry.com/wp-content/uploads/2024/12/0-summary-brackets-and-condensed-molecular-formulae-brackets-in-organic-chemistry-indicate-branching-connection-to-carbonyl-or-to-condense-repetition-2.gif",
+        "alt": "",
+        "caption": "",
+        "section": "Condensed Formulas: Deciphering What the Brackets Mean",
+        "credit": "Condensed Formulas: What Do The Brackets Mean?, https://masterorganicchemistry.com/2011/06/20/condensed-structural-formulas (reuse license unknown; redraw)",
+        "sourceId": "lib-masterorganicchemistry-condensed-formulas",
+        "score": 1
+      },
+      {
+        "path": "library/lib-libretexts-1-8-structural-formulas-lewis/figures/dbfa31ff484d14567aa44369.png",
+        "url": "https://chem.libretexts.org/@api/deki/files/142474/propanal_bond_line.png?revision=1&size=bestfit&width=98&height=81",
+        "alt": "propanal bond line.png",
+        "caption": "propanal bond line.png",
+        "section": "Example: Converting between Structural Formulas",
+        "credit": "1.8: Structural Formulas - Lewis, Kekule, Bond-line, Condensed, - Chemistry LibreTexts, https://chem.libretexts.org/Courses/Sacramento_City_College/Chem_420%3A_Organic_Chemistry_I/01%3A_Introduction_and_Review/1.08%3A_Structural_Formulas_-_Lewis_Kekule_Bond-line_Condensed (reuse license unknown; redraw)",
+        "sourceId": "lib-libretexts-1-8-structural-formulas-lewis",
+        "score": 1
+      },
+      {
+        "path": "library/lib-libretexts-1-8-structural-formulas-lewis/figures/e6517447c23372933c1596f0.png",
+        "url": "https://chem.libretexts.org/@api/deki/files/142475/propanal_all_3_structures.png?revision=1&size=bestfit&width=537&height=105",
+        "alt": "propanal all 3 structures.png",
+        "caption": "propanal all 3 structures.png",
+        "section": "Example: Converting between Structural Formulas",
+        "credit": "1.8: Structural Formulas - Lewis, Kekule, Bond-line, Condensed, - Chemistry LibreTexts, https://chem.libretexts.org/Courses/Sacramento_City_College/Chem_420%3A_Organic_Chemistry_I/01%3A_Introduction_and_Review/1.08%3A_Structural_Formulas_-_Lewis_Kekule_Bond-line_Condensed (reuse license unknown; redraw)",
+        "sourceId": "lib-libretexts-1-8-structural-formulas-lewis",
+        "score": 1
+      },
+      {
+        "path": "library/lib-libretexts-1-8-structural-formulas-lewis/figures/0bba4c861f4785466f98adf1.jpg",
+        "url": "https://chem.libretexts.org/@api/deki/files/1826/dashed.jpg?revision=1",
+        "alt": "dashed.jpg",
+        "caption": "dashed.jpg",
+        "section": "Dashed-Wedged Line Structure",
+        "credit": "1.8: Structural Formulas - Lewis, Kekule, Bond-line, Condensed, - Chemistry LibreTexts, https://chem.libretexts.org/Courses/Sacramento_City_College/Chem_420%3A_Organic_Chemistry_I/01%3A_Introduction_and_Review/1.08%3A_Structural_Formulas_-_Lewis_Kekule_Bond-line_Condensed (reuse license unknown; redraw)",
+        "sourceId": "lib-libretexts-1-8-structural-formulas-lewis",
+        "score": 1
+      },
+      {
+        "path": "library/lib-libretexts-1-8-structural-formulas-lewis/figures/fb45dc7e88294d559b8ff6a6.jpg",
+        "url": "https://chem.libretexts.org/@api/deki/files/1845/Wedged.jpg?revision=1",
+        "alt": "Wedged.jpg",
+        "caption": "Wedged.jpg",
+        "section": "Dashed-Wedged Line Structure",
+        "credit": "1.8: Structural Formulas - Lewis, Kekule, Bond-line, Condensed, - Chemistry LibreTexts, https://chem.libretexts.org/Courses/Sacramento_City_College/Chem_420%3A_Organic_Chemistry_I/01%3A_Introduction_and_Review/1.08%3A_Structural_Formulas_-_Lewis_Kekule_Bond-line_Condensed (reuse license unknown; redraw)",
+        "sourceId": "lib-libretexts-1-8-structural-formulas-lewis",
+        "score": 1
+      },
+      {
+        "path": "library/lib-libretexts-1-8-structural-formulas-lewis/figures/fc46b62c302cb238bbfef0d2.jpg",
+        "url": "https://chem.libretexts.org/@api/deki/files/1830/line.jpg?revision=1",
+        "alt": "line.jpg",
+        "caption": "line.jpg",
+        "section": "Dashed-Wedged Line Structure",
+        "credit": "1.8: Structural Formulas - Lewis, Kekule, Bond-line, Condensed, - Chemistry LibreTexts, https://chem.libretexts.org/Courses/Sacramento_City_College/Chem_420%3A_Organic_Chemistry_I/01%3A_Introduction_and_Review/1.08%3A_Structural_Formulas_-_Lewis_Kekule_Bond-line_Condensed (reuse license unknown; redraw)",
+        "sourceId": "lib-libretexts-1-8-structural-formulas-lewis",
+        "score": 1
+      },
+      {
+        "path": "library/lib-libretexts-1-8-structural-formulas-lewis/figures/20ae14ee6edc8834de508399.jpg",
+        "url": "https://chem.libretexts.org/@api/deki/files/1825/CLBR.jpg?revision=1",
+        "alt": "CLBR.jpg",
+        "caption": "CLBR.jpg",
+        "section": "Dashed-Wedged Line Structure",
+        "credit": "1.8: Structural Formulas - Lewis, Kekule, Bond-line, Condensed, - Chemistry LibreTexts, https://chem.libretexts.org/Courses/Sacramento_City_College/Chem_420%3A_Organic_Chemistry_I/01%3A_Introduction_and_Review/1.08%3A_Structural_Formulas_-_Lewis_Kekule_Bond-line_Condensed (reuse license unknown; redraw)",
+        "sourceId": "lib-libretexts-1-8-structural-formulas-lewis",
+        "score": 1
+      },
+      {
+        "path": "library/lib-libretexts-1-8-structural-formulas-lewis/figures/48a0481d37fab423c9ce2bbe.jpg",
+        "url": "https://chem.libretexts.org/@api/deki/files/1819/A_kekule.jpg?revision=1",
+        "alt": "A kekule.jpg",
+        "caption": "A kekule.jpg",
+        "section": "Kekulé (a.k.a. Lewis Structures)",
+        "credit": "1.8: Structural Formulas - Lewis, Kekule, Bond-line, Condensed, - Chemistry LibreTexts, https://chem.libretexts.org/Courses/Sacramento_City_College/Chem_420%3A_Organic_Chemistry_I/01%3A_Introduction_and_Review/1.08%3A_Structural_Formulas_-_Lewis_Kekule_Bond-line_Condensed (reuse license unknown; redraw)",
+        "sourceId": "lib-libretexts-1-8-structural-formulas-lewis",
+        "score": 1
+      },
+      {
+        "path": "library/lib-libretexts-1-8-structural-formulas-lewis/figures/f7bfed8af3a029e16280a5d0.jpg",
+        "url": "https://chem.libretexts.org/@api/deki/files/1821/B_kekule.jpg?revision=1",
+        "alt": "B kekule.jpg",
+        "caption": "B kekule.jpg",
+        "section": "Kekulé (a.k.a. Lewis Structures)",
+        "credit": "1.8: Structural Formulas - Lewis, Kekule, Bond-line, Condensed, - Chemistry LibreTexts, https://chem.libretexts.org/Courses/Sacramento_City_College/Chem_420%3A_Organic_Chemistry_I/01%3A_Introduction_and_Review/1.08%3A_Structural_Formulas_-_Lewis_Kekule_Bond-line_Condensed (reuse license unknown; redraw)",
+        "sourceId": "lib-libretexts-1-8-structural-formulas-lewis",
+        "score": 1
+      },
+      {
+        "path": "library/lib-libretexts-1-8-structural-formulas-lewis/figures/f756faf7545eac57de91f136.jpg",
+        "url": "https://chem.libretexts.org/@api/deki/files/1823/C_kekule.jpg?revision=1",
+        "alt": "C kekule.jpg",
+        "caption": "C kekule.jpg",
+        "section": "Kekulé (a.k.a. Lewis Structures)",
+        "credit": "1.8: Structural Formulas - Lewis, Kekule, Bond-line, Condensed, - Chemistry LibreTexts, https://chem.libretexts.org/Courses/Sacramento_City_College/Chem_420%3A_Organic_Chemistry_I/01%3A_Introduction_and_Review/1.08%3A_Structural_Formulas_-_Lewis_Kekule_Bond-line_Condensed (reuse license unknown; redraw)",
+        "sourceId": "lib-libretexts-1-8-structural-formulas-lewis",
+        "score": 1
+      },
+      {
+        "path": "library/lib-libretexts-1-8-structural-formulas-lewis/figures/8d8da7d727ffef7727f28b35.jpg",
+        "url": "https://chem.libretexts.org/@api/deki/files/1829/DWL.jpg?revision=1",
+        "alt": "DWL.jpg",
+        "caption": "DWL.jpg",
+        "section": "Dashed-Wedged Line Structure",
+        "credit": "1.8: Structural Formulas - Lewis, Kekule, Bond-line, Condensed, - Chemistry LibreTexts, https://chem.libretexts.org/Courses/Sacramento_City_College/Chem_420%3A_Organic_Chemistry_I/01%3A_Introduction_and_Review/1.08%3A_Structural_Formulas_-_Lewis_Kekule_Bond-line_Condensed (reuse license unknown; redraw)",
+        "sourceId": "lib-libretexts-1-8-structural-formulas-lewis",
+        "score": 1
+      },
+      {
+        "url": "https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image059.png",
+        "alt": "Structural formulas are converted to line-bond structures for 2 examples. The first is a 6 carbon cyclic structure with one double bond in the ring and a double bond to oxygen in one position. The second is a 4 carbon straight chain of carbons with an amine group attached at carbon 1 and an OH group attached at carbon 3. In each example the symbols for carbon and hydrogen are removed to make the line-bond structure, leaving the bonding arrangements drawn as lines with other atoms such as O and N still explicitly shown.",
+        "caption": "Figure 8.2.14 Examples of molecules drawn using line-bond structures.",
+        "section": "Using the 'Line Bond Structure' Convention",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "8.2 Drawing and Interpreting Organic Formulas – Ready for Uni: An RMIT Chemistry Bridging Course, https://rmit.pressbooks.pub/rmitchemistrybridgingcourse/chapter/drawing-and-interpreting-organic-formulas (CC BY-NC-SA 4.0)",
+        "downloadError": "HTTP 403 for https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image059.png",
+        "sourceId": "lib-pressbooks-8-2-drawing-and-interpreting",
+        "score": 9
+      },
+      {
+        "url": "https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/condensed_structures.png",
+        "alt": "Two examples showing how structural formulas can be condensed are given. The first is a 3-carbon alcohol, formula C3H8O. The second is a 3 carbon amine, C3H9N. Condensed structures are written left to right without drawing bonds from C, O or N to hydrogen. The resulting condensed structures read in this fashion: CH3CH2CH2OH and CH3NHCH2CH3.",
+        "caption": "Figure 8.2.13 Lewis structures and condensed structures in organic chemistry.",
+        "section": "Using the 'Line Bond Structure' Convention",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "8.2 Drawing and Interpreting Organic Formulas – Ready for Uni: An RMIT Chemistry Bridging Course, https://rmit.pressbooks.pub/rmitchemistrybridgingcourse/chapter/drawing-and-interpreting-organic-formulas (CC BY-NC-SA 4.0)",
+        "downloadError": "HTTP 403 for https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/condensed_structures.png",
+        "sourceId": "lib-pressbooks-8-2-drawing-and-interpreting",
+        "score": 9
+      },
+      {
+        "url": "https://openoregon.pressbooks.pub/app/uploads/sites/207/2020/12/condensed_structures.png",
+        "alt": "Two examples showing how structural formulas can be condensed are given. The first is a 3-carbon alcohol, formula C3H8O. The second is a 3 carbon amine, C3H9N. Condensed structures are written left to right without drawing bonds from C, O or N to hydrogen. The resulting condensed structures read in this fashion: CH3CH2CH2OH and CH3NHCH2CH3.",
+        "caption": "Two examples showing how structural formulas can be condensed are given. The first is a 3-carbon alcohol, formula C3H8O. The second is a 3 carbon amine, C3H9N. Condensed structures are written left to right without drawing bonds from C, O or N to hydrogen. The resulting condensed structures read in this fashion: CH3CH2CH2OH and CH3NHCH2CH3.",
+        "section": "Using the ‘line bond structure’ convention",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "2.1 Drawing and Interpreting Organic Formulas – Introductory Organic Chemistry, https://openoregon.pressbooks.pub/introductoryorganic/chapter/drawing-and-interpreting-organic-formulas (CC BY-NC-SA 4.0)",
+        "sourceId": "lib-pressbooks-2-1-drawing-and-interpreting",
+        "score": 8
+      },
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/Propane_Structural_Formula_B_V1.svg/226px-Propane_Structural_Formula_B_V1.svg.png?20180710094346",
+        "alt": "Structure of propane. Three carbons are joined by single carbon-carbon bonds, and three hydrogens attached to the first and last carbon, while two are attached to the second carbon.",
+        "caption": "Figure 8.2.1 An example of a molecule drawn using the structural formula.",
+        "section": "Drawing Conventions",
+        "credit": "8.2 Drawing and Interpreting Organic Formulas – Ready for Uni: An RMIT Chemistry Bridging Course, https://rmit.pressbooks.pub/rmitchemistrybridgingcourse/chapter/drawing-and-interpreting-organic-formulas (reuse license unknown; redraw)",
+        "downloadError": "HTTP 400 for https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/Propane_Structural_Formula_B_V1.svg/226px-Propane_Structural_Formula_B_V1.svg.png?20180710094346",
+        "sourceId": "lib-pressbooks-8-2-drawing-and-interpreting",
+        "score": 7
+      },
+      {
+        "url": "https://openoregon.pressbooks.pub/app/uploads/sites/207/2020/12/image059.png",
+        "alt": "Structural formulas are converted to line-bond structures for 2 examples. The first is a 6 carbon cyclic structure with one double bond in the ring and a double bond to oxygen in one position. The second is a 4 carbon straight chain of carbons with an amine group attached at carbon 1 and an OH group attached at carbon 3. In each example the symbols for carbon and hydrogen are removed to make the line-bond structure, leaving the bonding arrangements drawn as lines with other atoms such as O and N still explicitly shown.",
+        "caption": "Structural formulas are converted to line-bond structures for 2 examples. The first is a 6 carbon cyclic structure with one double bond in the ring and a double bond to oxygen in one position. The second is a 4 carbon straight chain of carbons with an amine group attached at carbon 1 and an OH group attached at carbon 3. In each example the symbols for carbon and hydrogen are removed to make the line-bond structure, leaving the bonding arrangements drawn as lines with other atoms such as O and N still explicitly shown.",
+        "section": "Using the ‘line bond structure’ convention",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "2.1 Drawing and Interpreting Organic Formulas – Introductory Organic Chemistry, https://openoregon.pressbooks.pub/introductoryorganic/chapter/drawing-and-interpreting-organic-formulas (CC BY-NC-SA 4.0)",
+        "sourceId": "lib-pressbooks-2-1-drawing-and-interpreting",
+        "score": 6
+      },
+      {
+        "url": "https://rmit.pressbooks.pub/app/uploads/sites/67/2020/11/AdobeStock_308919427-2048x1540.jpeg",
+        "alt": "The ball and stick model of the drug called 'Flunitrazepam'. Ball represent the atoms and sticks represent the bonds between atoms.",
+        "caption": "Figure 8.2.3 The ball and stick model of the drug called 'Flunitrazepam'. Image attribution: Flunitrazepam drug molecule. It has hypnotic, sedative, anxiolytic properties. Molecular model © bacsica-stock.adobe.com.",
+        "section": "Drawing Conventions",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "8.2 Drawing and Interpreting Organic Formulas – Ready for Uni: An RMIT Chemistry Bridging Course, https://rmit.pressbooks.pub/rmitchemistrybridgingcourse/chapter/drawing-and-interpreting-organic-formulas (CC BY-NC-SA 4.0)",
+        "downloadError": "HTTP 403 for https://rmit.pressbooks.pub/app/uploads/sites/67/2020/11/AdobeStock_308919427-2048x1540.jpeg",
+        "sourceId": "lib-pressbooks-8-2-drawing-and-interpreting",
+        "score": 5
+      },
+      {
+        "url": "https://rmit.pressbooks.pub/app/uploads/sites/67/2020/11/AdobeStock_308919427-350x263.jpeg",
+        "alt": "The ball and stick model of the drug called 'Flunitrazepam'. Ball represent the atoms and sticks represent the bonds between atoms.",
+        "caption": "Figure 8.2.3 The ball and stick model of the drug called 'Flunitrazepam'. Image attribution: Flunitrazepam drug molecule. It has hypnotic, sedative, anxiolytic properties. Molecular model © bacsica-stock.adobe.com.",
+        "section": "Drawing Conventions",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "8.2 Drawing and Interpreting Organic Formulas – Ready for Uni: An RMIT Chemistry Bridging Course, https://rmit.pressbooks.pub/rmitchemistrybridgingcourse/chapter/drawing-and-interpreting-organic-formulas (CC BY-NC-SA 4.0)",
+        "downloadError": "HTTP 403 for https://rmit.pressbooks.pub/app/uploads/sites/67/2020/11/AdobeStock_308919427-350x263.jpeg",
+        "sourceId": "lib-pressbooks-8-2-drawing-and-interpreting",
+        "score": 5
+      },
+      {
+        "url": "https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId28-13.jpeg",
+        "alt": "Three chemical representations: expanded formula, condensed formula, and skeletal structure.",
+        "caption": "Figure 20.3. The same structure can be represented three different ways: an expanded formula, a condensed formula, and a skeletal structure.",
+        "section": "Alkanes",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "20.1  Hydrocarbons – General Chemistry 3e: OER for Inclusive Learning, https://lmu.pressbooks.pub/generalchemistry3e/chapter/20-1_hydrocarbons (CC BY-NC-SA 4.0)",
+        "downloadError": "HTTP 403 for https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId28-13.jpeg",
+        "sourceId": "lib-pressbooks-20-1-hydrocarbons-general",
+        "score": 5
+      },
+      {
+        "url": "https://openoregon.pressbooks.pub/app/uploads/sites/207/2020/11/Neopentane.png",
+        "alt": "A set of letters connected by lines, representing a molecule composed of five carbon atoms and twelve hydrogen atoms. One C is in the center, connected to four other C and no H atoms.",
+        "caption": "A set of letters connected by lines, representing a molecule composed of five carbon atoms and twelve hydrogen atoms. One C is in the center, connected to four other C and no H atoms.",
+        "section": "",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "2.1 Drawing and Interpreting Organic Formulas – Introductory Organic Chemistry, https://openoregon.pressbooks.pub/introductoryorganic/chapter/drawing-and-interpreting-organic-formulas (CC BY-NC-SA 4.0)",
+        "sourceId": "lib-pressbooks-2-1-drawing-and-interpreting",
+        "score": 4
+      },
+      {
+        "url": "https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image047.png",
+        "alt": "3 diagrams, in each C is surrounded by 4 total lines. The first shows four single bonds. The second shows 2 single bonds and a double bond, shown with a 2 parallel lines. The third has 1 single bond and a triple bond, shown as 3 parallel lines.",
+        "caption": "Figure 8.2.6 Common bonding patterns of carbon.",
+        "section": "Common bonding patterns in organic structures",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "8.2 Drawing and Interpreting Organic Formulas – Ready for Uni: An RMIT Chemistry Bridging Course, https://rmit.pressbooks.pub/rmitchemistrybridgingcourse/chapter/drawing-and-interpreting-organic-formulas (CC BY-NC-SA 4.0)",
+        "downloadError": "HTTP 403 for https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image047.png",
+        "sourceId": "lib-pressbooks-8-2-drawing-and-interpreting",
+        "score": 4
+      },
+      {
+        "url": "https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId25-17.jpeg",
+        "alt": "Chemical structures and models of methane, ethane, and pentane.",
+        "caption": "Figure 20.2. Pictured are the Lewis structures, ball-and-stick models, and space-filling models for molecules of methane, ethane, and pentane.",
+        "section": "Alkanes",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "20.1  Hydrocarbons – General Chemistry 3e: OER for Inclusive Learning, https://lmu.pressbooks.pub/generalchemistry3e/chapter/20-1_hydrocarbons (CC BY-NC-SA 4.0)",
+        "downloadError": "HTTP 403 for https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId25-17.jpeg",
+        "sourceId": "lib-pressbooks-20-1-hydrocarbons-general",
+        "score": 4
+      },
+      {
+        "url": "https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId60-3.jpeg",
+        "alt": "image",
+        "caption": "Figure 20.4. These three representations of the structure of n-butane are not isomers because they all contain the same arrangement of atoms and bonds.",
+        "section": "Number of Structural Isomers",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "20.1  Hydrocarbons – General Chemistry 3e: OER for Inclusive Learning, https://lmu.pressbooks.pub/generalchemistry3e/chapter/20-1_hydrocarbons (CC BY-NC-SA 4.0)",
+        "downloadError": "HTTP 403 for https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId60-3.jpeg",
+        "sourceId": "lib-pressbooks-20-1-hydrocarbons-general",
+        "score": 4
+      },
+      {
+        "url": "https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image049.png",
+        "alt": "3 images show a carbocation, a carbanion, and a carbon radical. The left image shows a carbon is attached to 3 single bonds and a positive charge, called a carbocation. The central image has 3 bonds around a carbon and a lone pair, with a negative charge. This is a carbanion. The third shows 3 single bonds around a C with one electron dot and no charge. This is a carbon radical.",
+        "caption": "Figure 8.2.8 Bonding patterns of carbon when it does not obey the octet rule.",
+        "section": "Common bonding patterns in organic structures",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "8.2 Drawing and Interpreting Organic Formulas – Ready for Uni: An RMIT Chemistry Bridging Course, https://rmit.pressbooks.pub/rmitchemistrybridgingcourse/chapter/drawing-and-interpreting-organic-formulas (CC BY-NC-SA 4.0)",
+        "downloadError": "HTTP 403 for https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image049.png",
+        "sourceId": "lib-pressbooks-8-2-drawing-and-interpreting",
+        "score": 3
+      },
+      {
+        "url": "https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image055.png",
+        "alt": "Phosphate anion is shown. P is in the center surrounded by 4 oxygen atoms. 3 of these are connected to P by single bonds, have 3 lone pairs and a negative charge. The fourth is bonded with a double bond, has 2 lone pairs and no charge. Thus P is shown with 10 electrons around it, demonstrating it does not need to adhere to the octet rule.",
+        "caption": "Figure 8.2.11 One of the bonding patterns of phosphate.",
+        "section": "Common bonding patterns in organic structures",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "8.2 Drawing and Interpreting Organic Formulas – Ready for Uni: An RMIT Chemistry Bridging Course, https://rmit.pressbooks.pub/rmitchemistrybridgingcourse/chapter/drawing-and-interpreting-organic-formulas (CC BY-NC-SA 4.0)",
+        "downloadError": "HTTP 403 for https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image055.png",
+        "sourceId": "lib-pressbooks-8-2-drawing-and-interpreting",
+        "score": 3
+      },
+      {
+        "url": "https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image045.png",
+        "alt": "A representation of 2-deoxycytidine showing all atoms and bond connections including 9 C atoms, 4 O atoms, 3 N atoms and 13 H atoms. Image also shows some lone pair electrons as dots and double bonds.",
+        "caption": "Figure 8.2.5 Structural formula of 2'-deoxycytidine",
+        "section": "Common bonding patterns in organic structures",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "8.2 Drawing and Interpreting Organic Formulas – Ready for Uni: An RMIT Chemistry Bridging Course, https://rmit.pressbooks.pub/rmitchemistrybridgingcourse/chapter/drawing-and-interpreting-organic-formulas (CC BY-NC-SA 4.0)",
+        "downloadError": "HTTP 403 for https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image045.png",
+        "sourceId": "lib-pressbooks-8-2-drawing-and-interpreting",
+        "score": 3
+      },
+      {
+        "url": "https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId97-5.jpeg",
+        "alt": "image",
+        "caption": "Figure 20.5. This listing gives the names and formulas for various alkyl groups formed by the removal of hydrogen atoms from different locations.",
+        "section": "Solution",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "20.1  Hydrocarbons – General Chemistry 3e: OER for Inclusive Learning, https://lmu.pressbooks.pub/generalchemistry3e/chapter/20-1_hydrocarbons (CC BY-NC-SA 4.0)",
+        "downloadError": "HTTP 403 for https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId97-5.jpeg",
+        "sourceId": "lib-pressbooks-20-1-hydrocarbons-general",
+        "score": 3
+      },
+      {
+        "url": "https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId115-3.jpeg",
+        "alt": "image",
+        "caption": "Figure 20.7. Expanded structures, ball-and-stick structures, and space-filling models for the alkenes ethene, propene, and 1-butene are shown.",
+        "section": "Alkenes",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "20.1  Hydrocarbons – General Chemistry 3e: OER for Inclusive Learning, https://lmu.pressbooks.pub/generalchemistry3e/chapter/20-1_hydrocarbons (CC BY-NC-SA 4.0)",
+        "downloadError": "HTTP 403 for https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId115-3.jpeg",
+        "sourceId": "lib-pressbooks-20-1-hydrocarbons-general",
+        "score": 3
+      },
+      {
+        "url": "https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId169.jpeg",
+        "alt": "image",
+        "caption": "Figure 20.11 This condensed formula shows the unique bonding structure of benzene.",
+        "section": "Aromatic Hydrocarbons",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "20.1  Hydrocarbons – General Chemistry 3e: OER for Inclusive Learning, https://lmu.pressbooks.pub/generalchemistry3e/chapter/20-1_hydrocarbons (CC BY-NC-SA 4.0)",
+        "downloadError": "HTTP 403 for https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId169.jpeg",
+        "sourceId": "lib-pressbooks-20-1-hydrocarbons-general",
+        "score": 3
+      },
+      {
+        "url": "https://chemguide.co.uk/basicorg/conventions/padding.GIF",
+        "alt": "",
+        "caption": "Molecular formulae are very rarely used in organic chemistry, because they don't give any useful information about the bonding in the molecule. About the only place where you might come across them is in equations for the combustion of simple hydrocarbons, for example:",
+        "section": "Molecular formulae",
+        "credit": "How to draw organic molecules, https://chemguide.co.uk/basicorg/conventions/draw.html (reuse license unknown; redraw)",
+        "downloadError": "Invalid figure size or MIME",
+        "sourceId": "lib-chemguide-how-to-draw-organic-molecules",
+        "score": 3
+      },
+      {
+        "url": "https://chemguide.co.uk/basicorg/conventions/burn.GIF",
+        "alt": "",
+        "caption": "Molecular formulae are very rarely used in organic chemistry, because they don't give any useful information about the bonding in the molecule. About the only place where you might come across them is in equations for the combustion of simple hydrocarbons, for example:",
+        "section": "Molecular formulae",
+        "credit": "How to draw organic molecules, https://chemguide.co.uk/basicorg/conventions/draw.html (reuse license unknown; redraw)",
+        "downloadError": "Invalid figure size or MIME",
+        "sourceId": "lib-chemguide-how-to-draw-organic-molecules",
+        "score": 3
+      },
+      {
+        "url": "https://chem.libretexts.org/@api/deki/files/1831/possible_bonds_/(1/",
+        "alt": "possible bonds (1).jpg",
+        "caption": "possible bonds (1).jpg",
+        "section": "Drawing the Structure of Organic Molecules",
+        "credit": "1.8: Structural Formulas - Lewis, Kekule, Bond-line, Condensed, - Chemistry LibreTexts, https://chem.libretexts.org/Courses/Sacramento_City_College/Chem_420%3A_Organic_Chemistry_I/01%3A_Introduction_and_Review/1.08%3A_Structural_Formulas_-_Lewis_Kekule_Bond-line_Condensed (reuse license unknown; redraw)",
+        "sourceId": "lib-libretexts-1-8-structural-formulas-lewis",
+        "score": 3
+      },
+      {
+        "url": "https://openoregon.pressbooks.pub/app/uploads/sites/207/2020/12/image049.png",
+        "alt": "3 images show a carbocation, a carbanion, and a carbon radical. The left image shows a carbon is attached to 3 single bonds and a positive charge, called a carbocation. The central image has 3 bonds around a carbon and a lone pair, with a negative charge. This is a carbanion. The third shows 3 single bonds around a C with one electron dot and no charge. This is a carbon radical.",
+        "caption": "3 images show a carbocation, a carbanion, and a carbon radical. The left image shows a carbon is attached to 3 single bonds and a positive charge, called a carbocation. The central image has 3 bonds around a carbon and a lone pair, with a negative charge. This is a carbanion. The third shows 3 single bonds around a C with one electron dot and no charge. This is a carbon radical.",
+        "section": "Common bonding patterns in organic structures",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "2.1 Drawing and Interpreting Organic Formulas – Introductory Organic Chemistry, https://openoregon.pressbooks.pub/introductoryorganic/chapter/drawing-and-interpreting-organic-formulas (CC BY-NC-SA 4.0)",
+        "sourceId": "lib-pressbooks-2-1-drawing-and-interpreting",
+        "score": 2
+      },
+      {
+        "url": "https://openoregon.pressbooks.pub/app/uploads/sites/207/2020/12/image055.png",
+        "alt": "Phosphate anion is shown. P is in the center surrounded by 4 oxygen atoms. 3 of these are connected to P by single bonds, have 3 lone pairs and a negative charge. The fourth is bonded with a double bond, has 2 lone pairs and no charge. Thus P is shown with 10 electrons around it, demonstrating it does not need to adhere to the octet rule.",
+        "caption": "Phosphate anion is shown. P is in the center surrounded by 4 oxygen atoms. 3 of these are connected to P by single bonds, have 3 lone pairs and a negative charge. The fourth is bonded with a double bond, has 2 lone pairs and no charge. Thus P is shown with 10 electrons around it, demonstrating it does not need to adhere to the octet rule.",
+        "section": "Common bonding patterns in organic structures",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "2.1 Drawing and Interpreting Organic Formulas – Introductory Organic Chemistry, https://openoregon.pressbooks.pub/introductoryorganic/chapter/drawing-and-interpreting-organic-formulas (CC BY-NC-SA 4.0)",
+        "sourceId": "lib-pressbooks-2-1-drawing-and-interpreting",
+        "score": 2
+      },
+      {
+        "url": "https://openoregon.pressbooks.pub/app/uploads/sites/207/2020/12/image047.png",
+        "alt": "3 diagrams, in each C is surrounded by 4 total lines. The first shows four single bonds. The second shows 2 single bonds and a double bond, shown with a 2 parallel lines. The third has 1 single bond and a triple bond, shown as 3 parallel lines.",
+        "caption": "3 diagrams, in each C is surrounded by 4 total lines. The first shows four single bonds. The second shows 2 single bonds and a double bond, shown with a 2 parallel lines. The third has 1 single bond and a triple bond, shown as 3 parallel lines.",
+        "section": "Common bonding patterns in organic structures",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "2.1 Drawing and Interpreting Organic Formulas – Introductory Organic Chemistry, https://openoregon.pressbooks.pub/introductoryorganic/chapter/drawing-and-interpreting-organic-formulas (CC BY-NC-SA 4.0)",
+        "sourceId": "lib-pressbooks-2-1-drawing-and-interpreting",
+        "score": 2
+      },
+      {
+        "url": "https://openoregon.pressbooks.pub/app/uploads/sites/207/2020/12/image045.png",
+        "alt": "A representation of 2-deoxycytidine showing all atoms and bond connections including 9 C atoms, 4 O atoms, 3 N atoms and 13 H atoms. Image also shows some lone pair electrons as dots and double bonds.",
+        "caption": "A representation of 2-deoxycytidine showing all atoms and bond connections including 9 C atoms, 4 O atoms, 3 N atoms and 13 H atoms. Image also shows some lone pair electrons as dots and double bonds.",
+        "section": "Common bonding patterns in organic structures",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "2.1 Drawing and Interpreting Organic Formulas – Introductory Organic Chemistry, https://openoregon.pressbooks.pub/introductoryorganic/chapter/drawing-and-interpreting-organic-formulas (CC BY-NC-SA 4.0)",
+        "sourceId": "lib-pressbooks-2-1-drawing-and-interpreting",
+        "score": 2
+      },
+      {
+        "url": "https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image051.png",
+        "alt": "Oxygen is shown in various arrangements leading to neutral, negative or positive charge. Two arrangements are shown leading to a neutral oxygen atom. The first has 2 lone pairs and 2 single bonds. The second has 2 lone pairs and a double bond. Oxygen with a negative charges exists with 3 lone pairs and one single bond. Oxygen is also shown with a positive charge in two arrangements. In the first oxygen has one lone pair and 3 single bonds. In the second oxygen has one lone pair, a single bond and a double bond.",
+        "caption": "Figure 8.2.9 Common bonding patterns of oxygen.",
+        "section": "Common bonding patterns in organic structures",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "8.2 Drawing and Interpreting Organic Formulas – Ready for Uni: An RMIT Chemistry Bridging Course, https://rmit.pressbooks.pub/rmitchemistrybridgingcourse/chapter/drawing-and-interpreting-organic-formulas (CC BY-NC-SA 4.0)",
+        "downloadError": "HTTP 403 for https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image051.png",
+        "sourceId": "lib-pressbooks-8-2-drawing-and-interpreting",
+        "score": 2
+      },
+      {
+        "url": "https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image053.png",
+        "alt": "Neutral nitrogen results when N has any of these arrangements: 3 single bonds and one lone pair, a single and double bond and one lone pair, or a triple bond with one lone pair. Nitrogen with a positive charge occurs when N has 4 single bonds, or 2 single and 1 double bond, or 1 single and 1 triple bond.",
+        "caption": "Figure 8.2.10 Common bonding patterns of nitrogen.",
+        "section": "Common bonding patterns in organic structures",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "8.2 Drawing and Interpreting Organic Formulas – Ready for Uni: An RMIT Chemistry Bridging Course, https://rmit.pressbooks.pub/rmitchemistrybridgingcourse/chapter/drawing-and-interpreting-organic-formulas (CC BY-NC-SA 4.0)",
+        "downloadError": "HTTP 403 for https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image053.png",
+        "sourceId": "lib-pressbooks-8-2-drawing-and-interpreting",
+        "score": 2
+      },
+      {
+        "url": "https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image057.png",
+        "alt": "The halogens F, Cl, Br, and I are shown with 3 lone pairs and one bond. This arrangement results in a neutral charge. Bromine is also shown with two lone pairs and 2 bonds, an arrangement which occurs occasionally and results in a positive charge on the atom.",
+        "caption": "Figure 8.2.12 Common bonding patterns of halogens.",
+        "section": "Common bonding patterns in organic structures",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "8.2 Drawing and Interpreting Organic Formulas – Ready for Uni: An RMIT Chemistry Bridging Course, https://rmit.pressbooks.pub/rmitchemistrybridgingcourse/chapter/drawing-and-interpreting-organic-formulas (CC BY-NC-SA 4.0)",
+        "downloadError": "HTTP 403 for https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image057.png",
+        "sourceId": "lib-pressbooks-8-2-drawing-and-interpreting",
+        "score": 2
+      },
+      {
+        "url": "https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId103-2.jpeg",
+        "alt": "image",
+        "caption": "Figure 20.6. In a column for the fractional distillation of crude oil, oil heated to about 425°C in the furnace vaporizes when it enters the base of the tower. The vapors rise through bubble caps in a series of trays in the tower. As the vapors gradually cool, fractions of higher, then of lower, boiling points condense to liquids and are drawn off. (credit left: modification of work by Luigi Chiesa)",
+        "section": "Solution",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "20.1  Hydrocarbons – General Chemistry 3e: OER for Inclusive Learning, https://lmu.pressbooks.pub/generalchemistry3e/chapter/20-1_hydrocarbons (CC BY-NC-SA 4.0)",
+        "downloadError": "HTTP 403 for https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId103-2.jpeg",
+        "sourceId": "lib-pressbooks-20-1-hydrocarbons-general",
+        "score": 2
+      },
+      {
+        "url": "https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId125-1.jpeg",
+        "alt": "image",
+        "caption": "Figure 20.10. These molecular models show the structural and geometric isomers of butene.",
+        "section": "Isomers of Alkenes",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "20.1  Hydrocarbons – General Chemistry 3e: OER for Inclusive Learning, https://lmu.pressbooks.pub/generalchemistry3e/chapter/20-1_hydrocarbons (CC BY-NC-SA 4.0)",
+        "downloadError": "HTTP 403 for https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId125-1.jpeg",
+        "sourceId": "lib-pressbooks-20-1-hydrocarbons-general",
+        "score": 2
+      },
+      {
+        "url": "https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId117-3.jpeg",
+        "alt": "image",
+        "caption": "Figure 20.8. The reaction for the polymerization of ethylene to polyethylene is shown.",
+        "section": "Recycling Plastics",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "20.1  Hydrocarbons – General Chemistry 3e: OER for Inclusive Learning, https://lmu.pressbooks.pub/generalchemistry3e/chapter/20-1_hydrocarbons (CC BY-NC-SA 4.0)",
+        "downloadError": "HTTP 403 for https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId117-3.jpeg",
+        "sourceId": "lib-pressbooks-20-1-hydrocarbons-general",
+        "score": 2
+      },
+      {
+        "url": "https://chem.libretexts.org/@api/deki/files/425535/Screen_Shot_2022-10-21_at_2.45.03_PM.png?revision=1&size=bestfit&width=151&height=56",
+        "alt": "4 nonbonding electrons are place on oxygen",
+        "caption": "4 nonbonding electrons are place on oxygen",
+        "section": "**Writing Lewis Structures with the Octet Rule**",
+        "credit": "5.8: Polyatomic Molecules- Water, Ammonia, and Methane - Chemistry LibreTexts, https://chem.libretexts.org/Courses/De_Anza_College/CHEM_10%3A_Introduction_to_Chemistry_(Parajon_Puenzo)/05%3A_Chemical_Bonds/5.08%3A_Polyatomic_Molecules-_Water_Ammonia_and_Methane (reuse license unknown; redraw)",
+        "sourceId": "lib-libretexts-5-8-polyatomic-molecules-water",
+        "score": 1
+      },
+      {
+        "url": "https://openoregon.pressbooks.pub/app/uploads/sites/207/2020/12/image051.png",
+        "alt": "Oxygen is shown in various arrangements leading to neutral, negative or positive charge. Two arrangements are shown leading to a neutral oxygen atom. The first has 2 lone pairs and 2 single bonds. The second has 2 lone pairs and a double bond. Oxygen with a negative charges exists with 3 lone pairs and one single bond. Oxygen is also shown with a positive charge in two arrangements. In the first oxygen has one lone pair and 3 single bonds. In the second oxygen has one lone pair, a single bond and a double bond.",
+        "caption": "Oxygen is shown in various arrangements leading to neutral, negative or positive charge. Two arrangements are shown leading to a neutral oxygen atom. The first has 2 lone pairs and 2 single bonds. The second has 2 lone pairs and a double bond. Oxygen with a negative charges exists with 3 lone pairs and one single bond. Oxygen is also shown with a positive charge in two arrangements. In the first oxygen has one lone pair and 3 single bonds. In the second oxygen has one lone pair, a single bond and a double bond.",
+        "section": "Common bonding patterns in organic structures",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "2.1 Drawing and Interpreting Organic Formulas – Introductory Organic Chemistry, https://openoregon.pressbooks.pub/introductoryorganic/chapter/drawing-and-interpreting-organic-formulas (CC BY-NC-SA 4.0)",
+        "sourceId": "lib-pressbooks-2-1-drawing-and-interpreting",
+        "score": 1
+      },
+      {
+        "url": "https://openoregon.pressbooks.pub/app/uploads/sites/207/2020/12/image053.png",
+        "alt": "Neutral nitrogen results when N has any of these arrangements: 3 single bonds and one lone pair, a single and double bond and one lone pair, or a triple bond with one lone pair. Nitrogen with a positive charge occurs when N has 4 single bonds, or 2 single and 1 double bond, or 1 single and 1 triple bond.",
+        "caption": "Neutral nitrogen results when N has any of these arrangements: 3 single bonds and one lone pair, a single and double bond and one lone pair, or a triple bond with one lone pair. Nitrogen with a positive charge occurs when N has 4 single bonds, or 2 single and 1 double bond, or 1 single and 1 triple bond.",
+        "section": "Common bonding patterns in organic structures",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "2.1 Drawing and Interpreting Organic Formulas – Introductory Organic Chemistry, https://openoregon.pressbooks.pub/introductoryorganic/chapter/drawing-and-interpreting-organic-formulas (CC BY-NC-SA 4.0)",
+        "sourceId": "lib-pressbooks-2-1-drawing-and-interpreting",
+        "score": 1
+      },
+      {
+        "url": "https://openoregon.pressbooks.pub/app/uploads/sites/207/2020/12/image057.png",
+        "alt": "The halogens F, Cl, Br, and I are shown with 3 lone pairs and one bond. This arrangement results in a neutral charge. Bromine is also shown with two lone pairs and 2 bonds, an arrangement which occurs occasionally and results in a positive charge on the atom.",
+        "caption": "The halogens F, Cl, Br, and I are shown with 3 lone pairs and one bond. This arrangement results in a neutral charge. Bromine is also shown with two lone pairs and 2 bonds, an arrangement which occurs occasionally and results in a positive charge on the atom.",
+        "section": "Common bonding patterns in organic structures",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "2.1 Drawing and Interpreting Organic Formulas – Introductory Organic Chemistry, https://openoregon.pressbooks.pub/introductoryorganic/chapter/drawing-and-interpreting-organic-formulas (CC BY-NC-SA 4.0)",
+        "sourceId": "lib-pressbooks-2-1-drawing-and-interpreting",
+        "score": 1
+      },
+      {
+        "url": "https://openoregon.pressbooks.pub/app/uploads/sites/207/2020/11/Isopentane.png",
+        "alt": "A set of letters connected by lines, including five C and twelve H letters. The second C from the left is connected to 3 Cs, while all others connect to either 2 or 1 C. While the total number of Cs and Hs is identical to the paired structure, the connectivity here is different.",
+        "caption": "A set of letters connected by lines, including five C and twelve H letters. The second C from the left is connected to 3 Cs, while all others connect to either 2 or 1 C. While the total number of Cs and Hs is identical to the paired structure, the connectivity here is different.",
+        "section": "",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "2.1 Drawing and Interpreting Organic Formulas – Introductory Organic Chemistry, https://openoregon.pressbooks.pub/introductoryorganic/chapter/drawing-and-interpreting-organic-formulas (CC BY-NC-SA 4.0)",
+        "sourceId": "lib-pressbooks-2-1-drawing-and-interpreting",
+        "score": 1
+      },
+      {
+        "url": "https://openoregon.pressbooks.pub/app/uploads/sites/207/2020/11/2-methylbutane.png",
+        "alt": "A zigzag line of equal length segments with two vertices is shown. At the first vertex from the left there is a connected line oriented vertically.",
+        "caption": "A zigzag line of equal length segments with two vertices is shown. At the first vertex from the left there is a connected line oriented vertically.",
+        "section": "",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "2.1 Drawing and Interpreting Organic Formulas – Introductory Organic Chemistry, https://openoregon.pressbooks.pub/introductoryorganic/chapter/drawing-and-interpreting-organic-formulas (CC BY-NC-SA 4.0)",
+        "sourceId": "lib-pressbooks-2-1-drawing-and-interpreting",
+        "score": 1
+      },
+      {
+        "url": "https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId119.jpeg",
+        "alt": "image",
+        "caption": "Figure 20.9. Each type of recyclable plastic is imprinted with a code for easy identification.",
+        "section": "Recycling Plastics",
+        "license": "CC BY-NC-SA 4.0",
+        "credit": "20.1  Hydrocarbons – General Chemistry 3e: OER for Inclusive Learning, https://lmu.pressbooks.pub/generalchemistry3e/chapter/20-1_hydrocarbons (CC BY-NC-SA 4.0)",
+        "downloadError": "HTTP 403 for https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId119.jpeg",
+        "sourceId": "lib-pressbooks-20-1-hydrocarbons-general",
+        "score": 1
+      }
+    ]
+  }
+}

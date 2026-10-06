@@ -513,9 +513,21 @@ without claiming improved factual authority. Refresh extraction calls no model.
 
 ## D36 — Per-chapter media planning and credited source figures · locked · 2026-10-06
 
-- Two stages: optional curriculum Visual/Video intent lines during planning, then
+- Two stages: curriculum Visual/Video intent lines during new planning, then
   tracked per-chapter media briefs after sources settle and in draft/rewrite preflight.
-  Briefs offer local figures, source tables and a quality video with an observed moment.
+  M14b requires at least one interactive D32 widget or sketch/story per chapter,
+  two when two central concepts benefit from manipulation or stepping, in addition
+  to inline static figures/charts. Each intent names its form, concept and learner
+  action. A rare exception records `Visual: no interactive visual: <concrete reason>`.
+- Prompt briefs are at most 5,120 UTF-8 bytes, with visual specs and source/figure
+  references, a video URL/moment, and selected figure paths/captions/licenses.
+  Full evidence lives in adjacent `.evidence.json` sidecars, outside prompt context;
+  legacy briefs remain readable and are compacted on prompt reads.
+- Planned interactive visuals require distinct standalone `::visual` attachments
+  backed by files in `visuals/`. Static media and legacy artifacts do not satisfy
+  them. Missing attachments block checking unless a concrete omission reason and
+  a muted learner explanation are both present; the independent checker judges
+  pedagogy, meaningful interaction and reason quality.
 - Each chapter seeks a named educator/institution or established education channel,
   appropriate level/language, preferably 3–25 minutes or a focused moment. This
   supersedes D34's 1–3 videos per set. No passing candidate means an explicit reason;

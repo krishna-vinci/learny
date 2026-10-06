@@ -800,52 +800,60 @@ it("does not allow a clean report to waive remaining teaching lint", async () =>
   ).toMatchObject({ isError: true, summary: expect.stringContaining("teaching lint") });
 });
 
-it.each(["missing visual", "restrictive figure"])("blocks checked status with a clean report and %s", async (issue) => {
-  const note = "linear-algebra/notes/04-eigenvalues.md";
-  const report = "linear-algebra/log/checks/04-eigenvalues.md";
-  await fs.mkdir(path.dirname(path.join(root, report)), { recursive: true });
-  await fs.writeFile(
-    path.join(root, "linear-algebra/curriculum.md"),
-    `- [ ] 04 — Eigenvalues\n${issue === "missing visual" ? "  Visual: figure — Eigenvectors\n" : ""}`,
-  );
-  await fs.writeFile(
-    path.join(root, "library/lib-strang-la/images.json"),
-    JSON.stringify([
-      {
-        url: "https://example.org/figure.png",
-        alt: "Eigenvectors",
-        license: "CC BY-NC 4.0",
-        credit: "Teacher",
-      },
-    ]),
-  );
-  await fs.writeFile(
-    path.join(root, note),
-    `---\nstatus: draft\n---\nAn eigenvector keeps its direction.\n${issue === "restrictive figure" ? "![Eigenvectors](https://example.org/figure.png)" : ""}`,
-  );
-  await fs.writeFile(path.join(root, report), "## No issues found\n");
-  const tool = setNoteStatusTool({
-    root,
-    locks: new FileLocks(),
-    set: "linear-algebra",
-    notePath: "notes/04-eigenvalues.md",
-    reportPath: "log/checks/04-eigenvalues.md",
-    holder: "media",
-    onWrite: () => {},
-  });
-  const result = await tool.execute(
-    "media",
-    { path: "notes/04-eigenvalues.md", status: "checked" },
-    undefined,
-    undefined,
-    undefined as never,
-  );
-  expect(result.details).toMatchObject({
-    isError: true,
-    summary: expect.stringContaining(issue === "missing visual" ? "Planned visual is missing" : "media warnings"),
-  });
-  expect(await fs.readFile(path.join(root, note), "utf8")).toContain("status: draft");
-});
+it.each(["missing visual", "static substitution", "restrictive figure"])(
+  "blocks checked status with a clean report and %s",
+  async (issue) => {
+    const note = "linear-algebra/notes/04-eigenvalues.md";
+    const report = "linear-algebra/log/checks/04-eigenvalues.md";
+    await fs.mkdir(path.dirname(path.join(root, report)), { recursive: true });
+    await fs.writeFile(
+      path.join(root, "linear-algebra/curriculum.md"),
+      `- [ ] 04 — Eigenvalues\n${issue !== "restrictive figure" ? "  Visual: matrix-transform widget — Eigenvectors; adjust the matrix\n" : ""}`,
+    );
+    await fs.writeFile(
+      path.join(root, "library/lib-strang-la/images.json"),
+      JSON.stringify([
+        {
+          url: "https://example.org/figure.png",
+          alt: "Eigenvectors",
+          license: "CC BY-NC 4.0",
+          credit: "Teacher",
+        },
+      ]),
+    );
+    await fs.mkdir(path.join(root, "linear-algebra/assets"), { recursive: true });
+    await fs.writeFile(
+      path.join(root, "linear-algebra/assets/eigen.svg"),
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M0 0L100 100"/></svg>',
+    );
+    await fs.writeFile(
+      path.join(root, note),
+      `---\nstatus: draft\n---\nAn eigenvector keeps its direction.\n${issue === "restrictive figure" ? "![Eigenvectors](https://example.org/figure.png)" : issue === "static substitution" ? "<!-- media:visual-1 -->\n![Eigenvectors](../assets/eigen.svg)" : ""}`,
+    );
+    await fs.writeFile(path.join(root, report), "## No issues found\n");
+    const tool = setNoteStatusTool({
+      root,
+      locks: new FileLocks(),
+      set: "linear-algebra",
+      notePath: "notes/04-eigenvalues.md",
+      reportPath: "log/checks/04-eigenvalues.md",
+      holder: "media",
+      onWrite: () => {},
+    });
+    const result = await tool.execute(
+      "media",
+      { path: "notes/04-eigenvalues.md", status: "checked" },
+      undefined,
+      undefined,
+      undefined as never,
+    );
+    expect(result.details).toMatchObject({
+      isError: true,
+      summary: expect.stringContaining(issue !== "restrictive figure" ? "Planned visual is missing" : "media warnings"),
+    });
+    expect(await fs.readFile(path.join(root, note), "utf8")).toContain("status: draft");
+  },
+);
 
 it("passes exact registered video URLs and evidence-based timestamp instructions to the drafter", async () => {
   const sourcePath = path.join(root, "library/lib-strang-la/source.md");

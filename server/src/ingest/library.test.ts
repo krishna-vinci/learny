@@ -225,6 +225,7 @@ it("stores discovered Firecrawl Markdown images with absolute URLs and nearby he
         url: image.url,
         alt: image.alt,
         caption: image.alt,
+        downloadError: "fake unavailable image",
         section: image.nearHeading,
         credit: "Gilbert Strang, https://example.org/page (reuse license unknown; redraw)",
       })),

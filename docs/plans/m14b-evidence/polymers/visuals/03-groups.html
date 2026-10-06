@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Compare functional groups</title>
+<script type="application/json" id="studium-visual">{"libs":[],"aspect":"9:7","poster":"03-groups.svg"}</script>
+</head><body><script>
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent) {
+  const node = document.createElementNS(NS, tag);
+  for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, String(value));
+  if (parent) parent.append(node);
+  return node;
+}
+function label(svg, value, x, y, width, height, color, font) {
+  const node = el("text", {fill: color, "font-family": font}, svg);
+  el("title", {}, node).textContent = value;
+  let size = 18, lines = [];
+  const measure = word => { node.setAttribute("font-size", size); node.append(document.createTextNode(word)); const length = node.getComputedTextLength(); node.lastChild.remove(); return length; };
+  for (; size >= 12; size--) {
+    lines = [""];
+    for (const word of String(value).split(/\s+/)) {
+      const pieces = measure(word) > width ? [...word] : [word];
+      for (const piece of pieces) {
+        const gap = pieces.length === 1 && lines[lines.length - 1] ? " " : "";
+        const next = lines[lines.length - 1] + gap + piece;
+        if (measure(next) <= width) lines[lines.length - 1] = next;
+        else lines.push(piece);
+      }
+    }
+    if (lines.length * (size + 4) <= height) break;
+  }
+  size = Math.max(12, size);
+  const maxLines = Math.max(1, Math.floor(height / (size + 4)));
+  if (lines.length > maxLines) {
+    lines = lines.slice(0, maxLines);
+    let last = lines[maxLines - 1];
+    while (last && measure(last + "…") > width) last = last.slice(0, -1);
+    lines[maxLines - 1] = last + "…";
+  }
+  node.setAttribute("font-size", size);
+  lines.forEach((line, i) => el("tspan", {x, y: y + size + i * (size + 4)}, node).textContent = line);
+  return node;
+}
+/* FILL: functional-group examples and short comparison labels. Geometry adapted from the labelled-diagram template because repeat-unit boxes cannot show these patterns. */
+const examples = [
+ {name:"Alkene", motif:"CH₂=CH₂", other:1, reason:"C=C is an alkene; an O–H bond alone is not a carbon–carbon double bond."},
+ {name:"Alcohol", motif:"CH₂–OH", other:2, reason:"Alcohol: OH on a non-carbonyl carbon. Acid: OH directly on the C=O carbon."},
+ {name:"Carboxylic acid", motif:"C(=O)–OH", other:4, reason:"Acid ends in OH; ester continues from O to a carbon-containing R′ group."},
+ {name:"Amine", motif:"CH₂–NH₂", other:5, reason:"Amine: N is not directly bonded to C=O. Amide: N touches the carbonyl carbon."},
+ {name:"Ester", motif:"C(=O)–O–R′", other:2, reason:"Compare O–R′ with O–H. Both include C=O; only the acid has OH here."},
+ {name:"Amide", motif:"C(=O)–NH₂", other:3, reason:"Follow the bond from N: directly to the carbonyl carbon means amide, not amine."}
+];
+const svg = el("svg", {viewBox:"0 0 360 280",role:"img","aria-label":"Select and compare functional groups"});
+svg.style.width = "100%"; svg.style.height = "100%";
+let count = 1;
+function draw({theme}) {
+ svg.replaceChildren();
+ const fg=theme.fg ?? "#292524", bg=theme.bg ?? "#fafaf9", muted=theme.muted ?? "#57534e", font=theme.font ?? "system-ui, sans-serif";
+ const colors=studium.palette;
+ const selected=examples[count-1], comparison=examples[selected.other];
+ label(svg,"Select a group; compare its neighbors",16,8,328,48,fg,font);
+ [selected,comparison].forEach((group,i)=>{
+   const y=62+i*73;
+   el("rect",{x:16,y,width:328,height:65,rx:12,fill:bg,stroke:colors[0],"stroke-width":2},svg);
+   label(svg,group.name,26,y+3,302,25,fg,font);
+   const prefix=group.name==="Alkene"?"":"R–";
+   label(svg,prefix,26,y+30,35,27,muted,font);
+   label(svg,group.motif,prefix?65:26,y+30,prefix?268:302,27,colors[0],font);
+ });
+ label(svg,selected.reason,16,211,328,61,fg,font);
+}
+document.addEventListener("DOMContentLoaded",()=>{
+ document.getElementById("studium-stage").append(svg);
+ studium.mount({draw});
+ studium.slider({label:"Group: 1 alkene · 2 alcohol · 3 acid · 4 amine · 5 ester · 6 amide",min:1,max:6,value:count,step:1,onChange:value=>{count=value;studium.go(studium.scene);}});
+});
+</script></body></html>

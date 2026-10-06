@@ -5,7 +5,7 @@ import { cleanMarkdown } from "./clean.js";
 import { figureLicense } from "./figures.js";
 import { firecrawlScrape } from "./firecrawl.js";
 import { preserveTex, structureRules } from "./html-structure.js";
-import { collectImages, type SourceImage } from "./images.js";
+import { collectHtmlImages, collectImages, type SourceImage } from "./images.js";
 import { politeFetch } from "./polite-fetch.js";
 import { MIN_PARSE_QUALITY, scoreParseQuality } from "./quality.js";
 import { decodeBody, SAFE_FETCH_MAX_BYTES } from "./safe-fetch.js";
@@ -66,24 +66,20 @@ export function htmlToMarkdown(html: string, url?: string): MarkdownConversion {
     url && !/(?:^|\.)wikipedia\.org$/.test(new URL(url).hostname)
       ? (libreTextsLicense(html, url) ?? figureLicense(licenseLinks.join(" ")))
       : undefined;
+  const htmlImages = url ? collectHtmlImages(html, url) : [];
   const captions = new Map<string, string>();
   const licenses = new Map<string, string>();
   for (const figure of document.querySelectorAll("figure")) {
     const caption = figure.querySelector("figcaption")?.textContent?.trim();
-    const src = figure.querySelector("img")?.getAttribute("src");
-    if (src && url) {
-      try {
-        const imageUrl = new URL(src, url).href;
-        if (caption) captions.set(imageUrl, caption);
-        const license = /all rights reserved/i.test(caption ?? "")
-          ? "all rights reserved"
-          : figureLicense(
-              `${caption ?? ""} ${[...figure.querySelectorAll("a")].map((a) => a.getAttribute("href")).join(" ")}`,
-            );
-        if (license) licenses.set(imageUrl, license);
-      } catch {
-        /* Ignore invalid image URLs. */
-      }
+    if (!url) continue;
+    const license = /all rights reserved/i.test(caption ?? "")
+      ? "all rights reserved"
+      : figureLicense(
+          `${caption ?? ""} ${[...figure.querySelectorAll("a")].map((a) => a.getAttribute("href")).join(" ")}`,
+        );
+    for (const image of collectHtmlImages(figure.outerHTML, url)) {
+      if (caption) captions.set(image.url, caption);
+      if (license) licenses.set(image.url, license);
     }
   }
   const math = preserveTex(document);
@@ -107,14 +103,16 @@ export function htmlToMarkdown(html: string, url?: string): MarkdownConversion {
     byline,
     markdown: cleanMarkdown(withTitle),
     images: url
-      ? collectImages(withTitle, url).map((image) => ({
-          ...image,
-          ...(licenses.has(image.url) || pageLicense ? { license: licenses.get(image.url) ?? pageLicense } : {}),
-          ...(captions.has(image.url) ? { caption: captions.get(image.url) } : {}),
-          ...(licenses.has(image.url) && captions.has(image.url)
-            ? { credit: `${captions.get(image.url)}, ${url}` }
-            : {}),
-        }))
+      ? [...new Map([...collectImages(withTitle, url), ...htmlImages].map((image) => [image.url, image])).values()]
+          .slice(0, 50)
+          .map((image) => ({
+            ...image,
+            ...(licenses.has(image.url) || pageLicense ? { license: licenses.get(image.url) ?? pageLicense } : {}),
+            ...(captions.has(image.url) ? { caption: captions.get(image.url) } : {}),
+            ...(licenses.has(image.url) && captions.has(image.url)
+              ? { credit: `${captions.get(image.url)}, ${url}` }
+              : {}),
+          }))
       : [],
   };
 }
@@ -152,7 +150,14 @@ export async function extractWeb(url: string, options: WebExtractOptions = {}): 
         title: scraped.title,
         authors: [],
         markdown: cleanMarkdown(rich),
-        images: converted?.images ?? collectImages(rich, scraped.url ?? url),
+        images: [
+          ...new Map(
+            [...collectImages(rich, scraped.url ?? url), ...(converted?.images ?? [])].map((image) => [
+              image.url,
+              image,
+            ]),
+          ).values(),
+        ].slice(0, 50),
         pages: null,
         parseTier: "firecrawl",
         warning: null,
