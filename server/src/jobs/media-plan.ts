@@ -8,7 +8,13 @@ import { readSourceFigures } from "../ingest/figures.js";
 import { readSource } from "../ingest/library.js";
 import { configuredSearch, isWatchVideo } from "../search/backends.js";
 import { rankPassages, sourcePassages } from "../search/passages.js";
-import { type CurriculumChapter, parseCurriculum } from "../tree/curriculum.js";
+import {
+  type CurriculumChapter,
+  interactiveIntent,
+  interactivePlanIssues,
+  noInteractiveReason,
+  parseCurriculum,
+} from "../tree/curriculum.js";
 import { readText } from "../tree/edit.js";
 import { type MediaBrief, readMediaBrief, saveMediaBrief } from "../tree/media-brief.js";
 import type { DraftJobDeps } from "./draft-job.js";
@@ -23,6 +29,8 @@ export async function refineMediaBrief(
   sources: string[],
   ctx: JobContext,
 ): Promise<MediaBrief> {
+  const issues = interactivePlanIssues(chapter.visuals);
+  if (issues.length) throw new Error(`${chapter.title}: ${issues.join("; ")}`);
   const plan = await readText(deps.root, `${set}/PLAN.md`);
   const prior = await readMediaBrief(deps.root, set, chapter);
   const passages = await sourcePassages(deps.root, sources);
@@ -36,6 +44,11 @@ export async function refineMediaBrief(
         figures.push({ ...figure, sourceId, ...(figure.path ? { path: `library/${sourceId}/${figure.path}` } : {}) });
     }
   }
+  const figureScore = (figure: MediaBrief["figures"][number], words = terms) =>
+    [...words].filter((word) => `${figure.caption} ${figure.alt} ${figure.section}`.toLowerCase().includes(word))
+      .length;
+  // A downloaded, relevant figure is more useful than a host-blocked candidate.
+  figures.sort((a, b) => Number(!!b.path) - Number(!!a.path) || figureScore(b) - figureScore(a));
   const tables = rankPassages(
     passages.filter((p) => /^\s*\|.*\|\s*$/m.test(p.text)),
     query,
@@ -47,7 +60,30 @@ export async function refineMediaBrief(
     chapter: chapter.title,
     scope: chapter.scope,
     refinedAt: new Date().toISOString(),
-    visuals: chapter.visuals.slice(0, 20).map((intent, i) => ({ id: `visual-${i + 1}`, intent })),
+    ...(noInteractiveReason(chapter.visuals) ? { noInteractiveReason: noInteractiveReason(chapter.visuals) } : {}),
+    visuals: chapter.visuals
+      .filter((v) => !/^no interactive visual:/i.test(v))
+      .slice(0, 20)
+      .map((intent, i) => ({
+        id: `visual-${i + 1}`,
+        intent,
+        ...(interactiveIntent(intent) ?? {}),
+        evidence: rankPassages(passages, `${chapter.title} ${intent}`)
+          .filter((p) => p.score > 0)
+          .slice(0, 2)
+          .map((p) => {
+            const visualTerms = new Set(intent.toLowerCase().match(/[\p{L}\p{N}]{4,}/gu) ?? []);
+            const figure = figures
+              .filter((f) => f.sourceId === p.source && f.path && figureScore(f, visualTerms) > 0)
+              .sort((a, b) => figureScore(b, visualTerms) - figureScore(a, visualTerms))[0];
+            return {
+              sourceId: p.source,
+              file: p.file,
+              anchor: p.anchor,
+              ...(figure?.path ? { figure: figure.path } : {}),
+            };
+          }),
+      })),
     figures: figures.slice(0, 24),
     tables,
     video: {
@@ -239,8 +275,9 @@ export async function refineMediaBrief(
       };
     }
   }
-  await saveMediaBrief(deps.root, deps.locks, set, chapter, brief);
-  return brief;
+  return saveMediaBrief(deps.root, deps.locks, set, chapter, brief, {
+    figures: figures.map((figure) => ({ ...figure, score: figureScore(figure) })),
+  });
 }
 
 export async function prepareSetMedia(

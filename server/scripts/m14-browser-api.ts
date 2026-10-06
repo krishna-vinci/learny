@@ -6,7 +6,7 @@ import { EventHub } from "../src/events.js";
 import { FileLocks } from "../src/tree/lock.js";
 
 const root = process.argv[2];
-if (!root?.startsWith("/tmp/studium-m14-")) throw new Error("Pass an M14 temporary tree");
+if (!root || !/^\/tmp\/studium-m14(?:b)?-/.test(root)) throw new Error("Pass an M14 temporary tree");
 const app = new Hono();
 app.get("/api/auth/status", (c) => c.json({ setupRequired: false, identityProviders: [] }));
 app.get("/api/me", (c) =>

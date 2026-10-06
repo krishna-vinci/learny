@@ -60,7 +60,9 @@ it("fails closed for wrong MIME, excessive dimensions, blocked hosts and cancell
     markdown: "Vector addition",
     images: [1, 2, 3].map((i) => ({ url: `https://example.org/${i}.png`, alt: "Vector addition", nearHeading: "" })),
   };
-  expect((await captureFigures(input)).files.size).toBe(0);
+  const failed = await captureFigures(input);
+  expect(failed.files.size).toBe(0);
+  expect(failed.figures[2]?.downloadError).toBe("private host");
   await expect(captureFigures({ ...input, signal: AbortSignal.abort() })).rejects.toThrow();
   for (const license of [undefined, "CC BY-NC 4.0", "CC BY-ND 4.0", "CC BY-NC-SA 4.0", "all rights reserved"])
     expect(reusableLicense(license)).toBe(false);

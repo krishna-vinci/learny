@@ -1,0 +1,28 @@
+{
+  "providers": {
+    "openai-codex": {
+      "requests": 29,
+      "catalogEstimateUsd": 0.6471948000000001,
+      "incrementalChargeEstimateUsd": 0,
+      "fresh": 151816,
+      "output": 18387,
+      "cacheRead": 1596928,
+      "cacheWrite": 0
+    },
+    "github-copilot": {
+      "requests": 15,
+      "catalogEstimateUsd": 0.024817655000000004,
+      "incrementalChargeEstimateUsd": 0,
+      "fresh": 45,
+      "output": 10440,
+      "cacheRead": 856878,
+      "cacheWrite": 88195
+    }
+  },
+  "exa": {
+    "requests": 0,
+    "newSpendUsd": 0,
+    "copiedMonthSpendUsd": 0.164,
+    "finalMonthSpendUsd": 0.164
+  }
+}

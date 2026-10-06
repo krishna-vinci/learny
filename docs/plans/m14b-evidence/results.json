@@ -1,0 +1,229 @@
+{
+  "root": "/tmp/studium-m14b-trial-SdNjCL/tree",
+  "refresh": [
+    {
+      "id": "lib-pressbooks-20-1-hydrocarbons-general",
+      "before": {
+        "candidates": 12,
+        "saved": 0
+      },
+      "after": {
+        "candidates": 12,
+        "saved": 0
+      },
+      "refresh": {
+        "sourceId": "lib-pressbooks-20-1-hydrocarbons-general",
+        "before": 100,
+        "after": 100,
+        "status": "refreshed",
+        "disappearedAnchors": []
+      },
+      "failures": [
+        {
+          "url": "https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId103-2.jpeg",
+          "reason": "HTTP 403 for https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId103-2.jpeg"
+        },
+        {
+          "url": "https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId28-13.jpeg",
+          "reason": "HTTP 403 for https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId28-13.jpeg"
+        },
+        {
+          "url": "https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId25-17.jpeg",
+          "reason": "HTTP 403 for https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId25-17.jpeg"
+        },
+        {
+          "url": "https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId60-3.jpeg",
+          "reason": "HTTP 403 for https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId60-3.jpeg"
+        },
+        {
+          "url": "https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId97-5.jpeg",
+          "reason": "HTTP 403 for https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId97-5.jpeg"
+        },
+        {
+          "url": "https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId115-3.jpeg",
+          "reason": "HTTP 403 for https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId115-3.jpeg"
+        },
+        {
+          "url": "https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId119.jpeg",
+          "reason": "HTTP 403 for https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId119.jpeg"
+        },
+        {
+          "url": "https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId125-1.jpeg",
+          "reason": "HTTP 403 for https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId125-1.jpeg"
+        },
+        {
+          "url": "https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId169.jpeg",
+          "reason": "HTTP 403 for https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId169.jpeg"
+        },
+        {
+          "url": "https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId117-3.jpeg",
+          "reason": "HTTP 403 for https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId117-3.jpeg"
+        },
+        {
+          "url": "https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId66-5.jpeg",
+          "reason": "HTTP 403 for https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId66-5.jpeg"
+        },
+        {
+          "url": "https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId69-5.jpeg",
+          "reason": "HTTP 403 for https://lmu.pressbooks.pub/app/uploads/sites/12/2024/05/rId69-5.jpeg"
+        }
+      ]
+    },
+    {
+      "id": "lib-pressbooks-8-2-drawing-and-interpreting",
+      "before": {
+        "candidates": 12,
+        "saved": 0
+      },
+      "after": {
+        "candidates": 12,
+        "saved": 0
+      },
+      "refresh": {
+        "sourceId": "lib-pressbooks-8-2-drawing-and-interpreting",
+        "before": 100,
+        "after": 100,
+        "status": "refreshed",
+        "disappearedAnchors": []
+      },
+      "failures": [
+        {
+          "url": "https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image059.png",
+          "reason": "HTTP 403 for https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image059.png"
+        },
+        {
+          "url": "https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image051.png",
+          "reason": "HTTP 403 for https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image051.png"
+        },
+        {
+          "url": "https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image049.png",
+          "reason": "HTTP 403 for https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image049.png"
+        },
+        {
+          "url": "https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/condensed_structures.png",
+          "reason": "HTTP 403 for https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/condensed_structures.png"
+        },
+        {
+          "url": "https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image053.png",
+          "reason": "HTTP 403 for https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image053.png"
+        },
+        {
+          "url": "https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image055.png",
+          "reason": "HTTP 403 for https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image055.png"
+        },
+        {
+          "url": "https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image047.png",
+          "reason": "HTTP 403 for https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image047.png"
+        },
+        {
+          "url": "https://rmit.pressbooks.pub/app/uploads/sites/67/2020/11/AdobeStock_308919427-2048x1540.jpeg",
+          "reason": "HTTP 403 for https://rmit.pressbooks.pub/app/uploads/sites/67/2020/11/AdobeStock_308919427-2048x1540.jpeg"
+        },
+        {
+          "url": "https://rmit.pressbooks.pub/app/uploads/sites/67/2020/11/AdobeStock_308919427-350x263.jpeg",
+          "reason": "HTTP 403 for https://rmit.pressbooks.pub/app/uploads/sites/67/2020/11/AdobeStock_308919427-350x263.jpeg"
+        },
+        {
+          "url": "https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image057.png",
+          "reason": "HTTP 403 for https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image057.png"
+        },
+        {
+          "url": "https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image045.png",
+          "reason": "HTTP 403 for https://rmit.pressbooks.pub/app/uploads/sites/67/2023/09/image045.png"
+        },
+        {
+          "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/Propane_Structural_Formula_B_V1.svg/226px-Propane_Structural_Formula_B_V1.svg.png?20180710094346",
+          "reason": "HTTP 400 for https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/Propane_Structural_Formula_B_V1.svg/226px-Propane_Structural_Formula_B_V1.svg.png?20180710094346"
+        }
+      ]
+    },
+    {
+      "id": "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+      "before": {
+        "candidates": 0,
+        "saved": 0
+      },
+      "after": {
+        "candidates": 12,
+        "saved": 12
+      },
+      "refresh": {
+        "sourceId": "lib-openstax-21-1-hydrocarbons-chemistry-atoms",
+        "before": 100,
+        "after": 100,
+        "status": "refreshed",
+        "disappearedAnchors": []
+      },
+      "failures": []
+    },
+    {
+      "id": "lib-chemguide-how-to-draw-organic-molecules",
+      "before": {
+        "candidates": 0,
+        "saved": 0
+      },
+      "after": {
+        "candidates": 12,
+        "saved": 10
+      },
+      "refresh": {
+        "sourceId": "lib-chemguide-how-to-draw-organic-molecules",
+        "before": 95,
+        "after": 95,
+        "status": "refreshed",
+        "disappearedAnchors": []
+      },
+      "failures": [
+        {
+          "url": "https://chemguide.co.uk/basicorg/conventions/padding.GIF",
+          "reason": "Invalid figure size or MIME"
+        },
+        {
+          "url": "https://chemguide.co.uk/basicorg/conventions/burn.GIF",
+          "reason": "Invalid figure size or MIME"
+        }
+      ]
+    }
+  ],
+  "jobs": [
+    {
+      "id": "a9ac9bac-4505-4139-a43f-040f1760e4d4",
+      "kind": "draft-chapter",
+      "set": "polymers",
+      "title": "M14b chapter 03 redraft",
+      "status": "done",
+      "progress": "Chapter checked",
+      "startedAt": "2026-10-06T06:33:22.110Z",
+      "finishedAt": "2026-10-06T06:39:37.516Z",
+      "usage": {
+        "input": 71507,
+        "output": 18777,
+        "cacheRead": 1400238,
+        "cacheWrite": 88195,
+        "costUsd": 0.305447655
+      },
+      "billing": "subscription",
+      "result": {
+        "notePath": "notes/03-carbon-structures-and-reactive-groups.md",
+        "commitSha": "6b90b314661af2b2f4ee97e38eebacf4d543ae6d"
+      }
+    }
+  ],
+  "usage": {
+    "calls": 44,
+    "usage": {
+      "openai-codex": {
+        "fresh": 151816,
+        "output": 18387,
+        "cacheRead": 1596928,
+        "cacheWrite": 0
+      },
+      "github-copilot": {
+        "fresh": 45,
+        "output": 10440,
+        "cacheRead": 856878,
+        "cacheWrite": 88195
+      }
+    }
+  }
+}

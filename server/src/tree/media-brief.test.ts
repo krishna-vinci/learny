@@ -6,6 +6,8 @@ import { parseCurriculum } from "./curriculum.js";
 import { ensureRepo } from "./git.js";
 import { FileLocks } from "./lock.js";
 import {
+  leanMediaBrief,
+  MAX_MEDIA_BRIEF_BYTES,
   type MediaBrief,
   mediaPlanBlockers,
   noteMediaBrief,
@@ -15,12 +17,15 @@ import {
 } from "./media-brief.js";
 
 let root: string;
-const chapter = parseCurriculum("- [ ] 01 — Vectors\n  Visual: figure — Addition\n  Video: Geometric addition\n")[0];
+const chapter = parseCurriculum(
+  "- [ ] 01 — Vectors\n  Visual: figure — Addition\n  Visual: no interactive visual: A textual source inventory has no useful manipulations.\n  Video: Geometric addition\n",
+)[0];
 if (!chapter) throw new Error("Missing chapter fixture");
 const brief: MediaBrief = {
   chapter: "Vectors",
   scope: "",
   refinedAt: "2026-10-05",
+  noInteractiveReason: "A textual source inventory has no useful manipulations.",
   visuals: [{ id: "visual-1", intent: "figure — Addition" }],
   figures: [],
   tables: [],
@@ -72,7 +77,7 @@ it("retains curriculum visual requirements when the saved brief is missing or st
   await fs.mkdir(path.join(root, "math"));
   await fs.writeFile(
     path.join(root, "math/curriculum.md"),
-    "- [ ] 01 — Vectors\n  Visual: figure — Addition\n  Video: Geometric addition\n",
+    "- [ ] 01 — Vectors\n  Visual: figure — Addition\n  Visual: no interactive visual: A textual source inventory has no useful manipulations.\n  Video: Geometric addition\n",
   );
   const notePath = "math/notes/01-vectors.md";
   expect(await mediaPlanBlockers(root, notePath, "# Vectors", await noteMediaBrief(root, notePath))).toHaveLength(1);
@@ -84,10 +89,132 @@ it("ignores old notes with reused numbers and loads media for a renamed note wit
   await fs.mkdir(path.join(root, "math/notes"), { recursive: true });
   await fs.writeFile(
     path.join(root, "math/curriculum.md"),
-    "- [ ] 01 — Vectors\n  Visual: figure — Addition\n  Video: Geometric addition\n",
+    "- [ ] 01 — Vectors\n  Visual: figure — Addition\n  Visual: no interactive visual: A textual source inventory has no useful manipulations.\n  Video: Geometric addition\n",
   );
   await fs.writeFile(path.join(root, "math/notes/01-old.md"), "---\ntitle: Old lesson\n---\n");
   await fs.writeFile(path.join(root, "math/notes/03-renamed.md"), "---\ntitle: New title\nchapter: vectors\n---\n");
   expect(await noteMediaBrief(root, "math/notes/01-old.md")).toBeNull();
   expect((await noteMediaBrief(root, "math/notes/03-renamed.md"))?.visuals).toEqual(brief.visuals);
+});
+
+it("blocks static substitutions for interactive concepts but accepts a real Visuals-tab attachment", async () => {
+  const spec = {
+    ...brief,
+    noInteractiveReason: undefined,
+    visuals: [
+      {
+        id: "visual-1",
+        intent: "step-through widget — Bond lines; step through electron pairs",
+        form: "step-through widget",
+        concept: "Bond lines; step through electron pairs",
+      },
+    ],
+  };
+  const note = "math/notes/01-vectors.md";
+  await fs.mkdir(path.join(root, "math/assets"), { recursive: true });
+  await fs.mkdir(path.join(root, "math/visuals"), { recursive: true });
+  await fs.writeFile(path.join(root, "math/assets/static.svg"), "<svg/>");
+  await fs.writeFile(
+    path.join(root, "math/visuals/steps.json"),
+    JSON.stringify({
+      type: "step-through",
+      title: "Moves",
+      steps: [
+        { caption: "Start", items: [1, 2] },
+        { caption: "End", items: [2, 1] },
+      ],
+    }),
+  );
+  expect(
+    await mediaPlanBlockers(root, note, "<!-- media:visual-1 -->\n![Bonds](../assets/static.svg)", spec),
+  ).toHaveLength(1);
+  expect(
+    await mediaPlanBlockers(
+      root,
+      note,
+      '<!-- media:visual-1 -->\n::visual{src="../visuals/steps.json" title="Bond steps"}',
+      spec,
+    ),
+  ).toEqual([]);
+  expect(
+    await mediaPlanBlockers(root, note, '<!-- media:visual-1 -->\n::artifact{src="../artifacts/steps.html"}', spec),
+  ).toHaveLength(1);
+  expect(
+    await mediaPlanBlockers(
+      root,
+      note,
+      "<!-- media:visual-1 unavailable: the source contradicts the required mechanism -->\n*The source does not support this mechanism.*",
+      spec,
+    ),
+  ).toEqual([]);
+  await fs.writeFile(path.join(root, "math/visuals/steps.json"), "{}");
+  expect(
+    await mediaPlanBlockers(
+      root,
+      note,
+      '<!-- media:visual-1 -->\n::visual{src="../visuals/steps.json" title="Bond steps"}',
+      spec,
+    ),
+  ).toHaveLength(1);
+});
+it("caps large legacy evidence in prompts and new files while retaining a full evidence sidecar", async () => {
+  const bulky = {
+    ...brief,
+    tables: Array.from({ length: 8 }, () => ({
+      sourceId: "lib-data",
+      file: "parsed.md",
+      anchor: "data",
+      text: "測定 table evidence ".repeat(2000),
+    })),
+  };
+  const lean = leanMediaBrief(bulky);
+  expect(Buffer.byteLength(JSON.stringify(lean))).toBeLessThanOrEqual(MAX_MEDIA_BRIEF_BYTES);
+  const saved = await saveMediaBrief(root, new FileLocks(), "math", chapter, bulky);
+  const file = path.join(root, "math/media/01-vectors.md");
+  expect((await fs.stat(file)).size).toBeLessThanOrEqual(MAX_MEDIA_BRIEF_BYTES);
+  expect(await readMediaBrief(root, "math", chapter)).toEqual(saved);
+  expect(JSON.parse(await fs.readFile(file.replace(/\.md$/, ".evidence.json"), "utf8")).tables[0].text).toBe(
+    bulky.tables[0]?.text,
+  );
+  // Pre-M14b frontmatter is still accepted and bounded without rewriting it.
+  await fs.writeFile(
+    file,
+    `---\n${JSON.stringify({ ...bulky, tables: [{ ...bulky.tables[0], text: "x".repeat(45000) }] })}\n---\n`,
+  );
+  expect(Buffer.byteLength(JSON.stringify(await readMediaBrief(root, "math", chapter)))).toBeLessThanOrEqual(
+    MAX_MEDIA_BRIEF_BYTES,
+  );
+});
+
+it("requires interactive specs or an explicit exception on new brief writes and refuses duplicate or nested attachments", async () => {
+  await expect(
+    saveMediaBrief(root, new FileLocks(), "math", chapter, { ...brief, noInteractiveReason: undefined }),
+  ).rejects.toThrow("interactive");
+  const spec = {
+    ...brief,
+    noInteractiveReason: undefined,
+    visuals: [
+      { id: "visual-1", intent: "step-through widget — Addition; predict the next move" },
+      { id: "visual-2", intent: "step-through widget — Subtraction; predict the reverse move" },
+    ],
+  };
+  await fs.mkdir(path.join(root, "math/visuals"), { recursive: true });
+  await fs.writeFile(
+    path.join(root, "math/visuals/shared.json"),
+    JSON.stringify({
+      type: "step-through",
+      title: "Moves",
+      steps: [
+        { caption: "Start", items: [1, 2] },
+        { caption: "End", items: [2, 1] },
+      ],
+    }),
+  );
+  const declaration = '::visual{src="../visuals/shared.json" title="Moves"}';
+  const duplicate = `<!-- media:visual-1 -->\n${declaration}\n<!-- media:visual-2 -->\n${declaration}`;
+  expect(await mediaPlanBlockers(root, "math/notes/01-vectors.md", duplicate, spec)).toContain(
+    "Each planned interactive concept needs a distinct Visuals-tab attachment",
+  );
+  const nested = `:::example\n<!-- media:visual-1 -->\n${declaration}\n:::`;
+  expect((await realisedVisuals(root, "math/notes/01-vectors.md", nested, spec.visuals))[0]?.made).toBe(false);
 });

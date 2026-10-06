@@ -75,3 +75,28 @@ export function chapterExists(chapter: CurriculumChapter, notes: readonly (Chapt
     return filenameSlug === titleSlug || (note.title !== undefined && slugify(note.title, 40) === titleSlug);
   });
 }
+
+/** Forms backed by the D32 catalog; static charts/figures cannot meet this contract. */
+export function interactiveIntent(intent: string): { form: string; concept: string } | null {
+  const match =
+    /^(function-plot(?: widget)?|matrix-transform(?: widget)?|step-through(?: widget)?|timeline(?: widget)?|(?:svg |p5 |d3 )?sketch|(?:svg )?story)\s*[—–]\s*(\S.*)$/i.exec(
+      intent.trim(),
+    );
+  return match?.[1] && match[2] ? { form: match[1].toLowerCase(), concept: match[2].trim() } : null;
+}
+
+export function noInteractiveReason(visuals: readonly string[]): string | undefined {
+  return visuals.map((v) => /^no interactive visual:\s*(.{12,})$/i.exec(v.trim())?.[1]?.trim()).find(Boolean);
+}
+
+export function interactivePlanIssues(visuals: readonly string[]): string[] {
+  const count = visuals.filter((v) => interactiveIntent(v)).length;
+  if (count > 2) return ["Plan at most two interactive visuals per chapter"];
+  if (!count && !noInteractiveReason(visuals))
+    return [
+      "Plan at least one interactive Visual intent with form and concept, or no interactive visual: <concrete reason>",
+    ];
+  if (count && noInteractiveReason(visuals))
+    return ["Interactive intents conflict with the no interactive visual reason"];
+  return [];
+}

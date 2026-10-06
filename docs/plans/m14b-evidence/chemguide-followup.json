@@ -1,0 +1,13 @@
+{
+  "refresh": {
+    "sourceId": "lib-chemguide-how-to-draw-organic-molecules",
+    "before": 95,
+    "after": 95,
+    "status": "refreshed",
+    "disappearedAnchors": []
+  },
+  "commitSha": "e0231f11a4e743229cd99cbaf88d0e8311746b13",
+  "figures": 12,
+  "saved": 12,
+  "failures": []
+}

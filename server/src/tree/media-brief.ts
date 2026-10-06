@@ -2,16 +2,26 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { ChapterMedia } from "@studium/shared";
 import { parseFrontmatter } from "@studium/shared";
-import { mediaAttributes, resolveNoteMedia } from "@studium/shared/media";
+import { chapterVisuals, mediaAttributes, resolveNoteMedia } from "@studium/shared/media";
+import { parseWidget } from "@studium/shared/visuals";
+import { parseSketchHeader } from "@studium/shared/visuals/sketch";
 import { stringify } from "yaml";
 import { z } from "zod";
 import { slugify } from "../ingest/ids.js";
-import { type CurriculumChapter, chapterExists, parseCurriculum } from "./curriculum.js";
+import {
+  type CurriculumChapter,
+  chapterExists,
+  interactiveIntent,
+  interactivePlanIssues,
+  noInteractiveReason,
+  parseCurriculum,
+} from "./curriculum.js";
 import { readText, writeTextLocked } from "./edit.js";
 import { commitPaths } from "./git.js";
 import type { FileLocks } from "./lock.js";
 import { canonicalRel, resolveInRoot } from "./paths.js";
 import { readSetFile } from "./read.js";
+import { lintVisualHtml } from "./visual-lint.js";
 
 const Figure = z.object({
   sourceId: z.string(),
@@ -28,7 +38,23 @@ export const MediaBriefSchema = z.object({
   chapter: z.string(),
   scope: z.string(),
   refinedAt: z.string(),
-  visuals: z.array(z.object({ id: z.string().regex(/^visual-\d+$/), intent: z.string() })).max(20),
+  noInteractiveReason: z.string().optional(),
+  visuals: z
+    .array(
+      z.object({
+        id: z.string().regex(/^visual-\d+$/),
+        intent: z.string(),
+        form: z.string().optional(),
+        concept: z.string().optional(),
+        evidence: z
+          .array(
+            z.object({ sourceId: z.string(), file: z.string(), anchor: z.string(), figure: z.string().optional() }),
+          )
+          .max(2)
+          .optional(),
+      }),
+    )
+    .max(20),
   figures: z.array(Figure).max(24),
   tables: z.array(Table).max(8),
   video: z.object({
@@ -59,35 +85,72 @@ export async function readMediaBrief(
     const text = await readText(root, rel);
     if (Buffer.byteLength(text) > 100000) return null;
     const parsed = MediaBriefSchema.safeParse(parseFrontmatter(text).frontmatter);
-    return parsed.success && parsed.data.chapter === chapter.title ? parsed.data : null;
+    return parsed.success && parsed.data.chapter === chapter.title ? leanMediaBrief(parsed.data) : null;
   } catch (error) {
     if (error instanceof Error && "code" in error && error.code === "not_found") return null;
     throw error;
   }
 }
+export const MAX_MEDIA_BRIEF_BYTES = 5120;
+function renderBrief(brief: MediaBrief): string {
+  return `---\n${stringify(brief, { lineWidth: 0 })}---\n\n# Chapter media\n`;
+}
+
+/** Old briefs remain readable; only the bounded selection enters agent prompts. */
+export function leanMediaBrief(brief: MediaBrief): MediaBrief {
+  const lean = MediaBriefSchema.parse(brief);
+  lean.figures = lean.figures.slice(0, 6).map((f) => ({
+    ...f,
+    alt: f.alt.slice(0, 160),
+    caption: f.caption.slice(0, 300),
+    section: f.section.slice(0, 120),
+    credit: f.credit.slice(0, 300),
+  }));
+  lean.tables = lean.tables.slice(0, 2).map((t) => ({ ...t, text: t.text.slice(0, 400) }));
+  if (lean.video.reason) lean.video.reason = lean.video.reason.slice(0, 300);
+  const fits = () =>
+    Math.max(Buffer.byteLength(renderBrief(lean)), Buffer.byteLength(JSON.stringify(lean))) <= MAX_MEDIA_BRIEF_BYTES;
+  while (!fits() && lean.tables.length) lean.tables.pop();
+  while (!fits() && lean.figures.length) lean.figures.pop();
+  if (!fits()) throw new Error("Visual specifications exceed the 5 KB media brief budget; shorten the plan intents");
+  return lean;
+}
+
 export async function saveMediaBrief(
   root: string,
   locks: FileLocks,
   set: string,
   chapter: CurriculumChapter,
   brief: MediaBrief,
-): Promise<void> {
+  candidates?: unknown,
+): Promise<MediaBrief> {
   const rel = mediaBriefPath(set, chapter);
+  const evidenceRel = rel.replace(/\.md$/, ".evidence.json");
   const holder = `outliner:media:${crypto.randomUUID()}`;
+  const issues = interactivePlanIssues([
+    ...brief.visuals.map((v) => v.intent),
+    ...(brief.noInteractiveReason ? [`no interactive visual: ${brief.noInteractiveReason}`] : []),
+  ]);
+  if (issues.length) throw new Error(issues.join("; "));
+  const valid = leanMediaBrief(brief);
   await locks.withLock(rel, holder, async () => {
-    if (canonicalRel(root, rel) !== rel) throw new Error("Media brief paths may not be symlink aliases");
-    const valid = MediaBriefSchema.parse(brief);
+    for (const p of [rel, evidenceRel])
+      if (canonicalRel(root, p) !== p) throw new Error("Media brief paths may not be symlink aliases");
     await fs.mkdir(path.dirname(resolveInRoot(root, rel)), { recursive: true });
-    await writeTextLocked(
-      root,
-      locks,
-      holder,
-      rel,
-      `---\n${stringify(valid, { lineWidth: 0 })}---\n\n# Media for ${chapter.title}\n\n${valid.visuals.map((v) => `- ${v.id}: ${v.intent}`).join("\n")}\n\n${valid.video.status === "chosen" ? `Video: ${valid.video.title} — ${valid.video.url}${valid.video.moment ? ` (${valid.video.moment})` : ""}` : `No suitable video: ${valid.video.reason}`}\n`,
-      (p) => p === rel,
-    );
-    await commitPaths(root, [rel], `outliner: media for ${chapter.title}`, "outliner");
+    await locks.withLock(evidenceRel, holder, async () => {
+      await writeTextLocked(
+        root,
+        locks,
+        holder,
+        evidenceRel,
+        `${JSON.stringify({ ...MediaBriefSchema.parse(brief), ...(candidates ? { candidates } : {}) }, null, 2)}\n`,
+        (p) => p === evidenceRel,
+      );
+    });
+    await writeTextLocked(root, locks, holder, rel, renderBrief(valid), (p) => p === rel);
+    await commitPaths(root, [rel, evidenceRel], `outliner: media for ${chapter.title}`, "outliner");
   });
+  return valid;
 }
 
 /** Markers associate a planned concept with an actual figure, chart or interactive file. */
@@ -114,6 +177,7 @@ export async function realisedVisuals(
     }
     lines.push(line);
   }
+  const attachments = new Set(chapterVisuals(parseFrontmatter(text).body, notePath).visuals.map((v) => v.src));
   return Promise.all(
     visuals.map(async (visual) => {
       const index = lines.findIndex((line) => line.trim() === `<!-- media:${visual.id} -->`);
@@ -143,6 +207,29 @@ export async function realisedVisuals(
             (await fs.stat(resolveInRoot(root, rel)).catch(() => null))?.isFile() === true;
         }
       }
+      if (
+        (visual.form && interactiveIntent(`${visual.form} — ${visual.concept || visual.intent}`)) ||
+        interactiveIntent(visual.intent)
+      ) {
+        const media = src ? resolveNoteMedia(notePath, src, "visual") : null;
+        made = made && following.startsWith("::visual{") && !!media && attachments.has(`${media.set}/${media.path}`);
+        if (made && media) {
+          try {
+            const content = await readText(root, `${media.set}/${media.path}`);
+            if (media.path.endsWith(".json")) {
+              const widget = parseWidget(content);
+              if (widget.type === "step-through" && widget.steps.length < 2) made = false;
+              if (widget.type === "function-plot" && !widget.params.length && (widget.story?.scenes.length ?? 0) < 2)
+                made = false;
+            } else {
+              parseSketchHeader(content);
+              if (lintVisualHtml(content).errors.length) made = false;
+            }
+          } catch {
+            made = false;
+          }
+        }
+      }
       const reasonLine = lines.find((line) => line.startsWith(`<!-- media:${visual.id} unavailable: `));
       const reasonIndex = reasonLine ? lines.indexOf(reasonLine) : -1;
       const explanation =
@@ -160,7 +247,7 @@ export async function realisedVisuals(
         intent: visual.intent,
         made,
         ...(made && src ? { path: src } : {}),
-        ...(reason && /^\*[^*]+\*|^_[^_]+_/.test(explanation)
+        ...(reason && reason.length >= 12 && /^\*[^*]+\*|^_[^_]+_/.test(explanation)
           ? { reason: explanation.replace(/^([*_])([^*_]+)\1/, "$2") }
           : {}),
       };
@@ -175,9 +262,21 @@ export async function mediaPlanBlockers(
 ): Promise<string[]> {
   if (!brief) return [];
   const visuals = await realisedVisuals(root, notePath, text, brief.visuals);
-  return visuals
-    .filter((v) => !v.made && !v.reason)
-    .map((v) => `Planned visual is missing without an explanation: ${v.intent}`);
+  const issues = interactivePlanIssues([
+    ...brief.visuals.map((v) => v.intent),
+    ...(brief.noInteractiveReason ? [`no interactive visual: ${brief.noInteractiveReason}`] : []),
+  ]);
+  const interactivePaths = visuals
+    .filter((v, i) => v.made && interactiveIntent(brief.visuals[i]?.intent ?? ""))
+    .map((v) => v.path);
+  if (new Set(interactivePaths).size !== interactivePaths.length)
+    issues.push("Each planned interactive concept needs a distinct Visuals-tab attachment");
+  return [
+    ...issues,
+    ...visuals
+      .filter((v) => !v.made && !v.reason)
+      .map((v) => `Planned visual is missing without an explanation: ${v.intent}`),
+  ];
 }
 
 export async function noteMediaBrief(root: string, notePath: string): Promise<MediaBrief | null> {
@@ -205,7 +304,9 @@ export async function noteMediaBrief(root: string, notePath: string): Promise<Me
   if (
     saved &&
     saved.scope === chapter.scope &&
-    JSON.stringify(saved.visuals.map((v) => v.intent)) === JSON.stringify(chapter.visuals)
+    JSON.stringify(saved.visuals.map((v) => v.intent)) ===
+      JSON.stringify(chapter.visuals.filter((v) => !/^no interactive visual:/i.test(v))) &&
+    saved.noInteractiveReason === noInteractiveReason(chapter.visuals)
   )
     return saved;
   if (!chapter.visuals.length) return null;
@@ -214,7 +315,10 @@ export async function noteMediaBrief(root: string, notePath: string): Promise<Me
     chapter: chapter.title,
     scope: chapter.scope,
     refinedAt: "",
-    visuals: chapter.visuals.map((intent, i) => ({ id: `visual-${i + 1}`, intent })),
+    ...(noInteractiveReason(chapter.visuals) ? { noInteractiveReason: noInteractiveReason(chapter.visuals) } : {}),
+    visuals: chapter.visuals
+      .filter((v) => !/^no interactive visual:/i.test(v))
+      .map((intent, i) => ({ id: `visual-${i + 1}`, intent, ...(interactiveIntent(intent) ?? {}) })),
     figures: [],
     tables: [],
     video: { intent: chapter.video, status: "none", reason: "Media sources have not been refined yet." },

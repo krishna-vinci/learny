@@ -15,6 +15,7 @@ export interface SourceFigure {
   section: string;
   license?: string;
   credit: string;
+  downloadError?: string;
 }
 
 export function reusableLicense(license: string | undefined): boolean {
@@ -69,6 +70,7 @@ export async function readSourceFigures(root: string, id: string): Promise<Sourc
               : "",
         ...(typeof item.license === "string" ? { license: item.license } : {}),
         credit: typeof item.credit === "string" ? item.credit : item.url,
+        ...(typeof item.downloadError === "string" ? { downloadError: item.downloadError } : {}),
       },
     ];
   });
@@ -194,8 +196,9 @@ export async function captureFigures(input: {
         throw new Error("Invalid figure size or MIME");
       figure.path = `figures/${createHash("sha256").update(response.bytes).digest("hex").slice(0, 24)}.${info.ext}`;
       files.set(figure.path, response.bytes);
-    } catch {
+    } catch (error) {
       input.signal?.throwIfAborted();
+      figure.downloadError = (error instanceof Error ? error.message : "Figure download failed").slice(0, 500);
     }
     figures.push(figure);
   }

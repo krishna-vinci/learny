@@ -1,0 +1,29 @@
+{
+  "root": "/tmp/studium-m14b-trial-SdNjCL/tree",
+  "results": [
+    {
+      "width": 390,
+      "overflow": false,
+      "text": "Today\nNotes\nPractice\nSearch\nMore\n(needs attention)\nPolymer chemistry from the ground up\nReading\nVisuals (2)\nMake cards\nAa\nCarbon structures and reactive groups\n← Back to reading\nVisuals · 2 in this chapter\nC\nC\nH\nH\nH\nH\nH\nH\nStep 1\nOne chain, three drawing conventions\nCompare functional groups\nOne chain, three drawing conventions\nC\nC\nH\nH\nH\nH\nH\nH\nStep 1\n\nDisplayed ethane: every vertex is an atom and every edge is a single bond. Count three H atoms attached to each C.\n\nPlay\n‹ scene\n1/4\nscene ›\nRestart\nFull screen\n›",
+      "screenshot": "390-visuals.png"
+    },
+    {
+      "interaction": "Next scene",
+      "before": "Today\nNotes\nPractice\nSearch\nMore\n(needs attention)\nPolymer chemistry from the ground up\nReading\nVisuals (2)\nMake cards\nAa\nCarbon structures and reactive groups\n← Back to reading\nVisuals · 2 in this chapter\nC\nC\nH\nH\nH\nH\nH\nH\nStep 1\nOne chain, three drawing conventions\nCompare functional groups\nOne chain, three drawing conventions\nC\nC\nH\nH\nH\nH\nH\nH\nStep 1\n\nDisplayed ethane: every vertex is an atom and every edge is a single bond. Count three H atoms attached to each C.\n\nPlay\n‹ scene\n1/4\nscene ›\nRestart\nFull screen\n›",
+      "after": "Today\nNotes\nPractice\nSearch\nMore\n(needs attention)\nPolymer chemistry from the ground up\nReading\nVisuals (2)\nMake cards\nAa\nCarbon structures and reactive groups\n← Back to reading\nVisuals · 2 in this chapter\nC\nC\nH\nH\nH\nH\nH\nH\nStep 1\nOne chain, three drawing conventions\nCompare functional groups\nOne chain, three drawing conventions\nCH₃\nCH₃\nStep 2\n\nCondensed: the same two carbons remain joined. CH₃ replaces three drawn C–H bonds; no atoms have been removed.\n\nPlay\n‹ scene\n2/4\nscene ›\nRestart\nFull screen\n›"
+    },
+    {
+      "interaction": "functional group slider",
+      "before": {
+        "text": "Select a group; compare its neighbors\nAlkene\nCH₂=CH₂\nAlcohol\nR–\nCH₂–OH\nC=C is an alkene; an O–H bond alone isnot a carbon–carbon double bond.\n\nGroup: 1 alkene · 2 alcohol · 3 acid · 4 amine · 5 ester · 6 amide",
+        "value": "1"
+      },
+      "after": {
+        "text": "Select a group; compare its neighbors\nEster\nR–\nC(=O)–O–R′\nCarboxylic acid\nR–\nC(=O)–OH\nCompare O–R′ with O–H. Both includeC=O; only the acid has OH here.\n\nGroup: 1 alkene · 2 alcohol · 3 acid · 4 amine · 5 ester · 6 amide",
+        "value": "5"
+      },
+      "sandbox": "allow-scripts"
+    }
+  ],
+  "errors": []
+}

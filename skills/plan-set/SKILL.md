@@ -22,7 +22,7 @@ description: Propose a study plan and prerequisite-ordered curriculum for learne
    State its one-line scope and prerequisites: `none`, or a comma-separated list
    of distinct existing two-digit chapter numbers strictly lower than the current
    chapter. Reject self, forward, unknown, duplicate and malformed references.
-   Plan 1–2 teaching visuals per chapter using indented `Visual: <form> — <concept>`
+   Plan at least one interactive teaching visual per chapter (two for two useful central concepts), plus inline static figures as needed using indented `Visual: <form> — <concept>`
    lines (figure/diagram, chart, named widget type, sketch/story), and one
    `Video: <concept or moment to show>` line. These are short learner-facing
    intents; sources will refine them after ingestion.
@@ -76,7 +76,7 @@ Abstract algebra and advanced numerical analysis.
 - [ ] 01 — Vectors
   Scope: Vector operations, linear combinations, and geometric intuition.
   Prerequisites: none
-  Visual: figure — Vector addition geometrically
+  Visual: step-through widget — Add vectors head-to-tail; step through placement
   Video: Head-to-tail vector addition
 - [ ] 02 — Matrices
   Scope: Matrix operations and transformations.
@@ -86,12 +86,12 @@ Abstract algebra and advanced numerical analysis.
 - [ ] 03 — Linear systems
   Scope: Elimination, rank, and solution spaces.
   Prerequisites: 01, 02
-  Visual: diagram — Intersections and solution spaces
+  Visual: sketch — Intersections and solution spaces; vary line slope
   Video: Elimination worked example
 - [ ] 04 — Least squares
   Scope: Projections and fitting overdetermined systems.
   Prerequisites: 03
-  Visual: chart — Residuals and the fitted line
+  Visual: sketch — Residuals and the fitted line; slide the slope
   Video: Projection onto a line
 - [ ] 05 — Eigenvalues
   Scope: Eigenvectors, diagonalization, and interpretation.
@@ -125,3 +125,31 @@ which concept each demonstration would teach. Record "no suitable video: <reason
 and level fit. Never fill the quota with a weak or decorative video. English is
 the default unless the plan specifies another language.
 The approval kickoff ingests proposed video URLs via the transcript ladder.
+
+## Interactive chapter requirement (M14b / D32, D36)
+
+Every chapter plans and creates at least one interactive Visuals-tab attachment,
+in addition to inline static figures/charts. Use two when two central concepts
+benefit from manipulation or stepping. Plan `Visual: <form> — <concept; learner action>`.
+Supported forms: function-plot widget, matrix-transform widget, step-through widget,
+timeline widget, sketch or story. Name what the learner slides, steps, compares or
+predicts; never add decoration to fill a quota. Chemistry: step a mechanism or build
+and compare molecules; history: timeline widget or map story; math: function-plot or
+matrix-transform; economics/finance: slider sketch; language: step-through dialogue;
+technology: step-through algorithm. Copy complete make-visual templates.
+
+A rare pedagogical exception is `Visual: no interactive visual: <concrete reason>`.
+The reason must explain why this subject gains nothing from interaction. Missing
+data alone is not such an exception: a source-grounded conceptual story may fit.
+The checker assesses that reason and blocks weak excuses. Each planned interactive
+spec requires its own hidden media marker immediately before a standalone `::visual`
+at the note end, with an existing widget JSON or sketch/story HTML in `visuals/`.
+Static images, Mermaid/Vega fences and legacy artifacts cannot satisfy that spec.
+A genuinely unavailable planned visual needs both a concrete hidden omission reason
+and a muted learner-facing explanation; the checker verifies both reasons.
+
+The compact media brief includes form/concept and source passage/figure references.
+Read those referenced sources for details; bulky `.evidence.json` sidecars are audit
+material, not required prompt context. Old briefs remain readable. Check each
+interaction's scientific/historical correctness and meaningful learner action,
+not just the presence of a file. A clean check report cannot waive missing visuals.
