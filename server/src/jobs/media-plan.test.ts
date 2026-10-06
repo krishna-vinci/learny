@@ -153,16 +153,19 @@ it("allows quality watch-only videos with no fabricated moment and records a fai
   ).toMatchObject({ status: "none", reason: "No named educator at the requested level" });
 });
 
-it("rejects refinement without an interactive plan or explicit pedagogical exception before model work", async () => {
+it("rejects an invalid interactive plan before model work (legacy plans get a default instead)", async () => {
   const run = vi.spyOn(roles, "runRole");
   await expect(
     refineMediaBrief(
       { root, locks: new FileLocks() } as DraftJobDeps,
       "science",
-      { ...chapter, visuals: ["figure — Polymer chains"] },
+      {
+        ...chapter,
+        visuals: ["step-through — one", "timeline — two", "function-plot — three"],
+      },
       [],
       ctx(),
     ),
-  ).rejects.toThrow("at least one interactive");
+  ).rejects.toThrow("at most two interactive");
   expect(run).not.toHaveBeenCalled();
 });

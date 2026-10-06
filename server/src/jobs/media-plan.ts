@@ -14,6 +14,7 @@ import {
   interactivePlanIssues,
   noInteractiveReason,
   parseCurriculum,
+  withInteractiveFallback,
 } from "../tree/curriculum.js";
 import { readText } from "../tree/edit.js";
 import { type MediaBrief, readMediaBrief, saveMediaBrief } from "../tree/media-brief.js";
@@ -29,9 +30,10 @@ export async function refineMediaBrief(
   sources: string[],
   ctx: JobContext,
 ): Promise<MediaBrief> {
+  const plan = await readText(deps.root, `${set}/PLAN.md`);
+  chapter = withInteractiveFallback(chapter, String(parseFrontmatter(plan).frontmatter.subject ?? "general"));
   const issues = interactivePlanIssues(chapter.visuals);
   if (issues.length) throw new Error(`${chapter.title}: ${issues.join("; ")}`);
-  const plan = await readText(deps.root, `${set}/PLAN.md`);
   const prior = await readMediaBrief(deps.root, set, chapter);
   const passages = await sourcePassages(deps.root, sources);
   const query = `${chapter.title} ${chapter.scope} ${chapter.visuals.join(" ")}`;

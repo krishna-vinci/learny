@@ -18,3 +18,16 @@ it("matches chapter identity rather than filename numbers, preferring explicit i
     ]),
   ).toBe(false);
 });
+
+it("withInteractiveFallback adds a subject default to chapters planned before the interactive-visual rule", async () => {
+  const { withInteractiveFallback, interactivePlanIssues } = await import("./curriculum.js");
+  const legacy = { title: "Atoms and molecules", visuals: ["diagram — scales of matter"] };
+  const fixed = withInteractiveFallback(legacy, "science");
+  expect(fixed.visuals).toContain("step-through — Atoms and molecules");
+  expect(interactivePlanIssues(fixed.visuals)).toEqual([]);
+  expect(withInteractiveFallback(legacy, "history").visuals).toContain("timeline — Atoms and molecules");
+  const planned = { title: "X", visuals: ["timeline — dates"] };
+  expect(withInteractiveFallback(planned, "science")).toBe(planned);
+  const opted = { title: "X", visuals: ["no interactive visual: a purely textual reading list chapter"] };
+  expect(withInteractiveFallback(opted)).toBe(opted);
+});

@@ -7,7 +7,7 @@ import { readSource } from "../ingest/library.js";
 import { configuredSearch } from "../search/backends.js";
 import { chapterConcepts, measureCoverage, saveCoverage } from "../search/coverage.js";
 import { sourcePassages } from "../search/passages.js";
-import { chapterExists, interactivePlanIssues, parseCurriculum } from "../tree/curriculum.js";
+import { chapterExists, interactivePlanIssues, parseCurriculum, withInteractiveFallback } from "../tree/curriculum.js";
 import type { DraftJobDeps } from "./draft-job.js";
 import { createIngestJob } from "./ingest-job.js";
 import { refineMediaBrief } from "./media-plan.js";
@@ -22,7 +22,11 @@ export async function sourcePreflight(
   initial: string[],
   ctx: JobContext,
 ) {
-  const chapter = parseCurriculum(curriculum).find((c) => chapterExists(c, [{ path: "", title: input.title }]));
+  const found = parseCurriculum(curriculum).find((c) => chapterExists(c, [{ path: "", title: input.title }]));
+  const chapter =
+    found && (found.visuals.length || found.video)
+      ? withInteractiveFallback(found, String(parseFrontmatter(plan).frontmatter.subject ?? "general"))
+      : found;
   if (chapter && (chapter.visuals.length || chapter.video)) {
     const issues = interactivePlanIssues(chapter.visuals);
     if (issues.length) throw new Error(`${chapter.title}: ${issues.join("; ")}`);

@@ -89,6 +89,23 @@ export function noInteractiveReason(visuals: readonly string[]): string | undefi
   return visuals.map((v) => /^no interactive visual:\s*(.{12,})$/i.exec(v.trim())?.[1]?.trim()).find(Boolean);
 }
 
+/** Chapters planned before the interactive-visual rule (D36/M14b) have no interactive intent.
+ * Instead of refusing to draft them, add a catalog-backed default the brief and drafter refine. */
+export function withInteractiveFallback<T extends { title: string; visuals: string[] }>(
+  chapter: T,
+  subject?: string,
+): T {
+  const visuals = chapter.visuals;
+  if (visuals.some((v) => interactiveIntent(v)) || noInteractiveReason(visuals)) return chapter;
+  const form =
+    subject === "history" || subject === "politics"
+      ? "timeline"
+      : subject === "math" || subject === "economics" || subject === "finance"
+        ? "function-plot"
+        : "step-through";
+  return { ...chapter, visuals: [...visuals, `${form} — ${chapter.title}`] };
+}
+
 export function interactivePlanIssues(visuals: readonly string[]): string[] {
   const count = visuals.filter((v) => interactiveIntent(v)).length;
   if (count > 2) return ["Plan at most two interactive visuals per chapter"];
