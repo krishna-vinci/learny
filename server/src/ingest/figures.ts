@@ -1,6 +1,9 @@
 import { createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
-import { parseHTML } from "linkedom";
+import { figureLicense, licenseUrl, plainCredit } from "./image-license.js";
+
+export { figureLicense, reusableLicense } from "./image-license.js";
+
 import { canonicalRel, resolveInRoot } from "../tree/paths.js";
 import { MAX_IMAGE_BYTES, sniffImage } from "./image-bytes.js";
 import type { SourceImage } from "./images.js";
@@ -15,22 +18,12 @@ export interface SourceFigure {
   section: string;
   license?: string;
   credit: string;
+  creator?: string;
+  licenseUrl?: string;
+  sourcePage?: string;
+  width?: number;
+  height?: number;
   downloadError?: string;
-}
-
-export function reusableLicense(license: string | undefined): boolean {
-  return !!license && /^(?:CC BY(?:-SA)?(?: \d(?:\.\d)?)?|CC0(?: \d(?:\.\d)?)?|public domain)$/i.test(license.trim());
-}
-
-/** Explicit license statements only. A host's reputation is not permission. */
-export function figureLicense(text: string): string | undefined {
-  const url =
-    /https?:\/\/creativecommons\.org\/(?:licenses\/(by(?:-(?:nc|nd|sa))*)\/(\d\.\d)|publicdomain\/(zero|mark)\/1\.0)\/?/i.exec(
-      text,
-    );
-  if (url) return url[1] ? `CC ${url[1].toUpperCase()} ${url[2]}` : url[3] === "zero" ? "CC0 1.0" : "public domain";
-  const label = /\b(CC BY(?:-(?:NC|ND|SA))*(?: \d\.\d)?|CC0(?: \d\.\d)?|public domain)\b/i.exec(text)?.[1];
-  return label;
 }
 
 function confined(root: string, rel: string): string {
@@ -69,6 +62,11 @@ export async function readSourceFigures(root: string, id: string): Promise<Sourc
               ? item.nearHeading
               : "",
         ...(typeof item.license === "string" ? { license: item.license } : {}),
+        ...(typeof item.creator === "string" ? { creator: item.creator } : {}),
+        ...(typeof item.licenseUrl === "string" ? { licenseUrl: item.licenseUrl } : {}),
+        ...(typeof item.sourcePage === "string" ? { sourcePage: item.sourcePage } : {}),
+        ...(typeof item.width === "number" ? { width: item.width } : {}),
+        ...(typeof item.height === "number" ? { height: item.height } : {}),
         credit: typeof item.credit === "string" ? item.credit : item.url,
         ...(typeof item.downloadError === "string" ? { downloadError: item.downloadError } : {}),
       },
@@ -76,10 +74,13 @@ export async function readSourceFigures(root: string, id: string): Promise<Sourc
   });
 }
 
-async function commonsMetadata(
+export async function commonsMetadata(
   url: string,
   signal?: AbortSignal,
-): Promise<{ license?: string; credit: string } | undefined> {
+): Promise<
+  | { license?: string; credit: string; creator: string; sourcePage: string; licenseUrl?: string; originalUrl?: string }
+  | undefined
+> {
   const parsed = new URL(url);
   if (
     !["upload.wikimedia.org", "thumb.wikimedia.org"].includes(parsed.hostname) ||
@@ -96,27 +97,27 @@ async function commonsMetadata(
     action: "query",
     format: "json",
     prop: "imageinfo",
-    iiprop: "extmetadata",
+    iiprop: "extmetadata|url|size",
     titles: `File:${filename}`,
   }))
     api.searchParams.set(key, value);
   const response = await safeFetch(api.href, { maxBytes: 256 * 1024, httpsOnly: true, signal });
   const data = JSON.parse(Buffer.from(response.bytes).toString("utf8"));
   for (const page of Object.values(data.query?.pages ?? {}) as {
-    imageinfo?: { extmetadata?: Record<string, { value?: string }> }[];
+    imageinfo?: { url?: string; extmetadata?: Record<string, { value?: string }> }[];
   }[]) {
     const meta = page.imageinfo?.[0]?.extmetadata;
     const license = figureLicense(`${meta?.LicenseUrl?.value ?? ""} ${meta?.LicenseShortName?.value ?? ""}`);
     if (meta) {
-      const artist = (
-        parseHTML(`<div>${meta.Artist?.value ?? meta.Attribution?.value ?? ""}</div>`).document.querySelector("div")
-          ?.textContent ?? ""
-      )
-        .trim()
-        .slice(0, 1000);
+      const artist = plainCredit(`${meta.Artist?.value ?? meta.Attribution?.value ?? ""} ${meta.Credit?.value ?? ""}`);
+      const sourcePage = `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(filename)}`;
       return {
         ...(license ? { license } : {}),
-        credit: `${artist || "Wikimedia Commons"}, https://commons.wikimedia.org/wiki/File:${encodeURIComponent(filename)}`,
+        originalUrl: page.imageinfo?.[0]?.url,
+        creator: artist || "Wikimedia Commons",
+        sourcePage,
+        licenseUrl: meta.LicenseUrl?.value || licenseUrl(license),
+        credit: `${artist || "Wikimedia Commons"}, ${sourcePage}`,
       };
     }
   }
@@ -161,6 +162,12 @@ export async function captureFigures(input: {
     let license = /^https:\/\/(?:upload|thumb)\.wikimedia\.org\/wikipedia\/commons\//i.test(image.url)
       ? undefined
       : image.license;
+    let imageUrl = image.url;
+    let metadata = {
+      creator: image.creator ?? (input.authors.join(", ") || input.title),
+      sourcePage: image.sourcePage ?? input.pageUrl ?? image.url,
+      licenseUrl: image.licenseUrl ?? licenseUrl(license),
+    };
     let attribution = image.credit ?? `${input.authors.join(", ") || input.title}, ${input.pageUrl ?? image.url}`;
     try {
       const commons = await commonsMetadata(image.url, input.signal);
@@ -168,6 +175,8 @@ export async function captureFigures(input: {
         // A source page's prose license does not license a separately credited Commons file.
         license = commons.license;
         attribution = commons.credit;
+        if (/-ND/i.test(commons.license ?? "") && commons.originalUrl) imageUrl = commons.originalUrl;
+        metadata = { creator: commons.creator, sourcePage: commons.sourcePage, licenseUrl: commons.licenseUrl };
       }
     } catch {
       input.signal?.throwIfAborted();
@@ -175,15 +184,16 @@ export async function captureFigures(input: {
     const caption = image.caption || image.alt;
     const credit = `${attribution}${license ? ` (${license})` : " (reuse license unknown; redraw)"}`;
     const figure: SourceFigure = {
-      url: image.url,
+      url: imageUrl,
       alt: image.alt,
       caption,
       section: image.nearHeading,
+      ...metadata,
       ...(license ? { license } : {}),
       credit,
     };
     try {
-      const response = await safeFetch(image.url, { maxBytes: MAX_IMAGE_BYTES, httpsOnly: true, signal: input.signal });
+      const response = await safeFetch(imageUrl, { maxBytes: MAX_IMAGE_BYTES, httpsOnly: true, signal: input.signal });
       const info = sniffImage(response.bytes);
       if (
         response.bytes.length > MAX_IMAGE_BYTES ||
@@ -194,6 +204,8 @@ export async function captureFigures(input: {
         info.height > 6000
       )
         throw new Error("Invalid figure size or MIME");
+      figure.width = info.width;
+      figure.height = info.height;
       figure.path = `figures/${createHash("sha256").update(response.bytes).digest("hex").slice(0, 24)}.${info.ext}`;
       files.set(figure.path, response.bytes);
     } catch (error) {

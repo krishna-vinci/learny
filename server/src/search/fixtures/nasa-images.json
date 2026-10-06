@@ -1,0 +1,130 @@
+{
+  "collection": {
+    "version": "1.1",
+    "href": "http://images-api.nasa.gov/search?q=polymer&media_type=image&page_size=2",
+    "items": [
+      {
+        "href": "https://images-assets.nasa.gov/image/jsc2020e003407/collection.json",
+        "data": [
+          {
+            "center": "JSC",
+            "date_created": "2019-09-27T00:00:00Z",
+            "description": "jsc2020e003407 (9/27/2019) --- A preflight image of the Polymer Convection investigation the the Microgravity Science Glovebox (MSG). Polymer Convection examines the effect of gravity on formation and crystallization of Broadband Angular Selective Material (BASM). An optical material with the ability to control the reflection and absorption of light, BASM has applications in polymer packaging, optical films, solar power, and electronic displays. Improved fabrication methods could produce BASM films that are more durable and have better optical and mechanical properties.",
+            "media_type": "image",
+            "nasa_id": "jsc2020e003407",
+            "title": "Polymer Convection"
+          }
+        ],
+        "links": [
+          {
+            "href": "https://images-assets.nasa.gov/image/jsc2020e003407/jsc2020e003407~medium.jpg",
+            "rel": "alternate",
+            "render": "image",
+            "width": 1280,
+            "size": 247000,
+            "height": 960
+          },
+          {
+            "href": "https://images-assets.nasa.gov/image/jsc2020e003407/jsc2020e003407~small.jpg",
+            "rel": "alternate",
+            "render": "image",
+            "width": 640,
+            "size": 72000,
+            "height": 480
+          },
+          {
+            "href": "https://images-assets.nasa.gov/image/jsc2020e003407/jsc2020e003407~thumb.jpg",
+            "rel": "preview",
+            "render": "image",
+            "width": 640,
+            "size": 72000,
+            "height": 480
+          },
+          {
+            "href": "https://images-assets.nasa.gov/image/jsc2020e003407/jsc2020e003407~large.jpg",
+            "rel": "alternate",
+            "render": "image",
+            "width": 1920,
+            "size": 516000,
+            "height": 1440
+          },
+          {
+            "href": "https://images-assets.nasa.gov/image/jsc2020e003407/jsc2020e003407~orig.jpg",
+            "rel": "canonical",
+            "render": "image",
+            "height": 3024,
+            "width": 4032,
+            "size": 2300000
+          }
+        ]
+      },
+      {
+        "href": "https://images-assets.nasa.gov/image/GRC-2016-C-09929/collection.json",
+        "data": [
+          {
+            "center": "GRC",
+            "date_created": "2016-12-20T00:00:00Z",
+            "description": "NASA Glenn Researcher James Wu assembles a lithium-metal based battery lab cell incorporating a new solid polymer nanocomposite electrolyte developed at the center.",
+            "description_508": "Battery Lab",
+            "keywords": ["lithium", "electrolyte", "battery", "polymer", "research"],
+            "media_type": "image",
+            "nasa_id": "GRC-2016-C-09929",
+            "title": "Battery Lab"
+          }
+        ],
+        "links": [
+          {
+            "href": "https://images-assets.nasa.gov/image/GRC-2016-C-09929/GRC-2016-C-09929~medium.jpg",
+            "rel": "alternate",
+            "render": "image",
+            "width": 1280,
+            "size": 143000,
+            "height": 853
+          },
+          {
+            "href": "https://images-assets.nasa.gov/image/GRC-2016-C-09929/GRC-2016-C-09929~small.jpg",
+            "rel": "alternate",
+            "render": "image",
+            "width": 640,
+            "size": 48000,
+            "height": 426
+          },
+          {
+            "href": "https://images-assets.nasa.gov/image/GRC-2016-C-09929/GRC-2016-C-09929~thumb.jpg",
+            "rel": "preview",
+            "render": "image",
+            "width": 640,
+            "size": 48000,
+            "height": 426
+          },
+          {
+            "href": "https://images-assets.nasa.gov/image/GRC-2016-C-09929/GRC-2016-C-09929~large.jpg",
+            "rel": "alternate",
+            "render": "image",
+            "width": 1920,
+            "size": 276000,
+            "height": 1280
+          },
+          {
+            "href": "https://images-assets.nasa.gov/image/GRC-2016-C-09929/GRC-2016-C-09929~orig.jpg",
+            "rel": "canonical",
+            "render": "image",
+            "height": 2400,
+            "width": 3600,
+            "size": 1515000
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "total_hits": 70
+    },
+    "links": [
+      {
+        "rel": "next",
+        "prompt": "Next",
+        "href": "http://images-api.nasa.gov/search?q=polymer&media_type=image&page_size=2&page=2"
+      }
+    ]
+  }
+}

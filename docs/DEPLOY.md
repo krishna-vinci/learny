@@ -293,3 +293,26 @@ Missing cost reports, an interrupted in-flight request, or a damaged/unwritable/
 symlinked ledger disables Exa until tracking is restored (or a clean month begins
 for a valid old ledger). Verify provider usage before manually repairing/resetting
 an uncertain ledger. No credentials or raw response bodies are stored in it.
+
+## Chapter image policy (D37)
+
+This personal, non-commercial study app permits CC BY-NC/BY-NC-SA by default.
+Disable them in the workspace's `_global/config.yaml` before commercial use:
+
+```yaml
+media:
+  allowNonCommercial: false # default true
+```
+
+CC BY/BY-SA, CC0 and public domain remain allowed; ND variants require original
+unmodified bytes. Unknown/restricted images are linked or redrawn. No migration
+is required. Review rechecks the current setting, including older saved images.
+Image search uses public HTTPS APIs through safeFetch. Commons, The Met and NASA
+need no key; Openverse supports anonymous access or optional OPENVERSE_ACCESS_TOKEN.
+Smithsonian is enabled only with SMITHSONIAN_API_KEY from api.data.gov. Credentials
+are environment-only; no paid setup probe. Third-party NASA work and individual
+figure exceptions do not inherit site-wide permission. See the primary API docs:
+[Commons](https://www.mediawiki.org/wiki/API:Imageinfo),
+[Openverse](https://api.openverse.org/v1/), [The Met](https://metmuseum.github.io/),
+[NASA](https://images.nasa.gov/docs/images.nasa.gov_api_docs.pdf),
+[Smithsonian](https://www.si.edu/openaccess/faq).

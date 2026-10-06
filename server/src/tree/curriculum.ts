@@ -9,6 +9,7 @@ export interface CurriculumChapter {
   scope: string;
   prerequisites: string;
   visuals: string[];
+  images?: string[];
   video: string;
   line: number;
 }
@@ -39,6 +40,7 @@ export function parseCurriculum(text: string | null): CurriculumChapter[] {
         scope: "",
         prerequisites: "",
         visuals: [],
+        images: [],
         video: "",
         line: index,
       };
@@ -48,6 +50,8 @@ export function parseCurriculum(text: string | null): CurriculumChapter[] {
       const prerequisites = /^\s+(?:[-*]\s+)?Prerequisites:\s*(.+)$/i.exec(line)?.[1]?.trim();
       const visual = /^\s+(?:[-*]\s+)?Visual:\s*(.+)$/i.exec(line)?.[1]?.trim();
       const video = /^\s+(?:[-*]\s+)?Video:\s*(.+)$/i.exec(line)?.[1]?.trim();
+      const image = /^\s+(?:[-*]\s+)?Image:\s*(.+)$/i.exec(line)?.[1]?.trim();
+      if (image) current.images?.push(image);
       if (visual) current.visuals.push(visual);
       if (video) current.video = video;
       if (scope) current.scope = scope;

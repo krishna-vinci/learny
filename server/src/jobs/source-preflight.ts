@@ -24,10 +24,10 @@ export async function sourcePreflight(
 ) {
   const found = parseCurriculum(curriculum).find((c) => chapterExists(c, [{ path: "", title: input.title }]));
   const chapter =
-    found && (found.visuals.length || found.video)
+    found && (found.visuals.length || found.video || found.images?.length)
       ? withInteractiveFallback(found, String(parseFrontmatter(plan).frontmatter.subject ?? "general"))
       : found;
-  if (chapter && (chapter.visuals.length || chapter.video)) {
+  if (chapter && (chapter.visuals.length || chapter.video || chapter.images?.length)) {
     const issues = interactivePlanIssues(chapter.visuals);
     if (issues.length) throw new Error(`${chapter.title}: ${issues.join("; ")}`);
   }
@@ -95,7 +95,7 @@ export async function sourcePreflight(
     await saveCoverage(deps.root, input.set, input.title, scope, coverage);
   }
   const mediaBrief =
-    chapter && (chapter.visuals.length || chapter.video)
+    chapter && (chapter.visuals.length || chapter.video || chapter.images?.length)
       ? await refineMediaBrief(deps, input.set, chapter, sources, ctx)
       : null;
   return { sources, coverage, mediaBrief };

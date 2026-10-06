@@ -1,11 +1,14 @@
+import { createHash } from "node:crypto";
 import { constants, promises as fs } from "node:fs";
 import { defineTool, type ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { parseFrontmatter } from "@studium/shared";
 import { Type } from "typebox";
-import { readSourceFigures, reusableLicense } from "../../ingest/figures.js";
+import { commonsMetadata, readSourceFigures } from "../../ingest/figures.js";
+import { allowNonCommercial, licenseUrl, reusableLicense } from "../../ingest/image-license.js";
 import { assertPublicUrl, safeFetch } from "../../ingest/safe-fetch.js";
 import type { FileLocks } from "../../tree/lock.js";
 import { assetBytes } from "../../tree/media.js";
+import { chosenBriefImage } from "../../tree/media-brief.js";
 import { canonicalRel, resolveInRoot } from "../../tree/paths.js";
 
 export { MAX_IMAGE_BYTES, sniffImage } from "../../ingest/image-bytes.js";
@@ -48,6 +51,25 @@ export function saveAssetTool(opts: {
           if (typeof value === "string") pageUrl = value;
           figure = (await readSourceFigures(opts.root, params.sourceId)).find((f) => f.url === params.url);
         }
+        const chosen = await chosenBriefImage(opts.root, opts.set, params.url);
+        const commons =
+          !figure?.license && !chosen?.license
+            ? await commonsMetadata(params.url, signal).catch(() => undefined)
+            : undefined;
+        if (
+          /-ND/i.test(figure?.license ?? chosen?.license ?? commons?.license ?? "") &&
+          /\/thumb\//.test(new URL(params.url).pathname)
+        )
+          throw new Error("ND images require the original file URL, not a derivative thumbnail");
+        const license = figure?.license ?? chosen?.license ?? commons?.license;
+        const creator = (
+          figure?.creator ||
+          chosen?.creator ||
+          commons?.creator ||
+          figure?.credit.split(", ")[0]
+        )?.replace(/["\\\r\n]/g, " ");
+        const sourcePage = figure?.sourcePage || chosen?.sourcePage || commons?.sourcePage || pageUrl;
+        const reuseAllowed = reusableLicense(license, await allowNonCommercial(opts.root));
         signal?.throwIfAborted();
         let captured: Uint8Array | undefined;
         if (figure?.path && params.sourceId) {
@@ -117,8 +139,17 @@ export function saveAssetTool(opts: {
               ...(pageUrl ? { pageUrl } : {}),
               ...(params.sourceId ? { sourceId: params.sourceId } : {}),
               alt: params.alt,
-              ...(figure?.license ? { license: figure.license } : {}),
-              ...(figure ? { credit: figure.credit } : {}),
+              ...(license ? { license } : {}),
+              ...(creator ? { creator } : {}),
+              ...(sourcePage ? { sourcePage } : {}),
+              ...(figure?.licenseUrl || chosen?.licenseUrl || commons?.licenseUrl || licenseUrl(license)
+                ? { licenseUrl: figure?.licenseUrl || chosen?.licenseUrl || commons?.licenseUrl || licenseUrl(license) }
+                : {}),
+              ...(creator && license && sourcePage ? { credit: `Credit: ${creator}, ${license}, ${sourcePage}` } : {}),
+              sha256: createHash("sha256").update(response.bytes).digest("hex"),
+              unmodified: true,
+              width: image.width,
+              height: image.height,
               savedAt: new Date().toISOString(),
             },
             null,
@@ -143,7 +174,11 @@ export function saveAssetTool(opts: {
           opts.onWrite?.(creditRel);
           const relative = rel.slice(opts.set.length + 1);
           const alt = params.alt.replace(/[\\[\]\r\n]/g, " ");
-          const markdown = `![${alt}](../${relative})`;
+          const visibleCredit =
+            creator && license && sourcePage
+              ? `Credit: ${creator}, ${license}, ${sourcePage}`.replace(/["\\\r\n]/g, " ")
+              : undefined;
+          const markdown = `![${alt}](../${relative}${visibleCredit ? ` "${visibleCredit}"` : ""})`;
           return {
             content: [
               {
@@ -151,13 +186,13 @@ export function saveAssetTool(opts: {
                 text: JSON.stringify({
                   path: relative,
                   markdown,
-                  ...(figure && !reusableLicense(figure.license)
+                  ...(!reuseAllowed
                     ? {
                         warning:
                           "Source figure has no permissive reuse license; redraw and cite it instead of embedding.",
                       }
                     : {}),
-                  ...(figure ? { credit: figure.credit } : {}),
+                  ...(visibleCredit ? { credit: visibleCredit } : {}),
                 }),
               },
             ],

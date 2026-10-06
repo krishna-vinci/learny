@@ -470,3 +470,22 @@ it("preserves authored molecule positions in default and scene book stills", asy
     expect(still).toContain('x1="224.96" y1="180" x2="415.04" y2="180"');
   }
 });
+
+it("prints a raster Markdown title credit below the copied image", async () => {
+  const { createBookMedia } = await import("./book-media.js");
+  const temp = await fs.mkdtemp(path.join(os.tmpdir(), "studium-book-credit-"));
+  try {
+    await fs.mkdir(path.join(root, "linear-algebra/assets"), { recursive: true });
+    await fs.writeFile(path.join(root, "linear-algebra/assets/photo.png"), "image fixture");
+    const credit = "Credit: Photographer, CC BY 4.0, https://example.org/photo";
+    const rendered = await createBookMedia(root, temp)(
+      `![Photo](../assets/photo.png "${credit}")\n\nNotice the texture.`,
+      "linear-algebra/notes/a.md",
+    );
+    expect(rendered).toContain("![Photo](media/image-1.png)");
+    expect(rendered).toContain(`\n\n${credit}\n`);
+    expect(rendered).toContain("Notice the texture.");
+  } finally {
+    await fs.rm(temp, { recursive: true, force: true });
+  }
+});

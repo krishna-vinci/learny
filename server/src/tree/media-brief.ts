@@ -32,6 +32,11 @@ const Figure = z.object({
   section: z.string(),
   license: z.string().optional(),
   credit: z.string(),
+  creator: z.string().optional(),
+  sourcePage: z.string().optional(),
+  licenseUrl: z.string().optional(),
+  width: z.number().optional(),
+  height: z.number().optional(),
 });
 const Table = z.object({ sourceId: z.string(), file: z.string(), anchor: z.string(), text: z.string() });
 export const MediaBriefSchema = z.object({
@@ -55,6 +60,31 @@ export const MediaBriefSchema = z.object({
       }),
     )
     .max(20),
+  images: z
+    .array(
+      z.object({
+        id: z.string().regex(/^image-\d+$/),
+        intent: z.string(),
+        reason: z.string().optional(),
+        choice: z
+          .object({
+            url: z.string(),
+            thumbnail: z.string().optional(),
+            title: z.string(),
+            creator: z.string(),
+            license: z.string(),
+            licenseUrl: z.string().optional(),
+            sourcePage: z.string().optional(),
+            width: z.number().optional(),
+            height: z.number().optional(),
+            sourceId: z.string().optional(),
+            path: z.string().optional(),
+          })
+          .optional(),
+      }),
+    )
+    .max(3)
+    .optional(),
   figures: z.array(Figure).max(24),
   tables: z.array(Table).max(8),
   video: z.object({
@@ -110,6 +140,19 @@ export function leanMediaBrief(brief: MediaBrief): MediaBrief {
   if (lean.video.reason) lean.video.reason = lean.video.reason.slice(0, 300);
   const fits = () =>
     Math.max(Buffer.byteLength(renderBrief(lean)), Buffer.byteLength(JSON.stringify(lean))) <= MAX_MEDIA_BRIEF_BYTES;
+  if (!fits())
+    for (const image of lean.images ?? []) {
+      if (image.reason) image.reason = image.reason.slice(0, 180);
+      if (image.choice) {
+        image.choice.title = image.choice.title.slice(0, 120);
+        image.choice.creator = image.choice.creator.slice(0, 180);
+        // Prompt hints only: save_asset resolves complete attribution from the evidence sidecar.
+        delete image.choice.thumbnail;
+        delete image.choice.licenseUrl;
+        delete image.choice.sourcePage;
+        delete image.choice.path;
+      }
+    }
   while (!fits() && lean.tables.length) lean.tables.pop();
   while (!fits() && lean.figures.length) lean.figures.pop();
   if (!fits()) throw new Error("Visual specifications exceed the 5 KB media brief budget; shorten the plan intents");
@@ -273,6 +316,7 @@ export async function mediaPlanBlockers(
     issues.push("Each planned interactive concept needs a distinct Visuals-tab attachment");
   return [
     ...issues,
+    ...(await plannedImageBlockers(root, notePath, text, brief)),
     ...visuals
       .filter((v) => !v.made && !v.reason)
       .map((v) => `Planned visual is missing without an explanation: ${v.intent}`),
@@ -306,10 +350,11 @@ export async function noteMediaBrief(root: string, notePath: string): Promise<Me
     saved.scope === chapter.scope &&
     JSON.stringify(saved.visuals.map((v) => v.intent)) ===
       JSON.stringify(chapter.visuals.filter((v) => !/^no interactive visual:/i.test(v))) &&
+    JSON.stringify(saved.images?.map((i) => i.intent) ?? []) === JSON.stringify(chapter.images ?? []) &&
     saved.noInteractiveReason === noInteractiveReason(chapter.visuals)
   )
     return saved;
-  if (!chapter.visuals.length) return null;
+  if (!chapter.visuals.length && !chapter.images?.length) return null;
   // Missing/stale refinement must not bypass the curriculum's visual requirements.
   return {
     chapter: chapter.title,
@@ -319,8 +364,73 @@ export async function noteMediaBrief(root: string, notePath: string): Promise<Me
     visuals: chapter.visuals
       .filter((v) => !/^no interactive visual:/i.test(v))
       .map((intent, i) => ({ id: `visual-${i + 1}`, intent, ...(interactiveIntent(intent) ?? {}) })),
+    images: (chapter.images ?? []).slice(0, 3).map((intent, i) => ({ id: `image-${i + 1}`, intent })),
     figures: [],
     tables: [],
     video: { intent: chapter.video, status: "none", reason: "Media sources have not been refined yet." },
   };
+}
+
+/** Image markers share the omission contract, but only a local raster fulfils an image slot. */
+export async function plannedImageBlockers(
+  root: string,
+  notePath: string,
+  text: string,
+  brief: MediaBrief,
+): Promise<string[]> {
+  const body = parseFrontmatter(text).body.replace(/^ {0,3}(`{3,}|~{3,})[^\n]*\n[\s\S]*?^\1\s*$/gm, "");
+  const issues: string[] = [];
+  for (const image of brief.images ?? []) {
+    const escaped = image.id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const src = new RegExp(`<!-- media:${escaped} -->\\s*\\n\\s*!\\[[^\\]]*\\]\\(<?([^\\s)>]+)>?`).exec(body)?.[1];
+    const media = src ? resolveNoteMedia(notePath, src) : null;
+    const rel = media ? `${media.set}/${media.path}` : "";
+    const made =
+      !!rel &&
+      /\.(png|jpe?g|gif|webp)$/i.test(rel) &&
+      canonicalRel(root, rel) === rel &&
+      (await fs.stat(resolveInRoot(root, rel)).catch(() => null))?.isFile();
+    const omitted = new RegExp(
+      `<!-- media:${escaped} unavailable: ([^\\n]{12,}) -->\\s*\\n\\s*([*_])[^*_\\n]+\\2`,
+    ).test(body);
+    if (!made && !omitted) issues.push(`Planned image is missing without an explanation: ${image.intent}`);
+  }
+  return issues;
+}
+/** save_asset accepts search metadata only from persisted, server-selected briefs. */
+export async function chosenBriefImage(
+  root: string,
+  set: string,
+  url: string,
+): Promise<NonNullable<NonNullable<MediaBrief["images"]>[number]["choice"]> | undefined> {
+  const dir = `${set}/media`;
+  if (canonicalRel(root, dir) !== dir) throw new Error("Media directory may not be an alias");
+  const files = await fs.readdir(resolveInRoot(root, dir)).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === "ENOENT") return [];
+    throw error;
+  });
+  for (const file of files.filter((f) => f.endsWith(".md")).slice(0, 200)) {
+    const rel = `${dir}/${file}`;
+    if (canonicalRel(root, rel) !== rel) continue;
+    for (const candidate of [rel.replace(/\.md$/, ".evidence.json"), rel]) {
+      if (canonicalRel(root, candidate) !== candidate) throw new Error("Image evidence may not be an alias");
+      const abs = resolveInRoot(root, candidate);
+      const stat = await fs.stat(abs).catch((error: NodeJS.ErrnoException) => {
+        if (error.code === "ENOENT") return null;
+        throw error;
+      });
+      if (!stat?.isFile() || stat.size > 2 * 1024 * 1024) continue;
+      const bytes = await fs.readFile(abs, "utf8");
+      let value: unknown;
+      try {
+        value = candidate.endsWith(".json") ? JSON.parse(bytes) : parseFrontmatter(bytes).frontmatter;
+      } catch {
+        continue;
+      }
+      const brief = MediaBriefSchema.safeParse(value);
+      const choice = brief.success ? brief.data.images?.find((i) => i.choice?.url === url)?.choice : undefined;
+      if (choice) return choice;
+    }
+  }
+  return undefined;
 }

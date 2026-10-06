@@ -49,6 +49,8 @@ export function parsePlanSetInput(value: unknown): PlanSetInput {
 
 export function validateMediaIntent(curriculum: string): void {
   for (const chapter of parseCurriculum(curriculum)) {
+    if ((chapter.images?.length ?? 0) > 3)
+      throw new Error(`Chapter ${chapter.title} must plan at most three real image slots`);
     if (chapter.visuals.length > 20 || !chapter.video || interactivePlanIssues(chapter.visuals).length)
       throw new Error(
         `Chapter ${chapter.title} needs at least one interactive Visual intent with form and concept (two for two useful central concepts), or no interactive visual: <concrete reason>, and a Video need or no-suitable-video reason`,
@@ -96,7 +98,7 @@ export function createPlanJob(deps: DraftJobDeps): JobHandler {
             `Deadline: ${input.deadline ?? currentPlan.deadline ?? "none"}`,
             `Chosen library source ids: ${sources.join(", ") || "(none)"}`,
             `Create exactly ${proposalPath}, with the skill's two labeled fences and Sources to add list.`,
-            "Every chapter needs at least one interactive Visual: <form> — <concept; learner action> line, two when two central concepts benefit from manipulation/stepping, in addition to static figures/charts. Use function-plot, matrix-transform, step-through or timeline widget, sketch or story from make-visual. A rare exception must say Visual: no interactive visual: <concrete pedagogical reason>. Include a Video: <need or no-suitable-video reason> line. Refine these after source ingestion; do not silently omit media intent.",
+            "Every chapter needs at least one interactive Visual: <form> — <concept; learner action> line, two when two central concepts benefit from manipulation/stepping, in addition to static figures/charts. Use function-plot, matrix-transform, step-through or timeline widget, sketch or story from make-visual. A rare exception must say Visual: no interactive visual: <concrete pedagogical reason>. Add 1–3 Image: <real object, material, organism, monument, photograph or source diagram; what the learner should notice> lines wherever seeing the real thing teaches; omit image slots when diagrams alone teach better. Do not use Image slots for generated SVGs. Include a Video: <need or no-suitable-video reason> line. Refine these after source ingestion; do not silently omit media intent.",
             "Use only the chosen registered ids in PLAN.md sources. Propose other sources as URLs; never register them.",
             "Do not edit the current plan, curriculum, notes, or any other file.",
           ].join("\n"),

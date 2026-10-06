@@ -238,3 +238,26 @@ credit. Source-derived redraws cite their evidence. A hidden
 honest omission. Checking blocks silent omissions and non-permissive raster reuse.
 Course and Plan media status derives made/planned from actual note attachments,
 not checkbox ticks or cached claims of completion. No new screen is introduced.
+
+## Real image credits (D37)
+
+Raster assets saved by `save_asset` have a same-basename `.json` sidecar:
+`url` (image), `sourcePage` (original landing page), optional legacy `pageUrl` and
+`sourceId`, `creator`, `license`, `licenseUrl`, `credit`, `alt`, `width`, `height`,
+`sha256` (saved original bytes), `unmodified: true`, and `savedAt` (ISO timestamp).
+Missing licence metadata does not grant reuse permission. Source `images.json`
+figures additionally carry creator/sourcePage/licenseUrl/dimensions when known;
+legacy remote-only entries remain readable.
+
+Curriculum `Image:` lines describe up to three real-image needs per chapter.
+Media briefs optionally carry `images: [{id: image-N, intent, reason, choice}]`,
+where choice has URL/thumbnail/title/creator/licence/licence URL/source page,
+optional dimensions and captured sourceId/path. Full search candidates and complete chosen-image attribution stay in
+`.evidence.json`; the prompt brief is <=5,120 UTF-8 bytes. Compact choices may
+omit thumbnail/sourcePage/licence URL/path and abbreviate creator/title hints.
+`save_asset` resolves the complete choice from the evidence file, so its returned
+credit and asset sidecar preserve the full attribution. Image omissions use
+`<!-- media:image-N unavailable: reason -->` plus a muted learner explanation.
+Images embed note-relative as `![alt](../assets/name.jpg "Credit: Creator, Licence, Source")`
+near the concept, followed by a caption explaining what to notice. The credit
+prints in the reader and book. ND requires saved bytes to stay unchanged.

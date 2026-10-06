@@ -5,6 +5,7 @@ import { cleanMarkdown } from "./clean.js";
 import { figureLicense } from "./figures.js";
 import { firecrawlScrape } from "./firecrawl.js";
 import { preserveTex, structureRules } from "./html-structure.js";
+import { licenseUrl, pageImageLicense } from "./image-license.js";
 import { collectHtmlImages, collectImages, type SourceImage } from "./images.js";
 import { politeFetch } from "./polite-fetch.js";
 import { MIN_PARSE_QUALITY, scoreParseQuality } from "./quality.js";
@@ -50,22 +51,7 @@ export function htmlToMarkdown(html: string, url?: string): MarkdownConversion {
     document.head?.prepend(base);
   }
 
-  const licenseLinks: string[] = [];
-  for (const node of document.querySelectorAll(
-    'a[rel="license"], a[href*="creativecommons.org/licenses/"], a[href*="creativecommons.org/publicdomain/"]',
-  )) {
-    if (node.closest("figure")) continue;
-    if (
-      node.getAttribute("rel") === "license" ||
-      node.closest("footer") ||
-      /\blicen[sc]e|copyright/i.test(node.parentElement?.textContent ?? "")
-    )
-      licenseLinks.push(node.getAttribute("href") ?? "");
-  }
-  const pageLicense =
-    url && !/(?:^|\.)wikipedia\.org$/.test(new URL(url).hostname)
-      ? (libreTextsLicense(html, url) ?? figureLicense(licenseLinks.join(" ")))
-      : undefined;
+  const pageLicense = url ? pageImageLicense(html, url) : undefined;
   const htmlImages = url ? collectHtmlImages(html, url) : [];
   const captions = new Map<string, string>();
   const licenses = new Map<string, string>();
@@ -107,6 +93,8 @@ export function htmlToMarkdown(html: string, url?: string): MarkdownConversion {
           .slice(0, 50)
           .map((image) => ({
             ...image,
+            sourcePage: url,
+            licenseUrl: licenseUrl(licenses.get(image.url) ?? pageLicense),
             ...(licenses.has(image.url) || pageLicense ? { license: licenses.get(image.url) ?? pageLicense } : {}),
             ...(captions.has(image.url) ? { caption: captions.get(image.url) } : {}),
             ...(licenses.has(image.url) && captions.has(image.url)
@@ -214,25 +202,4 @@ function bylineAuthors(byline: string | null): string[] {
 
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
-}
-
-/** LibreTexts embeds the page's explicit license tags even when its footer is dynamic. */
-function libreTextsLicense(html: string, url: string): string | undefined {
-  if (!/(?:^|\.)libretexts\.org$/.test(new URL(url).hostname)) return undefined;
-  const tag = /["']license:(ccby(?:nc|nd|sa)*|cc0|publicdomain)["']/i.exec(html)?.[1]?.toLowerCase();
-  if (!tag) return undefined;
-  const version = /["']licenseversion:(\d)(\d)["']/i.exec(html);
-  const label =
-    tag === "publicdomain"
-      ? "public domain"
-      : tag === "cc0"
-        ? "CC0"
-        : `CC BY${
-            tag
-              .slice(4)
-              .match(/nc|nd|sa/g)
-              ?.map((part) => `-${part.toUpperCase()}`)
-              .join("") ?? ""
-          }`;
-  return `${label}${version && tag !== "publicdomain" ? ` ${version[1]}.${version[2]}` : ""}`;
 }

@@ -6,6 +6,7 @@ import { parseCurriculum } from "./curriculum.js";
 import { ensureRepo } from "./git.js";
 import { FileLocks } from "./lock.js";
 import {
+  chosenBriefImage,
   leanMediaBrief,
   MAX_MEDIA_BRIEF_BYTES,
   type MediaBrief,
@@ -217,4 +218,69 @@ it("requires interactive specs or an explicit exception on new brief writes and 
   );
   const nested = `:::example\n<!-- media:visual-1 -->\n${declaration}\n:::`;
   expect((await realisedVisuals(root, "math/notes/01-vectors.md", nested, spec.visuals))[0]?.made).toBe(false);
+});
+
+it("requires a real raster for image slots and keeps omission reasons visible", async () => {
+  const images = { ...brief, visuals: [], images: [{ id: "image-1", intent: "Charminar street setting" }] };
+  const note = "history/notes/01-city.md";
+  await fs.mkdir(path.join(root, "history/assets"), { recursive: true });
+  await fs.writeFile(path.join(root, "history/assets/photo.jpg"), "raster fixture");
+  expect(
+    await mediaPlanBlockers(
+      root,
+      note,
+      '<!-- media:image-1 -->\n![City](../assets/photo.jpg "Credit: Photographer, CC BY 4.0, https://example.org/city")',
+      images,
+    ),
+  ).toEqual([]);
+  expect(
+    await mediaPlanBlockers(root, note, "```md\n<!-- media:image-1 -->\n![City](../assets/photo.jpg)\n```", images),
+  ).toHaveLength(1);
+  expect(
+    await mediaPlanBlockers(root, note, "<!-- media:image-1 -->\n![City](../assets/photo.svg)", images),
+  ).toHaveLength(1);
+  expect(
+    await mediaPlanBlockers(
+      root,
+      note,
+      "<!-- media:image-1 unavailable: No suitable licensed photograph exists. -->\n*No suitable licensed photograph was found.*",
+      images,
+    ),
+  ).toEqual([]);
+  expect(
+    await mediaPlanBlockers(
+      root,
+      note,
+      "<!-- media:image-1 unavailable: No suitable licensed photograph exists. -->",
+      images,
+    ),
+  ).toHaveLength(1);
+});
+
+it("compacts three image choices under 5 KB while saving their complete attribution separately", async () => {
+  const creator = "Named contributor ".repeat(90);
+  const full: MediaBrief = {
+    ...brief,
+    images: Array.from({ length: 3 }, (_, i) => ({
+      id: `image-${i + 1}`,
+      intent: "Real material appearance",
+      choice: {
+        url: `https://example.org/image-${i}.jpg`,
+        thumbnail: `https://example.org/thumb-${i}.jpg`,
+        title: "Material",
+        creator,
+        license: "CC BY 4.0",
+        licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
+        sourcePage: `https://example.org/material-${i}`,
+      },
+    })),
+  };
+  const lean = await saveMediaBrief(root, new FileLocks(), "science", chapter, full);
+  expect(Buffer.byteLength(JSON.stringify(lean))).toBeLessThanOrEqual(MAX_MEDIA_BRIEF_BYTES);
+  expect(lean.images?.[0]?.choice?.creator.length).toBeLessThan(creator.length);
+  expect(await chosenBriefImage(root, "science", "https://example.org/image-0.jpg")).toMatchObject({
+    creator,
+    sourcePage: "https://example.org/material-0",
+    thumbnail: "https://example.org/thumb-0.jpg",
+  });
 });

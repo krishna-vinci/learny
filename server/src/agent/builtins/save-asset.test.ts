@@ -144,12 +144,71 @@ it("copies a captured permitted source figure locally with license/credit withou
   expect(JSON.parse(await fs.readFile(path.join(root, "alpha/assets/figure.json"), "utf8"))).toMatchObject({
     sourceId: "lib-test",
     license: "CC BY 4.0",
-    credit: "Teacher, Lesson (CC BY 4.0)",
+    creator: "Teacher",
+    credit: "Credit: Teacher, CC BY 4.0, https://example.org/lesson",
+    unmodified: true,
+    sha256: expect.stringMatching(/^[a-f0-9]{64}$/),
   });
   await fs.unlink(path.join(root, "library/lib-test", local));
   await fs.symlink(path.join(root, "alpha/assets/figure.png"), path.join(root, "library/lib-test", local));
   expect((await save({ sourceId: "lib-test" })).details).toMatchObject({
     isError: true,
     summary: expect.stringContaining("symlink aliases"),
+  });
+});
+
+it("saves selected search metadata and returns the exact printed credit title", async () => {
+  await fs.mkdir(path.join(root, "alpha/media"));
+  await fs.writeFile(
+    path.join(root, "alpha/media/01-city.md"),
+    `---\n${JSON.stringify({ chapter: "City", scope: "Charminar", refinedAt: "2026-10-06", visuals: [], figures: [], tables: [], video: { intent: "", status: "none" }, images: [{ id: "image-1", intent: "Charminar", choice: { url: "https://example.org/x", thumbnail: "https://example.org/thumb.jpg", title: "Charminar", creator: "O'Neill", license: "CC BY-NC 4.0", licenseUrl: "https://creativecommons.org/licenses/by-nc/4.0/", sourcePage: "https://example.org/city" } }] })}\n---\n`,
+  );
+  const result = await save();
+  expect(result.details).toMatchObject({
+    markdown: '![Figure](../assets/figure.png "Credit: O\'Neill, CC BY-NC 4.0, https://example.org/city")',
+  });
+  expect(JSON.parse(await fs.readFile(path.join(root, "alpha/assets/figure.json"), "utf8"))).toMatchObject({
+    creator: "O'Neill",
+    license: "CC BY-NC 4.0",
+    sourcePage: "https://example.org/city",
+    licenseUrl: "https://creativecommons.org/licenses/by-nc/4.0/",
+  });
+});
+it("resolves Commons credits directly and refuses an ND derivative thumbnail", async () => {
+  vi.mocked(safeFetch).mockImplementation(async (url) => {
+    if (String(url).startsWith("https://commons.wikimedia.org/w/api.php"))
+      return {
+        url: String(url),
+        bytes: Buffer.from(
+          JSON.stringify({
+            query: {
+              pages: {
+                1: {
+                  imageinfo: [
+                    {
+                      url: "https://upload.wikimedia.org/wikipedia/commons/1/12/Original.png",
+                      extmetadata: { LicenseShortName: { value: "CC BY-ND 4.0" }, Artist: { value: "Photographer" } },
+                    },
+                  ],
+                },
+              },
+            },
+          }),
+        ),
+        contentType: "application/json",
+      } as never;
+    return { url: String(url), bytes: png, contentType: "image/png" } as never;
+  });
+  const rejected = await save({
+    url: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Original.png/800px-Original.png",
+  });
+  expect(rejected.details).toMatchObject({
+    isError: true,
+    summary: expect.stringContaining("ND images require the original"),
+  });
+  const original = await save({ url: "https://upload.wikimedia.org/wikipedia/commons/1/12/Original.png" });
+  expect(original.details).toMatchObject({
+    isError: false,
+    markdown: expect.stringContaining("Credit: Photographer, CC BY-ND 4.0"),
   });
 });

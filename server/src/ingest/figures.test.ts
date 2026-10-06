@@ -64,10 +64,12 @@ it("fails closed for wrong MIME, excessive dimensions, blocked hosts and cancell
   expect(failed.files.size).toBe(0);
   expect(failed.figures[2]?.downloadError).toBe("private host");
   await expect(captureFigures({ ...input, signal: AbortSignal.abort() })).rejects.toThrow();
-  for (const license of [undefined, "CC BY-NC 4.0", "CC BY-ND 4.0", "CC BY-NC-SA 4.0", "all rights reserved"])
-    expect(reusableLicense(license)).toBe(false);
+  for (const license of [undefined, "all rights reserved"]) expect(reusableLicense(license)).toBe(false);
   expect(figureLicense("https://creativecommons.org/licenses/by-nc-sa/4.0/")).toBe("CC BY-NC-SA 4.0");
   expect(reusableLicense(figureLicense("https://creativecommons.org/licenses/by-sa/4.0/"))).toBe(true);
+  expect(reusableLicense("CC BY-NC 4.0")).toBe(true);
+  expect(reusableLicense("CC BY-NC-SA 4.0", false)).toBe(false);
+  expect(reusableLicense("CC BY-ND 4.0")).toBe(true);
 });
 it("uses the individual Commons license and artist for the current thumbnail host", async () => {
   vi.mocked(safeFetch).mockImplementation(async (url) => {
