@@ -1,10 +1,14 @@
+import type { JobUsage } from "@studium/shared";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, expect, it, vi } from "vitest";
 import ActivityPanelContent from "./ActivityPanelContent";
 
-const state = vi.hoisted(() => ({ role: "ADMIN" }));
+const state = vi.hoisted(() => ({
+  role: "ADMIN",
+  usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, costUsd: 0 } as JobUsage | undefined,
+}));
 
 vi.mock("@/api/queries", () => ({
   queryKeys: { course: (set: string) => ["sets", set, "course"] },
@@ -19,7 +23,7 @@ vi.mock("@/api/queries", () => ({
         progress: "Source ready",
         startedAt: null,
         finishedAt: new Date().toISOString(),
-        usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, costUsd: 0 },
+        usage: state.usage,
         billing: "metered",
         result: { sourceId: "lib-video", warning: "stored warning", transcriptStatus: "blocked" },
       },
@@ -32,6 +36,7 @@ vi.mock("@/api/queries", () => ({
 afterEach(() => {
   cleanup();
   state.role = "ADMIN";
+  state.usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, costUsd: 0 };
 });
 
 function renderPanel() {
@@ -55,4 +60,19 @@ it("asks members to contact their admin instead of linking to Settings", () => {
   renderPanel();
   expect(screen.queryByRole("link", { name: "Set up YouTube sign-in" })).toBeNull();
   expect(screen.getByText(/ask your admin/)).toBeTruthy();
+});
+
+it("renders legacy jobs without usage while preserving warnings and navigation", () => {
+  state.usage = undefined;
+  renderPanel();
+  expect(screen.getByText("A blocked video")).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Set up YouTube sign-in" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "View all jobs" }).getAttribute("href")).toBe("/jobs");
+  expect(screen.queryByText(/Exa/)).toBeNull();
+});
+
+it("displays token usage and Exa requests and cost when recorded", () => {
+  state.usage = { input: 120, output: 30, cacheRead: 0, cacheWrite: 0, costUsd: 0, exaRequests: 3, exaCostUsd: 0.021 };
+  renderPanel();
+  expect(screen.getByText("120 in · 30 out · Exa 3 requests / $0.021")).toBeTruthy();
 });

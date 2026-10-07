@@ -49,7 +49,11 @@ function setup() {
       status: "running",
       title: "Plan",
       set: "history",
+      progress: "",
       startedAt: new Date().toISOString(),
+      finishedAt: null,
+      usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, costUsd: 0, exaRequests: 0, exaCostUsd: 0 },
+      billing: "metered",
     },
     {
       id: "failed",
@@ -57,11 +61,14 @@ function setup() {
       status: "failed",
       title: "Failed source",
       set: "history",
+      progress: "",
       startedAt: new Date().toISOString(),
       finishedAt: new Date().toISOString(),
+      usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, costUsd: 0, exaRequests: 0, exaCostUsd: 0 },
+      billing: "metered",
       error: "A long error with details that must remain fully readable",
     },
-  ] as JobView[]);
+  ] satisfies JobView[]);
   client.setQueryData(queryKeys.sets, []);
   return render(
     <QueryClientProvider client={client}>

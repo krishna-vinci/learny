@@ -103,7 +103,7 @@ function JobRow({
             <span aria-hidden="true">·</span>
             <span className="tabular-nums">{formatDuration(job.startedAt, job.finishedAt)}</span>
           </p>
-          {job.usage.exaRequests ? (
+          {job.usage?.exaRequests ? (
             <p className="mt-0.5 break-words text-xs text-muted-foreground [overflow-wrap:anywhere]">
               {formatTokenUsage(job.usage)}
             </p>

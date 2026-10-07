@@ -2,7 +2,7 @@ import type { FileView } from "@studium/shared";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, expect, it, vi } from "vitest";
 import { Reader } from "./Reader";
 
 vi.mock("@/api/queries", async (original) => ({
@@ -14,6 +14,12 @@ vi.mock("@/api/queries", async (original) => ({
   }),
 }));
 vi.mock("@/hooks/useMediaQuery", () => ({ useMediaQuery: () => false }));
+
+// Load the real lazy modules before test timers start; cold transforms can exceed
+// Testing Library's wait budget when the full suite runs concurrently.
+beforeAll(async () => {
+  await Promise.all([import("./ChapterVisuals"), import("./ArtifactBlock"), import("./VisualBlock")]);
+});
 
 function Location() {
   const location = useLocation();
@@ -87,7 +93,7 @@ it("opens a linked Visuals tab and gives an empty chapter a return action", asyn
   vi.spyOn(window, "scrollTo").mockImplementation(() => {});
   mount("# Empty chapter\n\nPlain text.", "?view=visuals");
   expect(screen.getByRole("tab", { name: "Visuals" }).getAttribute("aria-selected")).toBe("true");
-  expect(screen.getByText("No visuals in this chapter yet")).toBeTruthy();
+  expect(await screen.findByText("No visuals in this chapter yet")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Return to reading" }));
   expect(await screen.findByText("Plain text.")).toBeTruthy();
 });
@@ -147,7 +153,7 @@ it("stages one visual at a time behind a rail and pushes history per stage", asy
   stubVisualFetch();
   vi.spyOn(window, "scrollTo").mockImplementation(() => {});
   mount(MULTI_BODY, "?view=visuals");
-  const rail = screen.getByRole("group", { name: "Chapter visuals" });
+  const rail = await screen.findByRole("group", { name: "Chapter visuals" });
   expect(rail.querySelectorAll("button")).toHaveLength(3);
   await screen.findByRole("application", { name: "Slope controls" });
   expect(document.querySelectorAll("section h2")).toHaveLength(1);
