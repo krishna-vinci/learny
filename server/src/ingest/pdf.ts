@@ -1,6 +1,7 @@
 import { getDocumentProxy, getMeta } from "unpdf";
 import { cleanMarkdown, pdfQuality } from "./clean.js";
 import { mineruParse } from "./mineru.js";
+import { processMineruMarkdown } from "./mineru-markdown.js";
 import { type Extracted, UnsupportedInputError } from "./types.js";
 
 /** Reject a PDF whose declared page count exceeds this before parsing pages. */
@@ -13,11 +14,14 @@ export interface PdfExtractOptions {
   filename?: string | null;
   mineruUrl?: string;
   signal?: AbortSignal;
+  onProgress?: (message: string) => void;
+  onWarning?: (message: string) => void;
+  license?: string;
 }
 
 /**
- * Extract text from a PDF with page anchors (`<!-- p:N -->`). When the text
- * layer looks poor and MinerU is configured, the original is re-parsed there;
+ * Extract text from a PDF with page anchors (`<!-- p:N -->`). When
+ * MinerU is configured, every PDF is re-parsed there;
  * otherwise the basic text is kept with a `parse_warning`.
  */
 export async function extractPdf(bytes: Uint8Array, options: PdfExtractOptions = {}): Promise<Extracted> {
@@ -64,17 +68,33 @@ export async function extractPdf(bytes: Uint8Array, options: PdfExtractOptions =
   let parseTier: Extracted["parseTier"] = "basic";
   let warning: string | null = null;
 
-  if (!quality.ok && options.mineruUrl !== undefined && options.mineruUrl !== "") {
+  let embeddedFigures: Extracted["embeddedFigures"];
+  if (options.mineruUrl !== undefined && options.mineruUrl !== "") {
     try {
       const mineruMarkdown = await mineruParse(bytes, {
         mineruUrl: options.mineruUrl,
         filename: options.filename ?? "document.pdf",
         signal: options.signal,
+        pages: totalPages,
+        onProgress: options.onProgress,
+        onWarning: (message) => {
+          warning = message;
+          options.onWarning?.(message);
+        },
       });
-      markdown = cleanMarkdown(mineruMarkdown);
+      const processed = processMineruMarkdown(mineruMarkdown, {
+        url: options.url ?? null,
+        title: cleanTitle(stringValue(info.Title)),
+        authors: splitAuthors(stringValue(info.Author)),
+        license: options.license,
+      });
+      markdown = cleanMarkdown(processed.markdown);
+      embeddedFigures = processed.embeddedFigures;
       parseTier = "mineru";
     } catch (error) {
-      warning = `poor PDF text layer (${quality.reason}); MinerU failed: ${messageOf(error)}`;
+      options.signal?.throwIfAborted();
+      warning = `MinerU failed: ${messageOf(error)}; using unpdf text${quality.ok ? "" : ` (poor PDF text layer: ${quality.reason})`}.`;
+      options.onWarning?.(warning);
     }
   } else if (!quality.ok) {
     warning = `poor PDF text layer (${quality.reason}); set MINERU_URL for better extraction`;
@@ -83,6 +103,7 @@ export async function extractPdf(bytes: Uint8Array, options: PdfExtractOptions =
   }
 
   return {
+    ...(embeddedFigures ? { embeddedFigures } : {}),
     title: cleanTitle(stringValue(info.Title)),
     authors: splitAuthors(stringValue(info.Author)),
     markdown,

@@ -39,6 +39,7 @@ const improved: YoutubeIntegrationStatus = {
 
 const state = vi.hoisted(() => ({
   status: null as unknown,
+  services: [] as { name: string; ok: boolean; detail: string }[],
   exa: { month: "2026-10", spendUsd: 9.51, warnUsd: 8, stopUsd: 9.5, status: "stopped" },
   install: { mutate: () => undefined, isPending: false, isError: false, error: null as Error | null },
   update: { mutate: () => undefined, isPending: false, isError: false, error: null as Error | null },
@@ -52,7 +53,7 @@ const state = vi.hoisted(() => ({
 }));
 
 vi.mock("@/api/queries", () => ({
-  useSettings: () => ({ data: { exa: state.exa }, isLoading: false }),
+  useSettings: () => ({ data: { exa: state.exa, services: state.services }, isLoading: false }),
   useYoutubeStatus: () => ({ data: state.status, isLoading: false, isError: false }),
   useInstallYoutubeEngine: () => state.install,
   useUpdateYoutubeEngine: () => state.update,
@@ -63,6 +64,7 @@ vi.mock("@/api/queries", () => ({
 afterEach(() => {
   cleanup();
   state.status = null;
+  state.services = [];
 });
 
 it("shows basic with Install, then improved after installing", () => {
@@ -102,4 +104,15 @@ it("shows monthly search spend and why fallback is active", () => {
   expect(screen.getByText("$9.510 this month (2026-10, UTC)")).toBeTruthy();
   expect(screen.getByText("Monthly limit reached")).toBeTruthy();
   expect(screen.getByText(/Papers use papers MCP; other searches use SearXNG until next month/)).toBeTruthy();
+});
+
+it("shows MinerU reachability, version and tier in Integrations", () => {
+  state.status = basic;
+  state.services = [{ name: "mineru", ok: true, detail: "reachable · version 4.0.10 · tier basic" }];
+  const { rerender } = render(<IntegrationsSection />);
+  expect(screen.getByText("Reachable")).toBeTruthy();
+  expect(screen.getByText(/version 4.0.10 · tier basic/)).toBeTruthy();
+  state.services = [{ name: "mineru", ok: false, detail: "HTTP 503 · tier basic" }];
+  rerender(<IntegrationsSection />);
+  expect(screen.getByText("Unreachable")).toBeTruthy();
 });

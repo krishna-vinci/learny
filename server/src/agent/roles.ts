@@ -36,7 +36,7 @@ export interface RoleSpec {
 const STUDY_TOOLS = ["study_list", "study_read", "study_edit", "study_create"] as const;
 const SKILL_TOOLS = ["load_skill", "load_skill_reference"] as const;
 const RESEARCH_TOOLS = ["wiki_search", "wiki_read", "web_search", "web_fetch", "scout_sources"] as const;
-const CHAT_JOB_TOOLS = ["start_job", "add_source", "record_quiz_result"] as const;
+const CHAT_JOB_TOOLS = ["start_job", "add_source", "record_quiz_result", "request_plan_change"] as const;
 
 function setPath(
   set: string | null,

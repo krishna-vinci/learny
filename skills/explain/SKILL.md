@@ -55,3 +55,12 @@ If the learner answers incorrectly, identify the precise misconception, correct 
 - If the explanation reveals a gap in a note, propose the exact surgical edit and wait for approval.
 
 For purposeful visuals in notes, load `media-authoring` for static images/charts/video, or `make-visual` for interactive widgets/sketches and static book stills.
+
+## Requested course changes
+
+When the learner asks to change chapters, order, scope, visuals or videos in the
+course plan, call `request_plan_change({ request })` with the requested change.
+It starts the same smallest-change proposal as the Plan page’s “Change with agent”.
+Never write `curriculum.md` or `PLAN.md` yourself. After the tool succeeds, say:
+“I've proposed the change — review it in the Inbox.” The learner approves it there;
+do not claim the plan has already changed. If the tool fails, report the failure.

@@ -38,6 +38,7 @@ export interface Extracted {
   originalExt: string | null;
   thumb?: Uint8Array;
   images?: import("./images.js").SourceImage[];
+  embeddedFigures?: import("./mineru-markdown.js").EmbeddedFigures;
   /**
    * True when the input carries metadata but no readable text (an embed-only
    * YouTube video). Downstream agents must treat such a source as unreadable.
@@ -56,6 +57,9 @@ export interface ExtractInput {
 
 export interface ExtractOptions {
   mineruUrl?: string;
+  onProgress?: (message: string) => void;
+  onWarning?: (message: string) => void;
+  license?: string;
   firecrawlUrl?: string;
   firecrawlKey?: string;
   signal?: AbortSignal;
@@ -86,6 +90,9 @@ export async function extract(kind: InputKind, input: ExtractInput, options: Ext
         url: input.url ?? null,
         filename: input.filename ?? null,
         mineruUrl: options.mineruUrl,
+        onProgress: options.onProgress,
+        onWarning: options.onWarning,
+        license: options.license,
         signal: options.signal,
       });
     }
@@ -135,6 +142,9 @@ export async function extract(kind: InputKind, input: ExtractInput, options: Ext
         url,
         filename: null,
         mineruUrl: options.mineruUrl,
+        onProgress: options.onProgress,
+        onWarning: options.onWarning,
+        license: options.license,
         signal: options.signal,
       });
     }
@@ -147,6 +157,9 @@ export async function extract(kind: InputKind, input: ExtractInput, options: Ext
           url: response.url,
           filename: null,
           mineruUrl: options.mineruUrl,
+          onProgress: options.onProgress,
+          onWarning: options.onWarning,
+          license: options.license,
           signal: options.signal,
         });
       }

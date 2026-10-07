@@ -15,13 +15,26 @@ export function createRefreshSourceJob(deps: Omit<RefreshOptions, "signal" | "bl
       ? [value.sourceId as string]
       : (await listSetSources(deps.root, value.set as string)).map((s) => s.id);
     const refreshes = [];
+    const warnings: string[] = [];
     const blockedHosts = new Map<string, string>();
     let commitSha: string | undefined;
     for (const [index, id] of ids.entries()) {
       ctx.signal.throwIfAborted();
       ctx.progress(`Refreshing ${index + 1} of ${ids.length}`);
       try {
-        const result = await refreshSource({ ...deps, signal: ctx.signal, blockedHosts }, id);
+        const result = await refreshSource(
+          {
+            ...deps,
+            signal: ctx.signal,
+            blockedHosts,
+            onProgress: (message) => ctx.progress(message),
+            onWarning: (message) => {
+              warnings.push(`${id}: ${message}`);
+              ctx.progress(`Warning: ${message}`);
+            },
+          },
+          id,
+        );
         refreshes.push(result.refresh);
         commitSha = result.commitSha ?? commitSha;
       } catch (error) {
@@ -43,7 +56,14 @@ export function createRefreshSourceJob(deps: Omit<RefreshOptions, "signal" | "bl
       refreshes,
       ...(single ? { sourceId: value.sourceId as string } : {}),
       ...(commitSha ? { commitSha } : {}),
-      ...(skipped ? { warning: `${skipped} sources skipped; see refresh results for reasons.` } : {}),
+      ...(skipped || warnings.length
+        ? {
+            warning: [
+              ...warnings,
+              ...(skipped ? [`${skipped} sources skipped; see refresh results for reasons.`] : []),
+            ].join("; "),
+          }
+        : {}),
     };
   };
 }

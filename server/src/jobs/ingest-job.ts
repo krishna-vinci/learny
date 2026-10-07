@@ -206,8 +206,9 @@ async function extractInput(
   deps: IngestJobDeps,
   input: IngestJobInput,
   kind: InputKind,
-  signal: AbortSignal,
+  ctx: JobContext,
 ): Promise<{ extracted: Extracted; original?: { bytes: Uint8Array; ext: string }; images?: ImageContent[] }> {
+  const signal = ctx.signal;
   if (kind === "audio") throw new Error("Audio ingestion is unsupported by the configured Librarian model");
   if (kind !== "image") {
     const extracted = await extract(kind, input, {
@@ -216,6 +217,8 @@ async function extractInput(
       ...(process.env.FIRECRAWL_API_KEY === undefined ? {} : { firecrawlKey: process.env.FIRECRAWL_API_KEY }),
       ...(deps.youtube === undefined ? {} : { youtube: deps.youtube }),
       signal,
+      onProgress: (message) => ctx.progress(message),
+      onWarning: (message) => ctx.progress(`Warning: ${message}`),
     });
     const ext = originalExt(input);
     return {
@@ -622,7 +625,7 @@ export function createIngestJob(deps: IngestJobDeps): JobHandler {
         }
 
         ctx.progress("Extracting source");
-        const extraction = await extractInput(deps, input, kind, ctx.signal);
+        const extraction = await extractInput(deps, input, kind, ctx);
         const candidates = input.url ? deps.candidateImages?.get(input.url) : undefined;
         if (candidates?.length) {
           const extracted = extraction.extracted;
@@ -679,10 +682,11 @@ export function createIngestJob(deps: IngestJobDeps): JobHandler {
         }
         ctx.progress("Source ready");
         const commitSha = summary.commitSha ?? written.commitSha;
+        const warning = [extracted.warning, summary.warning].filter(Boolean).join("; ") || null;
         return {
           sourceId,
           ...(commitSha === null ? {} : { commitSha }),
-          ...(summary.warning === null ? {} : { warning: summary.warning }),
+          ...(warning === null ? {} : { warning }),
         };
       } catch (error) {
         if (input.url && error instanceof Error && /HTTP (401|403|451)/.test(error.message))

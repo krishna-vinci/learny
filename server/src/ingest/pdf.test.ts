@@ -43,25 +43,29 @@ describe("extractPdf", () => {
     await expect(extractPdf(bytes)).rejects.toThrow(/too many pages/);
   });
 
-  it("falls back to MinerU when the text layer is poor", async () => {
-    const fetchMock = vi.fn(
-      async (_input: unknown, _init?: RequestInit) =>
-        new Response(
-          JSON.stringify({ results: { "document.pdf": { md_content: "# MinerU output\n\nRecovered text." } } }),
-          {
-            headers: { "content-type": "application/json" },
-          },
-        ),
-    );
-    vi.stubGlobal("fetch", fetchMock);
+  it.each(["tiny", PAGE_ONE])(
+    "uses MinerU for every configured PDF, including a good text layer (%s)",
+    async (text) => {
+      const fetchMock = vi.fn(async (_input: unknown, _init?: RequestInit) =>
+        String(_input).endsWith("/v1/health")
+          ? new Response("", { status: 404 })
+          : new Response(
+              JSON.stringify({ results: { "document.pdf": { md_content: "# MinerU output\n\nRecovered text." } } }),
+              {
+                headers: { "content-type": "application/json" },
+              },
+            ),
+      );
+      vi.stubGlobal("fetch", fetchMock);
 
-    const extracted = await extractPdf(makePdf(["tiny"]), { mineruUrl: "http://93.184.216.34:8081" });
-    expect(extracted.parseTier).toBe("mineru");
-    expect(extracted.markdown).toContain("MinerU output");
-    expect(extracted.warning).toBeNull();
-    expect(fetchMock).toHaveBeenCalledOnce();
-    expect(String(fetchMock.mock.calls[0]?.[0])).toContain("/file_parse");
-  });
+      const extracted = await extractPdf(makePdf([text]), { mineruUrl: "http://93.184.216.34:8081" });
+      expect(extracted.parseTier).toBe("mineru");
+      expect(extracted.markdown).toContain("MinerU output");
+      expect(extracted.warning).toBeNull();
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(String(fetchMock.mock.calls[1]?.[0])).toContain("/file_parse");
+    },
+  );
 
   it("keeps the basic text and warns when MinerU fails", async () => {
     vi.stubGlobal(

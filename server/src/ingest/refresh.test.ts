@@ -112,3 +112,47 @@ it("keeps duplicate-section locators when reordered and ignores anchor-like code
   ]);
   expect(sourceSections("# Real\n\n```\n<!-- anchor: fake -->\n```\n")[0]?.anchor).toBe("real");
 });
+
+it("refreshes saved PDFs through the PDF extractor even with an arXiv source URL and stages their figures", async () => {
+  const original = new TextEncoder().encode("%PDF fake");
+  const { id } = await writeSource(root, extracted(), { bytes: original, ext: "pdf" });
+  const sourceFile = path.join(root, `library/${id}/source.md`);
+  const snapshot = await fs.readFile(sourceFile, "utf8");
+  // Model a URL-ingested PDF: original present but no upload hash.
+  await fs.writeFile(
+    sourceFile,
+    snapshot.replace(/^sha256: .*\n/m, "").replace("https://example.org/lesson", "https://arxiv.org/abs/2601.07372"),
+  );
+  const file = `figures/${"a".repeat(24)}.png`;
+  const bytes = new Uint8Array([1, 2, 3]);
+  vi.mocked(extract).mockResolvedValue({
+    ...extracted(),
+    markdown: `# Existing\n\n${prose}\n\n![Figure](${file})`,
+    parseTier: "mineru",
+    embeddedFigures: {
+      files: new Map([[file, bytes]]),
+      figures: [
+        {
+          path: file,
+          url: "https://arxiv.org/abs/2601.07372#figure-test",
+          caption: "Figure 1",
+          alt: "Figure",
+          section: "Existing",
+          credit: "Cheng, source (licence unknown)",
+          sourcePage: "https://arxiv.org/abs/2601.07372",
+        },
+      ],
+    },
+  });
+  const result = await refreshSource({ root, locks: new FileLocks(), mineruUrl: "http://127.0.0.1:18750" }, id);
+  expect(result.refresh.status).toBe("refreshed");
+  expect(vi.mocked(extract).mock.calls[0]).toMatchObject([
+    "pdf",
+    { filename: "original.pdf", url: "https://arxiv.org/abs/2601.07372", bytes: original },
+    { mineruUrl: "http://127.0.0.1:18750" },
+  ]);
+  expect(await fs.readFile(path.join(root, `library/${id}/${file}`))).toEqual(Buffer.from(bytes));
+  expect(JSON.parse(await fs.readFile(path.join(root, `library/${id}/images.json`), "utf8"))[0].caption).toBe(
+    "Figure 1",
+  );
+});

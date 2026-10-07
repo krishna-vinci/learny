@@ -33,6 +33,7 @@ import { type FileLocks, SetMutationError } from "../tree/lock.js";
 import { resolveInRoot } from "../tree/paths.js";
 import { isSetSlug } from "../tree/read.js";
 import { addSourceTool } from "./builtins/add-source.js";
+import { requestPlanChangeTool } from "./builtins/request-plan-change.js";
 import { listSkills } from "./builtins/skills.js";
 import { workspaceClassifier } from "./classifier-workspace.js";
 import { selectContext } from "./context-selection.js";
@@ -519,6 +520,7 @@ export class ChatService {
         }),
         startJobTool({ root: this.#root, set, runtime: this.#runtime, store: this.#proposals }),
         addSourceTool({ set, jobs: this.#jobs }),
+        requestPlanChangeTool({ set, jobs: this.#jobs }),
       ],
     });
     const { session } = await createAgentSession({

@@ -323,3 +323,60 @@ figure exceptions do not inherit site-wide permission. See the primary API docs:
 [Openverse](https://api.openverse.org/v1/), [The Met](https://metmuseum.github.io/),
 [NASA](https://images.nasa.gov/docs/images.nasa.gov_api_docs.pdf),
 [Smithsonian](https://www.si.edu/openaccess/faq).
+
+## MinerU 4 for PDFs (optional)
+
+MinerU extracts equations, tables and figures from every PDF when `MINERU_URL`
+is configured. Ingest and Refresh run it in the background and show progress;
+failures/timeouts keep unpdf text and record a warning. Refresh uses a saved PDF
+original when present. Settings → Integrations shows reachability, version and tier.
+The service endpoint is trusted only at its exact configured origin; redirects
+and off-origin upload URLs are rejected. Other source fetching remains public-only.
+
+Install in a dedicated environment (Python 3.12 and `uv`):
+
+```sh
+uv venv --python 3.12 ~/.local/share/mineru/.venv
+uv pip install --python ~/.local/share/mineru/.venv/bin/python "mineru>=4.0,<5"
+~/.local/share/mineru/.venv/bin/mineru-models-download --tier basic --small-backend onnx
+```
+
+Example `~/.config/systemd/user/mineru.service` (adjust paths and memory to your host):
+
+```ini
+[Unit]
+Description=MinerU PDF parsing
+After=network.target
+
+[Service]
+ExecStart=%h/.local/share/mineru/.venv/bin/mineru-kit api-server --host 127.0.0.1 --port 18750 --tier basic --concurrency 1
+MemoryMax=8G
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+```
+
+Run `systemctl --user daemon-reload` and `systemctl --user enable --now mineru`.
+
+MinerU keeps its models loaded after the first parse (about 4–5 GB) and has no idle-unload option.
+On small hosts, add a timer that restarts it when it holds memory but has been idle for 10 minutes
+(it starts again in ~100 MB and loads models on the next PDF). The owner's host uses
+`~/.local/share/mineru/idle-release.sh` with `mineru-idle.service` + `mineru-idle.timer`
+(`OnUnitActiveSec=10min`): restart when `MemoryCurrent` > 500 MB and `CPUUsageNSec` grew < 2 s since the last check.
+Check `http://127.0.0.1:18750/v1/health`. Set these in Studium’s environment,
+then restart Studium. Commented examples (no credentials in workspace config):
+
+```sh
+# MINERU_URL=http://127.0.0.1:18750
+# MINERU_API_KEY= # optional Bearer token; local service needs none
+# MINERU_TIER=basic
+```
+
+`basic` works on CPU. `standard` needs a VLM: plan for 16 GB+ RAM and a GPU or
+Apple Silicon, or point MinerU at a remote VLM using `--vlm-server-url`.
+Keep the parser bound to loopback; do not expose an unauthenticated service.
+The parse deadline scales at 30 seconds/page, with a 10-minute minimum and a
+3-hour maximum. MinerU ≤3 is supported only when `/v1/health` is absent (404/405),
+using `/file_parse`.

@@ -235,3 +235,41 @@ it("stores discovered Firecrawl Markdown images with absolute URLs and nearby he
   );
   fetch.mockRestore();
 });
+
+it("publishes embedded PDF figures and their captions without remote refetching", async () => {
+  const bytes = new Uint8Array([1, 2, 3]);
+  const file = `figures/${"b".repeat(24)}.png`;
+  const fetchMock = vi.fn();
+  vi.stubGlobal("fetch", fetchMock);
+  try {
+    const { id } = await writeSource(
+      root,
+      makeExtracted({
+        parseTier: "mineru",
+        markdown: `# Figure\n\n![Lookup](${file})`,
+        embeddedFigures: {
+          files: new Map([[file, bytes]]),
+          figures: [
+            {
+              path: file,
+              url: "https://math.example.com/linear-algebra#figure-b",
+              sourcePage: "https://math.example.com/linear-algebra",
+              caption: "Figure 1: Lookup",
+              alt: "Lookup",
+              section: "Figure",
+              credit: "Strang, source (licence unknown)",
+            },
+          ],
+        },
+      }),
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(await fs.readFile(path.join(root, `library/${id}/${file}`))).toEqual(Buffer.from(bytes));
+    expect(JSON.parse(await fs.readFile(path.join(root, `library/${id}/images.json`), "utf8"))).toMatchObject([
+      { path: file, caption: "Figure 1: Lookup" },
+    ]);
+    expect(await readParsedFile(root, id, "parsed.md")).toContain(`](${file})`);
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});

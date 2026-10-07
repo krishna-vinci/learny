@@ -1,0 +1,25 @@
+{
+  "selected": "parsed/20-6-1-is-engram-functionally-equivalent.md",
+  "mathFile": "parsed/06-2-2-sparse-retrieval-via-hashed-l-grams.md",
+  "tableCounts": {
+    "math": 0,
+    "tables": 1,
+    "images": 0,
+    "overflow": false
+  },
+  "mathCounts": {
+    "math": 12,
+    "tables": 0,
+    "overflow": false
+  },
+  "tablePoint": {
+    "top": 538.671875,
+    "height": 444.75
+  },
+  "errors": [],
+  "width": 390,
+  "height": 1000,
+  "source": "390-source.png",
+  "mathScreenshot": "390-section-math.png",
+  "tableScreenshot": "390-section-table.png"
+}

@@ -20,6 +20,7 @@ import {
   uniqueSourceId,
 } from "./ids.js";
 import { collectImages } from "./images.js";
+import { parsedFigureLinks } from "./mineru-markdown.js";
 import { scoreParseQuality } from "./quality.js";
 import { sourceSections } from "./sections.js";
 import { type ParsedPart, splitParsed } from "./split.js";
@@ -278,17 +279,21 @@ export async function writeSource(
   }
   if (
     !unreadable &&
-    (extracted.images !== undefined ||
+    (extracted.embeddedFigures !== undefined ||
+      extracted.images !== undefined ||
       (extracted.url && extracted.originalExt === null && extracted.parseTier !== "transcript"))
   ) {
     const captured = await captureFigures({
-      images: extracted.images ?? collectImages(extracted.markdown, extracted.url ?? ""),
+      images:
+        extracted.images ?? (extracted.embeddedFigures ? [] : collectImages(extracted.markdown, extracted.url ?? "")),
       title,
       authors: extracted.authors,
       pageUrl: extracted.url,
       markdown: extracted.markdown,
       signal: options.signal,
     });
+    for (const [file, bytes] of extracted.embeddedFigures?.files ?? []) captured.files.set(file, bytes);
+    captured.figures.push(...(extracted.embeddedFigures?.figures ?? []));
     for (const [file, bytes] of captured.files) {
       const rel = `${dir}/${file}`;
       if (canonicalRel(root, rel) !== rel) throw new Error("Figure paths may not be symlink aliases");
@@ -327,7 +332,7 @@ async function writePart(root: string, dir: string, part: ParsedPart): Promise<s
   const rel = `${dir}/${part.path}`;
   const abs = resolveInRoot(root, rel);
   await fs.mkdir(path.dirname(abs), { recursive: true });
-  await fs.writeFile(abs, part.content, "utf8");
+  await fs.writeFile(abs, parsedFigureLinks(part.content, part.path), "utf8");
   return rel;
 }
 
