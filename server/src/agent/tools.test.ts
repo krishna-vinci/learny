@@ -38,6 +38,18 @@ async function execute(name: string, params: Record<string, unknown>, onWrite?: 
 }
 
 describe("tutorTools", () => {
+  it("reads the shared learner profile without allowing global configuration or profile writes", async () => {
+    const read = await execute("study_read", { path: "_global/profile.md" });
+    expect(read.details).toMatchObject({ isError: false });
+    for (const params of [{ path: "_global/config.yaml" }, { path: "../_global/profile.md" }])
+      expect((await execute("study_read", params)).details).toMatchObject({ isError: true });
+    expect(
+      (await execute("study_edit", { path: "_global/profile.md", old_string: "x", new_string: "y" })).details,
+    ).toMatchObject({ isError: true });
+    await fs.unlink(path.join(root, "_global/profile.md"));
+    await fs.symlink(path.join(root, "_global/config.yaml"), path.join(root, "_global/profile.md"));
+    expect((await execute("study_read", { path: "_global/profile.md" })).details).toMatchObject({ isError: true });
+  });
   it("creates media and rejects unsafe or oversized complete SVG edits", async () => {
     const svg = '<svg viewBox="0 0 10 10"><path fill="currentColor" d="M0 0"/></svg>';
     expect((await execute("study_create", { path: "assets/figure.svg", content: svg })).details).toMatchObject({
