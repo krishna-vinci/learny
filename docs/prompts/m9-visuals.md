@@ -1,6 +1,6 @@
 # M9 — Visuals that teach (local, GPT-6.1 Sol)
 
-You are the IMPLEMENTER in `/home/krishna/learny-worktrees/m9` on branch `codex/m9`. Do not load orchestration skills and do not spawn sub-agents.
+You are the IMPLEMENTER in `/path/to/studium-worktrees/m9` on branch `codex/m9`. Do not load orchestration skills and do not spawn sub-agents.
 
 **Spec:** implement ALL four parts of `docs/plans/2026-10-02-m9-visuals.md` in order, with Fixed decisions V1–V11. Read the whole plan and the files it lists first. After each part, run that part's tests and write a short part summary into `docs/plans/2026-10-02-m9-visuals-report.md` before starting the next (so progress survives a network cut). Use the context7 MCP for p5, d3, three, Vite static assets and the chosen expression parser. For the frontend use the `ui-ux-pro-max` and `shadcn` skills if available and match existing Reader styles.
 

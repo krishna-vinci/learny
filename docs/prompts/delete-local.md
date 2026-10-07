@@ -1,6 +1,6 @@
 # Delete notes, chapters and sets (local, GPT-6.1 Sol)
 
-You are the IMPLEMENTER in `/home/krishna/learny-worktrees/delete` on branch `codex/delete`. Do not load orchestration skills or spawn sub-agents. Run `pnpm install --frozen-lockfile --prefer-offline` first; biome via `rtk proxy pnpm exec biome check <files>`. Note: since this prompt was written, chapters match notes by `chapter:` id/title/slug (not filename number) and Course plan lists "Other notes in this set" — deleting a chapter note must keep that consistent. Another agent is concurrently changing media briefs/figures (server/src/tree/media-brief.ts, jobs/media-plan.ts, ingest/figures.ts): avoid editing those files; if deletion needs to clean a chapter media brief (`<set>/media/NN-slug.md`), do it through the tree layer and report it.
+You are the IMPLEMENTER in `/path/to/studium-worktrees/delete` on branch `codex/delete`. Do not load orchestration skills or spawn sub-agents. Run `pnpm install --frozen-lockfile --prefer-offline` first; biome via `rtk proxy pnpm exec biome check <files>`. Note: since this prompt was written, chapters match notes by `chapter:` id/title/slug (not filename number) and Course plan lists "Other notes in this set" — deleting a chapter note must keep that consistent. Another agent is concurrently changing media briefs/figures (server/src/tree/media-brief.ts, jobs/media-plan.ts, ingest/figures.ts): avoid editing those files; if deletion needs to clean a chapter media brief (`<set>/media/NN-slug.md`), do it through the tree layer and report it.
 
 ---
 

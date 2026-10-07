@@ -6,7 +6,7 @@ the UI, ntfy and Web Push notifications, a per-user data export, and a systemd s
 
 **Spec:** decisions D24–D28 in `docs/decisions/LOG.md`, `docs/ROADMAP.md` (M3a),
 `docs/DEPLOY.md`. Memos reference (read-only):
-- `/home/krishna/learny/reference/memos/`, in particular `server/auth/token.go`
+- `/path/to/studium/reference/memos/`, in particular `server/auth/token.go`
   (PAT format, sha256 hashing)
 - `proto/api/v1/{auth,user,idp,instance}_service.proto`
 - web: `web/src/pages/{SignIn,AuthCallback}.tsx` and `web/src/components/Settings/*`
@@ -356,7 +356,7 @@ in as `krishna`, and every existing API works unchanged.
 
 Run: `vitest run src/workspaces src/server.test.ts src/tree`, then `tsc`.
 
-**Acceptance:** after a restart, `data/study` has moved to `data/users/krishna`,
+**Acceptance:** after a restart, `data/study` has moved to `data/users/<username>`,
 `git log` is intact, all 5 notes show up, and a second user sees an empty tree.
 
 ---
@@ -680,7 +680,7 @@ Port from Memos where noted and keep its MIT notice. Layout follows Memos'
 2. `cp -a data data.pre-m3a` as a safety copy.
 3. Merge and `pnpm --filter @studium/web build`.
 4. `scripts/install-service.sh`.
-5. The first boot migrates the `.env` login and moves `data/study` → `data/users/krishna`.
+5. The first boot migrates the `.env` login and moves `data/study` → `data/users/<username>`.
 6. Sign in and check the notes.
-7. Set up backups in Settings to restic rest-server on 192.168.0.55; the learner runs
+7. Set up backups in Settings to restic rest-server on backup.example.com; the learner runs
    `rest-server` there or picks SFTP.

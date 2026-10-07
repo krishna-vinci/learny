@@ -1,6 +1,6 @@
 # Set page, activity panel, accept from course plan, per-set sources (local, GPT-6.1 Sol)
 
-You are the IMPLEMENTER in `/home/krishna/learny-worktrees/set-page` on branch `codex/set-page`. Do not load orchestration skills and do not spawn sub-agents.
+You are the IMPLEMENTER in `/path/to/studium-worktrees/set-page` on branch `codex/set-page`. Do not load orchestration skills and do not spawn sub-agents.
 
 **Local rules:** don't commit/push/branch; never edit `AGENT_MEMORY.md` (log entry in the report); never touch `.env*`, `data/`, `.claude/`; test servers on temp copies of `examples/sample-set` on your own port (admin from env, `STUDIUM_FAUX=1`); only stop processes you started (save `$!`), never pkill/killall; run `pnpm install --frozen-lockfile --prefer-offline` first; biome via `rtk proxy pnpm exec biome check <files>`; base-ui `Menu.Item` uses `onClick`; use real clicks in browser checks. Line numbers below may have drifted: if a step doesn't fit the real code, stop that item, report file:line, and continue with the rest.
 

@@ -1,6 +1,6 @@
 # M4-8 web follow-up (small, precise)
 
-You are the IMPLEMENTER in `/home/krishna/learny-worktrees/m4-8web` on branch `codex/m4-8web`. Do not load orchestration skills and do not spawn sub-agents. Read `AGENT_MEMORY.md` and `docs/UX.md` (copy and interaction rules) first.
+You are the IMPLEMENTER in `/path/to/studium-worktrees/m4-8web` on branch `codex/m4-8web`. Do not load orchestration skills and do not spawn sub-agents. Read `AGENT_MEMORY.md` and `docs/UX.md` (copy and interaction rules) first.
 - Only edit `web/`. Never commit, push or edit `AGENT_MEMORY.md`. Never pkill.
 - Run biome as `rtk proxy pnpm exec biome check <files>`.
 - If a step doesn't fit the code, stop and report file:line.

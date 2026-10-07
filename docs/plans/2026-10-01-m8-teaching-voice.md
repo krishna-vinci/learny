@@ -3,7 +3,7 @@
 **Goal:** chapters read like a good teacher narrating a course (Zerodha Varsity is the bar): clear structure, warm voice, stories and examples, adapted to the subject. Nothing in a chapter looks like an AI prompt or an internal file. The learner can come back to the course plan any time and draft the remaining chapters, from the set page or by asking the tutor.
 
 ## Evidence (why)
-Live chapters in `data/users/krishna/hyderabad-history/notes/` (read them; never edit them in your work — test on copies) show:
+Live chapters in `data/users/<username>/hyderabad-history/notes/` (read them; never edit them in your work — test on copies) show:
 - Openings that echo the brief: "This chapter asks how a hill fort…", "This chapter asks how the Nizams…".
 - Internal paths in footnotes: "parsed/01-part.md, lines 47–59", "parsed.md, lines 117–137".
 - Operator-style lines: "Treat the diagrams as orientation sketches…", a table column named "Prompt".

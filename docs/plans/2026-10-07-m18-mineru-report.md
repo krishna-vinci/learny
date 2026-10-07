@@ -66,7 +66,7 @@ port 18761, fresh test admin, no external MCP servers, no real model requests.
 - Final real-paper excerpt cleanup test: 4 passed / 0 failed.
 - Web Integrations: 4 passed / 0 failed. All three package type checks and web build passed.
 
-Real trial: temp full workspace `/tmp/studium-m18-jtv55te5/data/users/krishna`,
+Real trial: temp full workspace `/tmp/studium-m18-jtv55te5/data/users/<username>`,
 fresh local-only account database, port 18761. Invoked actual
 `POST /api/library/lib-cheng-conditional-memory-via-scalable-lookup/refresh`,
 MinerU `http://127.0.0.1:18750`, basic tier. No paid providers or external MCP

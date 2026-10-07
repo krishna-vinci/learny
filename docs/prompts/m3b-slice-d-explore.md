@@ -1,6 +1,6 @@
 # M3b Slice D, step 1: map the UI for a shadcn migration (READ-ONLY)
 
-You are a READ-ONLY explorer in `/home/krishna/learny` (branch main). Do NOT modify, create or delete any file in the repo; do not install anything; do not run `npx shadcn`. Do not load orchestration skills or spawn agents.
+You are a READ-ONLY explorer in `/path/to/studium` (branch main). Do NOT modify, create or delete any file in the repo; do not install anything; do not run `npx shadcn`. Do not load orchestration skills or spawn agents.
 
 Write your whole result to ONE file: `/tmp/claude-1000/-home-krishna-learny/a7d2a3ad-46a1-478a-baa0-09617d6e3f49/scratchpad/m3b-d-uimap.md`.
 

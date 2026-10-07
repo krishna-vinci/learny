@@ -1,6 +1,6 @@
 # Recoverable deletion verification
 
-Implemented on `codex/delete` in `/home/krishna/learny-worktrees/delete`. No commit, push, merge, deployment, new dependencies, model calls or Anki writes were performed. All filesystem tests and browser flows used temporary study trees.
+Implemented on `codex/delete` in `/path/to/studium-worktrees/delete`. No commit, push, merge, deployment, new dependencies, model calls or Anki writes were performed. All filesystem tests and browser flows used temporary study trees.
 
 Learners can delete notes from the reader or set page and undo through an eight-second toast. Linked-data deletion requires a short confirmation; the curriculum row stays by default, with an option to remove it. Chapter matching uses the current id/title/slug rules. A remaining matching note keeps the chapter available; otherwise the chapter becomes planned again. Set deletion requires its exact displayed name. Settings → Recently deleted offers note and set restoration from git history.
 

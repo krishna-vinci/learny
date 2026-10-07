@@ -1,6 +1,6 @@
 # M4-2b — Search index stores plain text (snippet cleanup)
 
-You are the IMPLEMENTER in `/home/krishna/learny-worktrees/m4-2b` on branch `codex/m4-2b`. Do not load orchestration skills and do not spawn sub-agents. Read `AGENT_MEMORY.md` first.
+You are the IMPLEMENTER in `/path/to/studium-worktrees/m4-2b` on branch `codex/m4-2b`. Do not load orchestration skills and do not spawn sub-agents. Read `AGENT_MEMORY.md` first.
 - Never commit or push; never edit `AGENT_MEMORY.md` (put a 5-line log entry in your report).
 - Never touch `.env*`, `data/`, `.claude/` or `web/`.
 - Run biome as `rtk proxy pnpm exec biome check <files>`.

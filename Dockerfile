@@ -15,10 +15,11 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY shared/package.json shared/
 COPY server/package.json server/
 COPY web/package.json web/
+COPY patches ./patches
 RUN pnpm install --frozen-lockfile
 
 COPY . .
-RUN pnpm --filter @studium/web exec vite build
+RUN pnpm --filter @studium/web build
 
 # ---- runtime: server process + built SPA -------------------------------------
 FROM node:22-slim AS runtime
@@ -80,19 +81,31 @@ RUN set -eu; \
     rm -f /tmp/yt-dlp /tmp/yt-dlp.sums; \
     yt-dlp --version
 
+ARG VERSION=dev
+
+LABEL org.opencontainers.image.source="https://github.com/krishna-vinci/studium" \
+    org.opencontainers.image.description="Self-hosted learning with cited notes, flashcards and practice" \
+    org.opencontainers.image.licenses="AGPL-3.0-only" \
+    org.opencontainers.image.version="${VERSION}"
+
+ENV STUDIUM_VERSION=${VERSION}
+
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY shared/package.json shared/
 COPY server/package.json server/
 COPY web/package.json web/
-# `start` runs through tsx, a devDependency, so dev deps stay installed.
-RUN pnpm install --frozen-lockfile --filter "@studium/server..."
+# tsx is a runtime dependency; omit build/test dependencies and discard the store.
+COPY patches ./patches
+RUN pnpm install --frozen-lockfile --prod --filter "@studium/server..." \
+    && rm -rf /pnpm/store
 
 # Copied with --chown so the non-root runtime user reads them without a recursive chown.
-COPY --chown=node:node tsconfig.base.json ./
+COPY --chown=node:node tsconfig.base.json LICENSE NOTICE ./
 COPY --chown=node:node shared ./shared
 COPY --chown=node:node server ./server
+COPY --chown=node:node skills ./skills
 COPY --chown=node:node --from=build /app/web/dist ./web/dist
 
 # Writable defaults for the two volumes: the data dir and Pi's config dir.
@@ -102,4 +115,9 @@ USER node
 
 EXPOSE 3000
 
-CMD ["pnpm", "--filter", "@studium/server", "start"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD node -e 'fetch("http://127.0.0.1:" + (process.env.PORT || "3000") + "/api/healthz", {signal: AbortSignal.timeout(4000)}).then(async r => {if (!r.ok || (await r.json()).ok !== true) process.exit(1)}).catch(() => process.exit(1))'
+
+WORKDIR /app/server
+
+CMD ["node", "--import", "tsx", "src/main.ts"]

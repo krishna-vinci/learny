@@ -27,11 +27,9 @@ await fs.cp(copy, root, { recursive: true });
 await fs.cp(path.resolve("../skills"), path.join(root, "_global/skills"), { recursive: true });
 // Retain the live workspace's budget estimate; do not reset the shared key allowance for a trial.
 await fs.mkdir(path.join(root, ".cache"), { recursive: true });
-await fs
-  .copyFile("/home/krishna/learny/data/users/krishna/.cache/exa-budget.json", path.join(root, ".cache/exa-budget.json"))
-  .catch((e) => {
-    if (e.code !== "ENOENT") throw e;
-  });
+await fs.copyFile(path.join(copy, ".cache/exa-budget.json"), path.join(root, ".cache/exa-budget.json")).catch((e) => {
+  if (e.code !== "ENOENT") throw e;
+});
 const configFile = path.join(root, "_global/config.yaml");
 const config = parseYaml(await fs.readFile(configFile, "utf8"));
 config.models = {
@@ -53,9 +51,11 @@ const mcp = new McpManager(loadMcpConfig(root, process.env).servers);
 await mcp.start();
 const dataDir = path.join(out, "instance");
 await fs.mkdir(path.join(dataDir, "bin"), { recursive: true });
-await fs.copyFile("/home/krishna/learny/data/bin/yt-dlp", path.join(dataDir, "bin/yt-dlp")).catch((e) => {
-  if (e.code !== "ENOENT") throw e;
-});
+await fs
+  .copyFile(path.resolve(process.env.STUDIUM_DATA_DIR ?? "../data", "bin/yt-dlp"), path.join(dataDir, "bin/yt-dlp"))
+  .catch((e) => {
+    if (e.code !== "ENOENT") throw e;
+  });
 const youtube = new YoutubeService({ dataDir, secretsKey: Buffer.alloc(32), env: process.env });
 const deps = { root, locks, mcp, hub, runtime: adapter.runtime, youtube };
 const jobs = new JobRunner({ root, hub, maxParallel: 1, subscriptionProviders: ["openai-codex", "github-copilot"] });

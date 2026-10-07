@@ -1,9 +1,9 @@
 # M3b Slice C — Themes (web only)
 
-You are the frontend implementer for Studium. You work in the worktree `/home/krishna/learny-worktrees/m3b` (branch `codex/m3b`, deps installed). Use absolute paths or `cd` into it for every command, and never edit `/home/krishna/learny` itself.
+You are the frontend implementer for Studium. You work in the worktree `/path/to/studium-worktrees/m3b` (branch `codex/m3b`, deps installed). Use absolute paths or `cd` into it for every command, and never edit `/path/to/studium` itself.
 - Only change `web/`. Never touch `server/`, `shared/`, `data/`, `.env*` or `.claude/`. Don't commit.
-- Read `/home/krishna/learny/AGENT_MEMORY.md` first (gotchas!) and `docs/plans/2026-09-30-m3b-comfort.md` (Slice C, C1–C4).
-- Use the `ui-ux-pro-max` skill for the palettes and contrast. Load it with the Skill tool, or read `/home/krishna/.agents/skills/ui-ux-pro-max/SKILL.md`.
+- Read `/path/to/studium/AGENT_MEMORY.md` first (gotchas!) and `docs/plans/2026-09-30-m3b-comfort.md` (Slice C, C1–C4).
+- Use the `ui-ux-pro-max` skill for the palettes and contrast. Load it with the Skill tool, or read `/home/<username>/.agents/skills/ui-ux-pro-max/SKILL.md`.
 - This is a persistent session: later M3b/M4 frontend work will come to you as follow-up messages.
 
 ## Exact targets
@@ -49,7 +49,7 @@ You are the frontend implementer for Studium. You work in the worktree `/home/kr
 
 ## Verify (required)
 - Test server:
-  1. `mkdir -p /tmp/claude-1000/-home-krishna-learny/a7d2a3ad-46a1-478a-baa0-09617d6e3f49/scratchpad/m3b-test/c` and copy `/home/krishna/learny/examples/sample-set` there as `legacy`.
+  1. `mkdir -p /tmp/claude-1000/-home-krishna-learny/a7d2a3ad-46a1-478a-baa0-09617d6e3f49/scratchpad/m3b-test/c` and copy `/path/to/studium/examples/sample-set` there as `legacy`.
   2. From `server/` run `STUDIUM_DATA_DIR=<dir>/data STUDIUM_STUDY_ROOT=<dir>/legacy HOST=127.0.0.1 PORT=3142 STUDIUM_FAUX=1 pnpm exec tsx src/main.ts` in the background.
   3. First visit `/setup`.
   4. Add a python code block to your test copy of a note if it has none. Never `rm -rf` computed paths.

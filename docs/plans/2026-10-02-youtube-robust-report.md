@@ -1,6 +1,6 @@
 # YouTube embeds robust end-to-end — implementation report
 
-2026-10-02 · `/home/krishna/learny-worktrees/yt` · branch `codex/yt` · uncommitted.
+2026-10-02 · `/path/to/studium-worktrees/yt` · branch `codex/yt` · uncommitted.
 
 ## Design decisions and root causes
 
@@ -88,7 +88,7 @@ The new tests first reproduced 20 parser failures, 16 ordinary-link rendering fa
 
 ## Existing-content audit and browser verification
 
-Read `/home/krishna/learny/data/users/` without modifying it. There is one user tree. Copied it into `/tmp/studium-youtube-pl99z7fv/audit` for rendering and a separate disposable runtime under `/tmp/studium-youtube-pl99z7fv/state/users/yttester`. A final read-only hash comparison confirmed the audited live inputs had not changed.
+Read `/path/to/studium/data/users/` without modifying it. There is one user tree. Copied it into `/tmp/studium-youtube-pl99z7fv/audit` for rendering and a separate disposable runtime under `/tmp/studium-youtube-pl99z7fv/state/users/yttester`. A final read-only hash comparison confirmed the audited live inputs had not changed.
 
 - Rendered **all 13 existing chapter notes** through the actual `MarkdownView`. These notes currently contain **zero YouTube URLs**, so a chapter-only video check would be vacuous.
 - Also rendered the **five parsed library files** containing YouTube URLs: **nine video-link occurrences** and **two channel-link occurrences**. Every video produced its expected player ID/time after Play; the Stanford link retained `#t=2385`. Channel pages remained links. **Failed video links: none.** No private note body was copied into this repository.

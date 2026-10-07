@@ -1,10 +1,47 @@
 services:
-  app:
-    build: .
-    image: studium:local
-    env_file: .env
-    environment: ["STUDIUM_DATA_DIR=/data"]
-    ports: ["127.0.0.1:3000:3000"]
+  # Docker creates fresh bind directories as root. This short-lived helper changes
+  # only their ownership; the application still runs as the image's non-root node.
+  studium-init:
+    image: ghcr.io/krishna-vinci/studium:latest
+    user: "0:0"
+    entrypoint: ["sh", "-c", "chown 1000:1000 /data /pi-agent"]
+    network_mode: none
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [CHOWN]
+    healthcheck:
+      disable: true
     volumes:
-      - "./data:/data" # accounts db, secrets, every user's study tree, backups
-      - "${PI_AGENT_DIR:-~/.pi/agent}:/pi-agent" # Pi auth.json/models.json (tokens refresh)
+      - ./data:/data
+      - ./pi-agent:/pi-agent
+
+  studium:
+    image: ghcr.io/krishna-vinci/studium:latest
+    # build: . # Developers: uncomment, then docker compose build
+    restart: unless-stopped
+    depends_on:
+      studium-init:
+        condition: service_completed_successfully
+    env_file: .env
+    # Override native-install paths/bind settings from the shared example.
+    environment:
+      STUDIUM_DATA_DIR: /data
+      STUDIUM_STUDY_ROOT: /data/study
+      PI_CODING_AGENT_DIR: /pi-agent
+      HOST: 0.0.0.0
+      PORT: "3000"
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./data:/data
+      - ./pi-agent:/pi-agent
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/healthz', {signal: AbortSignal.timeout(4000)}).then(async r => {if (!r.ok || (await r.json()).ok !== true) process.exit(1)}).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    # Reverse proxy on this host: proxy to http://127.0.0.1:3000, enable TLS and
+    # set STUDIUM_BASE_URL=https://studium.example.com in your environment.
+    # Set STUDIUM_TRUST_PROXY=1 only if the proxy overwrites forwarding headers.
+    # A proxy container on the same network can use http://studium:3000 instead.

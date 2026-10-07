@@ -126,6 +126,7 @@ if (process.env.STUDIUM_FAUX === "1") {
 }
 
 const app = createServer({
+  version: process.env.STUDIUM_VERSION ?? "dev",
   db,
   instanceSecret,
   workspaces,

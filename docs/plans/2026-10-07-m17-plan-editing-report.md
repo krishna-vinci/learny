@@ -17,7 +17,7 @@ Read AGENTS.md, owner memory, Principles, UI, Teaching, study-tree/spec document
 Design: retain the parsed chapter's source line as identity inside each operation, renumber and remap prerequisites, and serialise against the original document to preserve unrecognised content. Coordinate linked file changes with the existing set mutation gate and individual file locks; rollback on failed writes/commit. Use the same operation contract for proposal edits but mutate only its curriculum fence. Existing user commit/revert provides Undo.
 
 ## Step 1 complete
-Implemented source-aware serialisation and all four operations. Real polymers fixture copied read-only from `/home/krishna/learny/data/users/krishna/polymers/curriculum.md`. Unknown content, fences, Image lines, ticks and CRLF survive round-trips; edited fields remain parseable. References follow chapter identity and invalid prerequisite orders are rejected.
+Implemented source-aware serialisation and all four operations. Real polymers fixture copied read-only from `/path/to/studium/data/users/<username>/polymers/curriculum.md`. Unknown content, fences, Image lines, ticks and CRLF survive round-trips; edited fields remain parseable. References follow chapter identity and invalid prerequisite orders are rejected.
 
 Validation: `pnpm --filter @studium/server exec vitest run src/tree/curriculum.test.ts src/tree/curriculum-edit.test.ts` — 2 files, 11 tests passed. Includes linked note/media updates, stale media, deletion retaining a note, undo and injected-write rollback.
 
@@ -54,7 +54,7 @@ Temp workspace: `/tmp/studium-m17-tree-4s5mylyk`. Config points only to `faux/ec
 
 ## Step 7 complete — final browser acceptance
 
-Command: `node server/scripts/m17-plan-editing-browser.mjs /tmp/studium-m17-tree-1m2h1z76` — **passed**, exit 0, no browser exceptions. `STUDIUM_FAUX=1` is set on the child API process. The fresh copy was made from `/home/krishna/learny/data/users/krishna`; `.env*` files were excluded. The API binds its own random loopback port; the static proxy and Chrome also use isolated ports/profile. All spawned servers and Chrome stopped in the harness's `finally`; process check found none remaining. Auth is stubbed in this verification harness; mutation routes, locks, git history, JobRunner, Outliner wrapper, proposal validation and agent file tools are real. No paid calls or external services.
+Command: `node server/scripts/m17-plan-editing-browser.mjs /tmp/studium-m17-tree-1m2h1z76` — **passed**, exit 0, no browser exceptions. `STUDIUM_FAUX=1` is set on the child API process. The fresh copy was made from `/path/to/studium/data/users/<username>`; `.env*` files were excluded. The API binds its own random loopback port; the static proxy and Chrome also use isolated ports/profile. All spawned servers and Chrome stopped in the harness's `finally`; process check found none remaining. Auth is stubbed in this verification harness; mutation routes, locks, git history, JobRunner, Outliner wrapper, proposal validation and agent file tools are real. No paid calls or external services.
 
 Real-pointer/keyboard checks on polymers:
 - Chapter 03 renamed to Carbon structures, groups and reactions; its original note path remains linked.

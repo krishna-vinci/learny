@@ -13,7 +13,7 @@
 > - Design rules live in `docs/DESIGN.md`.
 
 
-Read-only survey of `/home/krishna/learny` at branch `main`, commit `c589e1f`
+Read-only survey of `/path/to/studium` at branch `main`, commit `c589e1f`
 ("docs: model routing …"). Date 2026-09-30. Everything below is `main` as it is; the
 following files are being changed in a different worktree and must be re-read before the
 migration lands (flagged **[IN FLUX]** throughout):

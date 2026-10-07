@@ -1,6 +1,6 @@
 # Visuals review fixes (local, GPT-6.1 Sol)
 
-You are the IMPLEMENTER in `/home/krishna/learny-worktrees/visuals-fixes` on branch `codex/visuals-fixes`. Do not load orchestration skills and do not spawn sub-agents.
+You are the IMPLEMENTER in `/path/to/studium-worktrees/visuals-fixes` on branch `codex/visuals-fixes`. Do not load orchestration skills and do not spawn sub-agents.
 
 Context: the chapter Visuals system (D29 media, D31 Visuals tab, D32 widgets/sketch runtime; commit f3aa5b9). Read `AGENTS.md`, `AGENT_MEMORY.md`, `docs/decisions/LOG.md` (D29, D31, D32), then the files named below before changing anything. An external review was verified by the orchestrator; the items below are the accepted, amended fixes.
 

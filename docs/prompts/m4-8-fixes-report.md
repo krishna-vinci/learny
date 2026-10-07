@@ -1,6 +1,6 @@
 # M4-8 fixes report — server/shared only
 
-Implemented against baseline `c69020a` in `/home/krishna/learny-worktrees/m4-8fix`.
+Implemented against baseline `c69020a` in `/path/to/studium-worktrees/m4-8fix`.
 No files under `web/` were edited or added. Shared API changes are additive and
 optional at the type level; new server responses always include review counts and
 parsed chapters. Existing fields and kind unions remain intact. No subagents,

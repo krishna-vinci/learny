@@ -1,6 +1,6 @@
 # M2 Cards & Review Implementation Plan
 
-> **For agentic workers:** Execute only the task you were given. Do not load brainstorming or other workflow skills. Read `/home/krishna/learny/AGENTS.md` first. If a step does not fit the real code or a library API differs from what is written here, stop and report the mismatch (file:line, what you saw) instead of improvising. Run biome as `rtk proxy pnpm exec biome check <files>` (without `rtk proxy` a shell hook fakes an "out of memory" crash when biome finds problems; if `rtk` is missing, run biome directly).
+> **For agentic workers:** Execute only the task you were given. Do not load brainstorming or other workflow skills. Read `/path/to/studium/AGENTS.md` first. If a step does not fit the real code or a library API differs from what is written here, stop and report the mismatch (file:line, what you saw) instead of improvising. Run biome as `rtk proxy pnpm exec biome check <files>` (without `rtk proxy` a shell hook fakes an "out of memory" crash when biome finds problems; if `rtk` is missing, run biome directly).
 
 **Goal:** From any accepted chapter, the learner gets flashcards drafted by a Cardsmith and filtered by a Critic against SuperMemo's 20 rules and the existing deck; reviews them quickly on a phone; exports approved cards as an `.apkg` (imports cleanly into AnkiDroid / AnkiMobile / desktop Anki, updates instead of duplicating on re-import) or syncs them to desktop Anki via AnkiConnect; quizzes in chat with results logged; and sees which cards went stale after a note changed.
 

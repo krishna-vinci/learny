@@ -1,6 +1,6 @@
 # M1 Sources → Notes Implementation Plan
 
-> **For agentic workers:** Execute only the task you were given. Do not load brainstorming or other workflow skills. Read `/home/krishna/learny/AGENTS.md` first. If a step does not fit the real code or a library API differs from what is written here, stop and report the mismatch (file:line, what you saw) instead of improvising. Run biome as `rtk proxy pnpm exec biome check <files>` (without `rtk proxy` a shell hook fakes an "out of memory" crash when biome finds problems; if `rtk` is missing, run biome directly).
+> **For agentic workers:** Execute only the task you were given. Do not load brainstorming or other workflow skills. Read `/path/to/studium/AGENTS.md` first. If a step does not fit the real code or a library API differs from what is written here, stop and report the mismatch (file:line, what you saw) instead of improvising. Run biome as `rtk proxy pnpm exec biome check <files>` (without `rtk proxy` a shell hook fakes an "out of memory" crash when biome finds problems; if `rtk` is missing, run biome directly).
 
 **Goal:** The learner adds sources (PDF, web page, Wikipedia, YouTube, EPUB/DOCX, papers) from chat, the UI or a drop folder; a Librarian writes each source's summary; the Tutor can search the web and papers; a Drafter writes a cited chapter that a Checker on a different model reviews; the learner accepts it from an Inbox — all visible and usable on a phone.
 
