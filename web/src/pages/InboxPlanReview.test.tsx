@@ -62,7 +62,9 @@ function renderReview() {
 
 describe("plan proposal review", () => {
   beforeEach(() => {
-    vi.mocked(usePlanProposal).mockReturnValue({ data: proposal } as unknown as ReturnType<typeof usePlanProposal>);
+    vi.mocked(usePlanProposal).mockReturnValue({ data: proposal, refetch: vi.fn() } as unknown as ReturnType<
+      typeof usePlanProposal
+    >);
   });
 
   afterEach(() => {
@@ -120,4 +122,26 @@ describe("plan proposal review", () => {
     fireEvent.click(screen.getByRole("button", { name: "Approve" }));
     await waitFor(() => expect(approvePlan).toHaveBeenCalledWith("algebra", "linear-algebra.md", 0));
   });
+});
+
+it("edits a proposed chapter through the shared sheet and saves only the proposal", async () => {
+  vi.mocked(usePlanProposal).mockReturnValue({
+    data: { ...proposal, raw: "exact proposal text", currentChapters: [] },
+    refetch: vi.fn(),
+  } as unknown as ReturnType<typeof usePlanProposal>);
+  const edit = vi.spyOn(api.inbox, "editPlanCurriculum").mockResolvedValue({ sha: null });
+  const liveEdit = vi.spyOn(api.sets, "editCurriculum");
+  renderReview();
+  fireEvent.click(screen.getByRole("button", { name: "Actions for Vectors from API" }));
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Edit chapter" }));
+  fireEvent.change(await screen.findByLabelText("Title"), { target: { value: "Better vectors" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save chapter" }));
+  await waitFor(() =>
+    expect(edit).toHaveBeenCalledWith("algebra", "linear-algebra.md", "exact proposal text", {
+      operation: "update",
+      number: 2,
+      chapter: { title: "Better vectors", scope: "Vectors", prerequisites: "none", visuals: [], video: "" },
+    }),
+  );
+  expect(liveEdit).not.toHaveBeenCalled();
 });

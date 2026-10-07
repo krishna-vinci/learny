@@ -8,6 +8,8 @@ import type {
   ChatSummary,
   CommitInfo,
   CourseView,
+  CurriculumOperation,
+  CurriculumView,
   DeletedItem,
   DeletionPreview,
   DeletionResult,
@@ -580,6 +582,15 @@ export const api = {
     visuals(set: string): Promise<{ files: string[] }> {
       return request(`/api/sets/${encodeURIComponent(set)}/visuals`);
     },
+    curriculum(set: string): Promise<CurriculumView> {
+      return request(`/api/sets/${encodeURIComponent(set)}/curriculum`);
+    },
+    editCurriculum(set: string, previous: string, operation: CurriculumOperation): Promise<{ sha: string | null }> {
+      return request(`/api/sets/${encodeURIComponent(set)}/curriculum`, {
+        method: "PATCH",
+        body: JSON.stringify({ previous, ...operation }),
+      });
+    },
     course(set: string): Promise<CourseView> {
       return request(`/api/sets/${encodeURIComponent(set)}/course`);
     },
@@ -721,6 +732,7 @@ export const api = {
             kind: Extract<JobKind, "plan-set">;
             set: string;
             goal: string;
+            mode?: "change";
             level?: number;
             deadline?: string;
             sources?: string[];
@@ -754,10 +766,31 @@ export const api = {
     planProposal(set: string, file: string): Promise<PlanProposal> {
       return request(`/api/sets/${encodeURIComponent(set)}/plan-proposals/${encodeURIComponent(file)}`);
     },
-    approvePlan(set: string, file: string, draftFirst: number, addSources?: boolean): Promise<PlanApprovalResponse> {
+    editPlanCurriculum(
+      set: string,
+      file: string,
+      previous: string,
+      operation: CurriculumOperation,
+    ): Promise<{ sha: string | null }> {
+      return request(`/api/sets/${encodeURIComponent(set)}/plan-proposals/${encodeURIComponent(file)}/curriculum`, {
+        method: "PATCH",
+        body: JSON.stringify({ previous, ...operation }),
+      });
+    },
+    approvePlan(
+      set: string,
+      file: string,
+      draftFirst: number,
+      addSources?: boolean,
+      previous?: string,
+    ): Promise<PlanApprovalResponse> {
       return request(`/api/sets/${encodeURIComponent(set)}/plan-proposals/${encodeURIComponent(file)}/approve`, {
         method: "POST",
-        body: JSON.stringify({ draftFirst, ...(addSources === undefined ? {} : { addSources }) }),
+        body: JSON.stringify({
+          draftFirst,
+          ...(addSources === undefined ? {} : { addSources }),
+          ...(previous === undefined ? {} : { previous }),
+        }),
       });
     },
     discardPlan(set: string, file: string): Promise<{ sha: string | null }> {

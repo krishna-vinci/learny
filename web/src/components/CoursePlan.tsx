@@ -1,6 +1,5 @@
 import type { CourseChapter, CourseView, JobView, NoteSummary } from "@studium/shared";
 import { useQueryClient } from "@tanstack/react-query";
-import { MoreHorizontalIcon, RefreshCwIcon } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ApiError, api } from "@/api/client";
@@ -8,19 +7,14 @@ import { queryKeys, useCourse } from "@/api/queries";
 import { openActivityPanel } from "@/components/Activity/activity-store";
 import { ChapterMediaStatus } from "@/components/ChapterMediaStatus";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { ChapterPlanMenu, useCurriculumEditing } from "@/components/CurriculumEditing";
 import { FirstUseHint } from "@/components/FirstUseHint";
 import { RowsSkeleton } from "@/components/ListSkeleton";
 import { planHref } from "@/components/Navigation/nav";
 import { RewriteChapterDialog } from "@/components/RewriteChapterDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/spinner";
 import { friendlyMessage } from "@/lib/friendly-errors";
 import { toast } from "@/lib/notify";
@@ -35,7 +29,7 @@ export function prerequisiteReason(chapter: CourseChapter, chapters: readonly Co
     new Set(required).size !== required.length ||
     required.some((n) => n >= chapter.order || !chapters.some((c) => c.order === n))
   )
-    return "Re-plan to clarify this chapter's prerequisites.";
+    return "Edit this chapter's prerequisites.";
   const missing = required.filter(
     (order) =>
       !chapters.some(
@@ -74,6 +68,7 @@ export function ChapterStateBadge({ state }: { state: CourseChapter["state"] }) 
 
 export function CoursePlan({ set, jobs, onReplan }: { set: string; jobs: readonly JobView[]; onReplan: () => void }) {
   const course = useCourse(set);
+  const editor = useCurriculumEditing(set);
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(false);
   const [pending, setPending] = useState<Set<number>>(new Set());
@@ -154,6 +149,7 @@ export function CoursePlan({ set, jobs, onReplan }: { set: string; jobs: readonl
           </Button>
         </div>
       </div>
+      {editor.overlays}
       {course.isLoading ? (
         <RowsSkeleton rows={3} className="mt-2" />
       ) : course.isError ? (
@@ -260,27 +256,19 @@ export function CoursePlan({ set, jobs, onReplan }: { set: string; jobs: readonl
                           <span className="truncate">{job?.progress || (starting ? "Starting…" : "Drafting…")}</span>
                         </Button>
                       )}
-                      {(state === "drafted" || state === "checked" || state === "accepted") && chapter.path && (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger
-                            render={<Button variant="quiet" size="icon" className="size-11" />}
-                            aria-label={`Actions for ${chapter.title}`}
-                          >
-                            <MoreHorizontalIcon />
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuGroup>
-                              <DropdownMenuItem
-                                className="min-h-11"
-                                onClick={() => setRewritePath(chapter.path ?? null)}
-                              >
-                                <RefreshCwIcon />
-                                Rewrite in teaching voice
-                              </DropdownMenuItem>
-                            </DropdownMenuGroup>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
+                      <ChapterPlanMenu
+                        number={chapter.order}
+                        title={chapter.title}
+                        first={chapter.order === chapters[0]?.order}
+                        last={chapter.order === chapters.at(-1)?.order}
+                        action={editor.action}
+                      >
+                        {chapter.path && (
+                          <DropdownMenuItem onClick={() => setRewritePath(chapter.path ?? null)}>
+                            Rewrite in teaching voice
+                          </DropdownMenuItem>
+                        )}
+                      </ChapterPlanMenu>
                       {state === "planned" && reason && <p className="text-xs text-muted-foreground">{reason}</p>}
                     </div>
                   </div>

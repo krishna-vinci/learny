@@ -6,9 +6,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import { CheckIcon, ExternalLinkIcon, MinusIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api } from "@/api/client";
+import { ApiError, api } from "@/api/client";
 import { queryKeys, usePlanProposal } from "@/api/queries";
 import { showJobStartedToast } from "@/components/Activity/job-start-toast";
+import { ChapterPlanMenu, useCurriculumEditing } from "@/components/CurriculumEditing";
+import { PlanChangeSummary } from "@/components/PlanChangeSummary";
 import { MarkdownView } from "@/components/Reader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -83,11 +85,24 @@ function SourceRow({ url, set }: { url: string; set: string }) {
 
 export function PlanReview({ set, item, onBack }: { set: string; item: InboxItem; onBack: () => void }) {
   const file = planProposalFile(item);
-  const { data, isLoading, error } = usePlanProposal(set, file);
+  const { data, isLoading, error, refetch } = usePlanProposal(set, file);
+  const editor = useCurriculumEditing(
+    set,
+    data
+      ? {
+          file,
+          data,
+          reload: () => {
+            void refetch();
+          },
+        }
+      : undefined,
+  );
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [draftFirst, setDraftFirst] = useState(3);
   const [approving, setApproving] = useState(false);
+  const [approvalConflict, setApprovalConflict] = useState(false);
 
   const summary = data ? parsePlanSummary(data.plan) : null;
   const chapters = data?.chapters ?? [];
@@ -107,7 +122,10 @@ export function PlanReview({ set, item, onBack }: { set: string; item: InboxItem
   async function approve() {
     setApproving(true);
     try {
-      const { jobIds, ingestJobIds } = await api.inbox.approvePlan(set, file, count);
+      const { jobIds, ingestJobIds } =
+        data?.raw === undefined
+          ? await api.inbox.approvePlan(set, file, count)
+          : await api.inbox.approvePlan(set, file, count, undefined, data.raw);
       refresh();
       toast.success(
         ingestJobIds?.length > 0
@@ -118,6 +136,7 @@ export function PlanReview({ set, item, onBack }: { set: string; item: InboxItem
       );
       navigate(`/s/${set}`);
     } catch (err) {
+      if (err instanceof ApiError && err.status === 409) setApprovalConflict(true);
       toast.error(friendlyMessage(err, "Failed to approve the plan."));
       setApproving(false);
     }
@@ -205,9 +224,14 @@ export function PlanReview({ set, item, onBack }: { set: string; item: InboxItem
 
           {data.chapters ? (
             <section className="mt-4">
-              <h2 className="text-sm font-semibold text-foreground">Curriculum ({chapters.length} chapters)</h2>
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold text-foreground">Curriculum ({chapters.length} chapters)</h2>
+                <Button variant="outline" className="h-11" onClick={() => void editor.action("insert", null)}>
+                  Add chapter
+                </Button>
+              </div>
               <ol className="mt-2 rounded-md border border-border/70 px-3">
-                {chapters.map((chapter) => (
+                {chapters.map((chapter, index) => (
                   <li key={chapter.number} className="flex gap-3 border-b border-border/70 py-2.5 last:border-b-0">
                     <span className="w-6 shrink-0 text-end text-sm text-muted-foreground">
                       {String(chapter.number).padStart(2, "0")}
@@ -222,6 +246,13 @@ export function PlanReview({ set, item, onBack }: { set: string; item: InboxItem
                         <p className="mt-0.5 text-xs text-muted-foreground">Prerequisites: {chapter.prerequisites}</p>
                       )}
                     </div>
+                    <ChapterPlanMenu
+                      number={chapter.number}
+                      title={chapter.title}
+                      first={index === 0}
+                      last={index === chapters.length - 1}
+                      action={editor.action}
+                    />
                   </li>
                 ))}
               </ol>
@@ -265,6 +296,25 @@ export function PlanReview({ set, item, onBack }: { set: string; item: InboxItem
         </>
       )}
 
+      {data?.currentChapters && (
+        <PlanChangeSummary current={data.currentChapters} proposed={chapters} origins={data.chapterOrigins} />
+      )}
+      {editor.overlays}
+      {approvalConflict && (
+        <div role="alert" className="mt-4 rounded-md bg-warning/10 p-3 text-sm">
+          The proposal changed. Reload and review before approving.{" "}
+          <Button
+            variant="outline"
+            className="h-11"
+            onClick={() => {
+              setApprovalConflict(false);
+              void refetch();
+            }}
+          >
+            Reload
+          </Button>
+        </div>
+      )}
       <ActionBar className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
         {data && (
           <div className="flex items-center justify-between gap-2 sm:justify-end">
@@ -309,7 +359,7 @@ export function PlanReview({ set, item, onBack }: { set: string; item: InboxItem
             <div className="flex min-w-0 flex-[2] flex-col gap-1 md:flex-none">
               <Button
                 className="min-h-11 h-auto whitespace-normal py-2 md:min-h-9 md:flex-none"
-                disabled={approving}
+                disabled={approving || approvalConflict}
                 onClick={() => void approve()}
               >
                 <CheckIcon aria-hidden="true" />

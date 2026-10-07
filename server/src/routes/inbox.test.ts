@@ -2,7 +2,7 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { InboxItem, PlanApprovalResponse, StudiumEvent } from "@studium/shared";
+import type { InboxItem, PlanApprovalResponse, PlanProposal, StudiumEvent } from "@studium/shared";
 import { Hono } from "hono";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EventHub } from "../events.js";
@@ -45,6 +45,128 @@ afterEach(async () => {
 });
 
 describe("inbox routes", () => {
+  it("edits only a proposal curriculum, compares against current chapters and detects conflicts", async () => {
+    const rel = "linear-algebra/plan-proposals/edit.md";
+    await fs.mkdir(path.join(root, "linear-algebra/plan-proposals"), { recursive: true });
+    const previous = proposalText();
+    await fs.writeFile(path.join(root, rel), previous);
+    await commitPaths(root, [rel], "fixture", "system");
+    const url = "/api/sets/linear-algebra/plan-proposals/edit.md";
+    const view = (await (await app.request(url)).json()) as PlanProposal;
+    expect(view.raw).toBe(previous);
+    expect(view.currentChapters?.length).toBeGreaterThan(0);
+    const body = {
+      previous,
+      operation: "update",
+      number: 1,
+      chapter: {
+        title: "Vector basics",
+        scope: "Learn vectors.",
+        prerequisites: "none",
+        visuals: ["step-through — Addition"],
+        video: "",
+      },
+    };
+    const patch = () =>
+      app.request(`${url}/curriculum`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    expect((await patch()).status).toBe(200);
+    const updated = (await (await app.request(url)).json()) as PlanProposal;
+    expect(updated.chapters?.[0]?.title).toBe("Vector basics");
+    expect(updated.plan).toBe(view.plan);
+    expect(updated.sourcesToAdd).toEqual(view.sourcesToAdd);
+    expect((await patch()).status).toBe(409);
+    expect(
+      (
+        await app.request(`${url}/approve`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ draftFirst: 0, previous }),
+        })
+      ).status,
+    ).toBe(409);
+    expect(await fs.readFile(path.join(root, "linear-algebra/curriculum.md"), "utf8")).not.toContain("Vector basics");
+  });
+
+  it("approves a learner-edited proposal rename with its note link intact", async () => {
+    const rel = "linear-algebra/plan-proposals/rename.md";
+    await fs.mkdir(path.join(root, "linear-algebra/plan-proposals"), { recursive: true });
+    const previous = proposalText().replace("- https://example.org/course — A course to add.", "none");
+    await fs.writeFile(path.join(root, "linear-algebra/curriculum.md"), proposedCurriculum());
+    await fs.writeFile(
+      path.join(root, "linear-algebra/notes/01-vectors.md"),
+      "---\ntitle: Vectors\nchapter: vectors\nstatus: accepted\n---\nKeep this note\n",
+    );
+    await fs.writeFile(path.join(root, rel), previous);
+    await commitPaths(
+      root,
+      [rel, "linear-algebra/curriculum.md", "linear-algebra/notes/01-vectors.md"],
+      "fixture",
+      "system",
+    );
+    const url = "/api/sets/linear-algebra/plan-proposals/rename.md";
+    expect(
+      (
+        await app.request(`${url}/curriculum`, {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            previous,
+            operation: "update",
+            number: 1,
+            chapter: {
+              title: "Vector basics",
+              scope: "New vector scope",
+              prerequisites: "none",
+              visuals: [],
+              video: "",
+            },
+          }),
+        })
+      ).status,
+    ).toBe(200);
+    const updated = (await (await app.request(url)).json()) as PlanProposal;
+    expect(updated.chapterOrigins?.["1"]).toBe("Vectors");
+    expect(
+      (
+        await app.request(`${url}/approve`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ draftFirst: 0, addSources: false, previous: updated.raw }),
+        })
+      ).status,
+    ).toBe(200);
+    expect(await fs.readFile(path.join(root, "linear-algebra/notes/01-vectors.md"), "utf8")).toContain(
+      "chapter: vector-basics",
+    );
+    expect(await fs.readFile(path.join(root, "linear-algebra/notes/01-vectors.md"), "utf8")).toContain(
+      "Keep this note",
+    );
+  });
+
+  it("releases the set mutation gate before starting approved draft jobs", async () => {
+    const locks = new FileLocks();
+    const realJobs = new JobRunner({ root, hub, locks, maxParallel: 1 });
+    realJobs.register("draft-chapter", async () => ({}));
+    const scoped = new Hono();
+    scoped.route("/api/sets/:set", inboxRoutes({ root, locks, hub, jobs: realJobs }));
+    await fs.mkdir(path.join(root, "linear-algebra/plan-proposals"), { recursive: true });
+    await fs.writeFile(path.join(root, "linear-algebra/plan-proposals/gate.md"), proposalText());
+    await commitPaths(root, ["linear-algebra/plan-proposals/gate.md"], "outliner: fixture", "outliner");
+    const response = await scoped.request("/api/sets/linear-algebra/plan-proposals/gate.md/approve", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ draftFirst: 1, addSources: false }),
+    });
+    expect(response.status, await response.clone().text()).toBe(200);
+    const body = (await response.json()) as PlanApprovalResponse;
+    expect(body.jobIds).toHaveLength(1);
+    await vi.waitFor(() => expect(realJobs.list()[0]?.status).toBe("done"));
+  });
+
   it("lists draft and checked notes with parsed check issues", async () => {
     await fs.mkdir(path.join(root, "linear-algebra/log/checks"), { recursive: true });
     await fs.writeFile(

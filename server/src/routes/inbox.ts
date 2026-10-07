@@ -5,11 +5,18 @@ import type { Context } from "hono";
 import { Hono } from "hono";
 import type { EventHub } from "../events.js";
 import { defaultPlanKickoffsFile, PlanKickoffs } from "../inbox/plan-kickoffs.js";
-import { parsePlanProposal, proposalRootPath } from "../inbox/plans.js";
+import {
+  parsePlanProposal,
+  proposalChapterOrigins,
+  proposalRootPath,
+  replaceProposalCurriculum,
+  setProposalChapterOrigins,
+} from "../inbox/plans.js";
 import { readInbox } from "../inbox/read.js";
 import { AiDisabledError, type JobRunner } from "../jobs/runner.js";
-import { parseCurriculum } from "../tree/curriculum.js";
-import { editFile, readText, writeTextLocked } from "../tree/edit.js";
+import { applyCurriculumOperation, curriculumView, parseCurriculum, serializeCurriculum } from "../tree/curriculum.js";
+import { CurriculumEditRequest, editCurriculum } from "../tree/curriculum-edit.js";
+import { EditError, editFile, readText, writeTextLocked } from "../tree/edit.js";
 import { commitPaths } from "../tree/git.js";
 import type { FileLocks } from "../tree/lock.js";
 import { canonicalRel, resolveInRoot } from "../tree/paths.js";
@@ -32,6 +39,8 @@ function notFound(c: Context): Response {
 }
 
 function proposalError(c: Context, error: unknown): Response {
+  if (error instanceof EditError && error.code === "conflict")
+    return c.json({ error: "changed", current: error.current }, 409);
   if (error instanceof AiDisabledError) return c.json({ error: error.message }, 403);
   if (error instanceof Error && "code" in error && (error.code === "not_found" || error.code === "ENOENT"))
     return notFound(c);
@@ -94,7 +103,57 @@ export function inboxRoutes(deps: InboxRoutesDeps): Hono {
     if (set === undefined || !(await setExists(deps.root, set))) return notFound(c);
     try {
       const rel = proposalRootPath(deps.root, set, c.req.param("file"));
-      return c.json(parsePlanProposal(await readText(deps.root, rel)));
+      const raw = await readText(deps.root, rel);
+      const current = await optionalText(deps.root, `${set}/curriculum.md`);
+      return c.json({
+        ...parsePlanProposal(raw),
+        raw,
+        currentChapters: curriculumView(current ?? "").chapters,
+        chapterOrigins: proposalChapterOrigins(raw, current ?? ""),
+      });
+    } catch (error) {
+      return proposalError(c, error);
+    }
+  });
+
+  app.patch("/plan-proposals/:file/curriculum", async (c) => {
+    const set = c.req.param("set");
+    if (set === undefined || !(await setExists(deps.root, set))) return notFound(c);
+    try {
+      const request = CurriculumEditRequest.parse(await jsonBody(c));
+      const rel = proposalRootPath(deps.root, set, c.req.param("file"));
+      const holder = `user:edit-proposal:${crypto.randomUUID()}`;
+      return await deps.locks.withLock(`${set}/plan-proposals`, holder, () =>
+        deps.locks.withLock(rel, holder, async () => {
+          const previous = await readText(deps.root, rel);
+          if (previous !== request.previous) throw new EditError("conflict", "changed", previous);
+          const proposal = parsePlanProposal(previous);
+          const chapters = applyCurriculumOperation(proposal.curriculum, request);
+          const current = await optionalText(deps.root, `${set}/curriculum.md`);
+          const oldOrigins = proposalChapterOrigins(previous, current ?? "");
+          const before = parseCurriculum(proposal.curriculum);
+          const origins: Record<string, string> = {};
+          for (const chapter of chapters) {
+            const original = before.find((c) => c.line === chapter.line);
+            const title = original && oldOrigins[String(original.number)];
+            if (title) origins[String(chapter.number)] = title;
+          }
+          const content = setProposalChapterOrigins(
+            replaceProposalCurriculum(previous, serializeCurriculum(chapters, proposal.curriculum)),
+            origins,
+          );
+          const subject = "user: edit plan proposal";
+          try {
+            await writeTextLocked(deps.root, deps.locks, holder, rel, content, (file) => file === rel);
+            const sha = await commitPaths(deps.root, [rel], subject, "user");
+            if (sha) deps.hub.publish({ type: "commit", sha, subject, author: "user" });
+            return c.json({ sha });
+          } catch (error) {
+            await writeTextLocked(deps.root, deps.locks, holder, rel, previous, (file) => file === rel);
+            throw error;
+          }
+        }),
+      );
     } catch (error) {
       return proposalError(c, error);
     }
@@ -118,79 +177,77 @@ export function inboxRoutes(deps: InboxRoutesDeps): Hono {
       const planRel = `${set}/PLAN.md`;
       const curriculumRel = `${set}/curriculum.md`;
       const holder = `user:approve-plan:${crypto.randomUUID()}`;
-      return await deps.locks.withLock(`${set}/plan-proposals`, holder, () =>
-        deps.locks.withLock(rel, holder, () =>
-          deps.locks.withLock(planRel, holder, () =>
-            deps.locks.withLock(curriculumRel, holder, async () => {
-              const proposalText = await readText(deps.root, proposalRootPath(deps.root, set, c.req.param("file")));
-              const proposal = parsePlanProposal(proposalText);
-              const needsIngest = addSources && proposal.sourcesToAdd.length > 0;
-              const needsMedia = parseCurriculum(proposal.curriculum).some(
-                (chapter) => chapter.visuals.length > 0 || chapter.video !== "",
-              );
-              const needsKickoff = needsIngest || needsMedia;
-              if (needsKickoff && (deps.jobs === undefined || kickoffs === undefined))
-                return c.json({ error: "job runner unavailable" }, 503);
-              if (needsIngest) deps.jobs?.assertAiAllowed?.("ingest");
-              if (needsMedia) deps.jobs?.assertAiAllowed?.("plan-set");
-              kickoffs?.assertAvailable(set);
-              const sources = PlanFrontmatter.parse(parseFrontmatter(proposal.plan).frontmatter).sources ?? [];
-              for (const source of sources) await readText(deps.root, `library/${source}/source.md`);
-              // Check both targets before writing either; forbid aliases into other tree files.
-              for (const target of [planRel, curriculumRel]) {
-                if (canonicalRel(deps.root, target) !== target) throw new Error("plan target symlinks are not allowed");
-              }
-              const previousPlan = await readText(deps.root, planRel);
-              const previousCurriculum = await optionalText(deps.root, curriculumRel);
-              const canWrite = (candidate: string) => candidate === planRel || candidate === curriculumRel;
-              // Recheck immediately before mutations, after asynchronous validation.
-              if (draftFirst > 0) deps.jobs?.assertAiAllowed?.("draft-chapter");
-              if (needsIngest) deps.jobs?.assertAiAllowed?.("ingest");
-              if (needsMedia) deps.jobs?.assertAiAllowed?.("plan-set");
-              let deleted = false;
-              const subject = "user: approve plan";
-              let sha: string | null;
-              try {
-                await writeTextLocked(deps.root, deps.locks, holder, planRel, proposal.plan, canWrite);
-                await writeTextLocked(deps.root, deps.locks, holder, curriculumRel, proposal.curriculum, canWrite);
-                await fs.unlink(resolveInRoot(deps.root, rel));
-                deleted = true;
-                sha = await commitPaths(deps.root, [planRel, curriculumRel, rel], subject, "user");
+      const installed = await deps.locks.withSetLock(set, () =>
+        deps.locks.withLock(`${set}/plan-proposals`, holder, () =>
+          deps.locks.withLock(rel, holder, () =>
+            deps.locks.withLock(planRel, holder, () =>
+              deps.locks.withLock(curriculumRel, holder, async () => {
+                const proposalText = await readText(deps.root, proposalRootPath(deps.root, set, c.req.param("file")));
+                if ("previous" in body && body.previous !== proposalText)
+                  throw new EditError("conflict", "changed", proposalText);
+                const proposal = parsePlanProposal(proposalText);
+                const needsIngest = addSources && proposal.sourcesToAdd.length > 0;
+                const needsMedia = parseCurriculum(proposal.curriculum).some(
+                  (chapter) => chapter.visuals.length > 0 || chapter.video !== "",
+                );
+                const needsKickoff = needsIngest || needsMedia;
+                if (needsKickoff && (deps.jobs === undefined || kickoffs === undefined))
+                  return c.json({ error: "job runner unavailable" }, 503);
+                if (needsIngest) deps.jobs?.assertAiAllowed?.("ingest");
+                if (needsMedia) deps.jobs?.assertAiAllowed?.("plan-set");
+                kickoffs?.assertAvailable(set);
+                const sources = PlanFrontmatter.parse(parseFrontmatter(proposal.plan).frontmatter).sources ?? [];
+                for (const source of sources) await readText(deps.root, `library/${source}/source.md`);
+                // Check both targets before writing either; forbid aliases into other tree files.
+                for (const target of [planRel, curriculumRel]) {
+                  if (canonicalRel(deps.root, target) !== target)
+                    throw new Error("plan target symlinks are not allowed");
+                }
+                await readText(deps.root, planRel);
+                const previousCurriculum = await optionalText(deps.root, curriculumRel);
+                // Recheck immediately before mutations, after asynchronous validation.
+                if (draftFirst > 0) deps.jobs?.assertAiAllowed?.("draft-chapter");
+                if (needsIngest) deps.jobs?.assertAiAllowed?.("ingest");
+                if (needsMedia) deps.jobs?.assertAiAllowed?.("plan-set");
+                const { sha, subject } = await editCurriculum(deps.root, deps.locks, set, {
+                  operation: "install",
+                  previous: previousCurriculum ?? "",
+                  content: proposal.curriculum,
+                  origins: proposalChapterOrigins(proposalText, previousCurriculum ?? ""),
+                  holder,
+                  extraWrites: new Map([
+                    [planRel, proposal.plan],
+                    [rel, null],
+                  ]),
+                });
                 if (sha === null) throw new Error("nothing to approve");
-              } catch (error) {
-                await writeTextLocked(deps.root, deps.locks, holder, planRel, previousPlan, canWrite);
-                if (previousCurriculum === null)
-                  await fs.unlink(resolveInRoot(deps.root, curriculumRel)).catch(() => undefined);
-                else await writeTextLocked(deps.root, deps.locks, holder, curriculumRel, previousCurriculum, canWrite);
-                if (deleted)
-                  await writeTextLocked(
-                    deps.root,
-                    deps.locks,
-                    holder,
-                    rel,
-                    proposalText,
-                    (candidate) => candidate === rel,
-                  );
-                throw error;
-              }
-              deps.hub.publish({ type: "commit", sha, subject, author: "user" });
-              const chapters = parseCurriculum(proposal.curriculum)
-                .filter((chapter) => !chapter.checked)
-                .slice(0, draftFirst)
-                .map((chapter) => ({ title: chapter.title, brief: chapter.scope }));
-              if (needsKickoff && kickoffs !== undefined) {
-                const ingestJobIds = kickoffs.start(set, needsIngest ? proposal.sourcesToAdd : [], chapters);
-                return c.json({ sha, jobIds: [], ingestJobIds });
-              }
-              const jobIds = chapters.map(
-                (chapter) =>
-                  deps.jobs?.enqueue("draft-chapter", { set, ...chapter, sources }, { set, title: chapter.title }).id,
-              );
-              return c.json({ sha, jobIds, ingestJobIds: [] });
-            }),
+                deps.hub.publish({ type: "commit", sha, subject, author: "user" });
+                const chapters = parseCurriculum(proposal.curriculum)
+                  .filter((chapter) => !chapter.checked)
+                  .slice(0, draftFirst)
+                  .map((chapter) => ({ title: chapter.title, brief: chapter.scope }));
+                return { sha, chapters, sources, needsKickoff, sourcesToAdd: needsIngest ? proposal.sourcesToAdd : [] };
+              }),
+            ),
           ),
         ),
       );
+      if (installed instanceof Response) return installed;
+      // JobRunner refuses work while the set gate is held. Queue follow-on work only
+      // after the linked files are committed and all mutation locks have released.
+      if (installed.needsKickoff && kickoffs !== undefined) {
+        const ingestJobIds = kickoffs.start(set, installed.sourcesToAdd, installed.chapters);
+        return c.json({ sha: installed.sha, jobIds: [], ingestJobIds });
+      }
+      const jobIds = installed.chapters.map(
+        (chapter) =>
+          deps.jobs?.enqueue(
+            "draft-chapter",
+            { set, ...chapter, sources: installed.sources },
+            { set, title: chapter.title },
+          ).id,
+      );
+      return c.json({ sha: installed.sha, jobIds, ingestJobIds: [] });
     } catch (error) {
       return proposalError(c, error);
     }

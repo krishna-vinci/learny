@@ -15,6 +15,7 @@ import { type JobHandler, usageFromPiMessages } from "./runner.js";
 export interface PlanSetInput {
   set: string;
   goal: string;
+  mode?: "change";
   level?: number;
   deadline?: string;
   sources?: string[];
@@ -38,7 +39,9 @@ export function parsePlanSetInput(value: unknown): PlanSetInput {
       !input.sources.every((source) => typeof source === "string" && SOURCE_ID.test(source)))
   )
     throw new Error("sources must contain library source ids");
+  if (input.mode !== undefined && input.mode !== "change") throw new Error("mode must be change");
   return {
+    ...(input.mode === "change" ? { mode: "change" as const } : {}),
     set: input.set,
     goal: input.goal.trim(),
     ...(input.level === undefined ? {} : { level: input.level as number }),
@@ -86,19 +89,23 @@ export function createPlanJob(deps: DraftJobDeps): JobHandler {
       let committed = false;
       try {
         ctx.signal.throwIfAborted();
-        ctx.progress("Planning study set");
+        ctx.progress(input.mode === "change" ? "Proposing a small plan change" : "Planning study set");
         const result = await runRole("outliner", {
           jobContext: ctx,
           ...deps,
           set: input.set,
           task: [
             "Load plan-set and find-sources. Read the learner profile and selected library sources, then propose a study plan.",
-            `Goal: ${input.goal}`,
+            input.mode === "change"
+              ? `SMALL CHANGE MODE: Load the small-change instructions in plan-set. Read current PLAN.md and curriculum.md. Make the smallest change satisfying the learner request. Preserve every unrelated chapter title, order, scope, prerequisites, checkbox ticks and media lines. Keep PLAN.md unchanged unless the request requires a plan-text change. Do not apply new-course media requirements to unchanged legacy chapters. Request: ${input.goal}`
+              : `Goal: ${input.goal}`,
             `Level: ${input.level ?? currentPlan.level ?? 1}`,
             `Deadline: ${input.deadline ?? currentPlan.deadline ?? "none"}`,
             `Chosen library source ids: ${sources.join(", ") || "(none)"}`,
             `Create exactly ${proposalPath}, with the skill's two labeled fences and Sources to add list.`,
-            "Every chapter needs at least one interactive Visual: <form> — <concept; learner action> line, two when two central concepts benefit from manipulation/stepping, in addition to static figures/charts. Use function-plot, matrix-transform, step-through or timeline widget, sketch or story from make-visual. A rare exception must say Visual: no interactive visual: <concrete pedagogical reason>. Add 1–3 Image: <real object, material, organism, monument, photograph or source diagram; what the learner should notice> lines wherever seeing the real thing teaches; omit image slots when diagrams alone teach better. Do not use Image slots for generated SVGs. Include a Video: <need or no-suitable-video reason> line. Refine these after source ingestion; do not silently omit media intent.",
+            input.mode === "change"
+              ? "Only adjust media lines explicitly requested or needed for changed/new chapters. Preserve all other chapter media lines."
+              : "Every chapter needs at least one interactive Visual: <form> — <concept; learner action> line, two when two central concepts benefit from manipulation/stepping, in addition to static figures/charts. Use function-plot, matrix-transform, step-through or timeline widget, sketch or story from make-visual. A rare exception must say Visual: no interactive visual: <concrete pedagogical reason>. Add 1–3 Image: <real object, material, organism, monument, photograph or source diagram; what the learner should notice> lines wherever seeing the real thing teaches; omit image slots when diagrams alone teach better. Do not use Image slots for generated SVGs. Include a Video: <need or no-suitable-video reason> line. Refine these after source ingestion; do not silently omit media intent.",
             "Use only the chosen registered ids in PLAN.md sources. Propose other sources as URLs; never register them.",
             "Do not edit the current plan, curriculum, notes, or any other file.",
           ].join("\n"),
@@ -118,7 +125,7 @@ export function createPlanJob(deps: DraftJobDeps): JobHandler {
         deps.hub.publish({ type: "commit", sha: commitSha, subject, author: "outliner" });
         // Preserve completed agent output even if validation fails, so it can be discarded.
         const proposal = parsePlanProposal(await readText(deps.root, proposalRoot));
-        validateMediaIntent(proposal.curriculum);
+        if (input.mode !== "change") validateMediaIntent(proposal.curriculum);
         const proposedSources = PlanFrontmatter.parse(parseFrontmatter(proposal.plan).frontmatter).sources ?? [];
         if (proposedSources.some((source) => !sources.includes(source)))
           throw new Error("proposal uses an unchosen source id");

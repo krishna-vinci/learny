@@ -1,4 +1,5 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, expect, it, vi } from "vitest";
 import PlanPage from "./PlanPage";
@@ -21,6 +22,9 @@ vi.mock("@/api/queries", () => ({
 vi.mock("@/components/Reader/MarkdownView", () => ({
   MarkdownView: ({ content }: { content: string }) => <div data-testid="plan-body">{content}</div>,
 }));
+vi.mock("@/components/NoteEditor/NoteEditor", () => ({
+  NoteEditor: ({ path }: { path: string }) => <p>Editing {path}</p>,
+}));
 vi.mock("@/components/PlanSetSheet", () => ({ PlanSetSheet: () => <p>Plan form</p> }));
 
 afterEach(() => {
@@ -35,11 +39,13 @@ afterEach(() => {
 
 function setup() {
   render(
-    <MemoryRouter initialEntries={["/s/linear-algebra/plan"]}>
-      <Routes>
-        <Route path="/s/:set/plan" element={<PlanPage />} />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter initialEntries={["/s/linear-algebra/plan"]}>
+        <Routes>
+          <Route path="/s/:set/plan" element={<PlanPage />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
@@ -102,4 +108,10 @@ it.each([true, false])("lists notes outside the new plan even with an empty plan
   expect(screen.getByRole("link", { name: "Old polymers" }).getAttribute("href")).toBe(
     "/s/linear-algebra/n/01-old-polymers.md",
   );
+});
+
+it("opens the existing file editor for PLAN.md", () => {
+  setup();
+  fireEvent.click(screen.getByRole("button", { name: "Edit plan text" }));
+  expect(screen.getByText("Editing PLAN.md")).toBeTruthy();
 });

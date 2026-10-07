@@ -93,11 +93,11 @@ it("Draft next 3 selects only the next eligible planned chapters in course order
 });
 it("disables the batch with a reason when no chapter is ready and blocks malformed prerequisites", () => {
   for (const prerequisite of ["99", "05", "01, 01", "read 01"]) {
-    expect(prerequisiteReason(chapter(5, "planned", prerequisite), chapters)).toContain("Re-plan");
+    expect(prerequisiteReason(chapter(5, "planned", prerequisite), chapters)).toContain("Edit this chapter");
   }
   setup([chapter(1, "planned", "02")]);
   expect((screen.getByRole("button", { name: "Draft next 3" }) as HTMLButtonElement).disabled).toBe(true);
-  expect(screen.getByText("Re-plan to clarify this chapter's prerequisites.")).toBeTruthy();
+  expect(screen.getByText("Edit this chapter's prerequisites.")).toBeTruthy();
 });
 
 it("accepts checked chapters immediately and refreshes course, notes and inbox", async () => {

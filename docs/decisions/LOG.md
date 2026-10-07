@@ -589,3 +589,25 @@ instruments and source diagrams; redraw as SVG only for schematic teaching
 diagrams or when the image is poor. The reader and book print the credit and
 source link under the image exactly once. Files remain the record; no new
 dependencies.
+
+## D39 — Edit a plan without re-planning · locked · 2026-10-07
+
+Learners may edit PLAN.md and individual curriculum chapters directly. The Plan
+page and Course chapter menus expose title/scope/prerequisite/media edits, insert,
+delete and move with native phone sheets and desktop dialogs. Changes are exact
+previous-text checked, locked and committed as `user:`; Undo uses git history.
+Preserve checkbox ticks and unrecognised Markdown. Renumber and rewrite prerequisite
+references by identity; reject self, forward, unknown and duplicate references.
+
+Chapter renames/moves keep existing notes and media briefs linked. Removing a
+chapter never removes its note: it appears under Other notes in this set. Scope,
+title or media-intent changes invalidate the brief and refine only when an agent
+later needs it. PLAN.md's YAML must validate against PlanFrontmatter.
+
+Change with agent is an Outliner small-change mode: make the smallest requested
+change, preserving every unrelated chapter's title, order, scope, prerequisites
+and media. Output is a normal Inbox proposal, with per-chapter change summary and
+editable proposed chapters before approval. Learner edits record chapter origin
+in the proposal so approved renames preserve note/media identity too. Full re-plan
+remains available as a separate deliberate action. No new dependencies or database
+content are introduced; files remain the system of record.

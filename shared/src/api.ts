@@ -306,6 +306,7 @@ export interface InboxItem {
 }
 
 export interface PlanProposalChapter {
+  images?: string[];
   visuals?: string[];
   video?: string;
   number: number;
@@ -322,6 +323,11 @@ export interface PlanApprovalResponse {
 }
 
 export interface PlanProposal {
+  /** Exact proposal text for conflict detection when editing or approving. */
+  raw?: string;
+  currentChapters?: PlanProposalChapter[];
+  /** Original current-course title for each proposed chapter, when known. */
+  chapterOrigins?: Record<string, string>;
   /** The same fence-aware chapters used by approval; always present in new responses. */
   chapters?: PlanProposalChapter[];
   plan: string;
@@ -566,4 +572,23 @@ export interface PracticeSummary {
   teachbacks: TeachBackResult[];
   weakSpots: WeakSpot[];
   dueCount: number;
+}
+
+/** Learner chapter edits use original chapter numbers, before renumbering. */
+export interface ChapterEdit {
+  title: string;
+  scope: string;
+  prerequisites: string;
+  visuals: string[];
+  video: string;
+}
+export type CurriculumOperation =
+  | { operation: "update"; number: number; chapter: ChapterEdit }
+  | { operation: "insert"; after: number | null; chapter: ChapterEdit }
+  | { operation: "delete"; number: number }
+  | { operation: "move"; number: number; direction: "up" | "down" };
+
+export interface CurriculumView {
+  raw: string;
+  chapters: PlanProposalChapter[];
 }

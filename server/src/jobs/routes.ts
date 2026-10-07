@@ -86,6 +86,7 @@ export function jobsRoutes(deps: JobsRoutesDeps): Hono {
             throw new Error(`source not found: ${source}`);
         }
         if (!existsSync(resolveInRoot(deps.root, `${parsed.set}/PLAN.md`))) {
+          if (parsed.mode === "change") return c.json({ error: "set not found" }, 404);
           const created = await createSet(deps.root, { title: parsed.set, goal: parsed.goal });
           parsed.set = created.slug;
           if (created.sha !== null)

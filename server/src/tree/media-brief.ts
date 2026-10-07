@@ -525,13 +525,14 @@ export async function noteMediaBrief(root: string, notePath: string): Promise<Me
   if (
     saved &&
     saved.scope === chapter.scope &&
+    saved.video.intent === chapter.video &&
     JSON.stringify(saved.visuals.map((v) => v.intent)) ===
       JSON.stringify(chapter.visuals.filter((v) => !/^no interactive visual:/i.test(v))) &&
     JSON.stringify(saved.images?.map((i) => i.intent) ?? []) === JSON.stringify(chapter.images ?? []) &&
     saved.noInteractiveReason === noInteractiveReason(chapter.visuals)
   )
     return saved;
-  if (!chapter.visuals.length && !chapter.images?.length) return null;
+  if (!chapter.visuals.length && !chapter.images?.length && !chapter.video) return null;
   // Missing/stale refinement must not bypass the curriculum's visual requirements.
   return {
     chapter: chapter.title,

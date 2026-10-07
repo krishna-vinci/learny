@@ -73,8 +73,9 @@ external edits (Obsidian, VS Code) appear live.
 
 ## Mobile
 
-Desktop first. Mobile must handle reading, chat and approvals; reader and chat swap
-full-screen. Installable PWA. Mobile editing is a non-goal.
+Mobile supports reading, chat, approvals and direct plan editing (D39); reader and
+chat swap full-screen. Installable PWA. Plan forms use bottom sheets on phones and
+dialogs on desktop, with 44px touch targets.
 
 ## Media in the reader (D29, D31)
 
@@ -152,3 +153,27 @@ state. Legacy artifacts keep Run. At ≥50% visibility visuals autoplay and paus
 hidden/offscreen; reduced motion starts paused. Phones run only the most visible sketch.
 Leaving the tab unmounts frames. Theme/accent changes recolour visuals using the app's
 system font and contrast-mapped Okabe-Ito palette. No scroll-synced scenes in this version.
+
+## Plan editing (M17 / D39)
+
+The Plan page (`/s/:set/plan`) offers Edit plan text (the existing CodeMirror editor,
+including frontmatter, Save/Cancel and conflict Reload/Overwrite), Add chapter,
+Change with agent and the existing Re-plan action. Every chapter's `…` menu, also
+on the Course plan rows, offers Edit chapter, Add chapter after, Move up/down and
+Delete chapter. Editing title, scope, prerequisites, Visual form/concept rows and
+Video need uses one shared bottom sheet on phones and dialog on desktop. Visual
+rows support add/remove and the interactive widget/sketch/story forms alongside
+static forms; unknown existing forms remain editable. Invalid prerequisites give
+a clear error. A changed curriculum/proposal shows a reload banner.
+
+Delete explains that the note stays under Other notes in this set and that
+references are removed. Manual operations offer Undo from the resulting user
+commit. Course/set numbering and note links follow the updated curriculum.
+
+Change with agent accepts a free-text small request and sends it to the Outliner,
+keeping unrelated chapters intact. The normal Inbox proposal shows a per-chapter
+added/removed/renamed/changed/unchanged summary against the current curriculum,
+with before/after details for order, scope, prerequisites, visuals and video.
+The same chapter sheet and operation menu edit the proposal before approval.
+Nothing enters the live plan until approval; a changed proposal must be reloaded
+and reviewed. Recorded chapter origins preserve links through proposal edits.

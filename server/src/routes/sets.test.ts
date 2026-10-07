@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { DeletionPreview, DeletionResult, StudiumEvent } from "@studium/shared";
+import type { CurriculumView, DeletionPreview, DeletionResult, StudiumEvent } from "@studium/shared";
 import { Hono } from "hono";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { EventHub } from "../events.js";
@@ -44,13 +44,88 @@ describe("sets authoring routes", () => {
     await fs.rm(outside, { recursive: true, force: true });
   });
 
-  async function json(pathname: string, method: "POST" | "PUT", body: unknown): Promise<Response> {
+  async function json(pathname: string, method: "POST" | "PUT" | "PATCH", body: unknown): Promise<Response> {
     return await app.request(pathname, {
       method,
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
     });
   }
+
+  it("edits curriculum with validated operations, publishes user commits and returns 409 on stale text", async () => {
+    const previous = "- [ ] 01 — Vectors\n  Scope: Learn vectors\n  Prerequisites: none\n";
+    await fs.writeFile(path.join(root, "alpha/curriculum.md"), previous);
+    await commitAll(root, "fixture", "system");
+    const body = {
+      previous,
+      operation: "update",
+      number: 1,
+      chapter: {
+        title: "Vector basics",
+        scope: "Learn vectors",
+        prerequisites: "none",
+        visuals: ["step-through — Vector addition"],
+        video: "",
+      },
+    };
+    expect((await json("/api/sets/alpha/curriculum", "PATCH", body)).status).toBe(200);
+    const view = (await (await app.request("/api/sets/alpha/curriculum")).json()) as CurriculumView;
+    expect(view.chapters[0]?.title).toBe("Vector basics");
+    expect(events.at(-1)).toMatchObject({ type: "commit", author: "user" });
+    expect((await json("/api/sets/alpha/curriculum", "PATCH", body)).status).toBe(409);
+    const invalid = await json("/api/sets/alpha/curriculum", "PATCH", {
+      ...body,
+      previous: view.raw,
+      chapter: { ...body.chapter, prerequisites: "01" },
+    });
+    expect(invalid.status).toBe(400);
+    expect((await json("/api/sets/alpha/curriculum", "PATCH", { operation: "delete" })).status).toBe(400);
+  });
+
+  it("inserts, moves and deletes through the curriculum route, including an initially empty plan", async () => {
+    let previous = "";
+    const edit = async (operation: object) => {
+      const response = await json("/api/sets/alpha/curriculum", "PATCH", { previous, ...operation });
+      expect(response.status).toBe(200);
+      const view = (await (await app.request("/api/sets/alpha/curriculum")).json()) as CurriculumView;
+      previous = view.raw;
+      return view;
+    };
+    await edit({
+      operation: "insert",
+      after: null,
+      chapter: { title: "First", scope: "First", prerequisites: "none", visuals: [], video: "" },
+    });
+    await edit({
+      operation: "insert",
+      after: 1,
+      chapter: { title: "Second", scope: "Second", prerequisites: "none", visuals: [], video: "" },
+    });
+    expect((await edit({ operation: "move", number: 2, direction: "up" })).chapters[0]?.title).toBe("Second");
+    expect((await edit({ operation: "delete", number: 1 })).chapters).toHaveLength(1);
+  });
+
+  it("saves PLAN.md with the note conflict flow and rejects invalid YAML and schema fields", async () => {
+    const previous = await fs.readFile(path.join(root, "alpha/PLAN.md"), "utf8");
+    const content = `${previous}\n## Goal\nUpdated goal\n`;
+    expect((await json("/api/sets/alpha/file", "PUT", { path: "PLAN.md", content, previous })).status).toBe(200);
+    expect((await json("/api/sets/alpha/file", "PUT", { path: "PLAN.md", content, previous })).status).toBe(409);
+    for (const invalid of [
+      "---\ntitle: [\n---\n",
+      "---\nstatus: invalid\n---\n",
+      "---\ntitle: 42\n---\n",
+      "---\ntitle: No closing delimiter\n",
+    ]) {
+      const response = await json("/api/sets/alpha/file", "PUT", {
+        path: "PLAN.md",
+        content: invalid,
+        previous: content,
+      });
+      expect(response.status).toBe(400);
+      expect(((await response.json()) as { error: string }).error).toContain("frontmatter");
+    }
+    expect(await fs.readFile(path.join(root, "alpha/PLAN.md"), "utf8")).toBe(content);
+  });
 
   it("serves a read-only course with active jobs and rejects missing sets or escaped notes", async () => {
     await fs.writeFile(path.join(root, "alpha/curriculum.md"), "- [ ] 03 — Vectors\n- [ ] 04 — Matrices\n");
