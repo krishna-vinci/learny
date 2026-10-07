@@ -3,7 +3,7 @@
 **Status:** ready_for_review. One item stays pending operator setup: a live,
 timestamped transcript on this host (see Limitations).
 
-**Worktree:** `/home/krishna/learny-worktrees/yt-ladder`, branch `codex/yt-ladder`,
+**Worktree:** `/path/to/studium-worktrees/yt-ladder`, branch `codex/yt-ladder`,
 baseline `ad39ab79173b4f84a361c5d3d618f1c8b0cb38ed`. No commits, pushes, merges,
 dependency changes, or edits to `.env*`, `data/`, `.claude/`, or `AGENT_MEMORY.md`.
 The root updated the plan and this report at acceptance. `docs/plans/2026-10-04-youtube-transcript-ladder-browser/`
@@ -219,7 +219,7 @@ No full-suite tests, Docker image build, real LLM calls, or paid setup checks we
 ## Browser QA (Playwright + Chrome, real clicks)
 
 Script `/tmp/yt-ladder-browser.mjs` (uses
-`/home/krishna/.npm/_npx/e41f203b7505f1fb/node_modules/playwright/index.mjs` and
+`/home/<username>/.npm/_npx/e41f203b7505f1fb/node_modules/playwright/index.mjs` and
 `/usr/bin/google-chrome`), fresh `examples/sample-set` copy at
 `/tmp/studium-qa3.buWr8N`, own port `4612`, `STUDIUM_FAUX=1`. Admin created via the
 API, then the real login form; one real YouTube source

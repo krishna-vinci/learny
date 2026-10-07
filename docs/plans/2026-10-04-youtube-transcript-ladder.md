@@ -10,7 +10,7 @@
 
 ## Baseline and ownership
 
-- Worktree `/home/krishna/learny-worktrees/yt-ladder`, branch `codex/yt-ladder`, clean at `ad39ab79173b4f84a361c5d3d618f1c8b0cb38ed`, same as current `main`.
+- Worktree `/path/to/studium-worktrees/yt-ladder`, branch `codex/yt-ladder`, clean at `ad39ab79173b4f84a361c5d3d618f1c8b0cb38ed`, same as current `main`.
 - Root owns this plan and final acceptance. One native `astra_flash_builder` owns all implementation and its report `docs/plans/2026-10-04-youtube-transcript-ladder-report.md`.
 - Worker scope: `server/src/ingest/`, integration service/routes in a focused new `server/src/youtube/` directory, `server/src/main.ts`, `server/src/server.ts`, `server/src/workspaces/manager.ts`, `server/src/app.ts`, `server/src/jobs/ingest-job*`, `server/src/http/routes/library*` or actual existing library route, relevant agent/draft source-read logic only if needed to enforce unreadability; `web/src/components/Settings/`, `web/src/pages/LibrarySourcePage*`, `web/src/components/Activity/`, relevant `web/src/api/` and shared API types; Dockerfile and INSTALL/INGEST documentation. Inspect real paths before editing. Tests next to changed modules.
 - Never touch `.env*`, any existing `data/`, `.claude/`, `AGENT_MEMORY.md`, or reference files. Runtime code may target the configured data directory; test execution must use a temp directory outside those forbidden paths. No commits, pushes, merges, branch switches, dependency changes, production operations, or paid smoke tests. Preserve other people's work; you are not alone in the repository.

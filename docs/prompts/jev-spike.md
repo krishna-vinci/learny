@@ -1,6 +1,6 @@
 # Jev classifier spike (local, GPT-6.1 Sol)
 
-You are the IMPLEMENTER in `/home/krishna/learny-worktrees/jev` on branch `codex/jev`. Do not load orchestration skills and do not spawn sub-agents.
+You are the IMPLEMENTER in `/path/to/studium-worktrees/jev` on branch `codex/jev`. Do not load orchestration skills and do not spawn sub-agents.
 
 **Spec:** execute Phases 0–2 of `docs/plans/2026-10-02-jev-classifier-spike.md`. Phase 3 is NOT in scope.
 

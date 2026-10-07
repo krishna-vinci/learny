@@ -216,7 +216,7 @@ Migration: existing `data/study` moves into the admin's tree with history intact
 - Per-user "Download all my data" (zip). Docs: `data/` is one volume, so Backrest,
   borgmatic, Duplicati or ZFS snapshots work too.
 - Git history is versioning, not backup.
-- Learner's own setup: restic rest-server on 192.168.0.55, optional rclone cloud copy.
+- Learner's own setup: restic rest-server on backup.example.com, optional rclone cloud copy.
 
 ## D27 — Notifications, background jobs, practice · locked · 2026-09-29
 

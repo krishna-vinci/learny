@@ -1,6 +1,6 @@
 # M4-8 fixes — address the M4 review findings (GPT-6.1 Sol)
 
-You are the IMPLEMENTER in `/home/krishna/learny-worktrees/m4-8fix` on branch `codex/m4-8fix`. Do not load orchestration skills and do not spawn sub-agents.
+You are the IMPLEMENTER in `/path/to/studium-worktrees/m4-8fix` on branch `codex/m4-8fix`. Do not load orchestration skills and do not spawn sub-agents.
 - Read `AGENT_MEMORY.md`, then `docs/prompts/m4-8-review-report.md` (11 verified findings with file:line, the exploit and the suggested fix).
 - Never commit or push; never edit `AGENT_MEMORY.md` (put a 5-line log entry in the report).
 - Never touch `.env*`, `data/` or `.claude/`. Never pkill.

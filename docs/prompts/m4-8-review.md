@@ -1,6 +1,6 @@
 # M4-8 — Security and correctness review of M4 (READ-ONLY, GPT-6.1 Sol)
 
-You are a REVIEWER in `/home/krishna/learny` (branch main). Do NOT modify any file in the repo, do not commit, and do not run anything against `data/` or port 3000. Don't load orchestration skills or spawn agents. Write the report ONLY to `/tmp/claude-1000/-home-krishna-learny/a7d2a3ad-46a1-478a-baa0-09617d6e3f49/scratchpad/m4-review.md`.
+You are a REVIEWER in `/path/to/studium` (branch main). Do NOT modify any file in the repo, do not commit, and do not run anything against `data/` or port 3000. Don't load orchestration skills or spawn agents. Write the report ONLY to `/tmp/claude-1000/-home-krishna-learny/a7d2a3ad-46a1-478a-baa0-09617d6e3f49/scratchpad/m4-review.md`.
 
 **Scope:** everything merged for M4 (`docs/plans/2026-09-30-m4-study-loop.md`, M4-0 through M4-7b; see `AGENT_MEMORY.md` "Recently done" and the log).
 

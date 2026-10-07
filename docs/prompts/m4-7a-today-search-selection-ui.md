@@ -1,6 +1,6 @@
 # M4-7a — Today page, ⌘K search palette, reader selection menu + highlights (web only)
 
-You are the frontend IMPLEMENTER for Studium (GPT-6.1 Sol via Codex; do not load orchestration skills or spawn sub-agents). You work in the worktree `/home/krishna/learny-worktrees/m4-7` (branch `codex/m4-7`). Use absolute paths or `cd` into it for every command, and never edit `/home/krishna/learny` itself.
+You are the frontend IMPLEMENTER for Studium (GPT-6.1 Sol via Codex; do not load orchestration skills or spawn sub-agents). You work in the worktree `/path/to/studium-worktrees/m4-7` (branch `codex/m4-7`). Use absolute paths or `cd` into it for every command, and never edit `/path/to/studium` itself.
 - Only change `web/`. Don't commit. Don't edit `AGENT_MEMORY.md`: put your log entry in the report.
 - Never pkill or killall; stop only the server PID you started.
 - Read `AGENT_MEMORY.md` (in the worktree) and `docs/plans/2026-09-30-m4-study-loop.md` (M4-7 and the Decisions table).
@@ -73,7 +73,7 @@ Hide the menu on scroll, Escape, or a click elsewhere.
 
 ## Verify (required)
 - Test server:
-  1. `mkdir -p /tmp/claude-1000/-home-krishna-learny/a7d2a3ad-46a1-478a-baa0-09617d6e3f49/scratchpad/m4-test/a` and copy `/home/krishna/learny/examples/sample-set` there as `legacy`.
+  1. `mkdir -p /tmp/claude-1000/-home-krishna-learny/a7d2a3ad-46a1-478a-baa0-09617d6e3f49/scratchpad/m4-test/a` and copy `/path/to/studium/examples/sample-set` there as `legacy`.
   2. Start with `STUDIUM_DATA_DIR=<dir>/data STUDIUM_STUDY_ROOT=<dir>/legacy HOST=127.0.0.1 PORT=3150 STUDIUM_FAUX=1` from `server/`.
   3. `/setup`, then RESTART the server once (the legacy tree migrates only at boot after the admin exists; see AGENT_MEMORY).
 - Puppeteer-core is in `/tmp/claude-1000/-home-krishna-learny/a7d2a3ad-46a1-478a-baa0-09617d6e3f49/scratchpad/shot/node_modules`, Chrome at `/usr/bin/google-chrome`.

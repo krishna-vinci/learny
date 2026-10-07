@@ -110,7 +110,7 @@ Browser verification used the built web app, local fake API/SSE, actual pointer/
 
 Exact browser commands: `node /tmp/studium-m13-browser.mjs 390 light`, `node /tmp/studium-m13-browser.mjs 390 dark`, `node /tmp/studium-m13-browser.mjs 1440 light`, `node /tmp/studium-m13-browser.mjs 1440 dark`; four passed. Only owned mock servers and Chrome processes were stopped.
 
-Live script commands (from server/): `node --env-file=/home/krishna/learny/.env --import tsx scripts/search-bakeoff.ts`, resumed with `/tmp/studium-m13-bakeoff-AJwCX6`; `node --env-file=/home/krishna/learny/.env --import tsx scripts/source-refresh-trial.ts /home/krishna/learny/data/users/krishna`. Evidence and usage remain in the temp directories for review.
+Live script commands (from server/): `node --env-file=/path/to/studium/.env --import tsx scripts/search-bakeoff.ts`, resumed with `/tmp/studium-m13-bakeoff-AJwCX6`; `node --env-file=/path/to/studium/.env --import tsx scripts/source-refresh-trial.ts /path/to/studium/data/users/<username>`. Evidence and usage remain in the temp directories for review.
 
 ### Deviations and open limits
 

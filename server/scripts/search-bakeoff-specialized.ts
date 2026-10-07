@@ -38,10 +38,9 @@ export async function specializedBakeoff(resume?: string) {
     .readFile(stateFile, "utf8")
     .then(JSON.parse)
     .catch(() => []);
-  const config = loadMcpConfig(
-    process.env.PAPERS_BAKEOFF_ROOT ?? "/home/krishna/learny/data/users/krishna",
-    process.env,
-  );
+  const source = process.env.PAPERS_BAKEOFF_ROOT;
+  if (!source) throw new Error("Set PAPERS_BAKEOFF_ROOT to a temporary study-tree copy");
+  const config = loadMcpConfig(source, process.env);
   const manager = new McpManager(config.servers.filter((s) => s.name === "papers"));
   const adapter = await evalRuntime(path.join(root, "usage.json"));
   const usageFile = path.join(root, "search-usage.json");

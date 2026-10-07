@@ -2,23 +2,58 @@
 
 Locked 2026-09-28 (D19).
 
-## Compose — single service
+## Compose and first boot
 
-```yaml
-services:
-  app:
-    image: ghcr.io/<owner>/studium:latest
-    env_file: .env
-    ports: ["127.0.0.1:3000:3000"]
-    environment: ["STUDIUM_DATA_DIR=/data"]
-    volumes: ["./data:/data"]   # accounts db, secrets, every user's tree, backups
-```
+Use the root [compose.yaml](../compose.yaml): service `studium`, image
+`ghcr.io/krishna-vinci/studium:latest`, loopback port 3000, bind mounts `./data:/data`
+and `./pi-agent:/pi-agent`, and `env_file: .env`. No credentials are required at
+first boot: copy `.env.example` to `.env`, then `docker compose up -d`.
 
-- Image: Node 22 slim + git + restic + rclone + pandoc + typst + uv/Python (for stdio MCP
-  servers such as paper-search-mcp). Multi-arch (amd64, arm64). Native run: `pnpm start`.
-- MinerU, SearXNG, Firecrawl: external, by env URL (`MINERU_URL`, `SEARXNG_URL`,
-  `FIRECRAWL_API_URL` + `FIRECRAWL_API_KEY`). Never shipped.
-- `mcp.json` supports stdio (run inside the container) and HTTP MCP servers.
+A short-lived `studium-init` helper sets only the two mount directories' ownership
+to UID/GID 1000. This handles Docker's root-owned fresh bind mounts. The app image
+and application run as non-root `node`; the helper has no network and only CHOWN
+capability. Existing child files are not recursively changed. For credentials
+copied from another machine, make their files readable/writable by UID 1000.
+
+Open `http://localhost:3000` to create the first admin. Docker binds inside the
+container to `0.0.0.0`, so setup requires the one-time code from
+`docker compose logs studium` (`first-run setup code:`). Choose **I have a setup
+code**, enter it, and create the account. No env-seeded account or study tree is
+needed. The unauthenticated `/api/healthz` returns `{ok:true, version}` even before
+setup; it tests process readiness, not provider connectivity.
+
+The multi-stage Node 22 image includes git, restic, rclone, pinned Pandoc/Typst and
+yt-dlp, default skills, and the built SPA including its public visual libraries.
+Use `docker build --build-arg VERSION="$(git describe --tags --always)" .` for a
+local versioned build. Release CI passes the git tag as VERSION. Uncomment
+`build: .` in Compose and run `docker compose build` for development.
+
+MinerU, SearXNG and Firecrawl remain external and optional, configured by
+`MINERU_URL`, `SEARXNG_URL` and `FIRECRAWL_API_URL`/`FIRECRAWL_API_KEY`. Missing
+MinerU uses built-in PDF text extraction; missing search backends are disabled;
+missing Firecrawl uses the built-in fetch/parser. Container loopback refers to the
+container itself: use a reachable service URL. `mcp.json` supports HTTP and stdio
+MCP; arbitrary Python/uv MCP dependencies are not preinstalled in the image.
+
+## Model providers
+
+Settings → Models selects available models and per-role overrides; it does **not**
+store API keys. Set a supported key (e.g. `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`,
+`OPENROUTER_API_KEY`) in your private environment file and recreate the service:
+`docker compose up -d --force-recreate studium`. Then select a default model in
+Settings. New trees initially name `faux/echo`, which is only available with
+`STUDIUM_FAUX=1`; replace that selection for real AI jobs. Faux is off in the example.
+
+For subscription OAuth, run the bundled Pi interactively:
+`docker compose exec studium pnpm --filter @studium/server exec pi`, then `/login`.
+Pi writes credentials to the mounted `/pi-agent`; it must remain writable for token
+refresh. Restart Studium afterward so its model catalog reflects the login.
+Alternatively copy your Pi `auth.json` and optional `models.json` to `./pi-agent`
+and ensure UID 1000 can read/write them. Never publish this directory. Custom
+provider definitions belong in Pi's `models.json`; see the
+[Pi documentation](https://github.com/earendil-works/pi/tree/main/packages/coding-agent).
+The keys/credentials are shared by this instance's users. Availability indicates
+configured credentials; it does not prove a paid model request succeeds.
 
 Book export requires **Pandoc 3.12** and **Typst 0.15.1** on the service PATH
 (native installs may use `~/.local/bin`). Docker installs the official release
@@ -52,15 +87,16 @@ time; both return 404 before the first successful build.
 
 ## Auth
 
-- Env: `STUDIUM_USERNAME`, `STUDIUM_PASSWORD_HASH`.
-- Set `STUDIUM_BASE_URL=https://…` to mark session cookies `Secure` when TLS terminates upstream.
-- Login UI copied from Memos (`reference/memos/web/src`): `pages/SignIn.tsx`,
-  `components/AuthPageLayout.tsx`, `AuthFooter.tsx`, `PasswordSignInForm.tsx`,
-  `CredentialFields.tsx`. Removed: identity-provider buttons, sign-up link,
-  `ChallengeWidget`, Connect-RPC client (→ `POST /api/auth/login`). MIT notice kept.
-- Session: signed httpOnly, `SameSite=Strict` cookie, 30-day expiry. Same secret usable as
-  a Bearer token for scripts. Login rate-limited.
-- No password configured → app refuses to bind to anything but localhost.
+First-run setup creates an admin; subsequent users are created by the admin (no
+public sign-up). Native loopback installs can set up directly; other binds require
+the setup code printed in server logs. Optional legacy `STUDIUM_USERNAME` and
+`STUDIUM_PASSWORD_HASH` bootstrap the first admin instead.
+
+Sessions are DB-backed, httpOnly SameSite Strict cookies with 30-day expiry and
+revocation. Set `STUDIUM_BASE_URL=https://…` to mark cookies Secure behind TLS.
+Scripts use revocable personal access tokens from account settings, not the
+instance secret. Login/setup are rate-limited. Memos-derived authentication/UI
+code retains its MIT notice in NOTICE and source comments.
 
 ## Remote access
 

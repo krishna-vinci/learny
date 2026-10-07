@@ -17,7 +17,7 @@ Implemented TeX preservation for annotations/MathJax/Wikipedia fallbacks, GFM ta
 
 - `pnpm --filter @studium/server exec vitest run src/ingest/ src/search/ src/tree/ src/agent/builtins/web-fetch.test.ts src/agent/builtins/add-source.test.ts src/jobs/log.test.ts`: 290 passed after fixing a JavaScript replacement-string `$$` escape and preserving code languages before Readability strips classes; updated arXiv fallback test for the new HTML-first contract.
 - `pnpm --filter @studium/server exec tsc --noEmit`: passed.
-- Real re-import command: from server, `node --env-file=/home/krishna/learny/.env --import tsx scripts/source-reimport.ts "$(cat /tmp/studium-m12-root)" ../docs/plans/2026-10-04-m12-source-reimport.md`. Ten sources attempted; three improved (polymer 93→95, AKDN 95→100, OpenStax 99→100). Full before/after/error table in source-reimport.md. No model usage. Sources blocked by remote services retain the old parse.
+- Real re-import command: from server, `node --env-file=/path/to/studium/.env --import tsx scripts/source-reimport.ts "$(cat /tmp/studium-m12-root)" ../docs/plans/2026-10-04-m12-source-reimport.md`. Ten sources attempted; three improved (polymer 93→95, AKDN 95→100, OpenStax 99→100). Full before/after/error table in source-reimport.md. No model usage. Sources blocked by remote services retain the old parse.
 - Registry limitation: the existing wiki API handles HTML; no unsupported print URL is invented. The explicit Stack Overflow view uses the site's supported answer-order parameter. Section summaries are extractive (zero tokens), not model-generated.
 
 ## Resume after host interruption
@@ -30,7 +30,7 @@ Implemented subject × level recipes; 10–20 candidate scouting guidance per sl
 
 - `pnpm --filter @studium/server exec vitest run src/agent/builtins/scout-sources.test.ts src/agent/classifier.test.ts src/agent/roles.test.ts src/jobs/ingest-job.test.ts src/jobs/plan-job.test.ts src/ingest/ids.test.ts src/jobs/draft-job.test.ts src/search/coverage.test.ts src/course/build.test.ts`: 108 passed.
 - `pnpm --filter @studium/server exec tsc --noEmit`: passed.
-- The real comparison on polymers, Hyderabad history and linear algebra is running via `node --env-file=/home/krishna/learny/.env --import tsx scripts/source-scout-eval.ts "$(cat /tmp/studium-m12-root)"` from server. Results/usage checkpoint into source-comparison.md. No key values are printed.
+- The real comparison on polymers, Hyderabad history and linear algebra is running via `node --env-file=/path/to/studium/.env --import tsx scripts/source-scout-eval.ts "$(cat /tmp/studium-m12-root)"` from server. Results/usage checkpoint into source-comparison.md. No key values are printed.
 - Cache-path mismatch resolved: `server/src/tree/paths.ts:68` forbids agent access to `.cache`; telemetry uses a private no-follow, confined, bounded cache reader instead of changing that guard.
 - Earlier new-test failures were an assertion expecting unescaped JSON and use of the agent path resolver for private cache reads. Fixed and rerun. An existing draft fixture now includes eigenvectors to fully cover its new two-concept preflight scope.
 
@@ -86,7 +86,7 @@ Each case requested three ten-result searches. Search results were repetitive/ir
 
 ### Polymers redraft
 
-`node --env-file=/home/krishna/learny/.env --import tsx scripts/source-redraft-eval.ts "$(cat /tmp/studium-m12-root)"` (from server) completed. Original `polymers/notes/01-polymers-from-carbon-bonds-to-everyday.md`: **5** `Uncertain:` instances. New isolated note `/tmp/studium-m12-redraft-a01buk/tree/polymers/notes/03-polymers-from-carbon-bonds-to-everyday.md`: **0**, status **checked** after the independent checker. It used the same three registered polymer sources; no new video moment was forced. Lexical preflight found 9/9 scoped phrases, so this run did not exercise gap expansion. This is an uncertainty-count improvement, not a controlled proof of causal source-quality improvement. `source-preflight.test.ts` verifies gap scouting and transcript-engine forwarding separately. Full result: `2026-10-04-m12-redraft.md`.
+`node --env-file=/path/to/studium/.env --import tsx scripts/source-redraft-eval.ts "$(cat /tmp/studium-m12-root)"` (from server) completed. Original `polymers/notes/01-polymers-from-carbon-bonds-to-everyday.md`: **5** `Uncertain:` instances. New isolated note `/tmp/studium-m12-redraft-a01buk/tree/polymers/notes/03-polymers-from-carbon-bonds-to-everyday.md`: **0**, status **checked** after the independent checker. It used the same three registered polymer sources; no new video moment was forced. Lexical preflight found 9/9 scoped phrases, so this run did not exercise gap expansion. This is an uncertainty-count improvement, not a controlled proof of causal source-quality improvement. `source-preflight.test.ts` verifies gap scouting and transcript-engine forwarding separately. Full result: `2026-10-04-m12-redraft.md`.
 
 ### Track V results
 
@@ -94,7 +94,7 @@ The real planner proposed only the individual 3Blue1Brown video `https://www.you
 
 An isolated live drafter probe used the already registered conditional-memory video `https://www.youtube.com/watch?v=7CeF90OfTi4`, selected through ranked transcript passages. It chose **159–216 seconds** after the supporting multi-head hash paragraph, citing `[^src:lib-behaviors-deepseek-conditional-memory-via#t159]`; exact verified excerpt: **“we send it through multiple hash functions”**. It explains the retrieval/gating sequence without claiming unseen animation. Structural review: no blockers/hints. This is a moment-selection probe, not a full independently checked chapter. Details and complete prose: `2026-10-04-m12-video.md`.
 
-Probe command (from server): `node --env-file=/home/krishna/learny/.env --import tsx scripts/source-video-eval.ts /tmp/studium-m12-rorqq997/tree`. The first probe failed exact-quote verification; the second saved a valid quote but used the wrong set slug during review. Corrected the slug to `deepseek-ngram` and replayed the saved response with `/tmp/studium-m12-video-KX8Rpf` as the third argument, making no further model request. Both model requests are included in usage.
+Probe command (from server): `node --env-file=/path/to/studium/.env --import tsx scripts/source-video-eval.ts /tmp/studium-m12-rorqq997/tree`. The first probe failed exact-quote verification; the second saved a valid quote but used the wrong set slug during review. Corrected the slug to `deepseek-ngram` and replayed the saved response with `/tmp/studium-m12-video-KX8Rpf` as the third argument, making no further model request. Both model requests are included in usage.
 
 Draft preflight now forwards the workspace's configured `YoutubeTranscriptEngine` to inline Librarian ingestion. Watch-only classification checks actual absence of parsed files, including explicit draft-source selections. Deterministic blockers also enforce at most one moment per heading concept, all heading depths, adjacent real tN citations and <=180-second bounds. Semantic alignment/omission stays with the independent checker.
 

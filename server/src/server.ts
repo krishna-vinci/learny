@@ -45,6 +45,7 @@ export interface ServerDeps {
   workspaces: WorkspaceProvider;
   webDist?: string;
   authOpts: Omit<AuthRouteOptions, "db">;
+  version?: string;
   backups?: BackupRouteDeps;
   notifier?: Notifier;
   /** Instance-wide YouTube integration backing the admin panel. */
@@ -308,6 +309,7 @@ export function createServer(deps: ServerDeps): Hono {
   };
   if (deps.webDist) app.route("/visual-runtime", visualRuntimeRoutes(deps.webDist));
   app.use("/api/*", requestGuard());
+  app.get("/api/healthz", (c) => c.json({ ok: true, version: deps.version ?? "dev" }));
   app.route("/api/auth", authRoutes({ db: deps.db, ...deps.authOpts }));
   app.route("/api/auth", ssoAuthRoutes(ssoOptions));
   app.use("/api/*", sessionAuth(deps.db));

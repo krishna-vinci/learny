@@ -23,7 +23,8 @@ const arg = (flag: string, fallback = "") => {
   const i = process.argv.indexOf(flag);
   return i < 0 ? fallback : process.argv[i + 1] || fallback;
 };
-const source = arg("--source", "/home/krishna/learny/data/users/krishna");
+const source = arg("--source");
+if (!source) throw new Error("Pass --source with a temporary study-tree copy");
 const out = arg("--out") || (await fs.mkdtemp(path.join(os.tmpdir(), "studium-m11-rewrite-")));
 await fs.mkdir(out, { recursive: true });
 const previous = arg("--previous-report") ? await fs.readFile(arg("--previous-report"), "utf8") : "";

@@ -1,6 +1,6 @@
 # M8 — Teaching voice (local, GPT-6.1 Sol)
 
-You are the IMPLEMENTER in `/home/krishna/learny-worktrees/m8` on branch `codex/m8`. Do not load orchestration skills and do not spawn sub-agents.
+You are the IMPLEMENTER in `/path/to/studium-worktrees/m8` on branch `codex/m8`. Do not load orchestration skills and do not spawn sub-agents.
 
 **Spec:** implement ALL parts (1–4) of `docs/plans/2026-10-01-m8-teaching-voice.md`, including V1–V6. Read the whole plan and the live Hyderabad chapters it cites (read-only) first. Work part by part; run each part's tests before the next. For the frontend, use the `ui-ux-pro-max` and `shadcn` skills if available, and match the existing set home styles.
 

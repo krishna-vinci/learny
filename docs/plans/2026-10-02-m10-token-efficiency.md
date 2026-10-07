@@ -40,7 +40,7 @@ Each decision: question text in one module (`server/src/agent/decisions/<name>.t
 
 ## Rules and verification
 - Read `AGENTS.md`, `AGENT_MEMORY.md`, the spike report, `server/src/agent/{models,run-role,roles,prompt}.ts`, `server/src/jobs/{draft-job,cards-job,practice-job,grade-job}.ts`, `server/src/search/`.
-- Tests stub every model and the classifier; the only real-model runs are the Part 1 audit (≤ $2) and one real classifier smoke call (load the key into that process only with `--env-file=/home/krishna/learny/.env`; never print it).
+- Tests stub every model and the classifier; the only real-model runs are the Part 1 audit (≤ $2) and one real classifier smoke call (load the key into that process only with `--env-file=/path/to/studium/.env`; never print it).
 - Scoped tests: touched server test files + `src/agent/ src/jobs/` dirs; `tsc --noEmit` server/web/shared; web build; biome on changed files.
 - Report: audit before/after per role, each decision's implementation, deviations, 5-line log entry.
 

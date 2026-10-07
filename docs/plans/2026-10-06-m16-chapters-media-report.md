@@ -2,7 +2,7 @@
 
 Worktree `m16-chapters-media`, baseline `f7363752678ce1fc9c8136ef50758ce1802f3389`
 (amended after the Astra acceptance review). No commit, push, merge, dependency,
-`.env*`, `data/` or `.claude/` change. Live `data/users/krishna` was read only; all
+`.env*`, `data/` or `.claude/` change. Live `data/users/<username>` was read only; all
 trials ran on a `/tmp` copy and every started process was stopped.
 
 ## Part A — chapter numbers and media counts
@@ -131,7 +131,7 @@ Final root integration checks (new compaction logic, same scope):
 - The concept-coverage regression and the parenthesized book-link assertion each
   failed before their fixes and passed afterward; no unrelated failures were fixed.
 
-## Trial (temp copy of `data/users/krishna`)
+## Trial (temp copy of `data/users/<username>`)
 
 Tree copy `/tmp/studium-m16-TEzRaa/tree`. A read-only localhost API
 (`server/scripts/m16-browser-api.ts`, real `createApp`, GET only) plus the built
@@ -264,7 +264,7 @@ reusing the chapter's saved video/image choices; no LLM or network. Evidence:
 
 ## Deviations
 
-1. `git apply /home/krishna/learny/.worktrees/m16-partial.patch` failed with
+1. `git apply /path/to/studium/.worktrees/m16-partial.patch` failed with
    `No valid patches in input` (annotated snippets; line 13). Edits were
    reconstructed from the real code, as the root plan instructed.
 2. The previous cycle ran the full web and shared suites and a `git stash` baseline

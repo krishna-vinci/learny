@@ -1,6 +1,6 @@
 # M3b Slice B — Reading comfort (web only)
 
-Slice A is committed and merged. Continue in the same worktree (`/home/krishna/learny-worktrees/m3b`, branch `codex/m3b`) and implement **Slice B** (B1–B3) of `docs/plans/2026-09-30-m3b-comfort.md` exactly. Re-read the plan's Global constraints. Use the `ui-ux-pro-max` skill for the design.
+Slice A is committed and merged. Continue in the same worktree (`/path/to/studium-worktrees/m3b`, branch `codex/m3b`) and implement **Slice B** (B1–B3) of `docs/plans/2026-09-30-m3b-comfort.md` exactly. Re-read the plan's Global constraints. Use the `ui-ux-pro-max` skill for the design.
 
 ## Context
 - The note toolbar (Edit / Make cards / History) is in `web/src/components/Reader/Reader.tsx`. The article body renders through `web/src/components/Reader/MarkdownView.tsx` (`.studium-prose`); the prose styles are in `web/src/index.css`.

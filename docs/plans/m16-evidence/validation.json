@@ -1,6 +1,6 @@
 {
   "task": "M16 chapters/media correction bundle",
-  "workspace": "/home/krishna/learny/.worktrees/m16-chapters-media",
+  "workspace": "/path/to/studium/.worktrees/m16-chapters-media",
   "baseline": "f7363752678ce1fc9c8136ef50758ce1802f3389",
   "commands": [
     {
@@ -68,7 +68,7 @@
     "Browser trial used a read-only localhost API over a temp copy (GET only) instead of a full logged-in server; nothing in the copy could be written."
   ],
   "trial": {
-    "tree": "/tmp/studium-m16-TEzRaa/tree (copy of data/users/krishna, read-only source)",
+    "tree": "/tmp/studium-m16-TEzRaa/tree (copy of data/users/<username>, read-only source)",
     "screenshots": [
       "docs/plans/m16-evidence/390-polymers-set-numbered-rows.png",
       "docs/plans/m16-evidence/390-polymers-chapter-1-reading.png",

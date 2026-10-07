@@ -267,8 +267,8 @@ Original Phase 0 gates remain recorded in raw JSON: server/web `tsc --noEmit` an
 - `pnpm --filter @studium/server exec tsc --noEmit`: passed after continuation changes.
 - `pnpm --filter @studium/server exec vitest run src/spikes/jev-spike-lib.test.ts src/spikes/jev-pair-metrics.test.ts`: **6 passed / 0 failed**.
 - `rtk proxy pnpm exec biome check server/src/spikes/jev-pair.ts server/src/spikes/jev-pair-metrics.ts server/src/spikes/jev-pair-metrics.test.ts server/src/spikes/jev-summarize.ts docs/plans/2026-10-02-jev-classifier-spike-results.json`: passed after formatting.
-- `pnpm --filter @studium/server exec tsx --env-file=/home/krishna/learny/.env src/spikes/jev-pair.ts --smoke --output /tmp/jev-smoke-results.json`: **1 real smoke passed**.
-- `pnpm --filter @studium/server exec tsx --env-file=/home/krishna/learny/.env src/spikes/jev-pair.ts --baseline /tmp/jev-smoke-results.json`: **116 additional items passed**, reusing the smoke; checkpoint file was then used to update the final results artifact.
+- `pnpm --filter @studium/server exec tsx --env-file=/path/to/studium/.env src/spikes/jev-pair.ts --smoke --output /tmp/jev-smoke-results.json`: **1 real smoke passed**.
+- `pnpm --filter @studium/server exec tsx --env-file=/path/to/studium/.env src/spikes/jev-pair.ts --baseline /tmp/jev-smoke-results.json`: **116 additional items passed**, reusing the smoke; checkpoint file was then used to update the final results artifact.
 - `pnpm --filter @studium/server exec tsx src/spikes/jev-summarize.ts`: passed, offline; no env file or provider call.
 - `pnpm --filter @studium/server exec tsx src/spikes/jev-pair.ts --dry-run --output /tmp/jev-pair-dry-final.json`: passed; complete roster validation with zero requests and no env file loaded.
 - Result integrity checks: **117 successful distinct items, 117 HTTP attempts, zero baseline changes/calls, 12 genuine disagreements, all excerpts ≤300 chars**.

@@ -1,6 +1,6 @@
 # Visuals out of the reading flow (local, GPT-6.1 Sol)
 
-You are the IMPLEMENTER in `/home/krishna/learny-worktrees/visuals` on branch `codex/visuals`. Do not load orchestration skills and do not spawn sub-agents.
+You are the IMPLEMENTER in `/path/to/studium-worktrees/visuals` on branch `codex/visuals`. Do not load orchestration skills and do not spawn sub-agents.
 
 **Local rules:** don't commit/push/branch; never edit `AGENT_MEMORY.md` (log entry in the report); never touch `.env*` or `.claude/`; `data/` is **read-only** (read real notes, never write there — copy to a temp dir for any test server); test servers on temp copies on your own port (admin from env, `STUDIUM_FAUX=1`); only stop processes you started (save `$!`), never pkill/killall; run `pnpm install --frozen-lockfile --prefer-offline` first; biome via `rtk proxy pnpm exec biome check <files>`; use real clicks in browser checks (390×844 and 1440×900, light and dark).
 **Context:** M7 (D29, `docs/plans/2026-10-01-m7-media.md` + its report) already shipped media in notes: `::youtube{…}` / `::artifact{…}` leaf directives, `YouTubeEmbed.tsx` (click-to-load, nocookie), `ArtifactBlock.tsx` (CSP-prepended `sandbox="allow-scripts"`), `shared/src/media.ts`, `skills/media-authoring/`, and the book (`server/src/jobs/book-media.ts`, `callouts.lua`) — the Typst book already exists, it is not future work. Read these first. If a step doesn't fit the real code, stop that item, report file:line, and continue.

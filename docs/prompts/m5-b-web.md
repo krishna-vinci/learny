@@ -1,6 +1,6 @@
 # M5-B — Practice: web (local, GPT-6.1 Sol, same session as M5-A)
 
-The server part is reviewed. Continue in `/home/krishna/learny-worktrees/m5` and implement **"PR B: web"** of `docs/plans/2026-10-01-m5-practice.md` exactly. Read the M5-B section of the plan again.
+The server part is reviewed. Continue in `/path/to/studium-worktrees/m5` and implement **"PR B: web"** of `docs/plans/2026-10-01-m5-practice.md` exactly. Read the M5-B section of the plan again.
 
 **Local rules:** the same as M5-A (no commits/PRs/branches, no `AGENT_MEMORY.md` edits, never pkill). Use the `ui-ux-pro-max` skill for the design.
 

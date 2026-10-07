@@ -1,6 +1,6 @@
 # Visuals view: stage + rail (accepted with amendments)
 
-Run in `/home/krishna/learny-worktrees/visuals-fixes` (branch `codex/visuals-fixes`) **after** `docs/prompts/visuals-review-fixes.md` is finished — this builds on its shared `VisualFrame` (CSS full screen without reparenting), its error states and its component tests. Do not load orchestration skills; do not spawn sub-agents.
+Run in `/path/to/studium-worktrees/visuals-fixes` (branch `codex/visuals-fixes`) **after** `docs/prompts/visuals-review-fixes.md` is finished — this builds on its shared `VisualFrame` (CSS full screen without reparenting), its error states and its component tests. Do not load orchestration skills; do not spawn sub-agents.
 
 Read `AGENTS.md`, `AGENT_MEMORY.md`, D29/D31/D32 in `docs/decisions/LOG.md`, `docs/UX.md`, then `web/src/components/Reader/{ChapterVisuals,Reader,VisualBlock,SketchBlock,WidgetBlock,ArtifactBlock,StoryControls}.tsx`, `web/src/visual-runtime/{runtime.js,sandbox.ts,playback.ts}`, `shared/src/chapter-visuals.ts`, `skills/make-visual/SKILL.md`.
 

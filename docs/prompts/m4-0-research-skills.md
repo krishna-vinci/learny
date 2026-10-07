@@ -1,6 +1,6 @@
 # M4-0 — Research skills + default-skill sync
 
-You are the IMPLEMENTER in /home/krishna/learny-worktrees/m4-0 on branch codex/m4-0 (a git worktree of /home/krishna/learny). Do not load orchestration skills and do not spawn sub-agents. Read `/home/krishna/learny/AGENT_MEMORY.md` first, then `docs/plans/2026-09-30-m4-study-loop.md` (your task row and the Decisions table).
+You are the IMPLEMENTER in /path/to/studium-worktrees/m4-0 on branch codex/m4-0 (a git worktree of /path/to/studium). Do not load orchestration skills and do not spawn sub-agents. Read `/path/to/studium/AGENT_MEMORY.md` first, then `docs/plans/2026-09-30-m4-study-loop.md` (your task row and the Decisions table).
 
 Rules:
 - Never commit or push.

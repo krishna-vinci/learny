@@ -1,0 +1,33 @@
+name: Bug report
+description: Report a reproducible problem in Studium.
+body:
+  - type: markdown
+    attributes:
+      value: "For security issues, use private vulnerability reporting. Redact secrets and personal notes from logs."
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: v0.1.0
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: Install method
+      options:
+        - Docker / Compose
+        - Native / development
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps, expected behavior and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Redacted logs and screenshots
+      description: Include browser/OS and image tag if relevant. Remove tokens, cookies, private hosts and learning content.

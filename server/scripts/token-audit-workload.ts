@@ -20,6 +20,8 @@ const arg = (name: string, fallback: string) => {
   const i = args.indexOf(name);
   return i < 0 ? fallback : (args[i + 1] ?? fallback);
 };
+const source = arg("--source", "");
+if (!source) throw new Error("Pass --source with a temporary users-directory copy");
 const real = args.includes("--real");
 const budget = Number(arg("--budget", "1.75"));
 if (!(budget > 0 && budget <= 1.75)) throw new Error("Invalid budget");
@@ -43,7 +45,7 @@ try {
     ).values(),
   ] as { user: string; set: string; file: string; kind: string }[];
   for (const user of [...new Set(groups.map((g) => g.user))]) {
-    await fs.cp(`/home/krishna/learny/data/users/${user}`, path.join(scratch, user), {
+    await fs.cp(path.join(source, user), path.join(scratch, user), {
       recursive: true,
       filter: (p) => !p.split(path.sep).some((s) => [".git", ".cache", "chats"].includes(s)),
       dereference: false,

@@ -1,6 +1,6 @@
 # M4-8 — Security and correctness review
 
-Reviewed M4-0 through M4-7b, including the search plaintext follow-up and the merged follow-up changes used by M4. Repository: `/home/krishna/learny`, branch `main`, HEAD `d25d8ce`. Compared implementation against `AGENT_MEMORY.md`, the M4 plan, locked decisions, study-tree/security contracts, and the plan-set skill format.
+Reviewed M4-0 through M4-7b, including the search plaintext follow-up and the merged follow-up changes used by M4. Repository: `/path/to/studium`, branch `main`, HEAD `d25d8ce`. Compared implementation against `AGENT_MEMORY.md`, the M4 plan, locked decisions, study-tree/security contracts, and the plan-set skill format.
 
 **Result: 11 findings: 2 high, 7 medium, 2 low.** The Firecrawl high finding is conditional on the external service's egress protections; no live SSRF exploit was attempted. No critical finding or verified cross-user search-content disclosure was found.
 

@@ -64,8 +64,8 @@ Deviations: controlled single-call reviews rather than mutating full jobs; revie
 
 Exact audit commands:
 - `pnpm --filter @studium/server exec tsx scripts/token-audit-workload.ts --output /tmp/m10-dry-audit.json` — 38 offline snapshots, no requests.
-- `pnpm --filter @studium/server exec tsx --env-file=/home/krishna/learny/.env scripts/token-audit-workload.ts --real --output ../docs/plans/2026-10-02-m10-token-efficiency-audit.json` — 36 measured calls, 2 local tutor failures.
-- `pnpm --filter @studium/server exec tsx --env-file=/home/krishna/learny/.env scripts/token-audit-workload.ts --real --tutor-only --budget 0.20 --output ../docs/plans/2026-10-02-m10-token-efficiency-tutor-audit.json` — initial 2 local failures; corrected rerun 2 successful calls, 0 failures.
+- `pnpm --filter @studium/server exec tsx --env-file=/path/to/studium/.env scripts/token-audit-workload.ts --real --output ../docs/plans/2026-10-02-m10-token-efficiency-audit.json` — 36 measured calls, 2 local tutor failures.
+- `pnpm --filter @studium/server exec tsx --env-file=/path/to/studium/.env scripts/token-audit-workload.ts --real --tutor-only --budget 0.20 --output ../docs/plans/2026-10-02-m10-token-efficiency-tutor-audit.json` — initial 2 local failures; corrected rerun 2 successful calls, 0 failures.
 
 ## Part 2 — classifier layer (complete)
 
@@ -83,7 +83,7 @@ Implemented C1–C4 with nullable/absent model = off, env-only OpenCode key, cla
 
 Validation: initial classifier module — 33 passed / 0 failed; scoped `pnpm --filter @studium/server exec vitest run src/agent/ src/jobs/ src/search/index.test.ts` — 245 passed / 0 failed; strengthened safety run `pnpm --filter @studium/server exec vitest run src/agent/classifier.test.ts src/agent/chat-service.test.ts src/jobs/draft-job.test.ts src/jobs/cards-job.test.ts` — 71 passed / 0 failed. Narrow latest compaction/escalation/calibration checks recorded below. Server typecheck passed.
 
-Real smoke: `pnpm --filter @studium/server exec tsx --env-file=/home/krishna/learny/.env scripts/classifier-smoke.ts` — **1 passed / 0 failed**, opencode/jev-1.13-free, accepted quick answer at confidence 0.99, 1,425 ms; **fresh input 397 / output 68 / cache read 0 / cache write 0**; catalog and actual cost $0. Task catalog estimate remains $0.12736259 / actual charge $0. No additional paid runs planned.
+Real smoke: `pnpm --filter @studium/server exec tsx --env-file=/path/to/studium/.env scripts/classifier-smoke.ts` — **1 passed / 0 failed**, opencode/jev-1.13-free, accepted quick answer at confidence 0.99, 1,425 ms; **fresh input 397 / output 68 / cache read 0 / cache write 0**; catalog and actual cost $0. Task catalog estimate remains $0.12736259 / actual charge $0. No additional paid runs planned.
 
 Deviations: catalog context size is conservatively bounded in bytes, so oversized state falls back rather than truncating important evidence; ordinary summaries are deterministic excerpts instead of another LLM call; no model tier switch is needed for depth hints; unknown labels stay unpaired. Classifier defaults to absent/off until explicitly configured; per-decision defaults take effect once enabled.
 

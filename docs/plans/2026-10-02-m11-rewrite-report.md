@@ -291,7 +291,7 @@ History's new conversational opening did not entail reworking the chapter: only 
 
 ## Blocked math item: offline final inspection
 
-The existing library entry `/home/krishna/learny/data/users/krishna/library/lib-strang-la/source.md:11` contains only a summary. No `parsed.md` or `parsed/` exists; the retained `#p12` locator is unresolved. The checker records this at `/tmp/studium-m11-rewrite-WLVHlI/linear-algebra/linear-algebra/log/checks/01-vectors.md:9`. The item stopped with source evidence missing, then the recheck attempt encountered the 200-call cap. Live data remains unchanged.
+The existing library entry `/path/to/studium/data/users/<username>/library/lib-strang-la/source.md:11` contains only a summary. No `parsed.md` or `parsed/` exists; the retained `#p12` locator is unresolved. The checker records this at `/tmp/studium-m11-rewrite-WLVHlI/linear-algebra/linear-algebra/log/checks/01-vectors.md:9`. The item stopped with source evidence missing, then the recheck attempt encountered the 200-call cap. Live data remains unchanged.
 
 Offline observations saved in `/tmp/studium-m11-rewrite-WLVHlI/offline-final.json`:
 

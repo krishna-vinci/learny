@@ -1,6 +1,6 @@
 # M7 — Media and visuals in notes (local, GPT-6.1 Sol)
 
-You are the IMPLEMENTER in `/home/krishna/learny-worktrees/m7` on branch `codex/m7`. Do not load orchestration skills and do not spawn sub-agents.
+You are the IMPLEMENTER in `/path/to/studium-worktrees/m7` on branch `codex/m7`. Do not load orchestration skills and do not spawn sub-agents.
 
 **Spec:** implement ALL phases (1–6) of `docs/plans/2026-10-01-m7-media.md` exactly, including Fixed decisions F1–F11. Read the whole plan first, then the files it names. Work phase by phase; run each phase's tests before starting the next.
 

@@ -5,3 +5,15 @@ reference
 .claude
 **/dist
 .env*
+
+.worktrees
+data.pre-*
+pi-agent
+web/.vitest
+coverage
+playwright-report
+test-results
+codex-runs
+.codex-runs
+.task.md
+*.log

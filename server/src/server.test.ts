@@ -61,6 +61,33 @@ function cookie(token: string): Record<string, string> {
 }
 
 describe("top-level server", () => {
+  it("serves health without authentication before setup and after setup", async () => {
+    const app = server();
+    const response = await app.request("/api/healthz");
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ ok: true, version: "dev" });
+    expect((await app.request("/api/me")).status).toBe(401);
+    await createUser(db, { username: "admin", role: "ADMIN" });
+    expect((await app.request("/api/healthz")).status).toBe(200);
+    expect(provisioned).toEqual([]);
+  });
+
+  it("reports the supplied release version in health", async () => {
+    const app = createServer({
+      db,
+      instanceSecret: Buffer.alloc(32, 1),
+      workspaces: {
+        for: async () => ({ app: workspace }),
+        provision: async () => undefined,
+        stop: async () => undefined,
+        rootFor: () => null,
+      },
+      authOpts: { trustProxy: false, baseUrl: null, setupCode: null },
+      version: "v0.1.0",
+    });
+    await expect((await app.request("/api/healthz")).json()).resolves.toEqual({ ok: true, version: "v0.1.0" });
+  });
+
   it("restricts the YouTube admin routes to admins", async () => {
     const member = await createUser(db, { username: "member", password: "member-pass", role: "USER" });
     const admin = await createUser(db, { username: "owner", password: "owner-pass", role: "ADMIN" });

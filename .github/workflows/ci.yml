@@ -1,0 +1,35 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec biome check .
+      - name: Typecheck all packages
+        run: |
+          pnpm --filter @studium/shared exec tsc --noEmit
+          pnpm --filter @studium/server exec tsc --noEmit
+          pnpm --filter @studium/web exec tsc --noEmit
+      # CI intentionally runs whole suites; local work uses AGENTS.md scoped tests.
+      - name: Test all packages
+        run: |
+          pnpm --filter @studium/shared exec vitest run src
+          pnpm --filter @studium/server exec vitest run src
+          pnpm --filter @studium/web exec vitest run src
+      - run: pnpm --filter @studium/web build

@@ -48,7 +48,7 @@ and a five-line proposed memory log; never edit `AGENT_MEMORY.md`.
 
 ## Initial deviations/routing evidence
 
-- Supplied `/home/krishna/learny/.worktrees/m16-partial.patch:13` is annotated text,
+- Supplied `/path/to/studium/.worktrees/m16-partial.patch:13` is annotated text,
   not unified Git patch syntax. `git apply` returned `No valid patches in input`.
   Reconstruct its intended edits; do not modify the supplied file.
 - Native `astra_flash_builder` is available and static doctor reports the pinned

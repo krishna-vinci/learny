@@ -1,6 +1,6 @@
 # Fix: after a re-plan, old notes block new chapters (local, GPT-6.1 Sol)
 
-You are the IMPLEMENTER in `/home/krishna/learny-worktrees/replan-fix` on branch `codex/replan-fix`. Don't load orchestration skills or spawn sub-agents. Don't commit/push/branch; never edit `AGENT_MEMORY.md`, `.env*`, `.claude/`; `data/` read-only (temp copies); only stop processes you started; `pnpm install --frozen-lockfile --prefer-offline` first; biome via `rtk proxy pnpm exec biome check <files>`. If a step doesn't fit the real code, stop that item, report file:line, continue.
+You are the IMPLEMENTER in `/path/to/studium-worktrees/replan-fix` on branch `codex/replan-fix`. Don't load orchestration skills or spawn sub-agents. Don't commit/push/branch; never edit `AGENT_MEMORY.md`, `.env*`, `.claude/`; `data/` read-only (temp copies); only stop processes you started; `pnpm install --frozen-lockfile --prefer-offline` first; biome via `rtk proxy pnpm exec biome check <files>`. If a step doesn't fit the real code, stop that item, report file:line, continue.
 
 ## Bug (live, 2026-10-06)
 The owner re-planned `polymers`. New curriculum: 01 "Atoms, molecules and the chemistry around you", 02 "Bonds and simple molecular drawings". Existing notes: `notes/01-polymers-from-carbon-bonds-to-everyday.md` (old chapter) and `notes/02-ch-2.md` (a tiny test note). Draft jobs for the new 01 and 02 ran ~5½ minutes each (55–67k tokens, ~$0.11 each, Exa calls) and then failed with "This chapter already has a note. Use rewrite-chapter to revise it." The owner sees no such chapters.

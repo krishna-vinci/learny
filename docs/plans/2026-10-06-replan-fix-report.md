@@ -4,30 +4,30 @@ The polymers regression now drafts and checks both new chapters into unique file
 
 **Changed files**
 
-- [docs/STUDY_TREE.md](/home/krishna/learny-worktrees/replan-fix/docs/STUDY_TREE.md) — Documents chapter identity, filename allocation, and other-note ordering.
-- [server/src/course/build.test.ts](/home/krishna/learny-worktrees/replan-fix/server/src/course/build.test.ts) — Updates genuine-match fixtures and covers two new planned chapters plus two other notes.
-- [server/src/course/build.ts](/home/krishna/learny-worktrees/replan-fix/server/src/course/build.ts) — Uses identity matching and returns unmatched notes in otherNotes.
-- [server/src/jobs/draft-job.test.ts](/home/krishna/learny-worktrees/replan-fix/server/src/jobs/draft-job.test.ts) — Covers the polymers draft/check flow, unchanged old files, cheap refusals, concurrent reservations, cleanup, and identity preservation through revision.
-- [server/src/jobs/draft-job.ts](/home/krishna/learny-worktrees/replan-fix/server/src/jobs/draft-job.ts) — Reserves chapter identity and a unique path before research; rejects conflicts cheaply; persists curriculum order/id; releases reservations on failures.
-- [server/src/jobs/source-preflight.test.ts](/home/krishna/learny-worktrees/replan-fix/server/src/jobs/source-preflight.test.ts) — Verifies the new chapter's scope is researched instead of an old chapter's scope.
-- [server/src/jobs/source-preflight.ts](/home/krishna/learny-worktrees/replan-fix/server/src/jobs/source-preflight.ts) — Uses the shared identity matcher to select chapter scope.
-- [server/src/routes/today.test.ts](/home/krishna/learny-worktrees/replan-fix/server/src/routes/today.test.ts) — Tests both APIs after a re-plan and gives the abbreviated SVD fixture an explicit chapter id.
-- [server/src/routes/today.ts](/home/krishna/learny-worktrees/replan-fix/server/src/routes/today.ts) — Passes note metadata into Today snapshots.
-- [server/src/today/build.test.ts](/home/krishna/learny-worktrees/replan-fix/server/src/today/build.test.ts) — Covers re-plans, renamed notes, and identity-based progress.
-- [server/src/today/build.ts](/home/krishna/learny-worktrees/replan-fix/server/src/today/build.ts) — Uses note metadata for identity matching and derives missing chapters from actual notes rather than stale ticks.
-- [server/src/tree/curriculum.test.ts](/home/krishna/learny-worktrees/replan-fix/server/src/tree/curriculum.test.ts) — Covers reused numbers, legacy matching, renamed titles, and authoritative chapter ids.
-- [server/src/tree/curriculum.ts](/home/krishna/learny-worktrees/replan-fix/server/src/tree/curriculum.ts) — Matches explicit chapter ids, frontmatter titles, or legacy filename slugs; removes number-only matching.
-- [server/src/tree/media-brief.test.ts](/home/krishna/learny-worktrees/replan-fix/server/src/tree/media-brief.test.ts) — Covers unrelated numbered notes and renamed notes with chapter ids.
-- [server/src/tree/media-brief.ts](/home/krishna/learny-worktrees/replan-fix/server/src/tree/media-brief.ts) — Matches media briefs using note title/id metadata.
-- [server/src/tree/read.test.ts](/home/krishna/learny-worktrees/replan-fix/server/src/tree/read.test.ts) — Verifies planned-first ordering with different filename numbers and renamed notes.
-- [server/src/tree/read.ts](/home/krishna/learny-worktrees/replan-fix/server/src/tree/read.ts) — Exposes chapter metadata and orders planned notes first, then other notes by order/title.
-- [shared/src/api.ts](/home/krishna/learny-worktrees/replan-fix/shared/src/api.ts) — Adds optional NoteSummary.chapter and CourseView.otherNotes fields.
-- [shared/src/frontmatter.test.ts](/home/krishna/learny-worktrees/replan-fix/shared/src/frontmatter.test.ts) — Verifies chapter metadata, legacy frontmatter, and unknown fields.
-- [shared/src/schemas.ts](/home/krishna/learny-worktrees/replan-fix/shared/src/schemas.ts) — Adds an optional chapter field to tolerant note frontmatter.
-- [web/src/components/CoursePlan.test.tsx](/home/krishna/learny-worktrees/replan-fix/web/src/components/CoursePlan.test.tsx) — Verifies old notes remain linked while new chapters stay draftable.
-- [web/src/components/CoursePlan.tsx](/home/krishna/learny-worktrees/replan-fix/web/src/components/CoursePlan.tsx) — Shows linked other notes below the course plan.
-- [web/src/pages/PlanPage.test.tsx](/home/krishna/learny-worktrees/replan-fix/web/src/pages/PlanPage.test.tsx) — Verifies other-note links for populated and empty plans.
-- [web/src/pages/PlanPage.tsx](/home/krishna/learny-worktrees/replan-fix/web/src/pages/PlanPage.tsx) — Shows the shared other-notes list, including when the plan body is empty.
+- [docs/STUDY_TREE.md](/path/to/studium-worktrees/replan-fix/docs/STUDY_TREE.md) — Documents chapter identity, filename allocation, and other-note ordering.
+- [server/src/course/build.test.ts](/path/to/studium-worktrees/replan-fix/server/src/course/build.test.ts) — Updates genuine-match fixtures and covers two new planned chapters plus two other notes.
+- [server/src/course/build.ts](/path/to/studium-worktrees/replan-fix/server/src/course/build.ts) — Uses identity matching and returns unmatched notes in otherNotes.
+- [server/src/jobs/draft-job.test.ts](/path/to/studium-worktrees/replan-fix/server/src/jobs/draft-job.test.ts) — Covers the polymers draft/check flow, unchanged old files, cheap refusals, concurrent reservations, cleanup, and identity preservation through revision.
+- [server/src/jobs/draft-job.ts](/path/to/studium-worktrees/replan-fix/server/src/jobs/draft-job.ts) — Reserves chapter identity and a unique path before research; rejects conflicts cheaply; persists curriculum order/id; releases reservations on failures.
+- [server/src/jobs/source-preflight.test.ts](/path/to/studium-worktrees/replan-fix/server/src/jobs/source-preflight.test.ts) — Verifies the new chapter's scope is researched instead of an old chapter's scope.
+- [server/src/jobs/source-preflight.ts](/path/to/studium-worktrees/replan-fix/server/src/jobs/source-preflight.ts) — Uses the shared identity matcher to select chapter scope.
+- [server/src/routes/today.test.ts](/path/to/studium-worktrees/replan-fix/server/src/routes/today.test.ts) — Tests both APIs after a re-plan and gives the abbreviated SVD fixture an explicit chapter id.
+- [server/src/routes/today.ts](/path/to/studium-worktrees/replan-fix/server/src/routes/today.ts) — Passes note metadata into Today snapshots.
+- [server/src/today/build.test.ts](/path/to/studium-worktrees/replan-fix/server/src/today/build.test.ts) — Covers re-plans, renamed notes, and identity-based progress.
+- [server/src/today/build.ts](/path/to/studium-worktrees/replan-fix/server/src/today/build.ts) — Uses note metadata for identity matching and derives missing chapters from actual notes rather than stale ticks.
+- [server/src/tree/curriculum.test.ts](/path/to/studium-worktrees/replan-fix/server/src/tree/curriculum.test.ts) — Covers reused numbers, legacy matching, renamed titles, and authoritative chapter ids.
+- [server/src/tree/curriculum.ts](/path/to/studium-worktrees/replan-fix/server/src/tree/curriculum.ts) — Matches explicit chapter ids, frontmatter titles, or legacy filename slugs; removes number-only matching.
+- [server/src/tree/media-brief.test.ts](/path/to/studium-worktrees/replan-fix/server/src/tree/media-brief.test.ts) — Covers unrelated numbered notes and renamed notes with chapter ids.
+- [server/src/tree/media-brief.ts](/path/to/studium-worktrees/replan-fix/server/src/tree/media-brief.ts) — Matches media briefs using note title/id metadata.
+- [server/src/tree/read.test.ts](/path/to/studium-worktrees/replan-fix/server/src/tree/read.test.ts) — Verifies planned-first ordering with different filename numbers and renamed notes.
+- [server/src/tree/read.ts](/path/to/studium-worktrees/replan-fix/server/src/tree/read.ts) — Exposes chapter metadata and orders planned notes first, then other notes by order/title.
+- [shared/src/api.ts](/path/to/studium-worktrees/replan-fix/shared/src/api.ts) — Adds optional NoteSummary.chapter and CourseView.otherNotes fields.
+- [shared/src/frontmatter.test.ts](/path/to/studium-worktrees/replan-fix/shared/src/frontmatter.test.ts) — Verifies chapter metadata, legacy frontmatter, and unknown fields.
+- [shared/src/schemas.ts](/path/to/studium-worktrees/replan-fix/shared/src/schemas.ts) — Adds an optional chapter field to tolerant note frontmatter.
+- [web/src/components/CoursePlan.test.tsx](/path/to/studium-worktrees/replan-fix/web/src/components/CoursePlan.test.tsx) — Verifies old notes remain linked while new chapters stay draftable.
+- [web/src/components/CoursePlan.tsx](/path/to/studium-worktrees/replan-fix/web/src/components/CoursePlan.tsx) — Shows linked other notes below the course plan.
+- [web/src/pages/PlanPage.test.tsx](/path/to/studium-worktrees/replan-fix/web/src/pages/PlanPage.test.tsx) — Verifies other-note links for populated and empty plans.
+- [web/src/pages/PlanPage.tsx](/path/to/studium-worktrees/replan-fix/web/src/pages/PlanPage.tsx) — Shows the shared other-notes list, including when the plan body is empty.
 
 **Tests run**
 

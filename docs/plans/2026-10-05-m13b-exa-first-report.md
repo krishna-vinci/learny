@@ -107,8 +107,8 @@ Additional final freshness/cache checks:
 Live command, issued from `server/`:
 
 ```sh
-node --env-file=/home/krishna/learny/.env --import tsx scripts/search-bakeoff.ts
-node --env-file=/home/krishna/learny/.env --import tsx scripts/search-bakeoff.ts /tmp/studium-m13-bakeoff-8rMesr
+node --env-file=/path/to/studium/.env --import tsx scripts/search-bakeoff.ts
+node --env-file=/path/to/studium/.env --import tsx scripts/search-bakeoff.ts /tmp/studium-m13-bakeoff-8rMesr
 ```
 
 Evidence: `/tmp/studium-m13-bakeoff-8rMesr/results.json`, `usage.json`,
@@ -258,7 +258,7 @@ as historical evidence; M13b's conditional routing replaces its always-merge pol
 
 ## Owner follow-up — final routing and Exa skill corrections
 
-Read `/home/krishna/learny/.agents/skills/build-with-exa/SKILL.md` and its search,
+Read `/path/to/studium/.agents/skills/build-with-exa/SKILL.md` and its search,
 contents, models-and-modes and common-mistakes references. The original task
 explicitly authorizes the slot/category/date/country/objective/content controls.
 Requests now select one extraction view: concept-query highlights by default or
@@ -316,7 +316,7 @@ were corrected without changing unrelated code; the standalone script tsc needs
 ### Follow-up re-bake-off
 
 From `server/`:
-`node --env-file=/home/krishna/learny/.env --import tsx scripts/search-bakeoff.ts --specialized`
+`node --env-file=/path/to/studium/.env --import tsx scripts/search-bakeoff.ts --specialized`
 
 Isolated root: `/tmp/studium-m13b-specialized-UlET4P`. Rebuilt the report from saved
 ranks with the same command plus that root as its final argument; this resume issued

@@ -4,7 +4,7 @@ Instructions for coding agents (Codex, Claude, others) working in this repo.
 
 Studium (repo: learny) is a self-hosted, agent-powered learning app: agents turn sources into
 evolving Markdown notes and Anki cards, stored as plain files in a *study tree*.
-Read `/home/krishna/learny/AGENT_MEMORY.md` first: owner rules, system map, gotchas, status, and open
+Read `/path/to/studium/AGENT_MEMORY.md` first: owner rules, system map, gotchas, status, and open
 gaps. Do NOT edit it yourself (parallel agents would collide): put a 5-line log entry and any new gotchas in
 your final report; the orchestrator adds them to AGENT_MEMORY.md.
 
@@ -26,7 +26,7 @@ Read before planning or claiming behaviour:
 | `shared/` (`@studium/shared`) | zod schemas (frontmatter, config), shared types, AnkiConnect client |
 | `skills/` | default Agent Skills (`<name>/SKILL.md`), copied into new study trees |
 | `examples/sample-set/` | hand-made study tree used by dev and tests |
-| `reference/memos/` | gitignored Memos checkout — read-only reference; in a worktree use `/home/krishna/learny/reference/memos/` |
+| `reference/memos/` | gitignored Memos checkout — read-only reference; in a worktree use `/path/to/studium/reference/memos/` |
 
 Some of these directories do not exist until their milestone lands; create only what your task names.
 

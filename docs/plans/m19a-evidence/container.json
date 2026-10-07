@@ -1,0 +1,17 @@
+{
+  "status": "running",
+  "healthcheck": "healthy",
+  "user": "node",
+  "imageVersion": "v0.1.0",
+  "dataDirectoryUid": 1000,
+  "piDirectoryUid": 1000,
+  "baselineImageBytes": 1084135173,
+  "finalImageBytes": 903147227,
+  "reductionPercent": 16.7,
+  "baseline": "Minimally repaired original Dockerfile; unmodified original does not build",
+  "bookTools": {
+    "pandoc": "3.12",
+    "typst": "0.15.1",
+    "yt-dlp": "2026.08.19"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "platform": "linux/amd64",
+  "viewport": 390,
+  "health": {
+    "ok": true,
+    "version": "v0.1.0"
+  },
+  "setupCodeRequired": true,
+  "adminCreatedInBrowser": true,
+  "subsequentLoginInBrowser": true,
+  "onboardingSkippedWithRealClick": true,
+  "todayStatus": 200,
+  "fauxAvailable": true,
+  "visualChecks": [
+    {
+      "name": "p5",
+      "status": 200
+    },
+    {
+      "name": "d3",
+      "status": 200
+    },
+    {
+      "name": "three",
+      "status": 200
+    },
+    {
+      "name": "studium-runtime",
+      "status": 200
+    }
+  ],
+  "licenseStatus": 200,
+  "browserExceptions": []
+}

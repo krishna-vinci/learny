@@ -1,6 +1,6 @@
 # M5-A — Practice: server (local, GPT-6.1 Sol)
 
-You are the IMPLEMENTER in `/home/krishna/learny-worktrees/m5` on branch `codex/m5`. Do not load orchestration skills and do not spawn sub-agents.
+You are the IMPLEMENTER in `/path/to/studium-worktrees/m5` on branch `codex/m5`. Do not load orchestration skills and do not spawn sub-agents.
 
 **Spec:** implement **"PR A: server"** of `docs/plans/2026-10-01-m5-practice.md` exactly, including all its Fixed decisions D1–D9. Read the whole plan first.
 

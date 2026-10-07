@@ -10,71 +10,71 @@ data edits. All filesystem tests and browser data use temp copies.
 
 ### Part 1 — Teaching philosophy, subjects and skills
 
-- [AGENTS.md](/home/krishna/learny-worktrees/m8/AGENTS.md) — Adds teaching commitments to the required read list.
-- [docs/PRINCIPLES.md](/home/krishna/learny-worktrees/m8/docs/PRINCIPLES.md) — Links the teaching philosophy.
-- [docs/decisions/LOG.md](/home/krishna/learny-worktrees/m8/docs/decisions/LOG.md) — Records locked D30, covering V1–V6.
-- [shared/src/frontmatter.test.ts](/home/krishna/learny-worktrees/m8/shared/src/frontmatter.test.ts) — Tests all subjects and legacy/unknown plans.
-- [shared/src/schemas.ts](/home/krishna/learny-worktrees/m8/shared/src/schemas.ts) — Adds optional tolerant PlanSubject enum; unknown values become general.
-- [skills/.defaults-history.json](/home/krishna/learny-worktrees/m8/skills/.defaults-history.json) — Registers new/changed default skills and references, including Part 2 checker changes.
-- [skills/draft-chapter/SKILL.md](/home/krishna/learny-worktrees/m8/skills/draft-chapter/SKILL.md) — Replaces the math-only template with V2, subject-guide loading and rewrite guidance; retains grounding/media rules.
-- [skills/note-authoring/SKILL.md](/home/krishna/learny-worktrees/m8/skills/note-authoring/SKILL.md) — Adds warm teacher voice, never-list and human footnote examples.
-- [skills/plan-set/SKILL.md](/home/krishna/learny-worktrees/m8/skills/plan-set/SKILL.md) — Chooses subject and learner-facing chapter scopes in plan proposals.
-- [docs/TEACHING.md](/home/krishna/learny-worktrees/m8/docs/TEACHING.md) — Defines V1/V2/V4, maps all 20 rules and the additional learning principles (106 lines).
-- [skills/draft-chapter/references/subject-finance.md](/home/krishna/learny-worktrees/m8/skills/draft-chapter/references/subject-finance.md) — Adds the finance guide (28 lines) with shape, blocks, examples, pitfalls and a tiny teacher-voice excerpt.
-- [skills/draft-chapter/references/subject-general.md](/home/krishna/learny-worktrees/m8/skills/draft-chapter/references/subject-general.md) — Adds the general guide (28 lines) with shape, blocks, examples, pitfalls and a tiny teacher-voice excerpt.
-- [skills/draft-chapter/references/subject-history.md](/home/krishna/learny-worktrees/m8/skills/draft-chapter/references/subject-history.md) — Adds the history guide (28 lines) with shape, blocks, examples, pitfalls and a tiny teacher-voice excerpt.
-- [skills/draft-chapter/references/subject-language.md](/home/krishna/learny-worktrees/m8/skills/draft-chapter/references/subject-language.md) — Adds the language guide (28 lines) with shape, blocks, examples, pitfalls and a tiny teacher-voice excerpt.
-- [skills/draft-chapter/references/subject-math.md](/home/krishna/learny-worktrees/m8/skills/draft-chapter/references/subject-math.md) — Adds the math guide (28 lines) with shape, blocks, examples, pitfalls and a tiny teacher-voice excerpt.
-- [skills/draft-chapter/references/subject-practical.md](/home/krishna/learny-worktrees/m8/skills/draft-chapter/references/subject-practical.md) — Adds the practical guide (28 lines) with shape, blocks, examples, pitfalls and a tiny teacher-voice excerpt.
-- [skills/draft-chapter/references/subject-science.md](/home/krishna/learny-worktrees/m8/skills/draft-chapter/references/subject-science.md) — Adds the science guide (28 lines) with shape, blocks, examples, pitfalls and a tiny teacher-voice excerpt.
-- [skills/draft-chapter/references/subject-technology.md](/home/krishna/learny-worktrees/m8/skills/draft-chapter/references/subject-technology.md) — Adds the technology guide (28 lines) with shape, blocks, examples, pitfalls and a tiny teacher-voice excerpt.
-- [skills/note-authoring/references/teaching.md](/home/krishna/learny-worktrees/m8/skills/note-authoring/references/teaching.md) — Ships the teaching reference into study trees with the default skill.
+- [AGENTS.md](/path/to/studium-worktrees/m8/AGENTS.md) — Adds teaching commitments to the required read list.
+- [docs/PRINCIPLES.md](/path/to/studium-worktrees/m8/docs/PRINCIPLES.md) — Links the teaching philosophy.
+- [docs/decisions/LOG.md](/path/to/studium-worktrees/m8/docs/decisions/LOG.md) — Records locked D30, covering V1–V6.
+- [shared/src/frontmatter.test.ts](/path/to/studium-worktrees/m8/shared/src/frontmatter.test.ts) — Tests all subjects and legacy/unknown plans.
+- [shared/src/schemas.ts](/path/to/studium-worktrees/m8/shared/src/schemas.ts) — Adds optional tolerant PlanSubject enum; unknown values become general.
+- [skills/.defaults-history.json](/path/to/studium-worktrees/m8/skills/.defaults-history.json) — Registers new/changed default skills and references, including Part 2 checker changes.
+- [skills/draft-chapter/SKILL.md](/path/to/studium-worktrees/m8/skills/draft-chapter/SKILL.md) — Replaces the math-only template with V2, subject-guide loading and rewrite guidance; retains grounding/media rules.
+- [skills/note-authoring/SKILL.md](/path/to/studium-worktrees/m8/skills/note-authoring/SKILL.md) — Adds warm teacher voice, never-list and human footnote examples.
+- [skills/plan-set/SKILL.md](/path/to/studium-worktrees/m8/skills/plan-set/SKILL.md) — Chooses subject and learner-facing chapter scopes in plan proposals.
+- [docs/TEACHING.md](/path/to/studium-worktrees/m8/docs/TEACHING.md) — Defines V1/V2/V4, maps all 20 rules and the additional learning principles (106 lines).
+- [skills/draft-chapter/references/subject-finance.md](/path/to/studium-worktrees/m8/skills/draft-chapter/references/subject-finance.md) — Adds the finance guide (28 lines) with shape, blocks, examples, pitfalls and a tiny teacher-voice excerpt.
+- [skills/draft-chapter/references/subject-general.md](/path/to/studium-worktrees/m8/skills/draft-chapter/references/subject-general.md) — Adds the general guide (28 lines) with shape, blocks, examples, pitfalls and a tiny teacher-voice excerpt.
+- [skills/draft-chapter/references/subject-history.md](/path/to/studium-worktrees/m8/skills/draft-chapter/references/subject-history.md) — Adds the history guide (28 lines) with shape, blocks, examples, pitfalls and a tiny teacher-voice excerpt.
+- [skills/draft-chapter/references/subject-language.md](/path/to/studium-worktrees/m8/skills/draft-chapter/references/subject-language.md) — Adds the language guide (28 lines) with shape, blocks, examples, pitfalls and a tiny teacher-voice excerpt.
+- [skills/draft-chapter/references/subject-math.md](/path/to/studium-worktrees/m8/skills/draft-chapter/references/subject-math.md) — Adds the math guide (28 lines) with shape, blocks, examples, pitfalls and a tiny teacher-voice excerpt.
+- [skills/draft-chapter/references/subject-practical.md](/path/to/studium-worktrees/m8/skills/draft-chapter/references/subject-practical.md) — Adds the practical guide (28 lines) with shape, blocks, examples, pitfalls and a tiny teacher-voice excerpt.
+- [skills/draft-chapter/references/subject-science.md](/path/to/studium-worktrees/m8/skills/draft-chapter/references/subject-science.md) — Adds the science guide (28 lines) with shape, blocks, examples, pitfalls and a tiny teacher-voice excerpt.
+- [skills/draft-chapter/references/subject-technology.md](/path/to/studium-worktrees/m8/skills/draft-chapter/references/subject-technology.md) — Adds the technology guide (28 lines) with shape, blocks, examples, pitfalls and a tiny teacher-voice excerpt.
+- [skills/note-authoring/references/teaching.md](/path/to/studium-worktrees/m8/skills/note-authoring/references/teaching.md) — Ships the teaching reference into study trees with the default skill.
 
 ### Part 2 — Teaching-quality warnings and checker
 
-- [server/src/agent/tools.test.ts](/home/krishna/learny-worktrees/m8/server/src/agent/tools.test.ts) — Verifies warned note writes still succeed.
-- [server/src/agent/tools.ts](/home/krishna/learny-worktrees/m8/server/src/agent/tools.ts) — Returns teaching warnings alongside existing media warnings on creates/edits.
-- [skills/fact-check/SKILL.md](/home/krishna/learny-worktrees/m8/skills/fact-check/SKILL.md) — Adds teaching-quality report blockers and non-blocking voice notes.
-- [server/src/agent/note-lint.test.ts](/home/krishna/learny-worktrees/m8/server/src/agent/note-lint.test.ts) — Tests human footnotes, all warning patterns and scope exclusions.
-- [server/src/agent/note-lint.ts](/home/krishna/learny-worktrees/m8/server/src/agent/note-lint.ts) — Implements the three cheap teaching-warning patterns, scoped to chapter notes.
+- [server/src/agent/tools.test.ts](/path/to/studium-worktrees/m8/server/src/agent/tools.test.ts) — Verifies warned note writes still succeed.
+- [server/src/agent/tools.ts](/path/to/studium-worktrees/m8/server/src/agent/tools.ts) — Returns teaching warnings alongside existing media warnings on creates/edits.
+- [skills/fact-check/SKILL.md](/path/to/studium-worktrees/m8/skills/fact-check/SKILL.md) — Adds teaching-quality report blockers and non-blocking voice notes.
+- [server/src/agent/note-lint.test.ts](/path/to/studium-worktrees/m8/server/src/agent/note-lint.test.ts) — Tests human footnotes, all warning patterns and scope exclusions.
+- [server/src/agent/note-lint.ts](/path/to/studium-worktrees/m8/server/src/agent/note-lint.ts) — Implements the three cheap teaching-warning patterns, scoped to chapter notes.
 
 ### Part 3 — Rewrite pipeline and reader actions
 
-- [server/src/jobs/draft-job.test.ts](/home/krishna/learny-worktrees/m8/server/src/jobs/draft-job.test.ts) — Tests rewrite pinning/preservation/checking/missing notes, lint rejection, and Part 4 numbering/tick repair before checker failure.
-- [server/src/jobs/draft-job.ts](/home/krishna/learny-worktrees/m8/server/src/jobs/draft-job.ts) — Shares draft/check/revision pipeline with pinned rewrites; preserves metadata/citations/figures, blocks remaining lint; Part 4 reserves planned numbers and ticks/repairs at draft commit.
-- [server/src/jobs/log.ts](/home/krishna/learny-worktrees/m8/server/src/jobs/log.ts) — Parses persisted rewrite job history.
-- [server/src/jobs/routes.test.ts](/home/krishna/learny-worktrees/m8/server/src/jobs/routes.test.ts) — Tests rewrite validation, missing notes, AI denial and Part 4 tutor-proposal acceptance.
-- [server/src/jobs/routes.ts](/home/krishna/learny-worktrees/m8/server/src/jobs/routes.ts) — Accepts validated direct/proposed rewrite jobs; missing notes return 404, AI gate remains at enqueue.
-- [server/src/workspaces/manager.ts](/home/krishna/learny-worktrees/m8/server/src/workspaces/manager.ts) — Registers the rewrite handler in each workspace.
-- [shared/src/api.ts](/home/krishna/learny-worktrees/m8/shared/src/api.ts) — Adds rewrite-chapter JobKind and Part 4 CourseView/CourseChapter response types.
-- [web/src/api/client.ts](/home/krishna/learny-worktrees/m8/web/src/api/client.ts) — Adds rewrite request union and Part 4 course GET client.
-- [web/src/api/queries.ts](/home/krishna/learny-worktrees/m8/web/src/api/queries.ts) — Refreshes note/inbox data after rewrites; Part 4 course query and file/commit/status invalidation.
-- [web/src/components/Activity/ActivityPanelContent.tsx](/home/krishna/learny-worktrees/m8/web/src/components/Activity/ActivityPanelContent.tsx) — Adds rewrite icon and user-facing label.
-- [web/src/components/Activity/JobToasts.tsx](/home/krishna/learny-worktrees/m8/web/src/components/Activity/JobToasts.tsx) — Links completed rewrites to their existing notes.
-- [web/src/components/Reader/Reader.tsx](/home/krishna/learny-worktrees/m8/web/src/components/Reader/Reader.tsx) — Adds the rewrite overflow action using Base UI onClick and the shared dialog.
-- [web/src/pages/JobsPage.tsx](/home/krishna/learny-worktrees/m8/web/src/pages/JobsPage.tsx) — Labels queued/recent rewrites as Rewriting chapter.
-- [web/src/components/RewriteChapterDialog.test.tsx](/home/krishna/learny-worktrees/m8/web/src/components/RewriteChapterDialog.test.tsx) — Tests consent copy and exact rewrite request after confirmation.
-- [web/src/components/RewriteChapterDialog.tsx](/home/krishna/learny-worktrees/m8/web/src/components/RewriteChapterDialog.tsx) — Explains facts/sources and History undo, then enqueues the exact note rewrite.
+- [server/src/jobs/draft-job.test.ts](/path/to/studium-worktrees/m8/server/src/jobs/draft-job.test.ts) — Tests rewrite pinning/preservation/checking/missing notes, lint rejection, and Part 4 numbering/tick repair before checker failure.
+- [server/src/jobs/draft-job.ts](/path/to/studium-worktrees/m8/server/src/jobs/draft-job.ts) — Shares draft/check/revision pipeline with pinned rewrites; preserves metadata/citations/figures, blocks remaining lint; Part 4 reserves planned numbers and ticks/repairs at draft commit.
+- [server/src/jobs/log.ts](/path/to/studium-worktrees/m8/server/src/jobs/log.ts) — Parses persisted rewrite job history.
+- [server/src/jobs/routes.test.ts](/path/to/studium-worktrees/m8/server/src/jobs/routes.test.ts) — Tests rewrite validation, missing notes, AI denial and Part 4 tutor-proposal acceptance.
+- [server/src/jobs/routes.ts](/path/to/studium-worktrees/m8/server/src/jobs/routes.ts) — Accepts validated direct/proposed rewrite jobs; missing notes return 404, AI gate remains at enqueue.
+- [server/src/workspaces/manager.ts](/path/to/studium-worktrees/m8/server/src/workspaces/manager.ts) — Registers the rewrite handler in each workspace.
+- [shared/src/api.ts](/path/to/studium-worktrees/m8/shared/src/api.ts) — Adds rewrite-chapter JobKind and Part 4 CourseView/CourseChapter response types.
+- [web/src/api/client.ts](/path/to/studium-worktrees/m8/web/src/api/client.ts) — Adds rewrite request union and Part 4 course GET client.
+- [web/src/api/queries.ts](/path/to/studium-worktrees/m8/web/src/api/queries.ts) — Refreshes note/inbox data after rewrites; Part 4 course query and file/commit/status invalidation.
+- [web/src/components/Activity/ActivityPanelContent.tsx](/path/to/studium-worktrees/m8/web/src/components/Activity/ActivityPanelContent.tsx) — Adds rewrite icon and user-facing label.
+- [web/src/components/Activity/JobToasts.tsx](/path/to/studium-worktrees/m8/web/src/components/Activity/JobToasts.tsx) — Links completed rewrites to their existing notes.
+- [web/src/components/Reader/Reader.tsx](/path/to/studium-worktrees/m8/web/src/components/Reader/Reader.tsx) — Adds the rewrite overflow action using Base UI onClick and the shared dialog.
+- [web/src/pages/JobsPage.tsx](/path/to/studium-worktrees/m8/web/src/pages/JobsPage.tsx) — Labels queued/recent rewrites as Rewriting chapter.
+- [web/src/components/RewriteChapterDialog.test.tsx](/path/to/studium-worktrees/m8/web/src/components/RewriteChapterDialog.test.tsx) — Tests consent copy and exact rewrite request after confirmation.
+- [web/src/components/RewriteChapterDialog.tsx](/path/to/studium-worktrees/m8/web/src/components/RewriteChapterDialog.tsx) — Explains facts/sources and History undo, then enqueues the exact note rewrite.
 
 ### Part 4 — Reusable course plan and tutor
 
-- [server/src/agent/chat-service.ts](/home/krishna/learny-worktrees/m8/server/src/agent/chat-service.ts) — Supplies current active jobs whenever tutor context is rebuilt.
-- [server/src/agent/prompt.ts](/home/krishna/learny-worktrees/m8/server/src/agent/prompt.ts) — Adds a ≤30-line tutor course summary plus draft/range/rewrite proposal instructions.
-- [server/src/agent/roles.test.ts](/home/krishna/learny-worktrees/m8/server/src/agent/roles.test.ts) — Verifies bounded summary, states and both job instructions.
-- [server/src/agent/roles.ts](/home/krishna/learny-worktrees/m8/server/src/agent/roles.ts) — Passes active chapter state through tutor prompt context; existing start_job allowlist is retained.
-- [server/src/app.ts](/home/krishna/learny-worktrees/m8/server/src/app.ts) — Passes the workspace job runner into set routes.
-- [server/src/jobs/proposals.test.ts](/home/krishna/learny-worktrees/m8/server/src/jobs/proposals.test.ts) — Tests rewrite proposal path, estimate/persistence and invalid-path rejection with faux models.
-- [server/src/jobs/proposals.ts](/home/krishna/learny-worktrees/m8/server/src/jobs/proposals.ts) — Adds estimated, persisted one-shot rewrite proposals to start_job and result handling.
-- [server/src/jobs/runner.ts](/home/krishna/learny-worktrees/m8/server/src/jobs/runner.ts) — Provides an uncapped active chapter projection without exposing raw job inputs.
-- [server/src/routes/sets.test.ts](/home/krishna/learny-worktrees/m8/server/src/routes/sets.test.ts) — Tests course response, active state, missing sets and escaped notes directories.
-- [server/src/routes/sets.ts](/home/krishna/learny-worktrees/m8/server/src/routes/sets.ts) — Serves GET /api/sets/:set/course with confinement and missing-set handling.
-- [web/src/api/queries.test.tsx](/home/krishna/learny-worktrees/m8/web/src/api/queries.test.tsx) — Checks that course state refreshes on job transitions, not every progress tick.
-- [web/src/components/PlanSetSheet.tsx](/home/krishna/learny-worktrees/m8/web/src/components/PlanSetSheet.tsx) — Accepts initial level/deadline/sources for re-planning.
-- [web/src/pages/SetHomePage.tsx](/home/krishna/learny-worktrees/m8/web/src/pages/SetHomePage.tsx) — Places Course plan below the primary next step and prefills current plan settings.
-- [server/src/course/build.test.ts](/home/krishna/learny-worktrees/m8/server/src/course/build.test.ts) — Tests stale ticks, note/status/title matches, active draft/rewrite state, subject fallback and no read mutation.
-- [server/src/course/build.ts](/home/krishna/learny-worktrees/m8/server/src/course/build.ts) — Derives read-only course state from curriculum, matching notes/statuses and active jobs.
-- [web/src/components/CoursePlan.test.tsx](/home/krishna/learny-worktrees/m8/web/src/components/CoursePlan.test.tsx) — Tests states/links, collapse/re-plan, exact draft requests, eligible batch ordering and invalid prerequisites.
-- [web/src/components/CoursePlan.tsx](/home/krishna/learny-worktrees/m8/web/src/components/CoursePlan.tsx) — Renders course rows, prerequisite gates, Draft/Draft next 3, progress, links, overflow rewrite, collapse and one-time hint with 44px targets.
+- [server/src/agent/chat-service.ts](/path/to/studium-worktrees/m8/server/src/agent/chat-service.ts) — Supplies current active jobs whenever tutor context is rebuilt.
+- [server/src/agent/prompt.ts](/path/to/studium-worktrees/m8/server/src/agent/prompt.ts) — Adds a ≤30-line tutor course summary plus draft/range/rewrite proposal instructions.
+- [server/src/agent/roles.test.ts](/path/to/studium-worktrees/m8/server/src/agent/roles.test.ts) — Verifies bounded summary, states and both job instructions.
+- [server/src/agent/roles.ts](/path/to/studium-worktrees/m8/server/src/agent/roles.ts) — Passes active chapter state through tutor prompt context; existing start_job allowlist is retained.
+- [server/src/app.ts](/path/to/studium-worktrees/m8/server/src/app.ts) — Passes the workspace job runner into set routes.
+- [server/src/jobs/proposals.test.ts](/path/to/studium-worktrees/m8/server/src/jobs/proposals.test.ts) — Tests rewrite proposal path, estimate/persistence and invalid-path rejection with faux models.
+- [server/src/jobs/proposals.ts](/path/to/studium-worktrees/m8/server/src/jobs/proposals.ts) — Adds estimated, persisted one-shot rewrite proposals to start_job and result handling.
+- [server/src/jobs/runner.ts](/path/to/studium-worktrees/m8/server/src/jobs/runner.ts) — Provides an uncapped active chapter projection without exposing raw job inputs.
+- [server/src/routes/sets.test.ts](/path/to/studium-worktrees/m8/server/src/routes/sets.test.ts) — Tests course response, active state, missing sets and escaped notes directories.
+- [server/src/routes/sets.ts](/path/to/studium-worktrees/m8/server/src/routes/sets.ts) — Serves GET /api/sets/:set/course with confinement and missing-set handling.
+- [web/src/api/queries.test.tsx](/path/to/studium-worktrees/m8/web/src/api/queries.test.tsx) — Checks that course state refreshes on job transitions, not every progress tick.
+- [web/src/components/PlanSetSheet.tsx](/path/to/studium-worktrees/m8/web/src/components/PlanSetSheet.tsx) — Accepts initial level/deadline/sources for re-planning.
+- [web/src/pages/SetHomePage.tsx](/path/to/studium-worktrees/m8/web/src/pages/SetHomePage.tsx) — Places Course plan below the primary next step and prefills current plan settings.
+- [server/src/course/build.test.ts](/path/to/studium-worktrees/m8/server/src/course/build.test.ts) — Tests stale ticks, note/status/title matches, active draft/rewrite state, subject fallback and no read mutation.
+- [server/src/course/build.ts](/path/to/studium-worktrees/m8/server/src/course/build.ts) — Derives read-only course state from curriculum, matching notes/statuses and active jobs.
+- [web/src/components/CoursePlan.test.tsx](/path/to/studium-worktrees/m8/web/src/components/CoursePlan.test.tsx) — Tests states/links, collapse/re-plan, exact draft requests, eligible batch ordering and invalid prerequisites.
+- [web/src/components/CoursePlan.tsx](/path/to/studium-worktrees/m8/web/src/components/CoursePlan.tsx) — Renders course rows, prerequisite gates, Draft/Draft next 3, progress, links, overflow rewrite, collapse and one-time hint with 44px targets.
 
 ## Part-by-part tests (overlap with final verification)
 

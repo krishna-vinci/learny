@@ -1,14 +1,25 @@
 reference/
-.claude/codex-runs/
+.claude/
 node_modules/
 data/
 dist/
 *.tsbuildinfo
-.env
-.env.*
+.env*
 !.env.example
-data.pre-*/
+data.pre-*
 
 # Generated public sketch libraries (built before web dev/build).
 web/public/visual-runtime/*.js
 web/public/visual-runtime/manifest.json
+
+# Local worktrees, Pi credentials, agent runs and disposable test artifacts.
+.worktrees/
+pi-agent/
+codex-runs/
+.codex-runs/
+web/.vitest/
+coverage/
+playwright-report/
+test-results/
+*.log
+.task.md

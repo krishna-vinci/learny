@@ -1,0 +1,75 @@
+Studium
+Copyright (c) 2026 Studium contributors
+
+Studium is licensed under AGPL-3.0-only; see LICENSE. The following third-party
+code, fonts and assets retain their own licences.
+
+Memos — https://github.com/usememos/memos
+Adapted authentication, UI primitives, sidebar, Markdown reader, OAuth helpers
+and NoteEditor code in web/src (identified by source comments). MIT notice:
+
+MIT License
+
+Copyright (c) 2025 Memos
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+d3 — bundled from the pinned pnpm dependency, including the public visual
+runtime bundles (p5/d3/three), KaTeX math fonts, and Lucide icons. Licence text:
+web/public/licenses/d3.txt (served at /licenses/d3.txt).
+
+three — bundled from the pinned pnpm dependency, including the public visual
+runtime bundles (p5/d3/three), KaTeX math fonts, and Lucide icons. Licence text:
+web/public/licenses/three.txt (served at /licenses/three.txt).
+
+katex — bundled from the pinned pnpm dependency, including the public visual
+runtime bundles (p5/d3/three), KaTeX math fonts, and Lucide icons. Licence text:
+web/public/licenses/katex.txt (served at /licenses/katex.txt).
+
+lucide-react — bundled from the pinned pnpm dependency, including the public visual
+runtime bundles (p5/d3/three), KaTeX math fonts, and Lucide icons. Licence text:
+web/public/licenses/lucide-react.txt (served at /licenses/lucide-react.txt).
+
+p5 — bundled from the pinned pnpm dependency, including the public visual
+runtime bundles (p5/d3/three), KaTeX math fonts, and Lucide icons. Licence text:
+web/public/licenses/p5.txt (served at /licenses/p5.txt).
+
+p5's public runtime is modified by web/scripts/p5-sandbox.mjs to disable device
+motion listeners. Its corresponding source is the p5 version pinned in
+pnpm-lock.yaml (https://github.com/processing/p5.js), with that local patch.
+D3 and three.js are bundled by web/scripts/build-visual-runtime.mjs.
+KaTeX fonts are distributed with KaTeX under its MIT licence. Other reader/UI
+fonts are operating-system fonts; no separately vendored font files were found.
+Typst bundles Libertinus Serif for PDF export; its font licence is SIL OFL 1.1
+(https://github.com/alerque/libertinus/blob/master/OFL.txt), copied unmodified to
+web/public/licenses/libertinus.txt.
+
+Docker tool binaries retain their upstream licences: Pandoc (GPL-2.0-or-later),
+Typst (Apache-2.0), yt-dlp (Unlicense for source; the standalone binaries include
+GPLv3+ dependencies), restic (BSD-2-Clause), and rclone (MIT). See their upstream
+release source and notices. Node and packaged dependencies retain the licence
+files shipped with their distributions.
+
+Historical evidence assets in docs/plans are separate from application code.
+The Charminar photo by Rashid Jorvee and rubber-tapping photo by Manukrishnan80
+are CC BY-SA 4.0; the cotton photo from the U.S. National Archives (creator unrecorded) is public domain.
+Adjacent JSON sidecars give attribution, source links and licence URLs. Other
+experimental captured figures and source excerpts require owner review before
+release; the M19a report lists removal suggestions. The application licence does
+not grant rights in third-party learning materials.

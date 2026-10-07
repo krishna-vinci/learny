@@ -86,8 +86,8 @@ All automated tests use fakes; only the explicitly separate fixture recording an
 | `pnpm --filter @studium/web build` | Passed; existing large-chunk warning |
 | `rtk proxy pnpm exec biome check <changed TS/TSX/MJS/JSON files listed below>` | Passed; exact expanded command in [validation manifest](m15-images-evidence/validation.json) |
 | `pnpm --filter @studium/server exec node scripts/m15-image-fixtures.ts` | Recorded Commons/Openverse/Met/NASA primary API shapes and LibreTexts page tags; cotton metadata recorded separately with the same safeFetch limits and added to this script |
-| `pnpm --filter @studium/server exec node --env-file=/home/krishna/learny/.env --import tsx scripts/m15-images-trial.ts /home/krishna/learny/data/users/krishna` | Initial plan/draft trial completed with failures informing the fixes |
-| `pnpm --filter @studium/server exec node --env-file=/home/krishna/learny/.env --import tsx scripts/m15-images-trial.ts /home/krishna/learny/data/users/krishna /tmp/studium-m15-trial-AaubLU` | Corrected drafts completed; Hyderabad checked, polymers draft |
+| `pnpm --filter @studium/server exec node --env-file=/path/to/studium/.env --import tsx scripts/m15-images-trial.ts /path/to/studium/data/users/<username>` | Initial plan/draft trial completed with failures informing the fixes |
+| `pnpm --filter @studium/server exec node --env-file=/path/to/studium/.env --import tsx scripts/m15-images-trial.ts /path/to/studium/data/users/<username> /tmp/studium-m15-trial-AaubLU` | Corrected drafts completed; Hyderabad checked, polymers draft |
 | `pnpm --filter @studium/server exec node scripts/m15-images-browser.mjs /tmp/studium-m15-trial-AaubLU/tree` | Both 390 px reader checks passed |
 
 Initial local test assertions/mocks were adjusted to the new behavior. The first real run's full catalogue-query and brief-budget failures were fixed before the corrected run. No unrelated test failure was repaired and no unrelated suite was expanded.

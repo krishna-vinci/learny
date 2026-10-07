@@ -178,7 +178,7 @@ function DestinationForm({
             id="backup-rest-url"
             value={destination.url}
             onChange={(e) => onChange({ ...destination, url: e.target.value })}
-            placeholder="https://192.168.0.55:8000/studium"
+            placeholder="https://backup.example.com:8000/studium"
           />
         </div>
         <div className="grid gap-3 sm:grid-cols-2">

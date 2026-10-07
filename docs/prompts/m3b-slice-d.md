@@ -1,11 +1,11 @@
 # M3b Slice D — Consistent UI on proper shadcn/ui (Base UI), in batches
 
-You are the same frontend implementer who built Slice C (themes). You work in the worktree `/home/krishna/learny-worktrees/m3b` (branch `codex/m3b`), rebased on main after Slice C merged.
+You are the same frontend implementer who built Slice C (themes). You work in the worktree `/path/to/studium-worktrees/m3b` (branch `codex/m3b`), rebased on main after Slice C merged.
 - Only change `web/`. Never touch `server/`, `shared/`, `data/`, `.env*` or `.claude/`. Don't commit: the orchestrator reviews and commits each batch.
 - Read first:
-  1. `/home/krishna/learny/AGENT_MEMORY.md` (gotchas)
-  2. the UI map `/home/krishna/learny/docs/prompts/m3b-d-uimap.md` (904 lines: every hand-built pattern with file:line, the per-file inventory, styling facts and **section 5 Risks**)
-  3. the `shadcn` skill (`/home/krishna/.claude/skills/shadcn/SKILL.md` plus `rules/base-vs-radix.md`, `rules/composition.md`, `rules/forms.md`, `rules/styling.md`, `cli.md`)
+  1. `/path/to/studium/AGENT_MEMORY.md` (gotchas)
+  2. the UI map `/path/to/studium/docs/prompts/m3b-d-uimap.md` (904 lines: every hand-built pattern with file:line, the per-file inventory, styling facts and **section 5 Risks**)
+  3. the `shadcn` skill (`/home/<username>/.claude/skills/shadcn/SKILL.md` plus `rules/base-vs-radix.md`, `rules/composition.md`, `rules/forms.md`, `rules/styling.md`, `cli.md`)
   4. the `ui-ux-pro-max` skill
 - Work in **batches**. Do ONLY the batch named in the message you receive. Finish it, verify it and report. The next batch comes in a follow-up message.
 
@@ -64,7 +64,7 @@ The whole app looks like one product. Use real shadcn/ui components on **Base UI
 ## Verify every batch
 1. `pnpm --filter @studium/web exec tsc --noEmit`, `rtk proxy pnpm exec biome check <changed files>`, the vitest files near your changes, and `pnpm --filter @studium/web build`.
 2. Test server:
-   - `mkdir -p /tmp/claude-1000/-home-krishna-learny/a7d2a3ad-46a1-478a-baa0-09617d6e3f49/scratchpad/m3b-test/d` and copy `/home/krishna/learny/examples/sample-set` there as `legacy`.
+   - `mkdir -p /tmp/claude-1000/-home-krishna-learny/a7d2a3ad-46a1-478a-baa0-09617d6e3f49/scratchpad/m3b-test/d` and copy `/path/to/studium/examples/sample-set` there as `legacy`.
    - From `server/` run `STUDIUM_DATA_DIR=<dir>/data STUDIUM_STUDY_ROOT=<dir>/legacy HOST=127.0.0.1 PORT=3143 STUDIUM_FAUX=1 pnpm exec tsx src/main.ts` in the background.
    - First visit `/setup`. Never `rm -rf` computed paths.
 3. Puppeteer-core is in `/tmp/claude-1000/-home-krishna-learny/a7d2a3ad-46a1-478a-baa0-09617d6e3f49/scratchpad/shot/node_modules`; Chrome is `/usr/bin/google-chrome`.

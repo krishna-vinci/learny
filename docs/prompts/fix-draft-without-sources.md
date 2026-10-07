@@ -1,6 +1,6 @@
 # Fix — chapter drafts fail when the plan's sources were never added (local, GPT-6.1 Sol)
 
-You are the IMPLEMENTER in `/home/krishna/learny-worktrees/draft-sources` on branch `codex/draft-sources`. Do not load orchestration skills and do not spawn sub-agents.
+You are the IMPLEMENTER in `/path/to/studium-worktrees/draft-sources` on branch `codex/draft-sources`. Do not load orchestration skills and do not spawn sub-agents.
 
 ## The bug (seen live, 2026-10-01)
 1. The user asked the agent to plan a new set ("Hyderabad History"). The outliner's proposal listed **Sources to add** (URLs) but `PLAN.md` has `sources: []`.
