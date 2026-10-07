@@ -12,6 +12,7 @@ import { publicErrorReason } from "./error-reason.js";
 import { captureFigures, readSourceFigures } from "./figures.js";
 import { collectImages } from "./images.js";
 import { readParsedFile, readSource, withDedupeLock } from "./library.js";
+import { parsedFigureLinks } from "./mineru-markdown.js";
 import { MIN_PARSE_QUALITY, scoreParseQuality } from "./quality.js";
 import { INGEST_MAX_BYTES } from "./safe-fetch.js";
 import { preserveSectionAnchors, sourceSections } from "./sections.js";
@@ -56,7 +57,14 @@ export async function refreshSource(
     opts.signal?.throwIfAborted();
     let input: { url?: string; bytes?: Uint8Array; filename?: string };
     // Uploaded originals carry sha256. Never fetch a URL to replace an upload.
-    if (typeof metadata.frontmatter.sha256 === "string" || !view.source.url) {
+    const hasPdfOriginal = await fs
+      .access(confined(root, `${dir}/original.pdf`))
+      .then(() => true)
+      .catch((error: NodeJS.ErrnoException) => {
+        if (error.code === "ENOENT") return false;
+        throw error;
+      });
+    if (hasPdfOriginal || typeof metadata.frontmatter.sha256 === "string" || !view.source.url) {
       const names = (await fs.readdir(confined(root, dir))).filter((f) => /^original\.[a-z0-9]+$/.test(f));
       if (names.length !== 1)
         return {
@@ -68,7 +76,11 @@ export async function refreshSource(
       try {
         const stat = await handle.stat();
         if (!stat.isFile() || stat.size > INGEST_MAX_BYTES) throw new Error("Original is not a supported-size file");
-        input = { bytes: new Uint8Array(await handle.readFile()), filename: name };
+        input = {
+          bytes: new Uint8Array(await handle.readFile()),
+          filename: name,
+          ...(name === "original.pdf" && view.source.url ? { url: view.source.url } : {}),
+        };
       } finally {
         await handle.close();
       }
@@ -78,7 +90,13 @@ export async function refreshSource(
       if (blocked) return { refresh: { ...base, reason: `Host skipped after earlier blocked fetch: ${blocked}` } };
       input = { url: view.source.url };
     }
-    const extracted = await extract(detectInput(input), input, opts);
+    const extracted = await extract(
+      input.bytes ? detectInput({ bytes: input.bytes, filename: input.filename }) : detectInput(input),
+      input,
+      { ...opts, license: typeof metadata.frontmatter.license === "string" ? metadata.frontmatter.license : undefined },
+    );
+    // Keep provenance even when refresh reads an original rather than its remote URL.
+    extracted.url ??= view.source.url;
     opts.signal?.throwIfAborted();
     const cleaned = cleanMarkdown(extracted.markdown);
     const quality = scoreParseQuality(extracted.unreadable ? "" : cleaned);
@@ -104,7 +122,7 @@ export async function refreshSource(
       disappearedAnchors: preserved.disappeared,
     };
     const content = new Map<string, string | Uint8Array>();
-    for (const part of split.parts) content.set(`${dir}/${part.path}`, part.content);
+    for (const part of split.parts) content.set(`${dir}/${part.path}`, parsedFigureLinks(part.content, part.path));
     content.set(
       `${dir}/sections.json`,
       JSON.stringify(
@@ -116,8 +134,11 @@ export async function refreshSource(
     const previousFigures = await readSourceFigures(root, id);
     const captured = await captureFigures({
       images: [
-        ...(extracted.images ?? collectImages(extracted.markdown, extracted.url ?? "")),
-        ...previousFigures.map((figure) => ({ ...figure, nearHeading: figure.section })),
+        ...(extracted.images ??
+          (extracted.embeddedFigures ? [] : collectImages(extracted.markdown, extracted.url ?? ""))),
+        ...previousFigures
+          .filter((figure) => !figure.url.includes("#figure-"))
+          .map((figure) => ({ ...figure, nearHeading: figure.section })),
       ],
       title: view.source.title,
       authors: view.source.authors,
@@ -125,6 +146,8 @@ export async function refreshSource(
       markdown: preserved.markdown,
       signal: opts.signal,
     });
+    for (const [file, bytes] of extracted.embeddedFigures?.files ?? []) captured.files.set(file, bytes);
+    captured.figures.push(...(extracted.embeddedFigures?.figures ?? []));
     for (const [file, bytes] of captured.files) content.set(`${dir}/${file}`, bytes);
     // A failed remote download never discards an already captured local figure.
     for (const figure of captured.figures) {

@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { classifierStatus } from "../agent/classifier.js";
 import { ROLES } from "../agent/roles.js";
+import { mineruHealth } from "../ingest/mineru.js";
 import { ExaBudget } from "../search/budget.js";
 import { readText } from "../tree/edit.js";
 import { commitPaths } from "../tree/git.js";
@@ -190,7 +191,13 @@ export function settingsRoutes(deps: SettingsDeps): Hono {
     if (firecrawl !== undefined && firecrawl !== "")
       services.push(await checkReachable("firecrawl", firecrawl, fetchImpl));
     const mineru = env.MINERU_URL;
-    if (mineru !== undefined && mineru !== "") services.push(await checkReachable("mineru", mineru, fetchImpl));
+    if (mineru !== undefined && mineru !== "") {
+      const status = await mineruHealth(
+        { mineruUrl: mineru, apiKey: env.MINERU_API_KEY, tier: env.MINERU_TIER },
+        fetchImpl,
+      );
+      services.push(httpHealth("mineru", status.reachable, status.detail));
+    }
     httpCache = { at: now(), services };
     return services;
   }

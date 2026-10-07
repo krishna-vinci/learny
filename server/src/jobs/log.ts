@@ -41,6 +41,7 @@ export function formatJobLogLine(job: JobView): string {
     parts.push(`commit ${job.result.commitSha.slice(0, 7)}`);
   }
   if (job.status === "failed" && job.error) parts.push(`reason: ${publicErrorReason(job.error)}`);
+  if (job.result?.warning) parts.push(`warning: ${publicErrorReason(job.result.warning)}`);
   return parts.join(" · ");
 }
 
@@ -60,7 +61,7 @@ export async function appendJobLog(root: string, job: JobView): Promise<string> 
 export type ParsedJobLogLine = Omit<JobView, "id">;
 
 const JOB_LINE =
-  /^- (\S+) · (ingest|refresh-source|draft-chapter|rewrite-chapter|make-cards|compile-book|plan-set|make-quiz|make-problems|grade-answer) · "(.*)" · (done|failed|cancelled) · ([0-9]+(?:\.[0-9]+)?k?) in \/ ([0-9]+(?:\.[0-9]+)?k?) out · \$([0-9]+(?:\.[0-9]+)?)(?: · Exa ([0-9]+) \/ \$([0-9]+(?:\.[0-9]+)?))?(?: · commit ([0-9a-f]+))?(?: · reason: (.*))?$/;
+  /^- (\S+) · (ingest|refresh-source|draft-chapter|rewrite-chapter|make-cards|compile-book|plan-set|make-quiz|make-problems|grade-answer) · "(.*)" · (done|failed|cancelled) · ([0-9]+(?:\.[0-9]+)?k?) in \/ ([0-9]+(?:\.[0-9]+)?k?) out · \$([0-9]+(?:\.[0-9]+)?)(?: · Exa ([0-9]+) \/ \$([0-9]+(?:\.[0-9]+)?))?(?: · commit ([0-9a-f]+))?(?: · reason: (.*?))?(?: · warning: (.*))?$/;
 
 function parseTokens(raw: string): number {
   return Math.round(Number.parseFloat(raw) * (raw.endsWith("k") ? 1000 : 1));
@@ -69,7 +70,8 @@ function parseTokens(raw: string): number {
 export function parseJobLogLine(line: string, set: string | null): ParsedJobLogLine | null {
   const match = JOB_LINE.exec(line.trim());
   if (match === null) return null;
-  const [, timestamp, kind, title, status, input, output, cost, exaRequests, exaCost, commitSha, reason] = match;
+  const [, timestamp, kind, title, status, input, output, cost, exaRequests, exaCost, commitSha, reason, warning] =
+    match;
   if (
     timestamp === undefined ||
     kind === undefined ||
@@ -101,7 +103,9 @@ export function parseJobLogLine(line: string, set: string | null): ParsedJobLogL
     },
     billing: "metered",
     ...(reason === undefined ? {} : { error: reason }),
-    ...(commitSha === undefined ? {} : { result: { commitSha } }),
+    ...(commitSha === undefined && warning === undefined
+      ? {}
+      : { result: { ...(commitSha ? { commitSha } : {}), ...(warning ? { warning } : {}) } }),
   };
 }
 

@@ -409,6 +409,29 @@ describe("ChatService", () => {
     expect((await log(root, { limit: 1 }))[0]).toMatchObject({ author: "tutor" });
   });
 
+  it("wires request_plan_change into tutor turns without writing curriculum", async () => {
+    const { chats, faux, hub, jobs } = await setup();
+    const calls: unknown[] = [];
+    jobs.register("plan-set", async (input) => {
+      calls.push(input);
+      return {};
+    });
+    const before = await fs.readFile(path.join(root, "linear-algebra/curriculum.md"), "utf8").catch(() => null);
+    const id = await chats.create("linear-algebra");
+    faux.setResponses([
+      fauxAssistantMessage(fauxToolCall("request_plan_change", { request: "Add a vector visual" }), {
+        stopReason: "toolUse",
+      }),
+      fauxAssistantMessage(fauxText("I've proposed the change — review it in the Inbox.")),
+    ]);
+    const settled = waitForSettled(hub, id);
+    await chats.send("linear-algebra", id, "Add a vector visual to the plan");
+    await settled;
+    await vi.waitFor(() => expect(calls).toHaveLength(1));
+    expect(calls[0]).toEqual({ set: "linear-algebra", mode: "change", goal: "Add a vector visual" });
+    expect(await fs.readFile(path.join(root, "linear-algebra/curriculum.md"), "utf8").catch(() => null)).toBe(before);
+  });
+
   it("starts an ingest job directly from add_source", async () => {
     const { chats, faux, hub, jobs } = await setup();
     const id = await chats.create("linear-algebra");

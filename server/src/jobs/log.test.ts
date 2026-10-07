@@ -157,3 +157,12 @@ it("round-trips Exa usage separately from model billing", () => {
   };
   expect(parseJobLogLine(formatJobLogLine(job), null)?.usage).toMatchObject({ exaRequests: 3, exaCostUsd: 0.021 });
 });
+
+it("persists MinerU fallback warnings in successful job history without secrets", () => {
+  const line = formatJobLogLine(
+    makeJob({ kind: "ingest", result: { warning: "MinerU failed: HTTP 503; using unpdf text. Bearer fake-secret" } }),
+  );
+  expect(line).toContain("warning: MinerU failed: HTTP 503; using unpdf text.");
+  expect(line).not.toContain("fake-secret");
+  expect(parseJobLogLine(line, "linear-algebra")?.result?.warning).toContain("using unpdf text");
+});

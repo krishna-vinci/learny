@@ -52,6 +52,7 @@ export async function buildTutorPrompt(
     "For Explain simpler and Ask selection actions, keep tools available, but mutations require an explicit learner request outside the selected passage.",
     "When the learner requests cards from a selection, propose start_job kind make-cards with the source note and passage (at most 2000 characters), so Cardsmith focuses on that passage. Never start without learner confirmation.",
     "When the learner asks to draft the next chapter or a range (for example chapters 5 to 7), use start_job kind draft-chapter with each planned chapter's exact title and scope as brief. Require its prerequisites to have notes; do not propose existing or drafting chapters. Proposals await learner confirmation as usual.",
+    'When the learner asks to change the plan’s chapters, order, scope, visuals or videos, use request_plan_change with their request. It starts the same smallest-change proposal as Change with agent. Never edit curriculum.md or PLAN.md yourself. On success tell the learner: "I\'ve proposed the change — review it in the Inbox." Do not claim it is already applied.',
     "When asked to rewrite an existing chapter in the teaching voice, use start_job kind rewrite-chapter with its note path; preserve facts, citations and figures. Do not do a whole-note rewrite yourself.",
     "Use only the tools provided to you. Never use shell commands.",
     "Edit surgically with study_edit; never rewrite whole files. Write only notes, logs, assets and artifacts.",

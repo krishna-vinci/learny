@@ -208,6 +208,7 @@ const IntegrationsSection = () => {
   const status = useYoutubeStatus();
   const settings = useSettings();
   const exa = settings.data?.exa;
+  const mineru = settings.data?.services.find((service) => service.name === "mineru");
 
   return (
     <SettingSection
@@ -247,6 +248,28 @@ const IntegrationsSection = () => {
                   : exa.status === "off"
                     ? " Papers use papers MCP; other searches use SearXNG when available."
                     : " Papers use papers MCP first. Exa finds YouTube videos; SearXNG fills gaps."}
+            </p>
+          </div>
+        )}
+      </div>
+      <div className="flex flex-col gap-2">
+        <h4 className="text-sm font-semibold text-foreground">PDF parsing · MinerU</h4>
+        {settings.isLoading ? (
+          <RowsSkeleton rows={1} />
+        ) : settings.isError ? (
+          <p className="text-sm text-destructive">Failed to load PDF parsing status.</p>
+        ) : (
+          <div className="flex flex-col gap-2 rounded-md border border-border/70 p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusPill tone={!mineru ? "muted" : mineru.ok ? "ok" : "warn"}>
+                {!mineru ? "Not configured" : mineru.ok ? "Reachable" : "Unreachable"}
+              </StatusPill>
+              {mineru && <span className="text-xs text-muted-foreground">{mineru.detail}</span>}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {mineru
+                ? "PDFs use MinerU for text, equations, tables and figures. If it fails, basic text is kept with a warning."
+                : "Set MINERU_URL on the server to improve PDF extraction."}
             </p>
           </div>
         )}

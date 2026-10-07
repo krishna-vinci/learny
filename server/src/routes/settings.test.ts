@@ -195,3 +195,24 @@ it("shows persisted Exa spend and budget state without a paid health probe", asy
   expect(JSON.stringify(view)).not.toContain("never-return-me");
   expect(fetchImpl).not.toHaveBeenCalled();
 });
+
+it("checks MinerU V1 health, exposes version/tier and never returns the bearer key", async () => {
+  await writeConfig(CONFIG);
+  const fetchImpl = vi.fn<typeof fetch>(async () => new Response(JSON.stringify({ status: "ok", version: "4.0.10" })));
+  const app = makeApp({
+    runtime: fakeRuntime(["faux/echo"]),
+    env: { MINERU_URL: "http://127.0.0.1:18750", MINERU_TIER: "basic", MINERU_API_KEY: "fake-secret" },
+    fetch: fetchImpl,
+  });
+  const result = await app.request("/api/settings");
+  const text = await result.text();
+  expect(JSON.parse(text).services).toContainEqual({
+    name: "mineru",
+    kind: "http",
+    ok: true,
+    detail: "reachable · version 4.0.10 · tier basic",
+  });
+  expect(text).not.toContain("fake-secret");
+  expect(String(fetchImpl.mock.calls[0]?.[0])).toBe("http://127.0.0.1:18750/v1/health");
+  expect(fetchImpl.mock.calls[0]?.[1]?.headers).toMatchObject({ Authorization: "Bearer fake-secret" });
+});

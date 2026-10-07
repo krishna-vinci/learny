@@ -41,3 +41,18 @@ it("rejects ambiguous targets and stops immediately on cancellation", async () =
   await expect(handler({ sourceId: "lib-a" }, ctx)).rejects.toThrow();
   expect(refreshSource).not.toHaveBeenCalled();
 });
+
+it("forwards PDF progress and retains fallback warnings in the job result", async () => {
+  vi.mocked(refreshSource).mockImplementation(async (options) => {
+    options.onProgress?.("Parsing PDF with MinerU: waiting (running)");
+    options.onWarning?.("MinerU failed: timed out; using unpdf text.");
+    return { refresh: { sourceId: "lib-paper", before: 100, after: 100, status: "refreshed", disappearedAnchors: [] } };
+  });
+  const ctx = { signal: new AbortController().signal, progress: vi.fn(), addUsage: vi.fn() };
+  const result = await createRefreshSourceJob({ root: "/unused", locks: new FileLocks() })(
+    { sourceId: "lib-paper" },
+    ctx,
+  );
+  expect(ctx.progress).toHaveBeenCalledWith("Parsing PDF with MinerU: waiting (running)");
+  expect(result?.warning).toContain("MinerU failed: timed out; using unpdf text");
+});

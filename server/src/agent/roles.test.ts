@@ -77,6 +77,7 @@ function expectedTools(role: RoleName): string[] {
   const contextual = new Set([
     "start_job",
     "add_source",
+    "request_plan_change",
     "record_quiz_result",
     "add_card",
     "review_card",
