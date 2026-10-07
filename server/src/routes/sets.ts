@@ -5,9 +5,11 @@ import { buildCourse } from "../course/build.js";
 import type { EventHub } from "../events.js";
 import { listSetSources } from "../ingest/library.js";
 import type { JobRunner } from "../jobs/runner.js";
-import { createNote, createSet, writeNoteAsUser } from "../tree/authoring.js";
+import { createNote, createSet, writeNoteAsUser, writePlanAsUser } from "../tree/authoring.js";
+import { curriculumView } from "../tree/curriculum.js";
+import { CurriculumEditRequest, editCurriculum } from "../tree/curriculum-edit.js";
 import { DeletionError, deleteFromTree, previewDeletion, recentlyDeleted, restoreDeletion } from "../tree/deletion.js";
-import { EditError } from "../tree/edit.js";
+import { EditError, readText } from "../tree/edit.js";
 import { changedPaths, diff, log, RevertConflictError, revert, revertPaths } from "../tree/git.js";
 import { type FileLocks, SetMutationError } from "../tree/lock.js";
 import { IMAGE_MIME, MEDIA_HEADERS } from "../tree/media.js";
@@ -200,6 +202,39 @@ export function setsRoutes(deps: SetsDeps): Hono {
     return c.json({ slug: result.slug }, 201);
   });
 
+  app.get("/:set/curriculum", async (c) => {
+    const set = c.req.param("set");
+    if (!(await setExists(root, set))) return notFound(c);
+    try {
+      return c.json(curriculumView(await readText(root, `${set}/curriculum.md`)));
+    } catch (error) {
+      if (error instanceof EditError && error.code === "not_found") return c.json(curriculumView(""));
+      if (error instanceof PathError || (error instanceof EditError && error.code === "forbidden"))
+        return invalidPath(c);
+      throw error;
+    }
+  });
+
+  app.patch("/:set/curriculum", async (c) => {
+    const set = c.req.param("set");
+    if (!(await setExists(root, set))) return notFound(c);
+    const parsed = CurriculumEditRequest.safeParse(await readJsonBody(c));
+    if (!parsed.success) return c.json({ error: "Invalid chapter edit", detail: parsed.error.message }, 400);
+    try {
+      deps.assertIdle?.(set);
+      const result = await editCurriculum(root, locks, set, parsed.data);
+      if (result.sha) hub.publish({ type: "commit", sha: result.sha, subject: result.subject, author: "user" });
+      return c.json({ sha: result.sha });
+    } catch (error) {
+      if (error instanceof SetMutationError)
+        return c.json({ error: "Finish or cancel this set’s active tasks before editing chapters." }, 409);
+      if (error instanceof EditError && error.code === "conflict")
+        return c.json({ error: "changed", current: error.current }, 409);
+      if (error instanceof EditError && error.code === "not_found") return notFound(c);
+      return c.json({ error: error instanceof Error ? error.message : String(error) }, 400);
+    }
+  });
+
   app.get("/:set/course", async (c) => {
     const set = c.req.param("set");
     if (!(await setExists(root, set))) return notFound(c);
@@ -334,7 +369,7 @@ export function setsRoutes(deps: SetsDeps): Hono {
     if (!(await setExists(root, set))) return notFound(c);
 
     const body = await readJsonBody(c);
-    if (typeof body.path !== "string" || !NOTE_PATH.test(body.path)) return invalidPath(c);
+    if (typeof body.path !== "string" || (!NOTE_PATH.test(body.path) && body.path !== "PLAN.md")) return invalidPath(c);
     if (typeof body.content !== "string" || typeof body.previous !== "string") {
       return c.json({ error: "content and previous must be strings" }, 400);
     }
@@ -343,7 +378,13 @@ export function setsRoutes(deps: SetsDeps): Hono {
     }
 
     try {
-      const result = await writeNoteAsUser(root, locks, `${set}/${body.path}`, body.content, body.previous);
+      const result = await (body.path === "PLAN.md" ? writePlanAsUser : writeNoteAsUser)(
+        root,
+        locks,
+        `${set}/${body.path}`,
+        body.content,
+        body.previous,
+      );
       if (result.sha !== null) {
         hub.publish({ type: "commit", sha: result.sha, subject: result.subject, author: "user" });
       }
@@ -355,6 +396,8 @@ export function setsRoutes(deps: SetsDeps): Hono {
         if (error.code === "forbidden") return invalidPath(c);
       }
       if (error instanceof PathError) return invalidPath(c);
+      if (body.path === "PLAN.md")
+        return c.json({ error: error instanceof Error ? error.message : String(error) }, 400);
       throw error;
     }
   });

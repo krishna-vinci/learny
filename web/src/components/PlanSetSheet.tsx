@@ -15,10 +15,11 @@ export interface PlanSetSheetProps {
   title: string;
   initialGoal: string;
   initialOptions?: PlanOptionsValue;
+  mode?: "change";
   onClose: () => void;
 }
 
-export function PlanSetSheet({ set, title, initialGoal, initialOptions, onClose }: PlanSetSheetProps) {
+export function PlanSetSheet({ set, title, initialGoal, initialOptions, mode, onClose }: PlanSetSheetProps) {
   const [goal, setGoal] = useState(initialGoal);
   const [options, setOptions] = useState(initialOptions ?? EMPTY_PLAN_OPTIONS);
   const [submitting, setSubmitting] = useState(false);
@@ -27,7 +28,12 @@ export function PlanSetSheet({ set, title, initialGoal, initialOptions, onClose 
     if (!goal.trim()) return;
     setSubmitting(true);
     try {
-      await api.jobs.create({ kind: "plan-set", set, goal: goal.trim(), ...planOptionsBody(options) });
+      await api.jobs.create({
+        kind: "plan-set",
+        set,
+        goal: goal.trim(),
+        ...(mode ? { mode } : planOptionsBody(options)),
+      });
       showJobStartedToast(title, "Planning");
       onClose();
     } catch (err) {
@@ -41,9 +47,11 @@ export function PlanSetSheet({ set, title, initialGoal, initialOptions, onClose 
     <Dialog open onOpenChange={(next) => !next && onClose()}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Make a plan</DialogTitle>
+          <DialogTitle>{mode ? "Change with agent" : "Make a plan"}</DialogTitle>
           <DialogDescription>
-            The assistant proposes a new plan and chapter list. Nothing changes until you approve it under To review.
+            {mode
+              ? "Describe one small change. Review exactly which chapters change before approving under To review."
+              : "The assistant proposes a new plan and chapter list. Nothing changes until you approve it under To review."}
           </DialogDescription>
         </DialogHeader>
         <form
@@ -54,25 +62,29 @@ export function PlanSetSheet({ set, title, initialGoal, initialOptions, onClose 
           }}
         >
           <div>
-            <Label htmlFor="plan-set-goal">Goal</Label>
+            <Label htmlFor="plan-set-goal">{mode ? "What would you like to change?" : "Goal"}</Label>
             <textarea
               id="plan-set-goal"
               className="mt-1 w-full resize-none rounded-md border border-border bg-transparent px-3 py-2 text-base outline-none placeholder:text-muted-foreground md:text-sm"
               rows={4}
               value={goal}
               onChange={(e) => setGoal(e.target.value)}
-              placeholder="What are you trying to learn?"
+              placeholder={mode ? "e.g. Split chapter 4 into two" : "What are you trying to learn?"}
             />
           </div>
-          <PlanOptions set={set} idPrefix="plan-set" value={options} onChange={setOptions} />
+          {!mode && <PlanOptions set={set} idPrefix="plan-set" value={options} onChange={setOptions} />}
           <Button
             type="submit"
             className="h-11 w-full md:h-9 md:w-auto md:self-end"
             disabled={!goal.trim() || submitting}
           >
-            {submitting ? "Starting…" : "Start planning"}
+            {submitting ? "Starting…" : mode ? "Propose change" : "Start planning"}
           </Button>
-          {!goal.trim() && <p className="-mt-2 text-xs text-muted-foreground">Describe your goal to continue.</p>}
+          {!goal.trim() && (
+            <p className="-mt-2 text-xs text-muted-foreground">
+              {mode ? "Describe your change to continue." : "Describe your goal to continue."}
+            </p>
+          )}
         </form>
       </DialogContent>
     </Dialog>

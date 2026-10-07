@@ -282,3 +282,43 @@ no planned chapter carry no number. The set page, sidebar, reader ("Chapter N"
 above the title in both tabs), Today, the practice picker, Cards, drafting rows and
 the book (`Chapter N · Title`) all show it; the book heading is stripped again
 before matching a repeated frontmatter title.
+
+## Learner curriculum edits (M17 / D39)
+
+`curriculum.md` remains plain Markdown. The canonical chapter shape is:
+
+```markdown
+- [x] 01 — Chapter title
+  Scope: One-line scope
+  Prerequisites: none
+  Visual: step-through — Concept; learner action
+  Video: Need or no-suitable-video reason
+```
+
+Learner update/insert/delete/move operations read under the curriculum file lock,
+compare the exact `previous` text (409 means reload), and serialise against that
+text. Preserve ticks, Image lines, unrecognised content and fenced examples.
+Insert/move/delete renumber consecutively and rewrite prerequisites by chapter
+identity. References must be distinct existing earlier numbers; no self, forward
+or unknown reference. Deletion removes references to the removed chapter. A move
+that would put a prerequisite later is rejected rather than weakening it.
+
+A coordinated set mutation gate and per-file locks protect curriculum, linked
+notes and media. Renaming rewrites a matched note's `chapter:` slug; renumbering
+updates `order:` while the note path, body and other metadata stay intact. Media
+briefs and evidence sidecars named `NN-slug.*` follow their chapter. Title, scope,
+visual or video changes make the old brief stale; no paid refinement runs for a
+manual edit. Deletion keeps the note with a detached identity under Other notes,
+removes the chapter's media briefs, and records one `user:` commit. Undo reverts
+that commit including all linked metadata/files. Unknown removed-chapter content
+is retained. Failed writes roll back the touched files.
+
+PLAN.md saves use the same previous-text conflict flow as notes. Require a complete
+YAML frontmatter mapping valid against `PlanFrontmatter`; invalid YAML/schema data
+returns a clear 400 and leaves the file intact.
+
+Proposal edits mutate only their curriculum fence plus an app-owned chapter-origin
+comment. That comment preserves live-course identity through a learner rename;
+approval carries linked notes/media over in the same user commit. Ambiguous agent
+renames appear as removed/added, never as an invented identity. Existing proposals
+may have 1–100 chapters; the outliner's 6–14 guidance applies to new courses.

@@ -175,3 +175,26 @@ unmodified with a full credit (creator if known, the licence as stated or
 "Licence unknown", and the source page link) when `media.allowUnknownLicense` is
 true (the default, D38); when false the older permissive-only rules apply and NC
 follows `media.allowNonCommercial`.
+
+## Small-change mode (M17 / D39)
+
+When the task says SMALL CHANGE MODE or the learner asks for a small change to an
+existing course, read the current PLAN.md and curriculum.md first. Treat the
+request as an edit to that course, not a new learning goal.
+
+- Make the smallest change satisfying the request. Keep every unrelated chapter's
+  title, order, scope, prerequisites, checkbox tick, Visual/Image/Video lines and
+  unrecognised content exactly as they were. Keep PLAN.md byte-for-byte unless its
+  text needs a requested change. Never upgrade all legacy chapters' media lines.
+- Split, insert, remove or move only the requested chapters. Renumber consecutively
+  and rewrite prerequisite numbers to refer to the same earlier chapters; reject
+  self, forward, unknown and duplicate prerequisites. Explain an unavoidable
+  prerequisite adjustment. Do not change other chapters' content to fill a quota.
+- An existing course may have fewer than six or more than fourteen chapters; keep
+  its size unless the request changes it. The 6–14 guideline is for new courses.
+- Preserve existing chapter identity as far as the request permits. Explain which
+  chapter is added, removed, renamed or changed; say what stays unchanged.
+- Write the normal proposal with PLAN.md and curriculum.md fences under
+  plan-proposals/. It goes to the learner's Inbox for review and editing. Never
+  mutate the live course, its notes, media files or sources. If file tools are
+  unavailable, return the proposal Markdown for the host to save.

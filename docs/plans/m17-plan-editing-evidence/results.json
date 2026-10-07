@@ -1,0 +1,24 @@
+{
+  "results": {
+    "renameKeptNote": true,
+    "visualAdded": true,
+    "invalidMoveRefused": true,
+    "deletedNoteKept": true,
+    "undoRestored": true,
+    "planTextSaved": true,
+    "courseMenuEdit": true,
+    "setNotes": [
+      {
+        "text": "3Carbon structures and reactive groups",
+        "href": "/s/polymers/n/03-carbon-structures-and-reactive-groups.md"
+      },
+      {
+        "text": "Carbon structures, groups and reactions",
+        "href": "/s/polymers/n/03-carbon-structures-and-reactive-groups.md"
+      }
+    ],
+    "agentProposal": "plan-proposals/2026-10-07T04-43-35-490Z-0394008b-e1dc-4258-a058-7f7f43aef952.md",
+    "proposalEditKeptLive": true
+  },
+  "errors": []
+}

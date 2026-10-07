@@ -1,9 +1,9 @@
 import { promises as fs } from "node:fs";
-import { parseFrontmatter } from "@studium/shared";
+import { PlanFrontmatter, parseFrontmatter } from "@studium/shared";
 import { createFile, replaceFile } from "./edit.js";
 import { commitPaths } from "./git.js";
 import type { FileLocks } from "./lock.js";
-import { resolveInRoot } from "./paths.js";
+import { canonicalRel, resolveInRoot } from "./paths.js";
 import { isSetSlug } from "./read.js";
 
 interface MutationResult {
@@ -139,4 +139,25 @@ export async function writeNoteAsUser(
   const subject = `user: edit ${noteTitle(content, rel)}`;
   const sha = await commitPaths(root, [rel], subject, "user");
   return { sha, subject };
+}
+
+export async function writePlanAsUser(
+  root: string,
+  locks: FileLocks,
+  rel: string,
+  content: string,
+  previous: string,
+): Promise<MutationResult> {
+  if (!/^[a-z0-9][a-z0-9-]*\/PLAN\.md$/.test(rel) || canonicalRel(root, rel) !== rel)
+    throw new Error("Invalid plan path");
+  try {
+    if (!/^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/.test(content))
+      throw new Error("A complete frontmatter block is required");
+    PlanFrontmatter.parse(parseFrontmatter(content).frontmatter);
+  } catch (error) {
+    throw new Error(`Invalid PLAN.md frontmatter: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  await replaceFile(root, locks, "user", rel, content, previous, { canWrite: (candidate) => candidate === rel });
+  const subject = "user: edit plan";
+  return { sha: await commitPaths(root, [rel], subject, "user"), subject };
 }

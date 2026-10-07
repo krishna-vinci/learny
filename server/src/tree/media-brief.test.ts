@@ -351,3 +351,18 @@ it("keeps distinct chapter concepts within the brief budget instead of redundant
   expect(lean.tables.map((table) => table.anchor)).toContain("groups");
   expect(Buffer.byteLength(JSON.stringify(lean))).toBeLessThanOrEqual(MAX_MEDIA_BRIEF_BYTES);
 });
+
+it("does not reuse a note media brief after a video-only edit", async () => {
+  await fs.mkdir(path.join(root, "math/notes"), { recursive: true });
+  await fs.writeFile(path.join(root, "math/notes/01-vectors.md"), "---\ntitle: Vectors\nchapter: vectors\n---\n");
+  await saveMediaBrief(root, new FileLocks(), "math", chapter, brief);
+  await fs.writeFile(
+    path.join(root, "math/curriculum.md"),
+    "- [ ] 01 — Vectors\n  Visual: figure — Addition\n  Visual: no interactive visual: A textual source inventory has no useful manipulations.\n  Video: New demonstration\n",
+  );
+  expect((await noteMediaBrief(root, "math/notes/01-vectors.md"))?.video).toMatchObject({
+    intent: "New demonstration",
+    status: "none",
+    reason: "Media sources have not been refined yet.",
+  });
+});

@@ -496,6 +496,10 @@ export function useSaveFile(set: string | undefined) {
       queryClient.invalidateQueries({ queryKey: queryKeys.file(set, path) });
       queryClient.invalidateQueries({ queryKey: queryKeys.notes(set) });
       queryClient.invalidateQueries({ queryKey: queryKeys.history(set, path) });
+      if (path === "PLAN.md") {
+        queryClient.invalidateQueries({ queryKey: queryKeys.sets });
+        queryClient.invalidateQueries({ queryKey: queryKeys.course(set) });
+      }
     },
   });
 }

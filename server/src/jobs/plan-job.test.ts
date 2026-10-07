@@ -75,51 +75,71 @@ describe("plan-set job", () => {
     await expect(fs.access(path.join(root, "linear-algebra", proposalPath))).rejects.toThrow();
   });
 
-  it("creates a proposal with a faux provider and leaves the approved files intact", async () => {
-    const runtime = await createModelRuntime();
-    const faux = fauxProvider({ provider: "faux", models: [{ id: "echo" }] });
-    runtime.registerNativeProvider(faux.provider);
-    const planned = proposalText().replace(
-      /( {2}Prerequisites:[^\n]*)/g,
-      "$1\n  Visual: matrix-transform widget — Geometric intuition; adjust shear\n  Video: A named educator demonstrates the concept",
-    );
-    const original = await fs.readFile(path.join(root, "linear-algebra/PLAN.md"), "utf8");
-    let proposalPath = "";
-    faux.setResponses([
-      (context) => {
-        proposalPath = /Create exactly (plan-proposals\/[^\s,]+\.md),/.exec(JSON.stringify(context))?.[1] ?? "";
-        expect(proposalPath).not.toBe("");
-        return fauxAssistantMessage(
-          fauxToolCall("study_create", { path: proposalPath, content: planned }, { id: "propose" }),
-          { stopReason: "toolUse" },
-        );
-      },
-      fauxAssistantMessage(fauxText("Awaiting approval.")),
-    ]);
-    const progress: string[] = [];
-    const handler = createPlanJob({
-      root,
-      locks: new FileLocks(),
-      mcp: new McpManager([]),
-      runtime,
-      hub: new EventHub(),
-    });
-    const result = await handler(
-      { set: "linear-algebra", goal: "Learn linear algebra", level: 2, sources: ["lib-strang-la"] },
-      { signal: new AbortController().signal, progress: (text) => progress.push(text), addUsage: () => {} },
-    );
-    expect(result).toMatchObject({ proposalPath, commitSha: expect.stringMatching(/^[0-9a-f]{40}$/) });
-    expect(await fs.readFile(path.join(root, "linear-algebra", proposalPath), "utf8")).toBe(planned);
-    expect(await fs.readFile(path.join(root, "linear-algebra/PLAN.md"), "utf8")).toBe(original);
-    expect((await log(root, { limit: 1 }))[0]).toMatchObject({ author: "outliner", subject: "outliner: propose plan" });
-    expect(progress).toEqual(["Planning study set", "Plan awaiting approval"]);
-  });
+  it.each(["new", "change"])(
+    "creates a %s proposal with a faux provider and leaves the approved files intact",
+    async (mode) => {
+      const runtime = await createModelRuntime();
+      const faux = fauxProvider({ provider: "faux", models: [{ id: "echo" }] });
+      runtime.registerNativeProvider(faux.provider);
+      const planned =
+        mode === "change"
+          ? proposalText()
+          : proposalText().replace(
+              /( {2}Prerequisites:[^\n]*)/g,
+              "$1\n  Visual: matrix-transform widget — Geometric intuition; adjust shear\n  Video: A named educator demonstrates the concept",
+            );
+      const original = await fs.readFile(path.join(root, "linear-algebra/PLAN.md"), "utf8");
+      let proposalPath = "";
+      faux.setResponses([
+        (context) => {
+          proposalPath = /Create exactly (plan-proposals\/[^\s,]+\.md),/.exec(JSON.stringify(context))?.[1] ?? "";
+          expect(proposalPath).not.toBe("");
+          if (mode === "change") expect(JSON.stringify(context)).toContain("SMALL CHANGE MODE");
+          return fauxAssistantMessage(
+            fauxToolCall("study_create", { path: proposalPath, content: planned }, { id: "propose" }),
+            { stopReason: "toolUse" },
+          );
+        },
+        fauxAssistantMessage(fauxText("Awaiting approval.")),
+      ]);
+      const progress: string[] = [];
+      const handler = createPlanJob({
+        root,
+        locks: new FileLocks(),
+        mcp: new McpManager([]),
+        runtime,
+        hub: new EventHub(),
+      });
+      const result = await handler(
+        {
+          set: "linear-algebra",
+          goal: "Learn linear algebra",
+          level: 2,
+          sources: ["lib-strang-la"],
+          ...(mode === "change" ? { mode: "change" } : {}),
+        },
+        { signal: new AbortController().signal, progress: (text) => progress.push(text), addUsage: () => {} },
+      );
+      expect(result).toMatchObject({ proposalPath, commitSha: expect.stringMatching(/^[0-9a-f]{40}$/) });
+      expect(await fs.readFile(path.join(root, "linear-algebra", proposalPath), "utf8")).toBe(planned);
+      expect(await fs.readFile(path.join(root, "linear-algebra/PLAN.md"), "utf8")).toBe(original);
+      expect((await log(root, { limit: 1 }))[0]).toMatchObject({
+        author: "outliner",
+        subject: "outliner: propose plan",
+      });
+      expect(progress).toEqual([
+        mode === "change" ? "Proposing a small plan change" : "Planning study set",
+        "Plan awaiting approval",
+      ]);
+    },
+  );
 
   it("rejects malformed input before starting the agent", () => {
     for (const patch of [
       { set: "../private" },
       { goal: " " },
       { level: 0 },
+      { mode: "full" },
       { level: 2.5 },
       { deadline: "2026-02-31" },
       { deadline: "tomorrow" },
