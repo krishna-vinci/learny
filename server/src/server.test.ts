@@ -392,7 +392,7 @@ it("gates default and positive plan drafts using the real approval route, while 
   const { FileLocks } = await import("./tree/lock.js");
   const { ensureRepo } = await import("./tree/git.js");
   const { inboxRoutes } = await import("./routes/inbox.js");
-  const { proposalText } = await import("./inbox/plan.test-helper.js");
+  const { PROPOSED_PLAN, proposalText, proposedCurriculum } = await import("./inbox/plan.test-helper.js");
   const root = path.join(tempDir, "study");
   await fs.mkdir(path.join(root, "sample/plan-proposals"), { recursive: true });
   await fs.mkdir(path.join(root, "library/lib-strang-la"), { recursive: true });
@@ -410,7 +410,8 @@ it("gates default and positive plan drafts using the real approval route, while 
   for (const [body, suffix] of [
     [undefined, ""],
     [{}, "/"],
-    [{ draftFirst: 2 }, ""],
+    [{ draftFirst: 2, addSources: false }, ""],
+    [{ draftFirst: 0 }, ""],
   ] as const) {
     const response = await app.request(`/api/sets/sample/plan-proposals/plan.md/approve${suffix}`, {
       method: "POST",
@@ -418,13 +419,17 @@ it("gates default and positive plan drafts using the real approval route, while 
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
     expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({ error: "AI features are disabled for this account" });
     expect(await fs.readFile(path.join(root, "sample/PLAN.md"), "utf8")).toBe("# Old plan");
+    expect(await fs.readFile(path.join(root, "sample/plan-proposals/plan.md"), "utf8")).toBe(proposalText());
   }
   const response = await app.request("/api/sets/sample/plan-proposals/plan.md/approve", {
     method: "POST",
     headers: { ...cookie(session.token), "content-type": "application/json" },
-    body: '{"draftFirst":0}',
+    body: '{"draftFirst":0,"addSources":false}',
   });
   expect(response.status).toBe(200);
+  expect(await fs.readFile(path.join(root, "sample/PLAN.md"), "utf8")).toBe(PROPOSED_PLAN);
+  expect(await fs.readFile(path.join(root, "sample/curriculum.md"), "utf8")).toBe(proposedCurriculum());
   expect(jobs.list()).toEqual([]);
 });

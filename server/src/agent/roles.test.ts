@@ -335,6 +335,10 @@ it("confines Examiner writes and leaves the Grader read-only", () => {
 
 it("gives the tutor a bounded course summary and chapter/rewrite proposal instructions", async () => {
   await fs.writeFile(
+    path.join(root, "linear-algebra/notes/01-topic-1.md"),
+    "---\ntitle: Topic 1\nchapter: topic-1\nstatus: accepted\n---\n# Topic 1\n",
+  );
+  await fs.writeFile(
     path.join(root, "linear-algebra/curriculum.md"),
     Array.from({ length: 35 }, (_, i) => `- [ ] ${String(i + 1).padStart(2, "0")} — Topic ${i + 1}`).join("\n"),
   );
@@ -347,9 +351,14 @@ it("gives the tutor a bounded course summary and chapter/rewrite proposal instru
   const summary = prompt.split("## Course summary\n")[1]?.split("\n\n## Curriculum")[0] ?? "";
   expect(summary.trim().split("\n")).toHaveLength(30);
   expect(summary).toContain("01 — Topic 1: accepted");
+  expect(summary).toContain("02 — Topic 2: planned");
   expect(summary).toContain("05 — Topic 5: drafting");
   expect(summary).toContain("… 6 more chapters");
   expect(prompt).toContain("start_job kind draft-chapter");
   expect(prompt).toContain("start_job kind rewrite-chapter");
   expect(prompt).toContain("Proposals await learner confirmation");
+  expect(prompt).toContain("use request_plan_change with their request");
+  expect(prompt).toContain("Never edit curriculum.md or PLAN.md yourself");
+  expect(prompt).toContain("review it in the Inbox");
+  expect(prompt).toContain("Do not claim it is already applied");
 });
