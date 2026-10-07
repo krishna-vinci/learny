@@ -56,9 +56,11 @@ function isInScope(ctx: StudyToolContext, rootRel: string): boolean {
   return ctx.scope.set !== null && (rootRel === ctx.scope.set || rootRel.startsWith(`${ctx.scope.set}/`));
 }
 
-function rootRelative(ctx: StudyToolContext, rel: string): ScopedPath {
+function rootRelative(ctx: StudyToolContext, rel: string, readProfile = false): ScopedPath {
   let combined: string;
-  if (rel === "library" || rel.startsWith("library/")) {
+  if (readProfile && rel === "_global/profile.md") {
+    combined = rel;
+  } else if (rel === "library" || rel.startsWith("library/")) {
     if (!ctx.scope.library) throw new Error(`Path is outside this role's study scope: ${rel}`);
     combined = rel;
   } else if (ctx.scope.set !== null) {
@@ -70,6 +72,8 @@ function rootRelative(ctx: StudyToolContext, rel: string): ScopedPath {
   }
   resolveInRoot(ctx.root, combined);
   const canonical = canonicalRel(ctx.root, combined);
+  if (readProfile && combined === "_global/profile.md" && canonical === combined)
+    return { lexical: combined, canonical };
   if (!isInScope(ctx, combined) || !isInScope(ctx, canonical)) {
     throw new Error(`Path is outside this role's study scope: ${rel}`);
   }
@@ -130,7 +134,7 @@ export function studyTools(ctx: StudyToolContext): ToolDefinition[] {
     }),
     async execute(_toolCallId, params) {
       try {
-        const scoped = rootRelative(ctx, params.path);
+        const scoped = rootRelative(ctx, params.path, true);
         if (hiddenChatPath(scoped.lexical) || hiddenChatPath(scoped.canonical)) {
           throw new Error("Chat transcripts are not available to agents");
         }

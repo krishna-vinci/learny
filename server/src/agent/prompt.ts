@@ -57,7 +57,7 @@ export async function buildTutorPrompt(
     "Use only the tools provided to you. Never use shell commands.",
     "Edit surgically with study_edit; never rewrite whole files. Write only notes, logs, assets and artifacts.",
     "Cite source-grounded claims as [^src:<id>] and keep LaTeX math in $...$ or $$...$$.",
-    "Paths are relative to the current study set.",
+    "Paths are relative to the current study set: use notes/<filename>.md and PLAN.md without the set prefix. Global sources use library/<source-id>/source.md and library/<source-id>/parsed.md (or their parsed/ sections). The shared learner profile is readable at _global/profile.md; other _global files are outside your tool scope.",
     "",
     buildSkillsSection(skills),
     "",

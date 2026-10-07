@@ -1,5 +1,8 @@
 # Deploy & Security
 
+Developer and operator reference. For installation, provider setup, phone access,
+upgrades and recovery, start with the [self-hosting guide](SELF_HOSTING.md).
+
 Locked 2026-09-28 (D19).
 
 ## Compose and first boot
@@ -61,7 +64,8 @@ tarballs with pinned SHA-256 checksums for amd64 and arm64. Templates live in
 `server/templates/book/`; the book uses A5 pages for phone/tablet reading and
 Typst's bundled Libertinus Serif font. Mermaid diagrams are replaced by a short
 "diagram in the app" note because Mermaid CLI is not a dependency.
-Other images render as italic alt text; raw embedded markup is discarded so
+Local credited images and visual posters are included; unavailable images use
+caption/link fallbacks. Raw embedded markup is discarded so
 compilation cannot fetch remote assets or execute note-authored Typst code.
 The title page uses the PLAN title and goal, plus its `date` when present or the
 build date otherwise.
@@ -142,12 +146,15 @@ and `chats`. Add `?withHistory=1` to include `.git`.
 
 `scripts/install-service.sh` copies `deploy/studium.service` to
 `~/.config/systemd/user/`, runs `daemon-reload`, and `enable --now`. It never uses sudo.
-The unit runs from `%h/learny` with `EnvironmentFile=-%h/learny/.env`. To keep the app up
+The template runs from `%h/learny`; the installer substitutes the checkout path
+and Node/pnpm PATH. The app loads `.env` itself; the unit does not use
+`EnvironmentFile` (which would parse it differently). To keep the app up
 while logged out, run `loginctl enable-linger $USER` (the script prints this hint).
 
 ## Backups
 
-- Study tree is git (history). Optional `STUDY_GIT_REMOTE`: daily auto-push to a private repo.
+- Study trees are git repositories for history. Keep a separate full backup;
+  gitignored originals and chats are not covered by git.
 - Originals and chats are gitignored → full backup = `tar ./data` or a restic snapshot.
 - Backups are configured from the UI (Admin → Backups): restic to a local path, sftp, rest,
   s3, or rclone, with an optional daily schedule and retention. The repository password and
@@ -398,9 +405,7 @@ Run `systemctl --user daemon-reload` and `systemctl --user enable --now mineru`.
 
 MinerU keeps its models loaded after the first parse (about 4–5 GB) and has no idle-unload option.
 On small hosts, add a timer that restarts it when it holds memory but has been idle for 10 minutes
-(it starts again in ~100 MB and loads models on the next PDF). The owner's host uses
-`~/.local/share/mineru/idle-release.sh` with `mineru-idle.service` + `mineru-idle.timer`
-(`OnUnitActiveSec=10min`): restart when `MemoryCurrent` > 500 MB and `CPUUsageNSec` grew < 2 s since the last check.
+(it starts again in ~100 MB and loads models on the next PDF). A timer with `OnUnitActiveSec=10min` can restart the service when `MemoryCurrent` > 500 MB and `CPUUsageNSec` grew < 2 s since the last check.
 Check `http://127.0.0.1:18750/v1/health`. Set these in Studium’s environment,
 then restart Studium. Commented examples (no credentials in workspace config):
 
