@@ -12,11 +12,29 @@
     }
   },
   "files": {
-    "includes": ["**", "!reference", "!data", "!**/dist", "!examples", "!.claude"]
+    "includes": [
+      "**",
+      "!reference",
+      "!data",
+      "!**/dist",
+      "!examples",
+      "!.claude",
+      "!.worktrees",
+      "!docs/plans",
+      "!**/fixtures/**/*.html"
+    ]
   },
   "css": {
     "parser": {
       "tailwindDirectives": true
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["skills/**/templates/**"],
+      "linter": {
+        "enabled": false
+      }
+    }
+  ]
 }
